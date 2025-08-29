@@ -13,6 +13,7 @@
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.1",
     "@mui/icons-material": "^7.3.1",
+    "@mui/lab": "^7.0.0-beta.16",
     "@mui/material": "^7.3.1",
     "@mui/x-date-pickers": "^7.23.3",
     "axios": "^1.11.0",
@@ -24,6 +25,7 @@
     "pusher-js": "^8.4.0",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
+    "react-infinite-scroll-component": "^6.1.0",
     "react-router-dom": "^7.8.2",
     "react-toastify": "^11.0.5",
     "zustand": "^5.0.7"
@@ -32,6 +34,7 @@
     "@eslint/js": "^9.33.0",
     "@types/react": "^19.1.10",
     "@types/react-dom": "^19.1.7",
+    "@types/react-infinite-scroll-component": "^4.2.5",
     "@vitejs/plugin-react": "^5.0.0",
     "eslint": "^9.33.0",
     "eslint-plugin-react-hooks": "^5.2.0",

@@ -1,5 +1,5 @@
-import { useState, ReactElement, useMemo, ReactNode, FC } from "react";
-import { Box, darken, IconButton, lighten, useMediaQuery, useTheme } from "@mui/material";
+import { useState, useMemo, ReactNode, FC } from "react";
+import { Box, darken, IconButton, useMediaQuery, useTheme } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import KeyboardArrowRightRounded from '@mui/icons-material/KeyboardArrowRightRounded';
 import KeyboardArrowLeftRounded from '@mui/icons-material/KeyboardArrowLeftRounded';
@@ -7,9 +7,9 @@ import moment from "moment";
 import { TypographyCustom } from "../../custom";
 import { useUserStore } from "../../../store/user/UserStore";
 import DashboardRoundedIcon from '@mui/icons-material/DashboardRounded';
-import Groups2RoundedIcon from '@mui/icons-material/Groups2Rounded';
 import LogoutRoundedIcon from '@mui/icons-material/LogoutRounded';
 import ManageAccountsRoundedIcon from '@mui/icons-material/ManageAccountsRounded';
+import LocalShippingRoundedIcon from '@mui/icons-material/LocalShippingRounded';
 const Clock = () => {
     const [time, setTime] = useState<string>(moment().format("h:mm A"));
     useMemo(() => {
@@ -28,7 +28,7 @@ const Clock = () => {
 
 const links = [
     { text: 'Dashboard', icon: <DashboardRoundedIcon />, link: '/dashboard' },
-    { text: 'Equipos', icon: <Groups2RoundedIcon />, link: '/teams' }
+    { text: 'Ordenes', icon: <LocalShippingRoundedIcon />, link: '/orders' },
 ]
 /**
  * Este componente se encarga del menu lateral izquierdo

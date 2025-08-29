@@ -7,6 +7,8 @@ export interface IUser {
     names: string;
     surnames: string;
     email: string;
+    phone: string;
+    address: string;
     created_at: string;
     color: string;
     theme: string;
@@ -37,6 +39,8 @@ const initialState: IUser = {
     names: '',
     surnames: '',
     email: '',
+    address: '',
+    phone: '',
     created_at: '',
     color: '#0073ff',
     theme: 'light',

@@ -1,6 +1,6 @@
 import { FC, ReactNode } from 'react';
 import Box from '@mui/material/Box';
-import { Typography, useTheme } from '@mui/material';
+import { Toolbar, Typography, useTheme } from '@mui/material';
 import IconButton from '@mui/material/IconButton';
 import { To, useNavigate } from 'react-router-dom';
 import NavigateBeforeRounded from '@mui/icons-material/NavigateBeforeRounded';
@@ -23,7 +23,6 @@ export const DescripcionDeVista: FC<Props> = ({ description, title, backPath = u
         nameContainer: {
             borderRadius: 3,
             marginBottom: 2,
-            mt: 4,
         },
         buttons: {
             background: 'rgba(100,100,100,0.1)',
@@ -52,6 +51,7 @@ export const DescripcionDeVista: FC<Props> = ({ description, title, backPath = u
             {/* {buttons && (<Button size='small' onClick={redirect} variant="text" sx={styles.buttons} startIcon={< HomeRounded />}>
                 Volver al inicio
             </Button >)} */}
+            <Toolbar />
             <Box sx={styles.container}>
                 {buttons && (<IconButton onClick={() => router(backPath ? backPath : -1 as To)}>
                     <NavigateBeforeRounded />

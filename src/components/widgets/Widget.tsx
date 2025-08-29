@@ -14,6 +14,7 @@ export const Widget: FC<Props> = ({ title, children }) => {
             mt: 5,
             borderRadius: 5,
             p: 2,
+            gap: 1,
             minWidth: 150,
             minHeight: 100,
             border: `2px solid ${user.color}30`,

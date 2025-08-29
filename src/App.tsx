@@ -6,6 +6,8 @@ import { themeLight, themeDark } from './common/theme';
 import { Login } from './pages/auth/Login';
 import { useUserStore } from './store/user/UserStore';
 import { Dashboard } from './pages/Dashboard';
+import { Profile } from './pages/auth/Profile';
+import { Orders } from './pages/Orders';
 const useGetTheme = () => {
   const user = useUserStore((state) => state.user);
   const [theme, setTheme] = useState<Theme>(themeLight)
@@ -26,7 +28,9 @@ function App() {
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Login />} />
-          <Route path="/" element={<Dashboard />} />
+          <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/profile" element={<Profile />} />
+          <Route path="/orders" element={<Orders />} />
         </Routes>
       </BrowserRouter>
     </ThemeProvider>

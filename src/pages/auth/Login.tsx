@@ -32,7 +32,7 @@ export const Login = () => {
                 justifyContent: 'center',
                 alignItems: 'center',
             }}>
-                <Box sx={{
+                {/* <Box sx={{
                     width: { xs: "100%", md: "50%" }, minHeight: '100vh', height: '100%',
                     backgroundColor: user.darken,
                     display: 'flex', alignItems: 'center', justifyContent: 'center', paddingBlock: 2,
@@ -42,7 +42,7 @@ export const Login = () => {
                     backgroundRepeat: 'repeat'
                 }}>
                     <Content />
-                </Box>
+                </Box> */}
                 <Box sx={{ width: { xs: "100%", md: "50%" }, minHeight: '100vh', height: '100%', background: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     <SignInCard />
                 </Box>

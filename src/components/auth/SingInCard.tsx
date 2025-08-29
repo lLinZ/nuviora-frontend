@@ -45,7 +45,7 @@ export const SignInCard = () => {
         <Box sx={{ minWidth: 500, padding: 13 }}>
             {loading && (<Loading />)}
             <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: { xs: '100%', md: '60%' }, margin: 'auto' }}>
-                <img src='/logo.png' height='120px' width="100%" style={{ borderRadius: '10px' }} />
+                {/* <img src='/logo.png' height='120px' width="100%" style={{ borderRadius: '10px' }} /> */}
             </Box>
             <TypographyCustom
                 textAlign={'center'}
