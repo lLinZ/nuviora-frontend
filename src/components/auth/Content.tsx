@@ -34,17 +34,17 @@ export const Content = () => {
 const items = [
     {
         icon: <SportsBasketballRounded sx={{ color: "white" }} />,
-        title: 'Basket 3x3',
-        videoUrl: 'https://www.youtube.com/embed/o-R_2A0ebo0?si=Fe5ED8NErscfyhzI'
+        title: 'Informacion 1',
+        videoUrl: 'https://www.youtube.com/embed/'
     },
     {
         icon: <LoyaltyRounded sx={{ color: "white" }} />,
-        title: 'Suscripcion selectiva',
-        videoUrl: 'https://www.youtube.com/embed/pLpzddUO1Io?si=zWmH2XlDJIZlVbBF'
+        title: 'Informacion 2',
+        videoUrl: 'https://www.youtube.com/embed/'
     },
     {
         icon: <TrophyRounded sx={{ color: "white" }} />,
-        title: 'Copa subcampeones',
-        videoUrl: 'https://www.youtube.com/embed/8IEoV5END-8?si=vyJlH3XQnxTZTz4P'
+        title: 'Informacion 3',
+        videoUrl: 'https://www.youtube.com/embed/'
     },
 ];

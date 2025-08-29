@@ -1,5 +1,5 @@
 import { AppBar, Toolbar, Box, lighten, darken } from "@mui/material";
-import Grid from "@mui/material/Grid2";
+import Grid from "@mui/material/Grid";
 import { useUserStore } from "../../../store/user/UserStore";
 import { UserMenu } from "./UserMenu";
 import { TypographyCustom } from "../../custom";
