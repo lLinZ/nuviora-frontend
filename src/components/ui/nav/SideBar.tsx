@@ -2,6 +2,7 @@ import { useState, useMemo, ReactNode, FC } from "react";
 import { Box, darken, IconButton, useMediaQuery, useTheme } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import KeyboardArrowRightRounded from '@mui/icons-material/KeyboardArrowRightRounded';
+import AttachMoneyRoundedIcon from '@mui/icons-material/AttachMoneyRounded';
 import KeyboardArrowLeftRounded from '@mui/icons-material/KeyboardArrowLeftRounded';
 import moment from "moment";
 import { TypographyCustom } from "../../custom";
@@ -10,6 +11,7 @@ import DashboardRoundedIcon from '@mui/icons-material/DashboardRounded';
 import LogoutRoundedIcon from '@mui/icons-material/LogoutRounded';
 import ManageAccountsRoundedIcon from '@mui/icons-material/ManageAccountsRounded';
 import LocalShippingRoundedIcon from '@mui/icons-material/LocalShippingRounded';
+import GroupsRoundedIcon from '@mui/icons-material/GroupsRounded';
 const Clock = () => {
     const [time, setTime] = useState<string>(moment().format("h:mm A"));
     useMemo(() => {
@@ -28,7 +30,9 @@ const Clock = () => {
 
 const links = [
     { text: 'Dashboard', icon: <DashboardRoundedIcon />, link: '/dashboard' },
+    { text: 'Usuarios', icon: <GroupsRoundedIcon />, link: '/users' },
     { text: 'Ordenes', icon: <LocalShippingRoundedIcon />, link: '/orders' },
+    { text: 'Tasa de dólar', icon: <AttachMoneyRoundedIcon />, link: '/currency' },
 ]
 /**
  * Este componente se encarga del menu lateral izquierdo
