@@ -1,14 +1,41 @@
-import { Toolbar } from '@mui/material'
-import Masonry from '@mui/lab/Masonry';
-import { useEffect } from 'react';
-import { TypographyCustom } from '../../components/custom';
-import { Loading } from '../../components/ui/content/Loading';
-import { Layout } from '../../components/ui/Layout';
-import { Widget } from '../../components/widgets/Widget';
-import { useUserStore } from '../../store/user/UserStore';
+import { useEffect, useState } from "react";
+import { useUserStore } from "../../store/user/UserStore";
+import { Loading } from "../../components/ui/content/Loading";
+import { Layout } from "../../components/ui/Layout";
+import { DescripcionDeVista } from "../../components/ui/content/DescripcionDeVista";
+import { TypographyCustom } from "../../components/custom";
+import { UsersDataTable } from "../../components/users/UsersDataTable";
+import { IResponse } from "../../interfaces/response-type";
+import { request } from "../../common/request";
+const useGetUsers = (url: string) => {
+    const [data, setData] = useState<any>(null);
+    const [errors, setErrors] = useState<any>(null);
 
+    const getData = async () => {
+        const { status, response }: IResponse = await request(url, 'GET');
+        switch (status) {
+            case 200:
+                const { data: apiData } = await response.json()
+                setData(apiData);
+                break;
+            case 400:
+                const { errors } = await response.json();
+                setErrors(errors);
+                break;
+            default:
+                setErrors(['Ocurrio un error inesperado']);
+                break;
+        }
+    }
+    useEffect(() => {
+        getData();
+    }, []);
+
+    return { data, setData, errors, getData }
+}
 export const Users = () => {
     const user = useUserStore(state => state.user);
+    const { data, setData, errors } = useGetUsers('/users');
     const validateToken = useUserStore((state) => state.validateToken);
     const validarSesion = async () => {
         const result = await validateToken();
@@ -21,61 +48,20 @@ export const Users = () => {
     if (!user.token) return (
         <Loading />
     )
+
     return (
         <Layout>
-            <Toolbar />
-            <TypographyCustom fontWeight={'bold'} variant='h4'>¡Bienvenido {user.names}!</TypographyCustom>
-            <TypographyCustom color={'text.secondary'} variant='body1'>¿Que deseas hacer hoy?</TypographyCustom>
-            <Masonry columns={{ xs: 1, sm: 3, md: 4 }} spacing={2}>
-                <Widget title='Widget 1'>
-                    <TypographyCustom variant='body1' >Ultimas 5 ventas</TypographyCustom>
-                    <TypographyCustom variant='body2' color='text.secondary' >29/08/2025</TypographyCustom>
-                    <TypographyCustom variant='body2' color='text.secondary' >28/08/2025</TypographyCustom>
-                    <TypographyCustom variant='body2' color='text.secondary' >27/08/2025</TypographyCustom>
-                    <TypographyCustom variant='body2' color='text.secondary' >26/08/2025</TypographyCustom>
-                    <TypographyCustom variant='body2' color='text.secondary' >25/08/2025</TypographyCustom>
-                </Widget>
-                <Widget title='Widget 2'>
-                    <TypographyCustom variant='body2' color='text.secondary' >Persona 1</TypographyCustom>
-                    <TypographyCustom variant='body2' color='text.secondary' >Persona 2</TypographyCustom>
-                    <TypographyCustom variant='body2' color='text.secondary' >Persona 3</TypographyCustom>
-                </Widget>
-                <Widget title='Widget 3'>
-                    <TypographyCustom variant='body2' color='text.secondary' >Persona 1</TypographyCustom>
-                    <TypographyCustom variant='body2' color='text.secondary' >Persona 2</TypographyCustom>
-                    <TypographyCustom variant='body2' color='text.secondary' >Persona 3</TypographyCustom>
-                    <TypographyCustom variant='body2' color='text.secondary' >Persona 3</TypographyCustom>
-                    <TypographyCustom variant='body2' color='text.secondary' >Persona 3</TypographyCustom>
-                </Widget>
-                <Widget title='Widget 4'>
-                    <TypographyCustom variant='body2' color='text.secondary' >Persona 1</TypographyCustom>
-                    <TypographyCustom variant='body2' color='text.secondary' >Persona 2</TypographyCustom>
-                    <TypographyCustom variant='body2' color='text.secondary' >Persona 3</TypographyCustom>
-                    <TypographyCustom variant='body2' color='text.secondary' >Persona 3</TypographyCustom>
-                    <TypographyCustom variant='body2' color='text.secondary' >Persona 3</TypographyCustom>
-                </Widget>
-                <Widget title='Widget 5'>
-                    <TypographyCustom variant='body2' color='text.secondary' >Persona 1</TypographyCustom>
-                    <TypographyCustom variant='body2' color='text.secondary' >Persona 2</TypographyCustom>
-                    <TypographyCustom variant='body2' color='text.secondary' >Persona 3</TypographyCustom>
-                    <TypographyCustom variant='body2' color='text.secondary' >Persona 3</TypographyCustom>
-                </Widget>
-                <Widget title='Widget 6'>
-                    <TypographyCustom variant='body2' color='text.secondary' >Persona 1</TypographyCustom>
-                    <TypographyCustom variant='body2' color='text.secondary' >Persona 3</TypographyCustom>
-                </Widget>
-                <Widget title='Widget 7'>
-                    <TypographyCustom variant='body2' color='text.secondary' >Persona 1</TypographyCustom>
-                    <TypographyCustom variant='body2' color='text.secondary' >Persona 3</TypographyCustom>
-                    <TypographyCustom variant='body2' color='text.secondary' >Persona 3</TypographyCustom>
-                    <TypographyCustom variant='body2' color='text.secondary' >Persona 3</TypographyCustom>
-                    <TypographyCustom variant='body2' color='text.secondary' >Persona 3</TypographyCustom>
-                </Widget>
-                <Widget title='Widget 8'>
-                    <TypographyCustom variant='body2' color='text.secondary' >Persona 1</TypographyCustom>
-                    <TypographyCustom variant='body2' color='text.secondary' >Persona 3</TypographyCustom>
-                </Widget>
-            </Masonry>
-        </Layout>
+            <DescripcionDeVista title={"Usuarios"} description={"En esta vista podras consultar los usuarios registrados"} />
+            {errors && errors.length > 0 && (
+                <>
+                    <TypographyCustom color='error'>Ocurrio un error</TypographyCustom>
+                    <TypographyCustom color='error'>{JSON.stringify(errors)}</TypographyCustom>
+                </>
+            )}
+            {data && (
+                <UsersDataTable data={data} setData={setData} />
+            )}
+        </Layout >
     )
 }
+

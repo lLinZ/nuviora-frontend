@@ -9,6 +9,7 @@ import { Dashboard } from './pages/Dashboard';
 import { Profile } from './pages/auth/Profile';
 import { Orders } from './pages/Orders';
 import { Currency } from './pages/currency/Currency';
+import { Users } from './pages/users/Users';
 const useGetTheme = () => {
   const user = useUserStore((state) => state.user);
   const [theme, setTheme] = useState<Theme>(themeLight)
@@ -33,6 +34,7 @@ function App() {
           <Route path="/profile" element={<Profile />} />
           <Route path="/orders" element={<Orders />} />
           <Route path="/currency" element={<Currency />} />
+          <Route path="/users" element={<Users />} />
         </Routes>
       </BrowserRouter>
     </ThemeProvider>
