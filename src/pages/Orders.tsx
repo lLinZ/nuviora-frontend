@@ -14,6 +14,12 @@ const ordersInitial = [
     { id: '1', title: 'Orden #1234', customer: 'Cliente A', price: 100, status: 'Nuevo' },
     { id: '2', title: 'Orden #1235', customer: 'Cliente B', price: 150, status: 'Nuevo' },
     { id: '3', title: 'Orden #1236', customer: 'Cliente C', price: 200, status: 'Nuevo' },
+    { id: '4', title: 'Orden #1236', customer: 'Cliente C', price: 200, status: 'Nuevo' },
+    { id: '5', title: 'Orden #1236', customer: 'Cliente C', price: 200, status: 'Nuevo' },
+    { id: '6', title: 'Orden #1236', customer: 'Cliente C', price: 200, status: 'Nuevo' },
+    { id: '7', title: 'Orden #1236', customer: 'Cliente C', price: 200, status: 'Nuevo' },
+    { id: '8', title: 'Orden #1236', customer: 'Cliente C', price: 200, status: 'Nuevo' },
+    { id: '9', title: 'Orden #1236', customer: 'Cliente C', price: 200, status: 'Nuevo' },
 ]
 export const Orders = () => {
     const user = useUserStore(state => state.user);
@@ -81,7 +87,12 @@ interface OrderListProps {
 const OrderList: FC<OrderListProps> = ({ title, orders, setOrders }) => {
     const user = useUserStore(state => state.user);
     return (
-        <Box sx={{ zIndex: 999, background: (theme) => theme.palette.mode === 'dark' ? darken(user.color, 0.8) : 'white', p: 2, boxShadow: '0 8px 20px rgba(150,150,150,0.1)', overflow: 'hidden', minHeight: '600px', maxHeight: '600px', gap: 2, borderRadius: 5, height: 'fit-content' }}>
+        <Box sx={{
+            zIndex: 999, background: (theme) => theme.palette.mode === 'dark' ? darken(user.color, 0.8) : 'white', p: 2, boxShadow: '0 8px 20px rgba(150,150,150,0.1)', overflowX: 'hidden', minHeight: '600px', maxHeight: '600px', gap: 2, borderRadius: 5, height: 'fit-content',
+            overflowY: 'scroll', '&::-webkit-scrollbar': {
+                width: '5px',
+            },
+        }}>
             <Typography variant='h6' sx={{ mb: 2 }}>{title}</Typography>
             <Box sx={{ p: 2, gap: 2, display: 'flex', flexDirection: 'column', alignItems: 'center', minWidth: '300px', }}>
                 {orders && orders.map((order) => (
