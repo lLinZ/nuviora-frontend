@@ -8,22 +8,28 @@ import CloseRoundedIcon from '@mui/icons-material/CloseRounded';
 import { TextFieldCustom, TypographyCustom } from '../components/custom';
 import DenseMenu from '../components/ui/content/DenseMenu';
 import SendRounded from '@mui/icons-material/SendRounded';
+import { request } from '../common/request';
+import { IResponse } from '../interfaces/response-type';
 
+const useGetOrders = (url: string) => {
+    const [orders, setOrders] = useState<any[]>([]);
+    useEffect(() => {
+        const fetchOrders = async () => {
+            const { status, response, err }: IResponse = await request(url, 'GET');
+            if (status) {
+                const data = await response.json();
+                console.log(data.data);
+                setOrders(data.data);
+            }
+        };
+        fetchOrders();
+    }, [url]);
+    return { orders, setOrders };
+}
 
-const ordersInitial = [
-    { id: '1', title: 'Orden #1234', customer: 'Cliente A', price: 100, status: 'Nuevo' },
-    { id: '2', title: 'Orden #1235', customer: 'Cliente B', price: 150, status: 'Nuevo' },
-    { id: '3', title: 'Orden #1236', customer: 'Cliente C', price: 200, status: 'Nuevo' },
-    { id: '4', title: 'Orden #1236', customer: 'Cliente C', price: 200, status: 'Nuevo' },
-    { id: '5', title: 'Orden #1236', customer: 'Cliente C', price: 200, status: 'Nuevo' },
-    { id: '6', title: 'Orden #1236', customer: 'Cliente C', price: 200, status: 'Nuevo' },
-    { id: '7', title: 'Orden #1236', customer: 'Cliente C', price: 200, status: 'Nuevo' },
-    { id: '8', title: 'Orden #1236', customer: 'Cliente C', price: 200, status: 'Nuevo' },
-    { id: '9', title: 'Orden #1236', customer: 'Cliente C', price: 200, status: 'Nuevo' },
-]
 export const Orders = () => {
     const user = useUserStore(state => state.user);
-    const [orders, setOrders] = useState<any[]>(ordersInitial);
+    const { orders, setOrders } = useGetOrders('/orders');
     const validateToken = useUserStore((state) => state.validateToken);
     const validarSesion = async () => {
         const result = await validateToken();
@@ -96,7 +102,7 @@ const OrderList: FC<OrderListProps> = ({ title, orders, setOrders }) => {
             <Typography variant='h6' sx={{ mb: 2 }}>{title}</Typography>
             <Box sx={{ p: 2, gap: 2, display: 'flex', flexDirection: 'column', alignItems: 'center', minWidth: '300px', }}>
                 {orders && orders.map((order) => (
-                    order.status === title && <OrderItem key={order.id} order={order} orders={orders} setOrders={setOrders} />
+                    order.status.description === title && <OrderItem key={order.id} order={order} orders={orders} setOrders={setOrders} />
                 ))}
             </Box>
         </Box>
@@ -116,26 +122,26 @@ const OrderItem: FC<OrderItemProps> = ({ order, orders, setOrders }) => {
 
     const changeStatus = (status: string) => {
         const exception = orders?.filter(o => o.id !== order.id);
-        const updatedOrder = { ...order, status };
+        const updatedOrder = { ...order, status: { description: status } };
         const newOrders = exception ? [...exception, updatedOrder] : [updatedOrder];
         setOrders ? setOrders(newOrders) : null;
     }
     return (
         <Box sx={{ p: 2, background: theme.palette.mode === 'dark' ? darken(user.color, 0.7) : '#f2f2f2', border: theme.palette.mode === 'dark' ? `1px solid ${darken(user.color, 0.6)}` : '1px solid #f0f0f0', borderRadius: 5, minWidth: '250px', display: 'flex', flexFlow: 'column wrap' }}>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                <TypographyCustom variant='subtitle1' fontWeight={'bold'}>{order.title}</TypographyCustom>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+                <TypographyCustom variant='subtitle1' fontWeight={'bold'}>Orden {order.name}</TypographyCustom>
                 <DenseMenu data={orders} changeStatus={changeStatus} />
             </Box>
             <Box onClick={handleOpen} sx={{ cursor: 'pointer' }}>
                 <Box sx={{ display: 'flex', flexFlow: 'column', justifyContent: 'center', alignItems: 'start' }}>
-                    <TypographyCustom variant='subtitle2'>Precio ${order.price}</TypographyCustom>
-                    <TypographyCustom variant='subtitle2' color={'text.secondary'}>{order.customer}</TypographyCustom>
+                    <TypographyCustom variant='subtitle2' color={'text.secondary'}>{order.client.first_name} {order.client.last_name}</TypographyCustom>
+                    <TypographyCustom variant='subtitle2'>{order.current_total_price} {order.currency}</TypographyCustom>
                 </Box>
                 <Divider sx={{ marginBlock: 2 }} />
                 <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1, mt: 2 }}>
-                    <Chip label={order.status} />
+                    <Chip label={order.status.description} />
                     <Avatar sx={{ width: 30, height: 30, fontSize: 16 }}>
-                        {order.customer.charAt(0)}
+                        {order.client.first_name.charAt(0)}
                     </Avatar>
                 </Box>
             </Box>
