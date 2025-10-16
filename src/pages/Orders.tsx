@@ -15,6 +15,9 @@ export const Orders = () => {
     const { setOrders } = useOrdersStore();
     const validateToken = useUserStore((state) => state.validateToken);
 
+    // 👇 Rol actual (Vendedor / Gerente / Admin...)
+    const role = user?.role?.description;
+
     useEffect(() => {
         const init = async () => {
             try {
@@ -25,8 +28,12 @@ export const Orders = () => {
                     return (window.location.href = "/");
                 }
 
-                // Cargamos órdenes
-                const { status, response }: IResponse = await request("/orders", "GET");
+                // URL base:
+                // - Vendedor: el backend ya filtra automáticamente (sus órdenes + hoy/ayer).
+                // - Gerente/Admin: hoy usamos /orders sin filtros adicionales aquí.
+                let url = "/orders";
+
+                const { status, response }: IResponse = await request(url, "GET");
                 if (status) {
                     const data = await response.json();
                     setOrders(data.data);

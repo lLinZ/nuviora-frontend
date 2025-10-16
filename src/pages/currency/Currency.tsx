@@ -19,7 +19,9 @@ export const Currency = () => {
         switch (status) {
             case 200:
                 const { data } = await response.json()
-                setCurrency({ value: data.value, created_at: data.created_at, id: data.id, description: data.description })
+                if (data.length > 0) {
+                    setCurrency({ value: data[0].value, created_at: data[0].created_at, id: data[0].id, description: data[0].description })
+                }
                 console.log({ data })
 
                 break;
@@ -37,7 +39,6 @@ export const Currency = () => {
     const validateToken = useUserStore((state) => state.validateToken);
     const validarSesion = async () => {
         const result = await validateToken();
-        console.log({ result });
         if (!result.status) return window.location.href = '/';
     }
 

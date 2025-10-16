@@ -39,7 +39,6 @@ export const Users = () => {
     const validateToken = useUserStore((state) => state.validateToken);
     const validarSesion = async () => {
         const result = await validateToken();
-        console.log({ result });
         if (!result.status) return window.location.href = '/';
     }
     useEffect(() => {

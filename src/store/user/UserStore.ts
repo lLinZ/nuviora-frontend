@@ -11,6 +11,8 @@ export interface IUser {
     address: string;
     created_at: string;
     color: string;
+    role?: IRole;
+    status?: IStatus;
     theme: string;
     token?: string;
     lighten: string;
@@ -46,6 +48,8 @@ const initialState: IUser = {
     theme: 'light',
     darken: darken('#0073ff', 0.3),
     lighten: lighten('#0073ff', 0.3),
+    role: undefined,
+    status: undefined
 }
 
 interface Response {
