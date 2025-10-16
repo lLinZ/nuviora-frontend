@@ -20,6 +20,7 @@ import { useUserStore } from "../../store/user/UserStore";
 import { ButtonCustom, TypographyCustom, TextFieldCustom } from "../custom";
 import { CancelOrderDialog } from "./CancelOrderDialog";
 import { toast } from "react-toastify";
+import { PostponeOrderDialog } from "./PostponeOrderDialog";
 
 interface OrderDialogProps {
     id?: number;
@@ -31,7 +32,7 @@ export const OrderDialog: FC<OrderDialogProps> = ({ id, open, setOpen }) => {
     const { selectedOrder, setSelectedOrder, updateOrder } = useOrdersStore();
     const [openCancel, setOpenCancel] = useState(false);
     const [newUpdate, setNewUpdate] = useState<string>("");
-
+    const [openPostpone, setOpenPostpone] = useState(false);
     const user = useUserStore((state) => state.user);
     const theme = useTheme();
 
@@ -137,7 +138,10 @@ export const OrderDialog: FC<OrderDialogProps> = ({ id, open, setOpen }) => {
                 </Typography>
                 <Typography>Status: {order.status.description}</Typography>
                 {order.agent && <Typography>Vendedor: {order.agent.names}</Typography>}
-
+                {/* Botón posponer */}
+                <ButtonCustom variant="outlined" onClick={() => setOpenPostpone(true)}>
+                    Posponer
+                </ButtonCustom>
                 {/* Botón cancelar */}
                 <Box sx={{ display: "flex", justifyContent: "flex-end", mt: 4 }}>
                     <ButtonCustom
@@ -162,7 +166,11 @@ export const OrderDialog: FC<OrderDialogProps> = ({ id, open, setOpen }) => {
                         });
                     }}
                 />
-
+                <PostponeOrderDialog
+                    open={openPostpone}
+                    onClose={() => setOpenPostpone(false)}
+                    orderId={id}
+                />
                 {/* Productos */}
                 <Divider sx={{ marginBlock: 3 }} />
                 <Typography variant="h6" sx={{ mb: 2 }}>

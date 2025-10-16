@@ -18,6 +18,7 @@ import DenseMenu from "../ui/content/DenseMenu";
 import { AssignAgentDialog } from "./AssignAgentDialog";
 import { OrderDialog } from "./OrderDialog";
 import { purple, blue, green, red, yellow, grey, orange } from "@mui/material/colors";
+import { AssignDelivererDialog } from "./AssignDelivererDialog";
 
 interface OrderItemProps {
     order: any;
@@ -60,6 +61,7 @@ export const OrderItem: FC<OrderItemProps> = ({ order }) => {
     const { updateOrder, setSelectedOrder } = useOrdersStore();
     const [openAssign, setOpenAssign] = useState(false);
     const [open, setOpen] = useState<boolean>(false);
+    const [openAssignDeliverer, setOpenAssignDeliverer] = useState(false);
     const theme = useTheme();
 
     const handleOpen = () => {
@@ -68,12 +70,13 @@ export const OrderItem: FC<OrderItemProps> = ({ order }) => {
     };
 
     const changeStatus = async (status: string, statusId: number) => {
-        // 👇 Validar si se está asignando a vendedora pero no hay agente
-        if (status === "Asignado a vendedora" && !order.agent) {
-            setOpenAssign(true);
+        // 👇 Si quieren "Asignado a repartidor" pero aún no hay repartidor, primero elegimos uno
+        if (status === "Asignado a repartidor" && !order.deliverer) {
+            setOpenAssignDeliverer(true);
             return;
         }
 
+        // caso normal: actualizar status
         const body = new URLSearchParams();
         body.append("status_id", String(statusId));
         try {
@@ -82,7 +85,6 @@ export const OrderItem: FC<OrderItemProps> = ({ order }) => {
                 "PUT",
                 body
             );
-
             if (ok) {
                 const data = await response.json();
                 updateOrder(data.order);
@@ -90,10 +92,11 @@ export const OrderItem: FC<OrderItemProps> = ({ order }) => {
             } else {
                 toast.error("No se pudo actualizar el estado ❌");
             }
-        } catch (e) {
+        } catch {
             toast.error("Error en el servidor al actualizar estado 🚨");
         }
     };
+
 
     return (
         <Box
@@ -169,7 +172,11 @@ export const OrderItem: FC<OrderItemProps> = ({ order }) => {
                 onClose={() => setOpenAssign(false)}
                 orderId={order.id}
             />
-
+            <AssignDelivererDialog
+                open={openAssignDeliverer}
+                onClose={() => setOpenAssignDeliverer(false)}
+                orderId={order.id}
+            />
             <OrderDialog open={open} setOpen={setOpen} id={order.id} />
         </Box>
     );

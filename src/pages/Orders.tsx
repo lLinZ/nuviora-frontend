@@ -30,6 +30,7 @@ export const Orders = () => {
                 if (status) {
                     const data = await response.json();
                     setOrders(data.data);
+                    console.log(data.data)
                     toast.success("Órdenes cargadas correctamente ✅");
                 } else {
                     toast.error("Error al cargar las órdenes ❌");
