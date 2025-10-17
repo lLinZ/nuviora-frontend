@@ -1,5 +1,5 @@
 import { Box, darken, lighten } from "@mui/material";
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { DescripcionDeVista } from "../components/ui/content/DescripcionDeVista";
 import { Loading } from "../components/ui/content/Loading";
 import { Layout } from "../components/ui/Layout";
@@ -9,12 +9,21 @@ import { IResponse } from "../interfaces/response-type";
 import { useOrdersStore } from "../store/orders/OrdersStore";
 import { OrderList } from "../components/orders/OrderList";
 import { toast } from "react-toastify";
+import { ButtonCustom } from "../components/custom";
+import { ProductSearchDialog } from "../components/products/ProductsSearchDialog";
+import { SearchRounded } from "@mui/icons-material";
 
 export const Orders = () => {
     const user = useUserStore((state) => state.user);
     const { setOrders } = useOrdersStore();
     const validateToken = useUserStore((state) => state.validateToken);
+    const [openSearch, setOpenSearch] = useState(false);
 
+    const handlePickProduct = (product: any) => {
+        // Aquí decides qué hacer: ver detalle, copiar SKU, crear actualización, etc.
+        toast.info(`Seleccionaste: ${product.name ?? product.title}`);
+        setOpenSearch(false);
+    };
     useEffect(() => {
         const init = async () => {
             try {
@@ -78,6 +87,17 @@ export const Orders = () => {
                         },
                     }}
                 >
+                    <Box sx={{ position: "fixed", right: 24, bottom: 24 }}>
+                        <ButtonCustom startIcon={<SearchRounded />} onClick={() => setOpenSearch(true)}>
+                            Buscar producto
+                        </ButtonCustom>
+                    </Box>
+
+                    <ProductSearchDialog
+                        open={openSearch}
+                        onClose={() => setOpenSearch(false)}
+                        onPick={handlePickProduct}
+                    />
                     <Box sx={{ display: "flex", gap: 2, flexFlow: "row nowrap" }}>
                         <OrderList title="Nuevo" />
                         <OrderList title="Asignado a vendedora" />
