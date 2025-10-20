@@ -125,25 +125,27 @@ export const OrderDialog: FC<OrderDialogProps> = ({ id, open, setOpen }) => {
                         theme.palette.mode === "dark"
                             ? darken(user.color, 0.9)
                             : lighten(user.color, 0.97),
-                    minHeight: "100vh",
                 }}
             >
                 {/* Encabezado */}
-                <Typography variant="h5">Orden #{order.name}</Typography>
-                <Typography>
-                    Cliente: {order.client.first_name} {order.client.last_name}
-                </Typography>
-                <Typography>
-                    Total: {order.current_total_price} {order.currency}
-                </Typography>
-                <Typography>Status: {order.status.description}</Typography>
-                {order.agent && <Typography>Vendedor: {order.agent.names}</Typography>}
+                <Box sx={{ paddingBlock: 4 }}>
+                    <Typography variant="h5">Orden #{order.name}</Typography>
+                    <Typography>
+                        Cliente: {order.client.first_name} {order.client.last_name}
+                    </Typography>
+                    <Typography>
+                        Total: {order.current_total_price} {order.currency}
+                    </Typography>
+                    <Typography>Status: {order.status.description}</Typography>
+                    {order.agent && <Typography>Vendedor: {order.agent.names}</Typography>}
+                </Box>
                 {/* Botón posponer */}
-                <ButtonCustom variant="outlined" onClick={() => setOpenPostpone(true)}>
-                    Posponer
-                </ButtonCustom>
-                {/* Botón cancelar */}
-                <Box sx={{ display: "flex", justifyContent: "flex-end", mt: 4 }}>
+                <Box sx={{ display: 'flex', paddingBlock: 4, gap: 2 }}>
+
+                    <ButtonCustom variant="outlined" onClick={() => setOpenPostpone(true)}>
+                        Posponer
+                    </ButtonCustom>
+                    {/* Botón cancelar */}
                     <ButtonCustom
                         variant="contained"
                         color="error"
@@ -247,7 +249,7 @@ export const OrderDialog: FC<OrderDialogProps> = ({ id, open, setOpen }) => {
                         </IconButton>
                     </Box>
 
-                    <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
+                    <Box sx={{ display: "flex", flexDirection: "column", gap: 1, paddingBlock: 5 }}>
                         {order.updates?.length > 0 ? (
                             order.updates.map((u: any) => (
                                 <Box
@@ -280,6 +282,6 @@ export const OrderDialog: FC<OrderDialogProps> = ({ id, open, setOpen }) => {
                     </Box>
                 </Box>
             </Box>
-        </Dialog>
+        </Dialog >
     );
 };

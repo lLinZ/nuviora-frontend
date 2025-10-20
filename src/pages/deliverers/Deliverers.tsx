@@ -10,14 +10,17 @@ import DeleteRoundedIcon from "@mui/icons-material/DeleteRounded";
 import SearchRoundedIcon from "@mui/icons-material/SearchRounded";
 import { toast } from "react-toastify";
 import { request } from "../../common/request";
-import { ButtonCustom } from "../../components/custom";
+import { ButtonCustom, TextFieldCustom } from "../../components/custom";
 import { IResponse } from "../../interfaces/response-type";
 import { DelivererFormDialog } from "../../components/deliverers/DelivererFormDialog";
 import { ConfirmDialog } from "../../components/ui/ConfirmDialog";
 import { Layout } from "../../components/ui/Layout";
 import { DescripcionDeVista } from "../../components/ui/content/DescripcionDeVista";
+import { useValidateSession } from "../../hooks/useValidateSession";
+import { Loading } from "../../components/ui/content/Loading";
 
 export const DeliverersPage: React.FC = () => {
+    const { loadingSession, isValid, user } = useValidateSession();
     const [rows, setRows] = useState<any[]>([]);
     const [meta, setMeta] = useState<{ current_page: number; last_page: number; total: number } | null>(null);
     const [page, setPage] = useState(1);
@@ -95,21 +98,20 @@ export const DeliverersPage: React.FC = () => {
         }
     };
 
+    if (loading || !isValid || !user.token) return <Loading />;
     return (
         <Layout>
             <DescripcionDeVista title={"Repartidores"} description={"Vista para consultar repartidores, agregar repartidores"} />
             <Box sx={{ p: 3 }}>
                 <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2 }}>
-                    <Typography variant="h5" fontWeight={700}>Repartidores</Typography>
-                    <ButtonCustom startIcon={<AddRoundedIcon />} onClick={handleOpenCreate}>
+                    <ButtonCustom variant={'contained'} startIcon={<AddRoundedIcon />} onClick={handleOpenCreate}>
                         Nuevo repartidor
                     </ButtonCustom>
                 </Box>
 
                 <Paper sx={{ p: 2, mb: 2 }}>
                     <Box sx={{ display: "flex", gap: 1 }}>
-                        <TextField
-                            size="small"
+                        <TextFieldCustom
                             placeholder="Buscar por nombre o email…"
                             value={q}
                             onChange={(e) => setQ(e.target.value)}

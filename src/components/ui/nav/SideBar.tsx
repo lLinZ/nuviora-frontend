@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import KeyboardArrowRightRounded from '@mui/icons-material/KeyboardArrowRightRounded';
 import AttachMoneyRoundedIcon from '@mui/icons-material/AttachMoneyRounded';
 import KeyboardArrowLeftRounded from '@mui/icons-material/KeyboardArrowLeftRounded';
+import EngineeringRoundedIcon from '@mui/icons-material/EngineeringRounded';
 import moment from "moment";
 import { TypographyCustom } from "../../custom";
 import { useUserStore } from "../../../store/user/UserStore";
@@ -32,6 +33,7 @@ const links = [
     { text: 'Dashboard', icon: <DashboardRoundedIcon />, link: '/dashboard' },
     { text: 'Usuarios', icon: <GroupsRoundedIcon />, link: '/users' },
     { text: 'Ordenes', icon: <LocalShippingRoundedIcon />, link: '/orders' },
+    { text: 'Repartidores', icon: <EngineeringRoundedIcon />, link: '/deliverers' },
     { text: 'Tasa de dólar', icon: <AttachMoneyRoundedIcon />, link: '/currency' },
 ]
 /**
