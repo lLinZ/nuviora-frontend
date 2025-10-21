@@ -98,7 +98,7 @@ export const DeliverersPage: React.FC = () => {
         }
     };
 
-    if (loading || !isValid || !user.token) return <Loading />;
+    if (loadingSession || !isValid || !user.token) return <Loading />;
     return (
         <Layout>
             <DescripcionDeVista title={"Repartidores"} description={"Vista para consultar repartidores, agregar repartidores"} />

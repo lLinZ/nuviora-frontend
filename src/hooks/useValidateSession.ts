@@ -1,39 +1,44 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useUserStore } from "../store/user/UserStore";
 import { toast } from "react-toastify";
 
 /**
- * ✅ Hook para validar sesión antes de mostrar vistas protegidas
- * Devuelve: { loading, isValid }
- * - loading: true mientras se valida el token
- * - isValid: true si la sesión es válida
+ * Valida sesión y (opcionalmente) roles permitidos.
+ * - allowedRoles: lista de descripciones de rol válidas (e.g. ["Admin","Gerente"])
+ * Devuelve: loading, isValid, user, hasRole
  */
-export const useValidateSession = () => {
-    const user = useUserStore(state => state.user);
-    const validateToken = useUserStore(state => state.validateToken);
+export const useValidateSession = (allowedRoles?: string[]) => {
+    const user = useUserStore((s) => s.user);
+    const validateToken = useUserStore((s) => s.validateToken);
+
     const [loadingSession, setLoadingSession] = useState(true);
     const [isValid, setIsValid] = useState(false);
 
+    const roleDescription = user?.role?.description ?? null;
+
+    const hasRole = useMemo(() => {
+        if (!allowedRoles || allowedRoles.length === 0) return true; // no se exige rol
+        return allowedRoles.includes(roleDescription as string);
+    }, [allowedRoles, roleDescription]);
+
     useEffect(() => {
-        const checkSession = async () => {
+        const check = async () => {
             try {
                 const result = await validateToken();
                 if (!result.status) {
                     toast.error("Sesión expirada. Inicia sesión nuevamente.");
-                    setTimeout(() => (window.location.href = "/"), 1500);
+                    setTimeout(() => (window.location.href = "/"), 1300);
                     return;
                 }
                 setIsValid(true);
             } catch (e) {
-                console.error("Error validando sesión", e);
                 toast.error("Error validando sesión ⚠️");
             } finally {
                 setLoadingSession(false);
             }
         };
-
-        checkSession();
+        check();
     }, []);
-    //
-    return { loadingSession, isValid, user };
+
+    return { loadingSession, isValid, user, hasRole, roleDescription };
 };

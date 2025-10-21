@@ -1,4 +1,4 @@
-import { Box, darken, lighten } from "@mui/material";
+import { Box, darken, Fab, lighten } from "@mui/material";
 import React, { useEffect, useState } from "react";
 import { DescripcionDeVista } from "../components/ui/content/DescripcionDeVista";
 import { Loading } from "../components/ui/content/Loading";
@@ -56,6 +56,13 @@ export const Orders = () => {
     return (
         <Layout>
             <DescripcionDeVista title={"Kanban"} description={"example"} />
+            {/* <Box sx={{ position: "fixed", right: 24, top: 24 }}> */}
+            {/* <ButtonCustom variant="contained" startIcon={<SearchRounded />} onClick={() => setOpenSearch(true)}> */}
+            <Fab sx={{ position: 'fixed', right: 24, bottom: 24 }} onClick={() => setOpenSearch(true)}>
+                <SearchRounded />
+            </Fab>
+            {/* </ButtonCustom> */}
+            {/* </Box> */}
             <Box
                 sx={{
                     display: "flex",
@@ -87,11 +94,7 @@ export const Orders = () => {
                         },
                     }}
                 >
-                    <Box sx={{ position: "fixed", right: 24, bottom: 24 }}>
-                        <ButtonCustom startIcon={<SearchRounded />} onClick={() => setOpenSearch(true)}>
-                            Buscar producto
-                        </ButtonCustom>
-                    </Box>
+
 
                     <ProductSearchDialog
                         open={openSearch}

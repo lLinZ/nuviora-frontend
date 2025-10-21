@@ -1,5 +1,6 @@
-import { Loading } from "../ui/content/Loading";
+import React from "react";
 import { useValidateSession } from "../../hooks/useValidateSession";
+import { Loading } from "../ui/content/Loading";
 
 export const RequireRole = ({
     allowedRoles,

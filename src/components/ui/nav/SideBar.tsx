@@ -13,6 +13,7 @@ import LogoutRoundedIcon from '@mui/icons-material/LogoutRounded';
 import ManageAccountsRoundedIcon from '@mui/icons-material/ManageAccountsRounded';
 import LocalShippingRoundedIcon from '@mui/icons-material/LocalShippingRounded';
 import GroupsRoundedIcon from '@mui/icons-material/GroupsRounded';
+import DoNotDisturbAltRoundedIcon from '@mui/icons-material/DoNotDisturbAltRounded';
 const Clock = () => {
     const [time, setTime] = useState<string>(moment().format("h:mm A"));
     useMemo(() => {
@@ -33,6 +34,7 @@ const links = [
     { text: 'Dashboard', icon: <DashboardRoundedIcon />, link: '/dashboard' },
     { text: 'Usuarios', icon: <GroupsRoundedIcon />, link: '/users' },
     { text: 'Ordenes', icon: <LocalShippingRoundedIcon />, link: '/orders' },
+    { text: 'Ordenes canceladas', icon: <DoNotDisturbAltRoundedIcon />, link: '/orders/cancelled' },
     { text: 'Repartidores', icon: <EngineeringRoundedIcon />, link: '/deliverers' },
     { text: 'Tasa de dólar', icon: <AttachMoneyRoundedIcon />, link: '/currency' },
 ]
