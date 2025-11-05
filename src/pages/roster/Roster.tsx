@@ -16,6 +16,7 @@ import { ButtonCustom } from "../../components/custom";
 import { IResponse } from "../../interfaces/response-type";
 import { useValidateSession } from "../../hooks/useValidateSession";
 import { Loading } from "../../components/ui/content/Loading";
+import { DescripcionDeVista } from "../../components/ui/content/DescripcionDeVista";
 
 export const Roster: React.FC = () => {
     const [allAgents, setAllAgents] = useState<any[]>([]);
@@ -89,8 +90,8 @@ export const Roster: React.FC = () => {
     if (loadingSession || !isValid || !user.token) return <Loading />;
     return (
         <Layout>
-
-            <RequireRole allowedRoles={["Gerente", "Master"]}>
+            <DescripcionDeVista title={"Seleccion de vendedoras"} description={"Seleccionar vendedoras activas y reparticion de ordenes"} />
+            <RequireRole allowedRoles={["Gerente", "Admin"]}>
                 <Box sx={{ p: 3, display: "grid", gap: 2, gridTemplateColumns: "1fr 360px" }}>
                     <Paper sx={{ p: 2 }}>
                         <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 1 }}>
