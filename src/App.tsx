@@ -12,6 +12,7 @@ import { Currency } from './pages/currency/Currency';
 import { Users } from './pages/users/Users';
 import { DeliverersPage } from './pages/deliverers/Deliverers';
 import { CancellationsReview } from './pages/orders/cancellations/CancellationsReview';
+import { Roster } from './pages/roster/Roster';
 const useGetTheme = () => {
   const user = useUserStore((state) => state.user);
   const [theme, setTheme] = useState<Theme>(themeLight)
@@ -39,6 +40,7 @@ function App() {
           <Route path="/deliverers" element={<DeliverersPage />} />
           <Route path="/currency" element={<Currency />} />
           <Route path="/users" element={<Users />} />
+          <Route path="/roster" element={<Roster />} />
         </Routes>
       </BrowserRouter>
     </ThemeProvider>
