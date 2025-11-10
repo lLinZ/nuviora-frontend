@@ -1,177 +1,230 @@
-// src/pages/InventoryPage.tsx
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
-    Avatar, Box, Paper, Typography, TextField, IconButton,
-    Table, TableBody, TableCell, TableHead, TableRow, TableContainer, Chip, Pagination, Tooltip, Divider
+    Box,
+    Paper,
+    Typography,
+    TextField,
+    IconButton,
+    Tooltip,
+    Table,
+    TableBody,
+    TableCell,
+    TableContainer,
+    TableHead,
+    TableRow,
+    Chip,
+    Divider,
+    InputAdornment,
 } from "@mui/material";
 import SearchRoundedIcon from "@mui/icons-material/SearchRounded";
-import Inventory2RoundedIcon from "@mui/icons-material/Inventory2Rounded";
+import RefreshRoundedIcon from "@mui/icons-material/RefreshRounded";
 import EditRoundedIcon from "@mui/icons-material/EditRounded";
-import HistoryRoundedIcon from "@mui/icons-material/HistoryRounded";
 import { toast } from "react-toastify";
 import { request } from "../../common/request";
-import { ButtonCustom } from "../../components/custom";
-import { useDebounce } from "../../hooks/useDebounce";
-import { IResponse } from "../../interfaces/response-type";
+import { TypographyCustom } from "../../components/custom";
+import { StockAdjustDialog } from "../../components/inventory/StockAdjustDialog";
+import { DescripcionDeVista } from "../../components/ui/content/DescripcionDeVista";
+import { Loading } from "../../components/ui/content/Loading";
 import { Layout } from "../../components/ui/Layout";
-import { EditStockDialog } from "../../components/inventory/EditStockDialog";
-import { MovementsDrawer } from "../../components/inventory/MovementsDrawer";
+import { useValidateSession } from "../../hooks/useValidateSession";
+import { IResponse } from "../../interfaces/response-type";
 import { fmtMoney } from "../../lib/money";
+import { useUserStore } from "../../store/user/UserStore";
 
-export const Inventory: React.FC = () => {
-    const [rows, setRows] = useState<any[]>([]);
-    const [meta, setMeta] = useState<{ current_page: number; last_page: number; total: number } | null>(null);
-    const [page, setPage] = useState(1);
-    const [q, setQ] = useState("");
-    const debounced = useDebounce(q, 400);
+type ProductRow = {
+    id: number;
+    product_id?: number; // si sincronizas con Shopify
+    sku?: string | null;
+    title: string;
+    name?: string;
+    price: number;      // precio de venta
+    cost?: number | null; // costo del producto (para ganancias futuras)
+    image?: string | null;
+    stock_total: number; // existencias totales del inventario general
+    status?: { description: string };
+};
+
+export const InventoryPage: React.FC = () => {
+    const user = useUserStore((s) => s.user);
+    const { loadingSession, isValid } = useValidateSession();
+
     const [loading, setLoading] = useState(false);
+    const [rows, setRows] = useState<ProductRow[]>([]);
+    const [q, setQ] = useState("");
+    const [openAdjust, setOpenAdjust] = useState(false);
+    const [selected, setSelected] = useState<ProductRow | null>(null);
 
-    const [openEdit, setOpenEdit] = useState(false);
-    const [selected, setSelected] = useState<any | null>(null);
+    const canEdit = useMemo(() => {
+        const role = user.role?.description;
+        return role === "Admin" || role === "Gerente";
+    }, [user.role?.description]);
 
-    const [openMovs, setOpenMovs] = useState(false);
-    const [productForMovs, setProductForMovs] = useState<any | null>(null);
-
-    const fetchData = async (p = 1, search = "") => {
+    const load = async () => {
         setLoading(true);
         try {
-            const url = `/products?search=${encodeURIComponent(search)}&page=${p}`;
-            const { status, response }: IResponse = await request(url, "GET");
-            if (status) {
-                const data = await response.json();
-                setRows(data.data ?? []);
-                setMeta(data.meta ?? null);
-            } else {
-                toast.error("No se pudieron cargar productos");
+            // Ajusta el endpoint a tu backend: /inventory/products o /products
+            const { status, response }: IResponse = await request("/inventory/products", "GET");
+            if (!status) {
+                toast.error("No se pudo cargar el inventario ❌");
+                return;
             }
-        } catch {
-            toast.error("Error cargando inventario");
+            const data = await response.json();
+            // asumo data.data = array de productos
+            setRows(data.data ?? []);
+            toast.success("Inventario cargado ✅");
+        } catch (e) {
+            toast.error("Error al cargar inventario 🚨");
         } finally {
             setLoading(false);
         }
     };
 
-    useEffect(() => { setPage(1); fetchData(1, debounced); }, [debounced]);
-    useEffect(() => { fetchData(page, debounced); }, [page]);
+    useEffect(() => {
+        load();
+    }, []);
 
-    const openEditStock = (row: any) => { setSelected(row); setOpenEdit(true); };
-    const onStockSaved = (updated: any) => {
-        setRows(prev => prev.map(r => r.id === updated.id ? updated : r));
-        setOpenEdit(false);
-    };
+    const filtered = useMemo(() => {
+        const t = q.trim().toLowerCase();
+        if (!t) return rows;
+        return rows.filter((r) =>
+            [r.title, r.name, r.sku]
+                .filter(Boolean)
+                .some((v) => String(v).toLowerCase().includes(t))
+        );
+    }, [rows, q]);
 
-    const openMovements = (row: any) => { setProductForMovs(row); setOpenMovs(true); };
+    if (loadingSession || !isValid || !user.token) return <Loading />;
 
     return (
         <Layout>
+            {loading && <Loading />}
+            <DescripcionDeVista title="Inventario" description="Gestión y existencias de productos" />
 
-            <Box sx={{ p: 3 }}>
-                <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 2 }}>
-                    <Inventory2RoundedIcon />
-                    <Typography variant="h5" fontWeight={700}>Inventario</Typography>
+            <Paper sx={{ p: 2 }}>
+                {/* Barra de acciones */}
+                <Box sx={{ display: "flex", gap: 2, alignItems: "center", mb: 2 }}>
+                    <TextField
+                        size="small"
+                        placeholder="Buscar por título, nombre o SKU…"
+                        value={q}
+                        onChange={(e) => setQ(e.target.value)}
+                        InputProps={{
+                            startAdornment: (
+                                <InputAdornment position="start">
+                                    <SearchRoundedIcon fontSize="small" />
+                                </InputAdornment>
+                            ),
+                        }}
+                        sx={{ maxWidth: 420 }}
+                    />
+                    <Tooltip title="Recargar">
+                        <span>
+                            <IconButton onClick={load} disabled={loading}>
+                                <RefreshRoundedIcon />
+                            </IconButton>
+                        </span>
+                    </Tooltip>
                 </Box>
 
-                <Paper sx={{ p: 2, mb: 2 }}>
-                    <Box sx={{ display: "flex", gap: 1 }}>
-                        <TextField
-                            size="small"
-                            placeholder="Buscar por nombre o SKU…"
-                            value={q}
-                            onChange={(e) => setQ(e.target.value)}
-                            InputProps={{ startAdornment: <SearchRoundedIcon sx={{ mr: 1 }} /> }}
-                        />
-                        <ButtonCustom variant="outlined" onClick={() => fetchData(1, q)}>Buscar</ButtonCustom>
-                    </Box>
-                </Paper>
-
-                <TableContainer component={Paper}>
+                {/* Tabla */}
+                <TableContainer>
                     <Table size="small">
                         <TableHead>
                             <TableRow>
                                 <TableCell>Producto</TableCell>
                                 <TableCell>SKU</TableCell>
                                 <TableCell align="right">Precio</TableCell>
-                                <TableCell align="right">Stock</TableCell>
+                                <TableCell align="right">Costo</TableCell>
+                                <TableCell align="center">Stock</TableCell>
+                                <TableCell align="center">Estado</TableCell>
                                 <TableCell align="right">Acciones</TableCell>
                             </TableRow>
                         </TableHead>
                         <TableBody>
-                            {rows.map((p) => (
+                            {filtered.map((p) => (
                                 <TableRow key={p.id} hover>
-                                    <TableCell>
-                                        <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
-                                            <Avatar src={p.image || undefined} variant="rounded">
-                                                {!p.image && (p.name?.[0] ?? p.title?.[0] ?? "P")}
-                                            </Avatar>
-                                            <Box sx={{ minWidth: 0 }}>
-                                                <Typography variant="body2" sx={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 280 }} title={p.name ?? p.title}>
-                                                    {p.name ?? p.title ?? 'Producto'}
-                                                </Typography>
-                                                {p.created_at && (
-                                                    <Typography variant="caption" color="text.secondary">
-                                                        Creado: {new Date(p.created_at).toLocaleDateString()}
-                                                    </Typography>
+                                    <TableCell sx={{ maxWidth: 360 }}>
+                                        <Box sx={{ display: "flex", gap: 1.5, alignItems: "center" }}>
+                                            <img
+                                                src={p.image || "/placeholder.png"}
+                                                style={{ width: 40, height: 40, objectFit: "cover", borderRadius: 8 }}
+                                                onError={(e: any) => (e.currentTarget.src = "/placeholder.png")}
+                                            />
+                                            <Box sx={{ display: "grid" }}>
+                                                <TypographyCustom variant="subtitle2" sx={{ whiteSpace: "nowrap", textOverflow: "ellipsis", overflow: "hidden", maxWidth: 300 }}>
+                                                    {p.title || p.name || `#${p.id}`}
+                                                </TypographyCustom>
+                                                {p.name && (
+                                                    <TypographyCustom variant="caption" color="text.secondary">
+                                                        {p.name}
+                                                    </TypographyCustom>
                                                 )}
                                             </Box>
                                         </Box>
                                     </TableCell>
-                                    <TableCell>{p.sku ?? '—'}</TableCell>
-                                    <TableCell align="right">{typeof p.price !== "undefined" ? fmtMoney(Number(p.price) || 0, 'USD') : '—'}</TableCell>
-                                    <TableCell align="right">
+                                    <TableCell>{p.sku || "—"}</TableCell>
+                                    <TableCell align="right">{fmtMoney(p.price ?? 0, "USD")}</TableCell>
+                                    <TableCell align="right">{fmtMoney(p.cost ?? 0, "USD")}</TableCell>
+                                    <TableCell align="center">
+                                        <Chip
+                                            label={p.stock_total ?? 0}
+                                            color={(p.stock_total ?? 0) > 5 ? "success" : (p.stock_total ?? 0) > 0 ? "warning" : "error"}
+                                            size="small"
+                                        />
+                                    </TableCell>
+                                    <TableCell align="center">
                                         <Chip
                                             size="small"
-                                            label={p.stock}
-                                            color={p.stock > 10 ? "success" : p.stock > 0 ? "warning" : "error"}
+                                            label={p.status?.description ?? "Activo"}
                                             variant="outlined"
                                         />
                                     </TableCell>
                                     <TableCell align="right">
-                                        <Tooltip title="Historial de movimientos">
-                                            <IconButton size="small" onClick={() => openMovements(p)}>
-                                                <HistoryRoundedIcon fontSize="small" />
-                                            </IconButton>
-                                        </Tooltip>
-                                        <Tooltip title="Editar stock">
-                                            <IconButton size="small" onClick={() => openEditStock(p)}>
-                                                <EditRoundedIcon fontSize="small" />
-                                            </IconButton>
-                                        </Tooltip>
+                                        {canEdit ? (
+                                            <Tooltip title="Ajustar stock">
+                                                <IconButton
+                                                    size="small"
+                                                    onClick={() => {
+                                                        setSelected(p);
+                                                        setOpenAdjust(true);
+                                                    }}
+                                                >
+                                                    <EditRoundedIcon fontSize="small" />
+                                                </IconButton>
+                                            </Tooltip>
+                                        ) : (
+                                            <TypographyCustom variant="caption" color="text.secondary">
+                                                Solo lectura
+                                            </TypographyCustom>
+                                        )}
                                     </TableCell>
                                 </TableRow>
                             ))}
-
-                            {rows.length === 0 && (
+                            {filtered.length === 0 && (
                                 <TableRow>
-                                    <TableCell colSpan={5} align="center" sx={{ py: 4 }}>
-                                        {loading ? "Cargando…" : "Sin resultados"}
+                                    <TableCell colSpan={7}>
+                                        <Box sx={{ p: 3, textAlign: "center", color: "text.secondary" }}>
+                                            No hay productos que coincidan con la búsqueda.
+                                        </Box>
                                     </TableCell>
                                 </TableRow>
                             )}
                         </TableBody>
                     </Table>
                 </TableContainer>
+            </Paper>
 
-                <Box sx={{ display: "flex", justifyContent: "flex-end", mt: 2 }}>
-                    <Pagination
-                        page={meta?.current_page ?? 1}
-                        count={meta?.last_page ?? 1}
-                        onChange={(_, p) => setPage(p)}
-                    />
-                </Box>
-
-                <EditStockDialog
-                    open={openEdit}
-                    onClose={() => setOpenEdit(false)}
+            {/* Dialog de ajuste */}
+            {selected && (
+                <StockAdjustDialog
+                    open={openAdjust}
+                    onClose={() => setOpenAdjust(false)}
                     product={selected}
-                    onSaved={onStockSaved}
+                    onSaved={(updated) => {
+                        setRows((prev) => prev.map((r) => (r.id === updated.id ? updated : r)));
+                    }}
                 />
-
-                <MovementsDrawer
-                    open={openMovs}
-                    onClose={() => setOpenMovs(false)}
-                    product={productForMovs}
-                />
-            </Box>
+            )}
         </Layout>
     );
 };

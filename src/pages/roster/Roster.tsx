@@ -24,6 +24,78 @@ export const Roster: React.FC = () => {
     const [loading, setLoading] = useState(false);
     const [assigning, setAssigning] = useState(false);
     const { loadingSession, isValid, user } = useValidateSession();
+    const [business, setBusiness] = useState<{ date: string, open_at: string | null, close_at: string | null, is_open: boolean, last_close_at: string | null } | null>(null);
+    const [isOpen, setIsOpen] = useState<boolean>(false);
+    const [openDt, setOpenDt] = useState<string | null>(null);
+    const [closeDt, setCloseDt] = useState<string | null>(null);
+
+    const loadBusinessStatus = async () => {
+        try {
+            const { status, response }: IResponse = await request("/business/status", "GET");
+            if (status) {
+                const data = await response.json();
+                const d = data.data;
+                setIsOpen(!!d.is_open);
+                setOpenDt(d.open_dt);
+                setCloseDt(d.close_dt);
+            } else {
+                toast.error("No se pudo obtener el estado de la jornada");
+            }
+        } catch {
+            toast.error("Error de conexión al cargar estado");
+        }
+    };
+
+    useEffect(() => { loadBusinessStatus(); }, []);
+
+    const openDay = async (assignBacklog: boolean = false) => {
+        try {
+            const body = new URLSearchParams();
+            body.append("assign_backlog", assignBacklog ? "1" : "0");
+
+            const { status, response }: IResponse = await request("/business/open", "POST", body);
+            if (status) {
+                const data = await response.json();
+                toast.success(data.message || "Jornada abierta ✅");
+                await loadBusinessStatus();
+            } else {
+                toast.error("No se pudo abrir la jornada ❌");
+            }
+        } catch {
+            toast.error("Error abriendo la jornada 🚨");
+        }
+    };
+
+    const closeDay = async () => {
+        try {
+            const { status, response }: IResponse = await request("/business/close", "POST");
+            if (status) {
+                const data = await response.json();
+                toast.success(data.message || "Jornada cerrada ✅");
+                await loadBusinessStatus();
+            } else {
+                toast.error("No se pudo cerrar la jornada ❌");
+            }
+        } catch {
+            toast.error("Error cerrando la jornada 🚨");
+        }
+    };
+    // al cargar (además del roster)
+    const loadBusiness = async () => {
+        try {
+            const { status, response }: IResponse = await request("/business/today", "GET");
+            if (status) {
+                const data = await response.json();
+                setBusiness(data.data);
+            }
+        } catch {
+            toast.error("No se pudo cargar la jornada");
+        }
+    };
+
+    // en useEffect junto a load() del roster
+    useEffect(() => { load(); loadBusiness(); }, []);
+
 
     const load = async () => {
         setLoading(true);
@@ -118,18 +190,38 @@ export const Roster: React.FC = () => {
                         </Box>
                     </Paper>
 
-                    <Paper sx={{ p: 2 }}>
-                        <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 1 }}>
-                            <SettingsRoundedIcon />
-                            <Typography variant="subtitle1" fontWeight={700}>Configuración</Typography>
+                    <Paper sx={{ p: 2, mt: 2 }}>
+                        <Typography variant="subtitle1" fontWeight={700}>Jornada</Typography>
+                        <Divider sx={{ my: 1 }} />
+                        <Box sx={{ display: "flex", gap: 1.5 }}>
+                            <ButtonCustom
+                                variant="contained"
+                                onClick={() => openDay(false)}
+                                disabled={isOpen}
+                            >
+                                Abrir jornada
+                            </ButtonCustom>
+                            {/* <ButtonCustom
+                                variant="outlined"
+                                onClick={() => openDay(true)}
+                                disabled={isOpen}
+                            >
+                                Abrir + Asignar backlog
+                            </ButtonCustom> */}
+                            <ButtonCustom
+                                variant="contained"
+                                color="error"
+                                onClick={closeDay}
+                                disabled={!isOpen}
+                            >
+                                Cerrar jornada
+                            </ButtonCustom>
                         </Box>
-                        <Divider sx={{ mb: 2 }} />
-                        <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                            Estrategia actual se define en <code>settings.assignment_strategy</code> (round_robin | load_balanced).
-                            Horarios con <code>settings.business_open_at</code> y <code>settings.business_close_at</code>.
-                        </Typography>
-                        <Typography variant="body2">
-                            Si quieres, te preparo un mini panel aquí mismo para editar esos settings.
+
+                        <Typography variant="body2" sx={{ mt: 1 }}>
+                            Estado: {isOpen ? "Abierta" : "Cerrada"}<br />
+                            {openDt && <>Apertura: {new Date(openDt).toLocaleString()}<br /></>}
+                            {closeDt && <>Cierre: {new Date(closeDt).toLocaleString()}</>}
                         </Typography>
                     </Paper>
                 </Box>

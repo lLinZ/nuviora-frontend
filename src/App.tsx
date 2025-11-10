@@ -13,6 +13,10 @@ import { Users } from './pages/users/Users';
 import { DeliverersPage } from './pages/deliverers/Deliverers';
 import { CancellationsReview } from './pages/orders/cancellations/CancellationsReview';
 import { Roster } from './pages/roster/Roster';
+import { InventoryPage } from './pages/inventory/Inventory';
+import { DelivererStock } from './pages/deliverers/DelivererStock';
+import { EarningsAdmin } from './pages/money/EarningsAdmin';
+import { MyEarningsPage } from './pages/money/EarningsMyPage';
 const useGetTheme = () => {
   const user = useUserStore((state) => state.user);
   const [theme, setTheme] = useState<Theme>(themeLight)
@@ -41,6 +45,10 @@ function App() {
           <Route path="/currency" element={<Currency />} />
           <Route path="/users" element={<Users />} />
           <Route path="/roster" element={<Roster />} />
+          <Route path="/inventory" element={<InventoryPage />} />
+          <Route path="/earnings" element={<EarningsAdmin />} />
+          <Route path="/deliverer/my-stock" element={<DelivererStock />} />
+          <Route path="/me/earnings" element={<MyEarningsPage />} />
         </Routes>
       </BrowserRouter>
     </ThemeProvider>
