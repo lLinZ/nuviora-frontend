@@ -14,7 +14,7 @@ import { DeliverersPage } from './pages/deliverers/Deliverers';
 import { CancellationsReview } from './pages/orders/cancellations/CancellationsReview';
 import { Roster } from './pages/roster/Roster';
 import { InventoryPage } from './pages/inventory/Inventory';
-import { DelivererStock } from './pages/deliverers/DelivererStock';
+import { DelivererStockPage } from './pages/deliverers/DelivererStock';
 import { EarningsAdmin } from './pages/money/EarningsAdmin';
 import { MyEarningsPage } from './pages/money/EarningsMyPage';
 const useGetTheme = () => {
@@ -47,7 +47,8 @@ function App() {
           <Route path="/roster" element={<Roster />} />
           <Route path="/inventory" element={<InventoryPage />} />
           <Route path="/earnings" element={<EarningsAdmin />} />
-          <Route path="/deliverer/my-stock" element={<DelivererStock />} />
+          <Route path="/deliverer/my-stock" element={<DelivererStockPage />} />
+          <Route path="/deliverer/stock" element={<DelivererStockPage />} />
           <Route path="/me/earnings" element={<MyEarningsPage />} />
         </Routes>
       </BrowserRouter>
