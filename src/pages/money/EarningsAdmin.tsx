@@ -9,6 +9,8 @@ import { IResponse } from "../../interfaces/response-type";
 import { fmtMoney } from "../../lib/money";
 import { Layout } from "../../components/ui/Layout";
 import { ButtonCustom } from "../../components/custom";
+import { useValidateSession } from "../../hooks/useValidateSession";
+import { Loading } from "../../components/ui/content/Loading";
 
 type Row = { user_id: number; names: string; surnames?: string; role: string; orders_count: number; amount_usd: number; };
 const roles = ["Todos", "Vendedor", "Repartidor", "Gerente"];
@@ -19,6 +21,7 @@ export const EarningsAdmin: React.FC = () => {
     const [role, setRole] = useState("Todos");
     const [rows, setRows] = useState<Row[]>([]);
     const [loading, setLoading] = useState(false);
+    const { loadingSession, isValid, user } = useValidateSession();
 
     const load = async () => {
         setLoading(true);
@@ -30,7 +33,8 @@ export const EarningsAdmin: React.FC = () => {
             const { status, response }: IResponse = await request(`/earnings/summary?${params.toString()}`, "GET"); // <-- resumen por usuario
             if (status) {
                 const data = await response.json();
-                setRows(data.data ?? []);
+                console.log({ data });
+                setRows(Array.isArray(data.data) ? data.data : []);
             } else {
                 toast.error("No se pudieron cargar las ganancias");
             }
@@ -41,9 +45,10 @@ export const EarningsAdmin: React.FC = () => {
         }
     };
 
-    useEffect(() => { load(); }, []); // carga inicial
 
-    const total = useMemo(() => rows.reduce((acc, r) => acc + (r.amount_usd ?? 0), 0), [rows]);
+    const total = useMemo(() => rows && rows.reduce((acc, r) => acc + (r.amount_usd ?? 0), 0), [rows]);
+    useEffect(() => { load(); }, []); // carga inicial
+    if (loadingSession || !isValid || !user.token) return <Loading />;
 
     return (
         <RequireRole allowedRoles={["Admin"]}>
