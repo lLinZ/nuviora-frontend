@@ -5,6 +5,7 @@ import {
     Dialog,
     Divider,
     IconButton,
+    MenuItem,
     Toolbar,
     Typography,
     useTheme,
@@ -44,7 +45,16 @@ export const OrderDialog: FC<OrderDialogProps> = ({ id, open, setOpen }) => {
     const [loadingReview, setLoadingReview] = useState(false);
 
     const isManager = role === "Gerente" || role === "Admin";
+    const paymentOptions = [
+        { value: "DOLARES_EFECTIVO", label: "Dólares efectivo" },
+        { value: "BOLIVARES_TRANSFERENCIA", label: "Bolívares transferencia" },
+        { value: "BINANCE_DOLARES", label: "Binance dólares" },
+        { value: "ZELLE_DOLARES", label: "Zelle dólares" },
+    ];
 
+    const [paymentMethod, setPaymentMethod] = useState<string>("");
+    const [paymentRate, setPaymentRate] = useState<string>("");
+    const [savingPayment, setSavingPayment] = useState(false);
 
     const handleClose = () => setOpen(false);
 
@@ -56,12 +66,52 @@ export const OrderDialog: FC<OrderDialogProps> = ({ id, open, setOpen }) => {
                 if (status) {
                     const data = await response.json();
                     setSelectedOrder(data.order);
+                    setPaymentMethod(data.order.payment_method ?? "");
+                    setPaymentRate(data.order.payment_rate ? String(data.order.payment_rate) : "");
                 }
             };
             fetchOrder();
         }
     }, [id, open]);
+    const handleSavePayment = async () => {
+        if (!id) return;
+        if (!paymentMethod) {
+            toast.error("Selecciona un método de pago");
+            return;
+        }
 
+        const body = new URLSearchParams();
+        body.append("payment_method", paymentMethod);
+        if (paymentMethod === "BOLIVARES_TRANSFERENCIA") {
+            if (!paymentRate || Number(paymentRate) <= 0) {
+                toast.error("Debes indicar una tasa válida para pagos en bolívares");
+                return;
+            }
+            body.append("payment_rate", paymentRate);
+        }
+
+        try {
+            setSavingPayment(true);
+            const { status, response }: IResponse = await request(
+                `/orders/${id}/payment`,
+                "PUT",
+                body
+            );
+            if (status) {
+                const data = await response.json();
+                updateOrder(data.order);          // actualiza global
+                setSelectedOrder(data.order);     // y el seleccionado
+                toast.success("Método de pago actualizado ✅");
+            } else {
+                toast.error("No se pudo actualizar el método de pago ❌");
+            }
+        } catch (e) {
+            console.error(e);
+            toast.error("Error en el servidor al actualizar pago 🚨");
+        } finally {
+            setSavingPayment(false);
+        }
+    };
     // 🔹 Crear actualización
     const handleSendUpdate = async () => {
         if (!newUpdate.trim() || !id) return;
@@ -343,7 +393,49 @@ export const OrderDialog: FC<OrderDialogProps> = ({ id, open, setOpen }) => {
                 <Typography variant="h6" textAlign="right">
                     Total: {fmtMoney(Number(order.current_total_price) || 0, order.currency)}
                 </Typography>
+                <Divider sx={{ my: 3 }} />
 
+                {/* Sección de método de pago */}
+                <Box sx={{ display: "grid", gap: 2, maxWidth: 400, mb: 3 }}>
+                    <Typography variant="h6">Pago del cliente</Typography>
+
+                    <TextFieldCustom
+                        select
+                        label="Método de pago"
+                        value={paymentMethod}
+                        onChange={(e) => setPaymentMethod(e.target.value)}
+                        fullWidth
+                        size="small"
+                    >
+                        {paymentOptions.map(opt => (
+                            <MenuItem key={opt.value} value={opt.value}>
+                                {opt.label}
+                            </MenuItem>
+                        ))}
+                    </TextFieldCustom>
+
+                    {paymentMethod === "BOLIVARES_TRANSFERENCIA" && (
+                        <TextFieldCustom
+                            label="Tasa del día (Bs por USD)"
+                            type="number"
+                            value={paymentRate}
+                            onChange={(e) => setPaymentRate(e.target.value)}
+                            fullWidth
+                            size="small"
+                            inputProps={{ min: 0, step: "0.01" }}
+                        />
+                    )}
+
+                    <Box>
+                        <ButtonCustom
+                            variant="contained"
+                            disabled={savingPayment}
+                            onClick={handleSavePayment}
+                        >
+                            {savingPayment ? "Guardando..." : "Guardar método de pago"}
+                        </ButtonCustom>
+                    </Box>
+                </Box>
                 {/* Actualizaciones */}
                 <Divider sx={{ marginBlock: 5 }} />
                 <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
