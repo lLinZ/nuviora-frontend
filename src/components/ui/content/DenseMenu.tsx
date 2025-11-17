@@ -2,6 +2,7 @@ import { MoreHorizRounded, Check } from "@mui/icons-material";
 import { IconButton, Menu, MenuList, Divider, Chip, MenuItem, ListItemIcon, ListItemText } from "@mui/material";
 import { purple, blue, green, red, grey, yellow } from "@mui/material/colors";
 import { useState } from "react";
+import { useUserStore } from "../../../store/user/UserStore";
 
 export default function DenseMenu({
     data,
@@ -19,23 +20,24 @@ export default function DenseMenu({
     const handleClose = () => {
         setAnchorEl(null);
     };
+    const user = useUserStore((state) => state.user);
 
-    const statuses: { id: number, description: string, color: string }[] = [
-        { id: 1, description: 'Nuevo', color: purple[300] },
-        { id: 2, description: 'Asignado a vendedora', color: blue[500] },
-        { id: 3, description: 'Llamado 1', color: green[500] },
-        { id: 4, description: 'Llamado 2', color: red[500] },
-        { id: 5, description: 'Llamado 3', color: purple[300] },
-        { id: 6, description: 'Confirmado', color: blue[500] },
-        { id: 7, description: 'Asignado a repartidor', color: green[500] },
-        { id: 8, description: 'En ruta', color: red[500] },
-        { id: 9, description: 'Programado para mas tarde', color: purple[300] },
-        { id: 10, description: 'Programado para otro dia', color: blue[500] },
-        { id: 11, description: 'Reprogramado', color: green[500] },
-        { id: 12, description: 'Cambio de ubicacion', color: red[500] },
-        { id: 13, description: 'Rechazado', color: red[500] },
-        { id: 14, description: 'Entregado', color: green[500] },
-        { id: 14, description: 'Cancelado', color: red[500] },
+    const statuses: { id: number, description: string, color: string, roles: string[] }[] = [
+        { id: 1, description: 'Nuevo', color: purple[300], roles: ['Admin', 'Vendedora', 'Repartidor'] },
+        { id: 2, description: 'Asignado a vendedora', color: blue[500], roles: ['Admin', 'Vendedora', 'Repartidor'] },
+        { id: 3, description: 'Llamado 1', color: green[500], roles: ['Admin', 'Vendedora', 'Repartidor'] },
+        { id: 4, description: 'Llamado 2', color: red[500], roles: ['Admin', 'Vendedora', 'Repartidor'] },
+        { id: 5, description: 'Llamado 3', color: purple[300], roles: ['Admin', 'Vendedora', 'Repartidor'] },
+        { id: 6, description: 'Confirmado', color: blue[500], roles: ['Admin', 'Vendedora', 'Repartidor'] },
+        { id: 7, description: 'Asignado a repartidor', color: green[500], roles: ['Admin', 'Vendedora', 'Repartidor'] },
+        { id: 8, description: 'En ruta', color: red[500], roles: ['Admin', 'Vendedora', 'Repartidor'] },
+        { id: 9, description: 'Programado para mas tarde', color: purple[300], roles: ['Admin', 'Vendedora', 'Repartidor'] },
+        { id: 10, description: 'Programado para otro dia', color: blue[500], roles: ['Admin', 'Vendedora', 'Repartidor'] },
+        { id: 11, description: 'Reprogramado', color: green[500], roles: ['Admin', 'Vendedora', 'Repartidor'] },
+        { id: 12, description: 'Cambio de ubicacion', color: red[500], roles: ['Admin', 'Vendedora', 'Repartidor'] },
+        { id: 13, description: 'Rechazado', color: red[500], roles: ['Admin', 'Vendedora', 'Repartidor'] },
+        { id: 14, description: 'Entregado', color: green[500], roles: ['Admin', 'Vendedora', 'Repartidor'] },
+        { id: 14, description: 'Cancelado', color: red[500], roles: ['Admin', 'Vendedora', 'Repartidor'] },
     ];
     return (
         <>
@@ -63,26 +65,27 @@ export default function DenseMenu({
                         <Chip label="Status" size="small" />
                     </Divider>
                     {statuses.map((status) => (
-                        <MenuItem
-                            key={status.id}
-                            onClick={() => {
-                                changeStatus(status.description, status.id);
-                                handleClose();
-                            }}
-                        >
-                            {status.description === data.status ? (
-                                <>
-                                    <ListItemIcon>
-                                        <Check sx={{ color: status.color }} />
-                                    </ListItemIcon>
-                                    {status.description}
-                                </>
-                            ) : (
-                                <ListItemText inset>
-                                    {status.description}
-                                </ListItemText>
-                            )}
-                        </MenuItem>
+                        user && status.roles.includes(user.role?.description ?? '') && (
+                            <MenuItem
+                                key={status.id}
+                                onClick={() => {
+                                    changeStatus(status.description, status.id);
+                                    handleClose();
+                                }}
+                            >
+                                {status.description === data.status ? (
+                                    <>
+                                        <ListItemIcon>
+                                            <Check sx={{ color: status.color }} />
+                                        </ListItemIcon>
+                                        {status.description}
+                                    </>
+                                ) : (
+                                    <ListItemText inset>
+                                        {status.description}
+                                    </ListItemText>
+                                )}
+                            </MenuItem>)
                     ))}
                 </MenuList>
             </Menu>
