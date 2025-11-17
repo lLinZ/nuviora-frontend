@@ -1,449 +1,296 @@
-import { Box, Grid, Toolbar } from '@mui/material';
-import { useEffect, useState } from 'react';
-import { ButtonCustom, TextFieldCustom, TypographyCustom } from '../../components/custom';
-import { Loading } from '../../components/ui/content/Loading';
-import { Layout } from '../../components/ui/Layout';
-import { useUserStore } from '../../store/user/UserStore';
-import { NumericFormat } from 'react-number-format';
-import { request } from '../../common/request';
-import { IResponse } from '../../interfaces/response-type';
-import { toast } from 'react-toastify';
-import { Form, Formik } from 'formik';
-import { useValidateSession } from '../../hooks/useValidateSession';
+import { Box, Grid, Toolbar } from "@mui/material";
+import { useEffect, useState } from "react";
+import { ButtonCustom, TextFieldCustom, TypographyCustom } from "../../components/custom";
+import { Loading } from "../../components/ui/content/Loading";
+import { Layout } from "../../components/ui/Layout";
+import { useUserStore } from "../../store/user/UserStore";
+import { NumericFormat } from "react-number-format";
+import { request } from "../../common/request";
+import { IResponse } from "../../interfaces/response-type";
+import { toast } from "react-toastify";
+import { Form, Formik } from "formik";
 
-type CurrencyRate = {
-    id: number;
-    description: string;
-    value: number;
-    created_at: string;
-};
+interface CurrencyState {
+    bcv_usd: number | null;
+    bcv_eur: number | null;
+    binance_usd: number | null;
+    updated_at?: string | null;
+    has_values?: boolean;
+}
 
-const DESCRIPTIONS = {
-    BCV_USD: 'DOLAR BCV',
-    BINANCE_USD: 'DOLAR BINANCE',
-    BCV_EUR: 'BCV EURO',
+const initialFormValues = {
+    bcv_usd: 0,
+    bcv_eur: 0,
+    binance_usd: 0,
 };
 
 export const Currency = () => {
-    const { user } = useUserStore.getState();
-    const [rates, setRates] = useState<CurrencyRate[]>([]);
-    const { loadingSession, isValid, user: authUser } = useValidateSession();
+    const user = useUserStore((state) => state.user);
+    const validateToken = useUserStore((state) => state.validateToken);
 
+    const [currency, setCurrency] = useState<CurrencyState>({
+        bcv_usd: null,
+        bcv_eur: null,
+        binance_usd: null,
+        updated_at: null,
+        has_values: false,
+    });
     const [loading, setLoading] = useState(false);
+
+    const validarSesion = async () => {
+        const result = await validateToken();
+        if (!result.status) return (window.location.href = "/");
+    };
 
     const getCurrency = async () => {
         setLoading(true);
         try {
-            const { status, response }: IResponse = await request('/currency', 'GET');
+            const { status, response }: IResponse = await request("/currency", "GET");
             if (status === 200) {
-                const { data } = await response.json();
-                setRates(data ?? []);
+                const json = await response.json();
+                const data = json.data || {};
+                setCurrency({
+                    bcv_usd: data.bcv_usd ?? null,
+                    bcv_eur: data.bcv_eur ?? null,
+                    binance_usd: data.binance_usd ?? null,
+                    updated_at: data.updated_at ?? null,
+                    has_values: data.has_values ?? false,
+                });
             } else {
-                toast.error('No se logró obtener las tasas');
+                toast.error("No se logró obtener las tasas");
             }
         } catch (err) {
             console.error(err);
-            console.log({ err })
-            toast.error('No se logró conectar con el servidor');
+            toast.error("No se logró conectar con el servidor");
         } finally {
             setLoading(false);
         }
     };
 
-    useEffect(() => {
-        getCurrency();
-    }, []);
-
-    const getRate = (description: string) =>
-        rates.find(r => r.description === description);
-
-    const isToday = (created_at?: string) => {
-        if (!created_at) return false;
-        const d = new Date(created_at);
-        const now = new Date();
-        return (
-            d.getFullYear() === now.getFullYear() &&
-            d.getMonth() === now.getMonth() &&
-            d.getDate() === now.getDate()
-        );
-    };
-
-    const handleSubmitRate = async (
-        description: string,
-        value: number,
-        resetForm: () => void
-    ) => {
-        const body = new URLSearchParams();
-        body.append('value', value.toString().replace('Bs', ''));
-        body.append('description', description);
-        console.log(String(value))
+    const onSubmit = async (values: typeof initialFormValues, resetForm: () => void) => {
         try {
-            const { status, response }: IResponse = await request('/currency', 'PUT', body);
-            switch (status) {
-                case 200: {
-                    const { data } = await response.json();
-                    // Actualizamos solo esa tasa en el estado
-                    setRates(prev => {
-                        const exists = prev.find(r => r.id === data.id);
-                        if (exists) {
-                            return prev.map(r => (r.id === data.id ? data : r));
-                        }
-                        return [...prev, data];
-                    });
-                    toast.success(`Tasa ${description} actualizada correctamente`);
-                    resetForm();
-                    break;
-                }
-                case 400:
-                    toast.error('No se logró actualizar la divisa');
-                    break;
-                default:
-                    toast.error('No se logró conectar con el servidor');
-                    break;
+            const body = new URLSearchParams();
+            body.append("bcv_usd", String(values.bcv_usd));
+            body.append("bcv_eur", String(values.bcv_eur));
+            body.append("binance_usd", String(values.binance_usd));
+
+            const { status, response }: IResponse = await request("/currency", "POST", body);
+            if (status === 200) {
+                const json = await response.json();
+                const data = json.data || {};
+                setCurrency({
+                    bcv_usd: data.bcv_usd ?? null,
+                    bcv_eur: data.bcv_eur ?? null,
+                    binance_usd: data.binance_usd ?? null,
+                    updated_at: data.updated_at ?? null,
+                    has_values: true,
+                });
+                toast.success("Tasas actualizadas correctamente");
+                resetForm();
+            } else {
+                toast.error("No se logró actualizar las tasas");
             }
         } catch (err) {
             console.error(err);
-            toast.error('Error al enviar la tasa');
+            toast.error("No se logró conectar con el servidor");
         }
     };
 
-    const usdBcv = getRate(DESCRIPTIONS.BCV_USD);
-    const usdBinance = getRate(DESCRIPTIONS.BINANCE_USD);
-    const eurBcv = getRate(DESCRIPTIONS.BCV_EUR);
+    useEffect(() => {
+        validarSesion();
+        getCurrency();
+    }, []);
 
+    if (!user.token) return <Loading />;
 
-    if (loadingSession || !isValid || !authUser.token) {
-        return <Loading />;
-    }
+    const isToday =
+        currency.updated_at &&
+        new Date(currency.updated_at).toDateString() === new Date().toDateString();
+
     return (
         <Layout>
             <Toolbar />
-            <TypographyCustom fontWeight={'bold'} variant='h4'>
-                Tasas del día
+            <TypographyCustom fontWeight={"bold"} variant="h4">
+                Tasas de cambio
             </TypographyCustom>
-            <TypographyCustom color={'text.secondary'} variant='body1'>
-                Aquí podrás cambiar el valor de las tasas y consultar el valor actual por cada tipo.
+            <TypographyCustom color={"text.secondary"} variant="body1">
+                Aquí puedes cambiar los valores de las tasas (BCV EUR, Dólar BCV y Dólar Binance)
+                y consultar el valor actual.
             </TypographyCustom>
 
-            {/* Tasa actual */}
+            {/* Panel de tasas actuales */}
             <Box
                 sx={{
                     mt: 2,
-                    width: '100%',
-                    display: 'flex',
-                    flexFlow: 'column wrap',
-                    justifyContent: 'flex-start',
-                    alignItems: 'flex-start',
-                    p: 2,
-                }}
-            >
-                <Grid container spacing={2}>
-                    {/* DÓLAR BCV */}
-                    <Grid size={{ xs: 12, md: 4 }}>
-                        <Box
-                            sx={{
-                                width: '100%',
-                                p: 2,
-                                boxShadow: `0 8px 16px ${user.color}20`,
-                                borderRadius: 2,
-                                background: (theme) =>
-                                    theme.palette.mode === 'dark' ? `${user.color}20` : '#FFF',
-                                display: 'flex',
-                                flexFlow: 'column nowrap',
-                                alignItems: 'center',
-                                gap: 1,
-                            }}
-                        >
-                            <TypographyCustom variant='h5' fontWeight={'bold'}>
-                                DÓLAR BCV
-                            </TypographyCustom>
-                            <TypographyCustom>
-                                Bs. {usdBcv ? usdBcv.value : '—'}
-                            </TypographyCustom>
-                            <TypographyCustom variant='subtitle2'>
-                                por cada USD
-                            </TypographyCustom>
-                            {usdBcv && (
-                                <TypographyCustom
-                                    variant='subtitle2'
-                                    color={isToday(usdBcv.created_at) ? 'success' : 'warning'}
-                                >
-                                    {`${isToday(usdBcv.created_at) ? '✅' : '⚠️'
-                                        } Actualizado el ${new Date(
-                                            usdBcv.created_at
-                                        ).toLocaleDateString('es-ES', {
-                                            day: 'numeric',
-                                            month: 'long',
-                                            year: 'numeric',
-                                        })}`}
-                                </TypographyCustom>
-                            )}
-                        </Box>
-                    </Grid>
-
-                    {/* DÓLAR BINANCE */}
-                    <Grid size={{ xs: 12, md: 4 }}>
-                        <Box
-                            sx={{
-                                width: '100%',
-                                p: 2,
-                                boxShadow: `0 8px 16px ${user.color}20`,
-                                borderRadius: 2,
-                                background: (theme) =>
-                                    theme.palette.mode === 'dark' ? `${user.color}20` : '#FFF',
-                                display: 'flex',
-                                flexFlow: 'column nowrap',
-                                alignItems: 'center',
-                                gap: 1,
-                            }}
-                        >
-                            <TypographyCustom variant='h5' fontWeight={'bold'}>
-                                DÓLAR BINANCE
-                            </TypographyCustom>
-                            <TypographyCustom>
-                                Bs. {usdBinance ? usdBinance.value : '—'}
-                            </TypographyCustom>
-                            <TypographyCustom variant='subtitle2'>
-                                por cada USD
-                            </TypographyCustom>
-                            {usdBinance && (
-                                <TypographyCustom
-                                    variant='subtitle2'
-                                    color={isToday(usdBinance.created_at) ? 'success' : 'warning'}
-                                >
-                                    {`${isToday(usdBinance.created_at) ? '✅' : '⚠️'
-                                        } Actualizado el ${new Date(
-                                            usdBinance.created_at
-                                        ).toLocaleDateString('es-ES', {
-                                            day: 'numeric',
-                                            month: 'long',
-                                            year: 'numeric',
-                                        })}`}
-                                </TypographyCustom>
-                            )}
-                        </Box>
-                    </Grid>
-
-                    {/* EURO BCV */}
-                    <Grid size={{ xs: 12, md: 4 }}>
-                        <Box
-                            sx={{
-                                width: '100%',
-                                p: 2,
-                                boxShadow: `0 8px 16px ${user.color}20`,
-                                borderRadius: 2,
-                                background: (theme) =>
-                                    theme.palette.mode === 'dark' ? `${user.color}20` : '#FFF',
-                                display: 'flex',
-                                flexFlow: 'column nowrap',
-                                alignItems: 'center',
-                                gap: 1,
-                            }}
-                        >
-                            <TypographyCustom variant='h5' fontWeight={'bold'}>
-                                EURO BCV
-                            </TypographyCustom>
-                            <TypographyCustom>
-                                Bs. {eurBcv ? eurBcv.value : '—'}
-                            </TypographyCustom>
-                            <TypographyCustom variant='subtitle2'>
-                                por cada EUR
-                            </TypographyCustom>
-                            {eurBcv && (
-                                <TypographyCustom
-                                    variant='subtitle2'
-                                    color={isToday(eurBcv.created_at) ? 'success' : 'warning'}
-                                >
-                                    {`${isToday(eurBcv.created_at) ? '✅' : '⚠️'
-                                        } Actualizado el ${new Date(
-                                            eurBcv.created_at
-                                        ).toLocaleDateString('es-ES', {
-                                            day: 'numeric',
-                                            month: 'long',
-                                            year: 'numeric',
-                                        })}`}
-                                </TypographyCustom>
-                            )}
-                        </Box>
-                    </Grid>
-                </Grid>
-            </Box>
-
-            {/* Formularios para actualizar */}
-            <Box
-                sx={{
-                    width: '100%',
-                    display: 'flex',
-                    flexFlow: 'column wrap',
-                    justifyContent: 'flex-start',
-                    alignItems: 'flex-start',
+                    width: "100%",
+                    display: "flex",
+                    flexFlow: "column wrap",
+                    justifyContent: "flex-start",
+                    alignItems: "flex-start",
                     p: 2,
                 }}
             >
                 <Box
                     sx={{
-                        width: '100%',
+                        width: "100%",
+                        mt: 1,
+                        p: 2,
+                        boxShadow: `0 8px 16px ${user.color}20`,
+                        borderRadius: 2,
+                        background: (theme) =>
+                            theme.palette.mode === "dark" ? `${user.color}20` : "#FFF",
+                        display: "flex",
+                        flexDirection: "column",
+                        alignItems: "center",
+                        gap: 2,
+                    }}
+                >
+                    <TypographyCustom variant="h5" fontWeight={"bold"}>
+                        Tasas actuales
+                    </TypographyCustom>
+
+                    {loading ? (
+                        <Loading />
+                    ) : currency.has_values ? (
+                        <>
+                            <TypographyCustom>
+                                <b>Dólar BCV:</b> Bs. {currency.bcv_usd}
+                            </TypographyCustom>
+                            <TypographyCustom>
+                                <b>Euro BCV:</b> Bs. {currency.bcv_eur}
+                            </TypographyCustom>
+                            <TypographyCustom>
+                                <b>Dólar Binance:</b> Bs. {currency.binance_usd}
+                            </TypographyCustom>
+                            {currency.updated_at && (
+                                <TypographyCustom
+                                    variant="subtitle2"
+                                    color={isToday ? "success.main" : "warning.main"}
+                                >
+                                    {`${isToday ? "✅" : "⚠️"} Actualizado el ${new Date(
+                                        currency.updated_at
+                                    ).toLocaleDateString("es-ES", {
+                                        day: "numeric",
+                                        month: "long",
+                                        year: "numeric",
+                                    })}`}
+                                </TypographyCustom>
+                            )}
+                        </>
+                    ) : (
+                        <TypographyCustom color="text.secondary">
+                            Aún no has configurado tasas. Crea las primeras abajo 👇
+                        </TypographyCustom>
+                    )}
+                </Box>
+            </Box>
+
+            {/* Formulario para actualizar */}
+            <Box
+                sx={{
+                    width: "100%",
+                    display: "flex",
+                    flexFlow: "column wrap",
+                    justifyContent: "flex-start",
+                    alignItems: "flex-start",
+                    p: 2,
+                }}
+            >
+                <Box
+                    sx={{
+                        width: "100%",
                         mt: 1,
                         p: 2,
                         gap: 2,
                         boxShadow: `0 8px 16px ${user.color}20`,
                         borderRadius: 2,
                         background: (theme) =>
-                            theme.palette.mode === 'dark' ? `${user.color}20` : '#FFF',
-                        display: 'flex',
-                        flexFlow: 'column nowrap',
-                        alignItems: 'center',
+                            theme.palette.mode === "dark" ? `${user.color}20` : "#FFF",
+                        display: "flex",
+                        flexDirection: "column",
+                        alignItems: "center",
                     }}
                 >
-                    <TypographyCustom variant='h5' fontWeight={'bold'}>
+                    <TypographyCustom variant="h5" fontWeight={"bold"}>
                         Actualizar valores
                     </TypographyCustom>
 
-                    <Grid container spacing={2}>
-                        {/* Form Dólar BCV */}
-                        <Grid size={{ xs: 12, md: 4 }}>
-                            <Formik
-                                initialValues={{ value: '' }}
-                                onSubmit={(values, { resetForm }) =>
-                                    handleSubmitRate(
-                                        DESCRIPTIONS.BCV_USD,
-                                        Number(values.value || 0),
-                                        () => resetForm()
-                                    )
-                                }
+                    <Formik
+                        enableReinitialize
+                        initialValues={{
+                            bcv_usd: currency.bcv_usd ?? 0,
+                            bcv_eur: currency.bcv_eur ?? 0,
+                            binance_usd: currency.binance_usd ?? 0,
+                        }}
+                        onSubmit={(values, { resetForm }) =>
+                            onSubmit(values, () => resetForm({ values }))
+                        }
+                    >
+                        {({ values, handleChange, handleSubmit }) => (
+                            <Form
+                                onSubmit={(e) => {
+                                    e.preventDefault();
+                                    handleSubmit();
+                                }}
                             >
-                                {({ values, handleChange, handleSubmit }) => (
-                                    <Form
-                                        onSubmit={(e) => {
-                                            e.preventDefault();
-                                            handleSubmit();
-                                        }}
-                                    >
-                                        <Grid container spacing={2}>
-                                            <Grid size={{ xs: 12 }}>
-                                                <NumericFormat
-                                                    customInput={TextFieldCustom}
-                                                    size='small'
-                                                    value={values.value}
-                                                    label='Dólar BCV (Bs)'
-                                                    name='value'
-                                                    allowLeadingZeros={false}
-                                                    decimalScale={2}
-                                                    fixedDecimalScale
-                                                    prefix={'Bs '}
-                                                    allowNegative={false}
-                                                    valueIsNumericString
-                                                    thousandSeparator={false}
-                                                    onChange={handleChange}
-                                                />
-                                            </Grid>
-                                            <Grid size={{ xs: 12 }}>
-                                                <ButtonCustom type='submit' variant='contained' fullWidth>
-                                                    Actualizar
-                                                </ButtonCustom>
-                                            </Grid>
-                                        </Grid>
-                                    </Form>
-                                )}
-                            </Formik>
-                        </Grid>
-
-                        {/* Form Dólar Binance */}
-                        <Grid size={{ xs: 12, md: 4 }}>
-                            <Formik
-                                initialValues={{ value: '' }}
-                                onSubmit={(values, { resetForm }) =>
-                                    handleSubmitRate(
-                                        DESCRIPTIONS.BINANCE_USD,
-                                        Number(values.value || 0),
-                                        () => resetForm()
-                                    )
-                                }
-                            >
-                                {({ values, handleChange, handleSubmit }) => (
-                                    <Form
-                                        onSubmit={(e) => {
-                                            e.preventDefault();
-                                            handleSubmit();
-                                        }}
-                                    >
-                                        <Grid container spacing={2}>
-                                            <Grid size={{ xs: 12 }} >
-                                                <NumericFormat
-                                                    customInput={TextFieldCustom}
-                                                    size='small'
-                                                    value={values.value}
-                                                    label='Dólar Binance (Bs)'
-                                                    name='value'
-                                                    allowLeadingZeros={false}
-                                                    decimalScale={2}
-                                                    fixedDecimalScale
-                                                    prefix={'Bs '}
-                                                    allowNegative={false}
-                                                    valueIsNumericString
-                                                    thousandSeparator={false}
-                                                    onChange={handleChange}
-                                                />
-                                            </Grid>
-                                            <Grid size={{ xs: 12 }}>
-                                                <ButtonCustom type='submit' variant='contained' fullWidth>
-                                                    Actualizar
-                                                </ButtonCustom>
-                                            </Grid>
-                                        </Grid>
-                                    </Form>
-                                )}
-                            </Formik>
-                        </Grid>
-
-                        {/* Form Euro BCV */}
-                        <Grid size={{ xs: 12, md: 4 }}>
-                            <Formik
-                                initialValues={{ value: '' }}
-                                onSubmit={(values, { resetForm }) =>
-                                    handleSubmitRate(
-                                        DESCRIPTIONS.BCV_EUR,
-                                        Number(values.value || 0),
-                                        () => resetForm()
-                                    )
-                                }
-                            >
-                                {({ values, handleChange, handleSubmit }) => (
-                                    <Form
-                                        onSubmit={(e) => {
-                                            e.preventDefault();
-                                            handleSubmit();
-                                        }}
-                                    >
-                                        <Grid container spacing={2}>
-                                            <Grid size={{ xs: 12 }}>
-                                                <NumericFormat
-                                                    customInput={TextFieldCustom}
-                                                    size='small'
-                                                    value={values.value}
-                                                    label='Euro BCV (Bs)'
-                                                    name='value'
-                                                    allowLeadingZeros={false}
-                                                    decimalScale={2}
-                                                    fixedDecimalScale
-                                                    prefix={'Bs '}
-                                                    allowNegative={false}
-                                                    valueIsNumericString
-                                                    thousandSeparator={false}
-                                                    onChange={handleChange}
-                                                />
-                                            </Grid>
-                                            <Grid size={{ xs: 12 }}>
-                                                <ButtonCustom type='submit' variant='contained' fullWidth>
-                                                    Actualizar
-                                                </ButtonCustom>
-                                            </Grid>
-                                        </Grid>
-                                    </Form>
-                                )}
-                            </Formik>
-                        </Grid>
-                    </Grid>
+                                <Grid container spacing={2}>
+                                    <Grid size={{ xs: 12, md: 4 }}>
+                                        <NumericFormat
+                                            customInput={TextFieldCustom}
+                                            size="small"
+                                            value={values.bcv_usd}
+                                            label="Dólar BCV (Bs)"
+                                            name="bcv_usd"
+                                            decimalScale={2}
+                                            fixedDecimalScale
+                                            prefix={"Bs "}
+                                            allowNegative={false}
+                                            valueIsNumericString={false}
+                                            thousandSeparator={false}
+                                            onChange={handleChange}
+                                        />
+                                    </Grid>
+                                    <Grid size={{ xs: 12, md: 4 }}>
+                                        <NumericFormat
+                                            customInput={TextFieldCustom}
+                                            size="small"
+                                            value={values.bcv_eur}
+                                            label="Euro BCV (Bs)"
+                                            name="bcv_eur"
+                                            decimalScale={2}
+                                            fixedDecimalScale
+                                            prefix={"Bs "}
+                                            allowNegative={false}
+                                            valueIsNumericString={false}
+                                            thousandSeparator={false}
+                                            onChange={handleChange}
+                                        />
+                                    </Grid>
+                                    <Grid size={{ xs: 12, md: 4 }}>
+                                        <NumericFormat
+                                            customInput={TextFieldCustom}
+                                            size="small"
+                                            value={values.binance_usd}
+                                            label="Dólar Binance (Bs)"
+                                            name="binance_usd"
+                                            decimalScale={2}
+                                            fixedDecimalScale
+                                            prefix={"Bs "}
+                                            allowNegative={false}
+                                            valueIsNumericString={false}
+                                            thousandSeparator={false}
+                                            onChange={handleChange}
+                                        />
+                                    </Grid>
+                                    <Grid size={{ xs: 12 }}>
+                                        <ButtonCustom type="submit" variant="contained">
+                                            Actualizar tasas
+                                        </ButtonCustom>
+                                    </Grid>
+                                </Grid>
+                            </Form>
+                        )}
+                    </Formik>
                 </Box>
             </Box>
         </Layout>
