@@ -251,15 +251,39 @@ export const OrderDialog: FC<OrderDialogProps> = ({ id, open, setOpen }) => {
             >
                 {/* Encabezado */}
                 <Box sx={{ paddingBlock: 4 }}>
-                    <Typography variant="h5">Orden #{order.name}</Typography>
-                    <Typography>
+                    <TypographyCustom variant="h5">Orden #{order.name}</TypographyCustom>
+                    <TypographyCustom>
                         Cliente: {order.client.first_name} {order.client.last_name}
-                    </Typography>
-                    <Typography>
+                    </TypographyCustom>
+                    <TypographyCustom
+                        variant="subtitle2"
+                        color="text.secondary"
+                        sx={{
+                            maxWidth: "200px",   // 🔹 ajusta el ancho máximo permitido
+                            whiteSpace: "nowrap",
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                        }}
+                    >
+                        {order.client.phone}
+                    </TypographyCustom>
+                    <TypographyCustom
+                        variant="subtitle2"
+                        color="text.secondary"
+                        sx={{
+                            maxWidth: "200px",   // 🔹 ajusta el ancho máximo permitido
+                            whiteSpace: "nowrap",
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                        }}
+                    >
+                        {order.client.province}
+                    </TypographyCustom>
+                    <TypographyCustom>
                         Total: {order.current_total_price} {order.currency}
-                    </Typography>
-                    <Typography>Status: {order.status.description}</Typography>
-                    {order.agent && <Typography>Vendedor: {order.agent.names}</Typography>}
+                    </TypographyCustom>
+                    <TypographyCustom>Status: {order.status.description}</TypographyCustom>
+                    {order.agent && <TypographyCustom>Vendedor: {order.agent.names}</TypographyCustom>}
                 </Box>
                 {/* Botón posponer */}
                 <Box sx={{ display: 'flex', paddingBlock: 4, gap: 2 }}>

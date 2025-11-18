@@ -2,7 +2,9 @@ import {
     Avatar,
     Box,
     Chip,
+    Dialog,
     Divider,
+    Tooltip,
     useTheme,
 } from "@mui/material";
 import AddRoundedIcon from "@mui/icons-material/AddRounded";
@@ -61,14 +63,25 @@ export const OrderItem: FC<OrderItemProps> = ({ order }) => {
     const { updateOrder, setSelectedOrder } = useOrdersStore();
     const [openAssign, setOpenAssign] = useState(false);
     const [open, setOpen] = useState<boolean>(false);
+    const [productsOpen, setProductsOpen] = useState<boolean>(false);
     const [openAssignDeliverer, setOpenAssignDeliverer] = useState(false);
+    const [orderProducts, setOrderProducts] = useState<any>([]);
     const theme = useTheme();
 
     const handleOpen = () => {
         setSelectedOrder(order);
         setOpen(true);
     };
-
+    const getProducts = async () => {
+        const { status: ok, response }: IResponse = await request(`/order/${order.id}/products`, 'GET');
+        if (ok == 200) {
+            const { products } = await response.json();
+            console.log({ products })
+            setOrderProducts(products)
+        } else {
+            console.log('error consultando products')
+        }
+    }
     const changeStatus = async (status: string, statusId: number) => {
         // 👇 Si quieren "Asignado a repartidor" pero aún no hay repartidor, primero elegimos uno
         if (status === "Asignado a repartidor" && !order.deliverer) {
@@ -96,7 +109,6 @@ export const OrderItem: FC<OrderItemProps> = ({ order }) => {
             toast.error("Error en el servidor al actualizar estado 🚨");
         }
     };
-
 
     return (
         <Box
@@ -136,6 +148,30 @@ export const OrderItem: FC<OrderItemProps> = ({ order }) => {
                 >
                     {order.client.first_name} {order.client.last_name}
                 </TypographyCustom>
+                <TypographyCustom
+                    variant="subtitle2"
+                    color="text.secondary"
+                    sx={{
+                        maxWidth: "200px",   // 🔹 ajusta el ancho máximo permitido
+                        whiteSpace: "nowrap",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                    }}
+                >
+                    {order.client.phone}
+                </TypographyCustom>
+                <TypographyCustom
+                    variant="subtitle2"
+                    color="text.secondary"
+                    sx={{
+                        maxWidth: "200px",   // 🔹 ajusta el ancho máximo permitido
+                        whiteSpace: "nowrap",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                    }}
+                >
+                    {order.client.province}
+                </TypographyCustom>
                 <TypographyCustom variant="subtitle2">
                     {order.current_total_price} {order.currency}
                 </TypographyCustom>
@@ -166,7 +202,22 @@ export const OrderItem: FC<OrderItemProps> = ({ order }) => {
                     </Avatar>
                 </Box>
             </Box>
+            <TypographyCustom variant="subtitle1" onClick={() => getProducts()}>Ver productos</TypographyCustom>
 
+            {orderProducts && orderProducts.map((p: any) =>
+                <Tooltip title={p.title}>
+                    <TypographyCustom variant="subtitle2"
+                        color="text.secondary"
+                        sx={{
+                            maxWidth: "200px",   // 🔹 ajusta el ancho máximo permitido
+                            whiteSpace: "nowrap",
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                        }}>
+                        ({p.quantity}) {p.title}
+                    </TypographyCustom>
+                </Tooltip>
+            )}
             <AssignAgentDialog
                 open={openAssign}
                 onClose={() => setOpenAssign(false)}

@@ -1,6 +1,6 @@
-import { Box, Grid, Toolbar } from "@mui/material";
+import { Box, Grid, Toolbar, Typography } from "@mui/material";
 import { useEffect, useState } from "react";
-import { ButtonCustom, TextFieldCustom, TypographyCustom } from "../../components/custom";
+import { ButtonCustom, TextFieldCustom } from "../../components/custom";
 import { Loading } from "../../components/ui/content/Loading";
 import { Layout } from "../../components/ui/Layout";
 import { useUserStore } from "../../store/user/UserStore";
@@ -47,12 +47,12 @@ export const Currency = () => {
         try {
             const { status, response }: IResponse = await request("/currency", "GET");
             if (status === 200) {
-                const json = await response.json();
-                const data = json.data || {};
+                const { data } = await response.json();
+                console.log({ data })
                 setCurrency({
-                    bcv_usd: data.bcv_usd ?? null,
-                    bcv_eur: data.bcv_eur ?? null,
-                    binance_usd: data.binance_usd ?? null,
+                    bcv_usd: data.bcv_usd.value ?? null,
+                    bcv_eur: data.bcv_eur.value ?? null,
+                    binance_usd: data.binance_usd.value ?? null,
                     updated_at: data.updated_at ?? null,
                     has_values: data.has_values ?? false,
                 });
@@ -69,19 +69,19 @@ export const Currency = () => {
 
     const onSubmit = async (values: typeof initialFormValues, resetForm: () => void) => {
         try {
+            console.log({ values })
             const body = new URLSearchParams();
-            body.append("bcv_usd", String(values.bcv_usd));
-            body.append("bcv_eur", String(values.bcv_eur));
-            body.append("binance_usd", String(values.binance_usd));
+            body.append("bcv_usd", String(values.bcv_usd).replace('Bs ', ''));
+            body.append("bcv_eur", String(values.bcv_eur).replace('Bs ', ''));
+            body.append("binance_usd", String(values.binance_usd).replace('Bs ', ''));
 
             const { status, response }: IResponse = await request("/currency", "POST", body);
             if (status === 200) {
-                const json = await response.json();
-                const data = json.data || {};
+                const { data } = await response.json();
                 setCurrency({
-                    bcv_usd: data.bcv_usd ?? null,
-                    bcv_eur: data.bcv_eur ?? null,
-                    binance_usd: data.binance_usd ?? null,
+                    bcv_usd: data.bcv_usd?.value ?? null,
+                    bcv_eur: data.bcv_eur?.value ?? null,
+                    binance_usd: data.binance_usd?.value ?? null,
                     updated_at: data.updated_at ?? null,
                     has_values: true,
                 });
@@ -110,13 +110,13 @@ export const Currency = () => {
     return (
         <Layout>
             <Toolbar />
-            <TypographyCustom fontWeight={"bold"} variant="h4">
+            <Typography fontWeight={"bold"} variant="h4">
                 Tasas de cambio
-            </TypographyCustom>
-            <TypographyCustom color={"text.secondary"} variant="body1">
+            </Typography>
+            <Typography color={"text.secondary"} variant="body1">
                 Aquí puedes cambiar los valores de las tasas (BCV EUR, Dólar BCV y Dólar Binance)
                 y consultar el valor actual.
-            </TypographyCustom>
+            </Typography>
 
             {/* Panel de tasas actuales */}
             <Box
@@ -145,25 +145,25 @@ export const Currency = () => {
                         gap: 2,
                     }}
                 >
-                    <TypographyCustom variant="h5" fontWeight={"bold"}>
+                    <Typography variant="h5" fontWeight={"bold"}>
                         Tasas actuales
-                    </TypographyCustom>
+                    </Typography>
 
                     {loading ? (
                         <Loading />
                     ) : currency.has_values ? (
                         <>
-                            <TypographyCustom>
+                            <Typography>
                                 <b>Dólar BCV:</b> Bs. {currency.bcv_usd}
-                            </TypographyCustom>
-                            <TypographyCustom>
+                            </Typography>
+                            <Typography>
                                 <b>Euro BCV:</b> Bs. {currency.bcv_eur}
-                            </TypographyCustom>
-                            <TypographyCustom>
+                            </Typography>
+                            <Typography>
                                 <b>Dólar Binance:</b> Bs. {currency.binance_usd}
-                            </TypographyCustom>
+                            </Typography>
                             {currency.updated_at && (
-                                <TypographyCustom
+                                <Typography
                                     variant="subtitle2"
                                     color={isToday ? "success.main" : "warning.main"}
                                 >
@@ -174,13 +174,13 @@ export const Currency = () => {
                                         month: "long",
                                         year: "numeric",
                                     })}`}
-                                </TypographyCustom>
+                                </Typography>
                             )}
                         </>
                     ) : (
-                        <TypographyCustom color="text.secondary">
+                        <Typography color="text.secondary">
                             Aún no has configurado tasas. Crea las primeras abajo 👇
-                        </TypographyCustom>
+                        </Typography>
                     )}
                 </Box>
             </Box>
@@ -211,9 +211,9 @@ export const Currency = () => {
                         alignItems: "center",
                     }}
                 >
-                    <TypographyCustom variant="h5" fontWeight={"bold"}>
+                    <Typography variant="h5" fontWeight={"bold"}>
                         Actualizar valores
-                    </TypographyCustom>
+                    </Typography>
 
                     <Formik
                         enableReinitialize
