@@ -1,18 +1,7 @@
-import {
-    AppBar,
-    Avatar,
-    Box,
-    Dialog,
-    Divider,
-    IconButton,
-    MenuItem,
-    Toolbar,
-    Typography,
-    useTheme,
-} from "@mui/material";
+import { AppBar, Avatar, Box, Chip, CircularProgress, Dialog, Divider, IconButton, MenuItem, Toolbar, Typography, useTheme } from "@mui/material";
 import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
 import SendRounded from "@mui/icons-material/SendRounded";
-import React, { FC, useEffect, useState } from "react";
+import React, { ChangeEvent, FC, useEffect, useState } from "react";
 import { darken, lighten } from "@mui/material/styles";
 import { request } from "../../common/request";
 import { IResponse } from "../../interfaces/response-type";
@@ -24,6 +13,10 @@ import { toast } from "react-toastify";
 import { PostponeOrderDialog } from "./PostponeOrderDialog";
 import { ReviewCancellationDialog } from "./ReviewCancellationDialog";
 import { fmtMoney } from "../../lib/money";
+import DenseMenu from "../ui/content/DenseMenu";
+import { AssignDelivererDialog } from "./AssignDelivererDialog";
+import { AssignAgentDialog } from "./AssignAgentDialog";
+import { CheckRounded } from "@mui/icons-material";
 
 interface OrderDialogProps {
     id?: number;
@@ -51,12 +44,16 @@ export const OrderDialog: FC<OrderDialogProps> = ({ id, open, setOpen }) => {
         { value: "BINANCE_DOLARES", label: "Binance dólares" },
         { value: "ZELLE_DOLARES", label: "Zelle dólares" },
     ];
+    const [openAssignDeliverer, setOpenAssignDeliverer] = useState(false);
+    const [openAssign, setOpenAssign] = useState(false);
 
     const [paymentMethod, setPaymentMethod] = useState<string>("");
     const [paymentRate, setPaymentRate] = useState<string>("");
     const [savingPayment, setSavingPayment] = useState(false);
-
+    const [newLocation, setNewLocation] = useState<string>(selectedOrder?.location || '');
+    const [showButton, setShowButton] = useState<boolean>(false);
     const handleClose = () => setOpen(false);
+
 
     // 🔹 Cargar orden seleccionada cuando cambia el id
     useEffect(() => {
@@ -73,6 +70,31 @@ export const OrderDialog: FC<OrderDialogProps> = ({ id, open, setOpen }) => {
             fetchOrder();
         }
     }, [id, open]);
+    const sendLocation = async () => {
+        if (!newLocation) return;
+        const body = new URLSearchParams();
+        body.append('location', String(newLocation));
+        console.log(`/orders/${id}/location`)
+        try {
+            const { status, response }: IResponse = await request(
+                `/orders/${id}/location`,
+                "PUT",
+                body
+            );
+            if (status === 200) {
+                const data = await response.json();
+                updateOrder(data);          // actualiza global
+                // setSelectedOrder(data);     // y el seleccionado
+                toast.success('Ubicacion actualizada');
+            } else {
+                console.log({ response })
+                toast.error('No se logro añadir la ubicacion')
+            }
+        } catch (e) {
+            toast.error('No se logro conectar con el servidor')
+            console.log({ e })
+        }
+    }
     const handleSavePayment = async () => {
         if (!id) return;
         if (!paymentMethod) {
@@ -178,7 +200,33 @@ export const OrderDialog: FC<OrderDialogProps> = ({ id, open, setOpen }) => {
             setLoadingReview(false);
         }
     };
+    const changeStatus = async (status: string, statusId: number) => {
+        // 👇 Si quieren "Asignado a repartidor" pero aún no hay repartidor, primero elegimos uno
+        if (status === "Asignado a repartidor" && !order.deliverer) {
+            setOpenAssignDeliverer(true);
+            return;
+        }
 
+        // caso normal: actualizar status
+        const body = new URLSearchParams();
+        body.append("status_id", String(statusId));
+        try {
+            const { status: ok, response }: IResponse = await request(
+                `/orders/${order.id}/status`,
+                "PUT",
+                body
+            );
+            if (ok) {
+                const data = await response.json();
+                updateOrder(data.order);
+                toast.success(`Orden #${order.name} actualizada a ${status} ✅`);
+            } else {
+                toast.error("No se pudo actualizar el estado ❌");
+            }
+        } catch {
+            toast.error("Error en el servidor al actualizar estado 🚨");
+        }
+    };
     const rejectCancellation = async (note: string) => {
         setLoadingReview(true);
         try {
@@ -209,6 +257,11 @@ export const OrderDialog: FC<OrderDialogProps> = ({ id, open, setOpen }) => {
             setLoadingReview(false);
         }
     };
+
+    const handleChangeNewLocation = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+        const newValue = e.target.value;
+        setNewLocation(newValue);
+    }
     return (
         <Dialog fullScreen onClose={handleClose} open={open}>
             <AppBar
@@ -250,8 +303,26 @@ export const OrderDialog: FC<OrderDialogProps> = ({ id, open, setOpen }) => {
                 }}
             >
                 {/* Encabezado */}
-                <Box sx={{ paddingBlock: 4 }}>
-                    <TypographyCustom variant="h5">Orden #{order.name}</TypographyCustom>
+                <Box sx={{ paddingBlock: 4, display: 'flex', flexFlow: 'column wrap', justifyContent: 'center', alignItems: 'center' }}>
+                    {order.products?.length > 0 ? (<Avatar
+                        src={order.products[0].image || undefined}
+                        alt={order.products[0].title}
+                        variant="rounded"
+                        sx={{ width: 150, height: 150, mb: 2, borderRadius: '50%' }}
+                    >
+                        {!order.products[0].image && (order.products[0].title?.charAt(0) ?? "P")}
+                    </Avatar>) : (
+                        <Avatar
+                            variant="rounded"
+                            sx={{ width: 150, height: 150, mb: 2, borderRadius: '50%' }}
+                        >
+                            <CircularProgress />
+                        </Avatar>
+                    )}
+                    <Box sx={{ display: 'flex', gap: 2 }}>
+                        <TypographyCustom variant="h5">Orden {order.name}</TypographyCustom>
+                        <Chip sx={{ background: user.color, color: (theme) => theme.palette.getContrastText(user.color) }} label={order.status.description} />
+                    </Box>
                     <TypographyCustom>
                         Cliente: {order.client.first_name} {order.client.last_name}
                     </TypographyCustom>
@@ -282,16 +353,60 @@ export const OrderDialog: FC<OrderDialogProps> = ({ id, open, setOpen }) => {
                     <TypographyCustom>
                         Total: {order.current_total_price} {order.currency}
                     </TypographyCustom>
-                    <TypographyCustom>Status: {order.status.description}</TypographyCustom>
                     {order.agent && <TypographyCustom>Vendedor: {order.agent.names}</TypographyCustom>}
+                    {user.role?.description === 'Repartidor' ? (
+                        (<TypographyCustom>Ubicacion: {order.location ?? 'No hay ubicacion asignada aun'}</TypographyCustom>)
+                    ) : <Box sx={{ display: 'flex', flexFlow: 'row nowrap', gap: 1, justifyContent: 'space-evenly', alignItems: 'center' }}>
+                        <TextFieldCustom onBlur={sendLocation} onChange={handleChangeNewLocation} value={newLocation} label="Ubicacion" />
+                    </Box>}
+                </Box>
+                {/* Sección de método de pago */}
+                <Box sx={{ display: "grid", gap: 2, maxWidth: 400, mb: 3 }}>
+                    <Typography variant="h6">Pago del cliente</Typography>
+
+                    <TextFieldCustom
+                        select
+                        label="Método de pago"
+                        value={paymentMethod}
+                        onChange={(e) => setPaymentMethod(e.target.value)}
+                        fullWidth
+                        size="small"
+                    >
+                        {paymentOptions.map(opt => (
+                            <MenuItem key={opt.value} value={opt.value}>
+                                {opt.label}
+                            </MenuItem>
+                        ))}
+                    </TextFieldCustom>
+
+                    {paymentMethod === "BOLIVARES_TRANSFERENCIA" && (
+                        <TextFieldCustom
+                            label="Tasa del día (Bs por USD)"
+                            type="number"
+                            value={paymentRate}
+                            onChange={(e) => setPaymentRate(e.target.value)}
+                            fullWidth
+                            size="small"
+                            inputProps={{ min: 0, step: "0.01" }}
+                        />
+                    )}
+
+                    <Box>
+                        <ButtonCustom
+                            variant="contained"
+                            disabled={savingPayment}
+                            onClick={handleSavePayment}
+                        >
+                            {savingPayment ? "Guardando..." : "Guardar método de pago"}
+                        </ButtonCustom>
+                    </Box>
                 </Box>
                 {/* Botón posponer */}
-                <Box sx={{ display: 'flex', paddingBlock: 4, gap: 2 }}>
+                {/* <Box sx={{ display: 'flex', paddingBlock: 4, gap: 2 }}>
 
                     <ButtonCustom variant="outlined" onClick={() => setOpenPostpone(true)}>
                         Posponer
                     </ButtonCustom>
-                    {/* Botón cancelar */}
                     <ButtonCustom
                         variant="contained"
                         color="error"
@@ -299,8 +414,8 @@ export const OrderDialog: FC<OrderDialogProps> = ({ id, open, setOpen }) => {
                     >
                         Cancelar orden
                     </ButtonCustom>
-                </Box>
-                {isManager && isPendingCancel && (
+                </Box> */}
+                {/* {isManager && isPendingCancel && (
                     <Box sx={{ display: "flex", gap: 1.5, justifyContent: "flex-end", mt: 2 }}>
                         <ButtonCustom variant="outlined" color="error" onClick={() => setOpenReject(true)}>
                             Rechazar cancelación
@@ -309,8 +424,10 @@ export const OrderDialog: FC<OrderDialogProps> = ({ id, open, setOpen }) => {
                             Aprobar cancelación
                         </ButtonCustom>
                     </Box>
-                )}
-
+                )} */}
+                <Box sx={{ width: { xs: '100%', md: '50%', lg: '33%' }, margin: 'auto' }}>
+                    <DenseMenu data={order} changeStatus={changeStatus} icon={false} customComponent={<ButtonCustom variant={'contained'}>{order.status.description}</ButtonCustom>} />
+                </Box>
                 <ReviewCancellationDialog
                     open={openApprove}
                     onClose={() => setOpenApprove(false)}
@@ -419,47 +536,7 @@ export const OrderDialog: FC<OrderDialogProps> = ({ id, open, setOpen }) => {
                 </Typography>
                 <Divider sx={{ my: 3 }} />
 
-                {/* Sección de método de pago */}
-                <Box sx={{ display: "grid", gap: 2, maxWidth: 400, mb: 3 }}>
-                    <Typography variant="h6">Pago del cliente</Typography>
 
-                    <TextFieldCustom
-                        select
-                        label="Método de pago"
-                        value={paymentMethod}
-                        onChange={(e) => setPaymentMethod(e.target.value)}
-                        fullWidth
-                        size="small"
-                    >
-                        {paymentOptions.map(opt => (
-                            <MenuItem key={opt.value} value={opt.value}>
-                                {opt.label}
-                            </MenuItem>
-                        ))}
-                    </TextFieldCustom>
-
-                    {paymentMethod === "BOLIVARES_TRANSFERENCIA" && (
-                        <TextFieldCustom
-                            label="Tasa del día (Bs por USD)"
-                            type="number"
-                            value={paymentRate}
-                            onChange={(e) => setPaymentRate(e.target.value)}
-                            fullWidth
-                            size="small"
-                            inputProps={{ min: 0, step: "0.01" }}
-                        />
-                    )}
-
-                    <Box>
-                        <ButtonCustom
-                            variant="contained"
-                            disabled={savingPayment}
-                            onClick={handleSavePayment}
-                        >
-                            {savingPayment ? "Guardando..." : "Guardar método de pago"}
-                        </ButtonCustom>
-                    </Box>
-                </Box>
                 {/* Actualizaciones */}
                 <Divider sx={{ marginBlock: 5 }} />
                 <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
@@ -519,6 +596,16 @@ export const OrderDialog: FC<OrderDialogProps> = ({ id, open, setOpen }) => {
                         )}
                     </Box>
                 </Box>
+                <AssignAgentDialog
+                    open={openAssign}
+                    onClose={() => setOpenAssign(false)}
+                    orderId={order.id}
+                />
+                <AssignDelivererDialog
+                    open={openAssignDeliverer}
+                    onClose={() => setOpenAssignDeliverer(false)}
+                    orderId={order.id}
+                />
             </Box>
         </Dialog >
     );

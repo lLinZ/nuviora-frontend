@@ -103,6 +103,7 @@ export const Orders = () => {
                     />
                     <Box sx={{ display: "flex", gap: 2, flexFlow: "row nowrap" }}>
                         <OrderList title="Nuevo" />
+                        <OrderList title="Reprogramado para hoy" />
                         <OrderList title="Asignado a vendedora" />
                         <OrderList title="Llamado 1" />
                         <OrderList title="Llamado 2" />
@@ -112,7 +113,6 @@ export const Orders = () => {
                         <OrderList title="En ruta" />
                         <OrderList title="Programado para mas tarde" />
                         <OrderList title="Programado para otro dia" />
-                        <OrderList title="Reprogramado" />
                         <OrderList title="Cambio de ubicacion" />
                         <OrderList title="Rechazado" />
                         <OrderList title="Entregado" />
