@@ -17,6 +17,7 @@ import DenseMenu from "../ui/content/DenseMenu";
 import { AssignDelivererDialog } from "./AssignDelivererDialog";
 import { AssignAgentDialog } from "./AssignAgentDialog";
 import { CheckRounded } from "@mui/icons-material";
+import PaymentMethodsSelector, { PaymentMethod } from "./payment_method/PaymentMethod";
 
 interface OrderDialogProps {
     id?: number;
@@ -257,7 +258,14 @@ export const OrderDialog: FC<OrderDialogProps> = ({ id, open, setOpen }) => {
             setLoadingReview(false);
         }
     };
-
+    const handleSavePayments = (payments: PaymentMethod[]) => {
+        console.log("Métodos de pago seleccionados:", payments);
+        // Ejemplo de resultado:
+        // [
+        //   { method: 'BOLIVARES_TRANSFERENCIA', amount: 20 },
+        //   { method: 'DOLARES_EFECTIVO', amount: 10 },
+        // ]
+    };
     const handleChangeNewLocation = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         const newValue = e.target.value;
         setNewLocation(newValue);
@@ -302,105 +310,79 @@ export const OrderDialog: FC<OrderDialogProps> = ({ id, open, setOpen }) => {
                             : lighten(user.color, 0.97),
                 }}
             >
-                {/* Encabezado */}
-                <Box sx={{ paddingBlock: 4, display: 'flex', flexFlow: 'column wrap', justifyContent: 'center', alignItems: 'center' }}>
-                    {order.products?.length > 0 ? (<Avatar
-                        src={order.products[0].image || undefined}
-                        alt={order.products[0].title}
-                        variant="rounded"
-                        sx={{ width: 150, height: 150, mb: 2, borderRadius: '50%' }}
-                    >
-                        {!order.products[0].image && (order.products[0].title?.charAt(0) ?? "P")}
-                    </Avatar>) : (
-                        <Avatar
+                <Box sx={{ display: 'flex', flexFlow: 'row wrap', justifyContent: 'space-evenly', alignItems: 'center' }}>
+                    {/* Encabezado */}
+                    <Box sx={{ paddingBlock: 4, display: 'flex', flexFlow: 'column wrap', justifyContent: 'center', alignItems: 'center' }}>
+                        {order.products?.length > 0 ? (<Avatar
+                            src={order.products[0].image || undefined}
+                            alt={order.products[0].title}
                             variant="rounded"
                             sx={{ width: 150, height: 150, mb: 2, borderRadius: '50%' }}
                         >
-                            <CircularProgress />
-                        </Avatar>
-                    )}
-                    <Box sx={{ display: 'flex', gap: 2 }}>
-                        <TypographyCustom variant="h5">Orden {order.name}</TypographyCustom>
-                        <Chip sx={{ background: user.color, color: (theme) => theme.palette.getContrastText(user.color) }} label={order.status.description} />
-                    </Box>
-                    <TypographyCustom>
-                        Cliente: {order.client.first_name} {order.client.last_name}
-                    </TypographyCustom>
-                    <TypographyCustom
-                        variant="subtitle2"
-                        color="text.secondary"
-                        sx={{
-                            maxWidth: "200px",   // 🔹 ajusta el ancho máximo permitido
-                            whiteSpace: "nowrap",
-                            overflow: "hidden",
-                            textOverflow: "ellipsis",
-                        }}
-                    >
-                        {order.client.phone}
-                    </TypographyCustom>
-                    <TypographyCustom
-                        variant="subtitle2"
-                        color="text.secondary"
-                        sx={{
-                            maxWidth: "200px",   // 🔹 ajusta el ancho máximo permitido
-                            whiteSpace: "nowrap",
-                            overflow: "hidden",
-                            textOverflow: "ellipsis",
-                        }}
-                    >
-                        {order.client.province}
-                    </TypographyCustom>
-                    <TypographyCustom>
-                        Total: {order.current_total_price} {order.currency}
-                    </TypographyCustom>
-                    {order.agent && <TypographyCustom>Vendedor: {order.agent.names}</TypographyCustom>}
-                    {user.role?.description === 'Repartidor' ? (
-                        (<TypographyCustom>Ubicacion: {order.location ?? 'No hay ubicacion asignada aun'}</TypographyCustom>)
-                    ) : <Box sx={{ display: 'flex', flexFlow: 'row nowrap', gap: 1, justifyContent: 'space-evenly', alignItems: 'center' }}>
-                        <TextFieldCustom onBlur={sendLocation} onChange={handleChangeNewLocation} value={newLocation} label="Ubicacion" />
-                    </Box>}
-                </Box>
-                {/* Sección de método de pago */}
-                <Box sx={{ display: "grid", gap: 2, maxWidth: 400, mb: 3 }}>
-                    <Typography variant="h6">Pago del cliente</Typography>
-
-                    <TextFieldCustom
-                        select
-                        label="Método de pago"
-                        value={paymentMethod}
-                        onChange={(e) => setPaymentMethod(e.target.value)}
-                        fullWidth
-                        size="small"
-                    >
-                        {paymentOptions.map(opt => (
-                            <MenuItem key={opt.value} value={opt.value}>
-                                {opt.label}
-                            </MenuItem>
-                        ))}
-                    </TextFieldCustom>
-
-                    {paymentMethod === "BOLIVARES_TRANSFERENCIA" && (
-                        <TextFieldCustom
-                            label="Tasa del día (Bs por USD)"
-                            type="number"
-                            value={paymentRate}
-                            onChange={(e) => setPaymentRate(e.target.value)}
-                            fullWidth
-                            size="small"
-                            inputProps={{ min: 0, step: "0.01" }}
-                        />
-                    )}
-
-                    <Box>
-                        <ButtonCustom
-                            variant="contained"
-                            disabled={savingPayment}
-                            onClick={handleSavePayment}
+                            {!order.products[0].image && (order.products[0].title?.charAt(0) ?? "P")}
+                        </Avatar>) : (
+                            <Avatar
+                                variant="rounded"
+                                sx={{ width: 150, height: 150, mb: 2, borderRadius: '50%' }}
+                            >
+                                <CircularProgress />
+                            </Avatar>
+                        )}
+                        <Box sx={{ display: 'flex', gap: 2 }}>
+                            <TypographyCustom variant="h5">Orden {order.name}</TypographyCustom>
+                            <DenseMenu data={order} changeStatus={changeStatus} icon={false} customComponent={<Chip sx={{ cursor: 'pointer', background: user.color, color: (theme) => theme.palette.getContrastText(user.color) }} label={`Status ${order.status.description}`} />} />
+                        </Box>
+                        <TypographyCustom>
+                            Cliente: {order.client.first_name} {order.client.last_name}
+                        </TypographyCustom>
+                        <TypographyCustom
+                            variant="subtitle2"
+                            color="text.secondary"
+                            sx={{
+                                maxWidth: "200px",   // 🔹 ajusta el ancho máximo permitido
+                                whiteSpace: "nowrap",
+                                overflow: "hidden",
+                                textOverflow: "ellipsis",
+                            }}
                         >
-                            {savingPayment ? "Guardando..." : "Guardar método de pago"}
-                        </ButtonCustom>
+                            {order.client.phone}
+                        </TypographyCustom>
+                        <TypographyCustom
+                            variant="subtitle2"
+                            color="text.secondary"
+                            sx={{
+                                maxWidth: "200px",   // 🔹 ajusta el ancho máximo permitido
+                                whiteSpace: "nowrap",
+                                overflow: "hidden",
+                                textOverflow: "ellipsis",
+                            }}
+                        >
+                            {order.client.province}
+                        </TypographyCustom>
+                        <TypographyCustom>
+                            Total: {order.current_total_price} {order.currency}
+                        </TypographyCustom>
+                        {order.agent && <TypographyCustom>Vendedor: {order.agent.names}</TypographyCustom>}
+                        {user.role?.description === 'Repartidor' ? (
+                            (<TypographyCustom>Ubicacion: {order.location ?? 'No hay ubicacion asignada aun'}</TypographyCustom>)
+                        ) : <Box sx={{ display: 'flex', flexFlow: 'row nowrap', gap: 1, justifyContent: 'space-evenly', alignItems: 'center' }}>
+                            <TextFieldCustom onBlur={sendLocation} onChange={handleChangeNewLocation} value={newLocation} label="Ubicacion" />
+                        </Box>}
+                    </Box>
+
+                    {/* Sección de método de pago */}
+                    <Box sx={{ display: "grid", gap: 2, maxWidth: 400, mb: 3 }}>
+                        <PaymentMethodsSelector
+                            onSave={handleSavePayments}
+                            initialValue={[
+                                { method: "DOLARES_EFECTIVO", amount: 20 },
+                            ]}
+                        />
                     </Box>
                 </Box>
+
+                <Divider sx={{ marginBlock: 3 }} />
+
                 {/* Botón posponer */}
                 {/* <Box sx={{ display: 'flex', paddingBlock: 4, gap: 2 }}>
 
@@ -425,9 +407,7 @@ export const OrderDialog: FC<OrderDialogProps> = ({ id, open, setOpen }) => {
                         </ButtonCustom>
                     </Box>
                 )} */}
-                <Box sx={{ width: { xs: '100%', md: '50%', lg: '33%' }, margin: 'auto' }}>
-                    <DenseMenu data={order} changeStatus={changeStatus} icon={false} customComponent={<ButtonCustom variant={'contained'}>{order.status.description}</ButtonCustom>} />
-                </Box>
+
                 <ReviewCancellationDialog
                     open={openApprove}
                     onClose={() => setOpenApprove(false)}
