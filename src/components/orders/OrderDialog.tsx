@@ -363,6 +363,7 @@ export const OrderDialog: FC<OrderDialogProps> = ({ id, open, setOpen }) => {
                             Total: {order.current_total_price} {order.currency}
                         </TypographyCustom>
                         {order.agent && <TypographyCustom>Vendedor: {order.agent.names}</TypographyCustom>}
+                        {order.deliverer && <TypographyCustom>Repartidor: {order.deliverer.names}</TypographyCustom>}
                         {user.role?.description === 'Repartidor' ? (
                             (<TypographyCustom>Ubicacion: {order.location ?? 'No hay ubicacion asignada aun'}</TypographyCustom>)
                         ) : <Box sx={{ display: 'flex', flexFlow: 'row nowrap', gap: 1, justifyContent: 'space-evenly', alignItems: 'center' }}>

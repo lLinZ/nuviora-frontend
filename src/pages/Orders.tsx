@@ -55,7 +55,7 @@ export const Orders = () => {
 
     return (
         <Layout>
-            <DescripcionDeVista title={"Kanban"} description={"example"} />
+            <DescripcionDeVista title={"Kanban de ordenes"} description={""} />
             {/* <Box sx={{ position: "fixed", right: 24, top: 24 }}> */}
             {/* <ButtonCustom variant="contained" startIcon={<SearchRounded />} onClick={() => setOpenSearch(true)}> */}
             <Fab sx={{ position: 'fixed', right: 24, bottom: 24 }} onClick={() => setOpenSearch(true)}>
@@ -74,6 +74,7 @@ export const Orders = () => {
             >
                 <Box
                     sx={{
+                        cursor: "pointer",
                         pb: 2,
                         display: "flex",
                         flexFlow: "row nowrap",
@@ -81,15 +82,15 @@ export const Orders = () => {
                         overflowY: "hidden",
                         width: "100%",
                         "&::-webkit-scrollbar": {
-                            height: "5px",
-                            width: "5px",
+                            height: "15px",
+                            width: "15px",
                         },
                         "&::-webkit-scrollbar-track": {
-                            borderRadius: "5px",
+                            borderRadius: "15px",
                             backgroundColor: darken(user.color, 0.8),
                         },
                         "&::-webkit-scrollbar-thumb": {
-                            borderRadius: "5px",
+                            borderRadius: "15px",
                             backgroundColor: lighten(user.color, 0.2),
                         },
                     }}
