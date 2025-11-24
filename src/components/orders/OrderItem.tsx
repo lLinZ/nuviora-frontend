@@ -66,6 +66,7 @@ export const OrderItem: FC<OrderItemProps> = ({ order }) => {
     const [productsOpen, setProductsOpen] = useState<boolean>(false);
     const [openAssignDeliverer, setOpenAssignDeliverer] = useState(false);
     const [orderProducts, setOrderProducts] = useState<any>([]);
+    const [orderProductsEmpty, setOrderProductsEmpty] = useState<boolean>(false);
     const theme = useTheme();
 
     const handleOpen = () => {
@@ -73,12 +74,20 @@ export const OrderItem: FC<OrderItemProps> = ({ order }) => {
         setOpen(true);
     };
     const getProducts = async () => {
-        const { status: ok, response }: IResponse = await request(`/order/${order.id}/products`, 'GET');
-        if (ok == 200) {
+        setOrderProductsEmpty(false);
+        toast.info('Cargando productos...', { autoClose: 1000 });
+        const { status, response }: IResponse = await request(`/order/${order.id}/products`, 'GET');
+        if (status == 200) {
             const { products } = await response.json();
             console.log({ products })
-            setOrderProducts(products)
+            if (orderProducts.length === 0) {
+                setOrderProductsEmpty(true);
+            } else {
+                setOrderProducts(products)
+            }
         } else {
+            setOrderProductsEmpty(true);
+            toast.error('No se pudieron cargar los productos');
             console.log('error consultando products')
         }
     }
@@ -188,7 +197,7 @@ export const OrderItem: FC<OrderItemProps> = ({ order }) => {
                         }}
                     />
                     <Avatar
-                        sx={{ width: 30, height: 30, cursor: "pointer" }}
+                        sx={{ width: 30, height: 30, cursor: "pointer", color: (theme) => theme.palette.getContrastText(order.agent?.color ?? '#4e4e4eff'), background: order.agent?.color ?? '#4e4e4eff' }}
                         onClick={(e) => {
                             e.stopPropagation();
                             setOpenAssign(true);
@@ -202,9 +211,9 @@ export const OrderItem: FC<OrderItemProps> = ({ order }) => {
                     </Avatar>
                 </Box>
             </Box>
-            <TypographyCustom variant="subtitle1" onClick={() => getProducts()}>Ver productos</TypographyCustom>
+            <TypographyCustom sx={{ margin: 'auto', color: user.color, mt: 1 }} variant="subtitle1" onClick={() => getProducts()}>Ver productos</TypographyCustom>
 
-            {orderProducts && orderProducts.map((p: any) =>
+            {orderProducts.length > 0 ? orderProducts.map((p: any) =>
                 <Tooltip title={p.title}>
                     <TypographyCustom variant="subtitle2"
                         color="text.secondary"
@@ -217,7 +226,7 @@ export const OrderItem: FC<OrderItemProps> = ({ order }) => {
                         ({p.quantity}) {p.title}
                     </TypographyCustom>
                 </Tooltip>
-            )}
+            ) : orderProductsEmpty ? 'No hay productos para mostrar' : ''}
             <AssignAgentDialog
                 open={openAssign}
                 onClose={() => setOpenAssign(false)}

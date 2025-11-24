@@ -141,7 +141,7 @@ const PaymentMethodsSelector: React.FC<PaymentMethodsSelectorProps> = ({
                     </IconButton>
                 </Box>
             </Box>
-            <Stack spacing={1.5}>
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                 {rows.map((row, index) => {
                     const showErrors = touched;
                     const methodError = showErrors && row.method === "";
@@ -158,21 +158,23 @@ const PaymentMethodsSelector: React.FC<PaymentMethodsSelectorProps> = ({
                             sx={{ display: 'flex', flexFlow: 'row nowrap', gap: 1, alignItems: 'center', justifyContent: 'center' }}
                         >
                             {/* Botón eliminar fila */}
-                            <IconButton
-                                aria-label="Eliminar método"
-                                onClick={() => handleRemoveRow(index)}
-                                size="small"
-                                color="error"
-                            >
-                                <DeleteOutlineIcon />
-                            </IconButton>
+                            {user.role?.description !== 'Repartidor' && (
+                                <IconButton
+                                    aria-label="Eliminar método"
+                                    onClick={() => handleRemoveRow(index)}
+                                    size="small"
+                                    color="error"
+                                >
+                                    <DeleteOutlineIcon />
+                                </IconButton>
+                            )}
                             {/* Select método de pago */}
                             <FormControl
                                 fullWidth
-                                size="small"
                                 error={methodError}
                             >
                                 <SelectCustom
+                                    variant="outlined"
                                     label={'Metodo'}
                                     value={row.method}
                                     onChange={(e: any) =>
@@ -194,13 +196,13 @@ const PaymentMethodsSelector: React.FC<PaymentMethodsSelectorProps> = ({
 
                             {/* Monto */}
                             <TextFieldCustom
+                                variant="filled"
                                 label="Monto"
                                 value={row.amount}
                                 onChange={(e) =>
                                     handleRowChange(index, "amount", e.target.value)
                                 }
                                 error={amountError}
-                                helperText={amountError ? "Monto inválido" : " "}
                             />
 
                         </Box>
@@ -211,12 +213,14 @@ const PaymentMethodsSelector: React.FC<PaymentMethodsSelectorProps> = ({
 
 
                 {/* Botón guardar */}
-                <Box textAlign="right" mt={1}>
-                    <ButtonCustom variant="contained" color="primary" onClick={handleSave}>
-                        Guardar
-                    </ButtonCustom>
-                </Box>
-            </Stack>
+                {user.role?.description !== 'Repartidor' && (
+
+                    <Box textAlign="right" mt={1}>
+                        <ButtonCustom variant="contained" color="primary" onClick={handleSave}>
+                            Guardar
+                        </ButtonCustom>
+                    </Box>)}
+            </Box>
         </Box>
     );
 };

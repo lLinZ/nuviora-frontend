@@ -1,7 +1,7 @@
 import { MoreHorizRounded, Check } from "@mui/icons-material";
 import { IconButton, Menu, MenuList, Divider, Chip, MenuItem, ListItemIcon, ListItemText, Box } from "@mui/material";
 import { purple, blue, green, red, grey, yellow } from "@mui/material/colors";
-import { useState } from "react";
+import { Fragment, useState } from "react";
 import { useUserStore } from "../../../store/user/UserStore";
 
 export default function DenseMenu({
@@ -51,7 +51,7 @@ export default function DenseMenu({
                     <MoreHorizRounded />
                 </IconButton>
             ) : (
-                <Box onClick={handleClick}>
+                <Box component="button" onClick={handleClick} sx={{ border: 'none', background: 'none', p: 0 }}>
                     {customComponent}
                 </Box>
             )}
