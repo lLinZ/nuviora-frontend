@@ -20,7 +20,7 @@ import { IResponse } from "../../interfaces/response-type";
 
 interface ProductRow {
     id: number;
-    title: string;
+    name: string;
     sku?: string;
     price?: number;
     warehouse_stock: number;
@@ -56,10 +56,11 @@ export const InventoryPage: React.FC = () => {
     const load = async () => {
         setLoading(true);
         try {
-            const { status, response }: IResponse = await request("/stock/products", "GET");
+            const { status, response }: IResponse = await request("/inventory", "GET");
             if (status) {
                 const data = await response.json();
                 setRows(data.data ?? []);
+                console.log({ data });
             } else {
                 toast.error("No se pudo cargar el inventario ❌");
             }
@@ -124,7 +125,7 @@ export const InventoryPage: React.FC = () => {
         const x = q.trim().toLowerCase();
         if (!x) return rows;
         return rows.filter(r =>
-            r.title.toLowerCase().includes(x) ||
+            r.name.toLowerCase().includes(x) ||
             (r.sku ?? "").toLowerCase().includes(x)
         );
     }, [q, rows]);
@@ -160,7 +161,7 @@ export const InventoryPage: React.FC = () => {
                         <TableBody>
                             {filtered.map((r) => (
                                 <TableRow key={r.id} hover>
-                                    <TableCell>{r.title}</TableCell>
+                                    <TableCell>{r.name}</TableCell>
                                     <TableCell>{r.sku ?? "—"}</TableCell>
                                     <TableCell align="right">{r.warehouse_stock}</TableCell>
                                     <TableCell align="center">
@@ -182,7 +183,7 @@ export const InventoryPage: React.FC = () => {
             <Dialog open={!!selected && (type === "IN" || type === "OUT")} onClose={() => setSelected(null)} maxWidth="xs" fullWidth>
                 <DialogTitle>Movimiento {type === "IN" ? "Entrada" : "Salida"}</DialogTitle>
                 <DialogContent>
-                    <TypographyCustom variant="subtitle1" fontWeight="bold">{selected?.title}</TypographyCustom>
+                    <TypographyCustom variant="subtitle1" fontWeight="bold">{selected?.name}</TypographyCustom>
                     <Box sx={{ display: "grid", gap: 2, mt: 2 }}>
                         <TextField
                             label="Cantidad"
@@ -202,13 +203,13 @@ export const InventoryPage: React.FC = () => {
                 </DialogContent>
                 <DialogActions>
                     <ButtonCustom variant="outlined" onClick={() => setSelected(null)}>Cancelar</ButtonCustom>
-                    <ButtonCustom onClick={saveMovement}>Guardar</ButtonCustom>
+                    <ButtonCustom variant="contained" onClick={saveMovement}>Guardar</ButtonCustom>
                 </DialogActions>
             </Dialog>
 
             {/* Dialog historial */}
             <Dialog open={openMovs} onClose={() => setOpenMovs(false)} maxWidth="md" fullWidth>
-                <DialogTitle>Historial de movimientos — {selected?.title}</DialogTitle>
+                <DialogTitle>Historial de movimientos — {selected?.name}</DialogTitle>
                 <DialogContent>
                     <Box sx={{ display: "flex", gap: 2, mb: 2 }}>
                         <TextField
