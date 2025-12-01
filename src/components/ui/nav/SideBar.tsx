@@ -20,7 +20,7 @@ import BarChartRoundedIcon from "@mui/icons-material/BarChartRounded";
 import moment from "moment";
 import { TypographyCustom } from "../../custom";
 import { useUserStore } from "../../../store/user/UserStore";
-import { AssignmentReturnRounded } from "@mui/icons-material";
+import { AssignmentReturnRounded, StoreRounded, HistoryRounded, SwapHorizRounded, EditNoteRounded } from "@mui/icons-material";
 
 const Clock = () => {
     const [time, setTime] = useState<string>(moment().format("h:mm A"));
@@ -129,9 +129,33 @@ export const SideBar = () => {
                 roles: ["Admin"],
             },
             {
-                text: "Inventario",
+                text: "Inventario General",
                 icon: <Inventory2RoundedIcon />,
                 link: "/inventory",
+                roles: ["Admin"],
+            },
+            {
+                text: "Almacenes",
+                icon: <StoreRounded />,
+                link: "/inventory/warehouses",
+                roles: ["Admin"],
+            },
+            {
+                text: "Movimientos",
+                icon: <HistoryRounded />,
+                link: "/inventory/movements",
+                roles: ["Admin"],
+            },
+            {
+                text: "Transferir Stock",
+                icon: <SwapHorizRounded />,
+                link: "/inventory/transfer",
+                roles: ["Admin"],
+            },
+            {
+                text: "Ajustar Stock",
+                icon: <EditNoteRounded />,
+                link: "/inventory/adjust",
                 roles: ["Admin"],
             },
             {

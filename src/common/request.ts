@@ -2,7 +2,7 @@ import { getCookieValue } from "../lib/functions";
 import { useUserStore } from "../store/user/UserStore";
 
 type Method = "POST" | "GET" | "PUT" | "DELETE";
-type BodyType = URLSearchParams | FormData | undefined;
+type BodyType = URLSearchParams | FormData | string | undefined;
 
 export const request = async (
     _url: string,
@@ -19,9 +19,19 @@ export const request = async (
         Authorization: `Bearer ${token}`,
     };
 
-    // Solo seteamos Content-Type cuando NO es multipart
+    // Auto-detect Content-Type if not multipart
     if (!multipart) {
-        headers["Content-Type"] = "application/x-www-form-urlencoded";
+        if (body && typeof body === 'string') {
+            headers["Content-Type"] = "application/json";
+        } else if (body && !(body instanceof URLSearchParams) && !(body instanceof FormData)) {
+            // If body is a plain object, stringify it and set JSON header
+            // But the signature says BodyType = URLSearchParams | FormData | undefined
+            // We need to update the signature first.
+            // However, for now, let's assume the caller stringifies it.
+            headers["Content-Type"] = "application/json";
+        } else {
+            headers["Content-Type"] = "application/x-www-form-urlencoded";
+        }
     }
 
     const options: RequestInit = {
@@ -30,7 +40,7 @@ export const request = async (
     };
 
     if (method !== "GET" && body) {
-        options.body = body;
+        options.body = body as any;
     }
 
     try {

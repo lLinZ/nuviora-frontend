@@ -13,7 +13,13 @@ import { Users } from './pages/users/Users';
 import { DeliverersPage } from './pages/deliverers/Deliverers';
 import { CancellationsReview } from './pages/orders/cancellations/CancellationsReview';
 import { Roster } from './pages/roster/Roster';
-import { InventoryPage } from './pages/inventory/Inventory';
+// import { InventoryPage } from './pages/inventory/Inventory';
+import { InventoryOverview } from './pages/inventory/InventoryOverview';
+import { Warehouses } from './pages/inventory/Warehouses';
+import { WarehouseInventory } from './pages/inventory/WarehouseInventory';
+import { InventoryMovements } from './pages/inventory/InventoryMovements';
+import { StockTransfer } from './pages/inventory/StockTransfer';
+import { StockAdjustment } from './pages/inventory/StockAdjustment';
 import { DelivererStock } from './pages/deliverers/DelivererStock';
 import { EarningsAdmin } from './pages/money/EarningsAdmin';
 import { MyEarningsPage } from './pages/money/EarningsMyPage';
@@ -45,7 +51,12 @@ function App() {
           <Route path="/currency" element={<Currency />} />
           <Route path="/users" element={<Users />} />
           <Route path="/roster" element={<Roster />} />
-          <Route path="/inventory" element={<InventoryPage />} />
+          <Route path="/inventory" element={<InventoryOverview />} />
+          <Route path="/inventory/warehouses" element={<Warehouses />} />
+          <Route path="/inventory/warehouses/:id" element={<WarehouseInventory />} />
+          <Route path="/inventory/movements" element={<InventoryMovements />} />
+          <Route path="/inventory/transfer" element={<StockTransfer />} />
+          <Route path="/inventory/adjust" element={<StockAdjustment />} />
           <Route path="/earnings" element={<EarningsAdmin />} />
           {/* <Route path="/deliverer/my-stock" element={<DelivererStock />} /> */}
           {/* <Route path="/deliverer/stock" element={<DelivererStock />} /> */}
