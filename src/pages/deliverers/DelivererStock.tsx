@@ -143,27 +143,29 @@ export const DelivererStock: React.FC = () => {
             body.append("product_id", String(productId));
             body.append("quantity", String(qty));
 
-            const res: IResponse = await request(
+            const { status, response }: IResponse = await request(
                 `/deliverers/${selectedDelivererId}/stock/assign`,
                 "POST",
                 body
             );
+            switch (status) {
+                case 200:
+                    const data = await response.json();
+                    if (data.inventory) setInventory(data.inventory);
+                    if (data.deliverer_stock) setDelivererStock(data.deliverer_stock);
+                    setAssignQty((prev) => ({ ...prev, [productId]: 0 }));
+                    toast.success("Stock asignado correctamente ✅");
+                    break;
+                case 400:
+                    toast.error("El usuario no es repartidor ❌");
+                    break;
+                case 422:
+                    const { message } = await response.json();
+                    toast.error(message);
+                    break;
 
-            if (res.status) {
-                const data = await res.response.json();
+            }                // limpiar input para ese producto
 
-                // Asumo que el backend devuelve:
-                // { status: true, inventory: [...], deliverer_stock: [...] }
-                if (data.inventory) setInventory(data.inventory);
-                if (data.deliverer_stock) setDelivererStock(data.deliverer_stock);
-
-                // limpiar input para ese producto
-                setAssignQty((prev) => ({ ...prev, [productId]: 0 }));
-
-                toast.success("Stock asignado correctamente ✅");
-            } else {
-                toast.error("No se pudo asignar el stock ❌");
-            }
         } catch (err) {
             console.error(err);
             toast.error("Error en servidor al asignar stock 🚨");
@@ -257,7 +259,7 @@ export const DelivererStock: React.FC = () => {
                         </TypographyCustom>
                         <TypographyCustom variant="body2" color="text.secondary">
                             Productos asignados hoy:{" "}
-                            {delivererStock.reduce(
+                            {delivererStock.length > 0 && delivererStock.reduce(
                                 (acc, item) => acc + (item.quantity ?? 0),
                                 0
                             )}
@@ -375,7 +377,7 @@ export const DelivererStock: React.FC = () => {
                                 </TypographyCustom>
                             )}
 
-                            {delivererStock.map((row) => (
+                            {delivererStock.length > 0 && delivererStock.map((row) => (
                                 <Box
                                     key={row.id}
                                     sx={{
