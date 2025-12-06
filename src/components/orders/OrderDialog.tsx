@@ -108,7 +108,7 @@ export const OrderDialog: FC<OrderDialogProps> = ({ id, open, setOpen }) => {
                         />
 
                         {/* Sección de método de pago */}
-                        <OrderPaymentSection />
+                        <OrderPaymentSection order={order} />
                     </Box>
 
                     <Divider sx={{ marginBlock: 3 }} />

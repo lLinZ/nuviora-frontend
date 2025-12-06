@@ -21,7 +21,7 @@ export type PaymentMethodType =
     | "BOLIVARES_TRANSFERENCIA"
     | "BOLIVARES_EFECTIVO"
     | "DOLARES_EFECTIVO"
-    | "DOLARES_ZELLE";
+    | "ZELLE_DOLARES";
 
 export interface PaymentMethod {
     method: PaymentMethodType;
@@ -43,7 +43,7 @@ const PAYMENT_METHOD_OPTIONS: { value: PaymentMethodType; label: string }[] = [
     { value: "BOLIVARES_TRANSFERENCIA", label: "Bolívares transferencia" },
     { value: "BOLIVARES_EFECTIVO", label: "Bolívares efectivo" },
     { value: "DOLARES_EFECTIVO", label: "Dólares efectivo" },
-    { value: "DOLARES_ZELLE", label: "Dólares Zelle" },
+    { value: "ZELLE_DOLARES", label: "Dólares Zelle" },
 ];
 
 const PaymentMethodsSelector: React.FC<PaymentMethodsSelectorProps> = ({
@@ -121,6 +121,7 @@ const PaymentMethodsSelector: React.FC<PaymentMethodsSelectorProps> = ({
         if (hasErrors()) return;
 
         const result = serialize(rows);
+        console.log({ result })
         onSave?.(result);
         // Aquí podrías hacer un reset si quisieras, pero lo dejo tal cual
     };

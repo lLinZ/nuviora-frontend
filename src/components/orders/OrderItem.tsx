@@ -80,7 +80,7 @@ export const OrderItem: FC<OrderItemProps> = ({ order }) => {
         if (status == 200) {
             const { products } = await response.json();
             console.log({ products })
-            if (orderProducts.length === 0) {
+            if (products.length === 0) {
                 setOrderProductsEmpty(true);
             } else {
                 setOrderProducts(products)

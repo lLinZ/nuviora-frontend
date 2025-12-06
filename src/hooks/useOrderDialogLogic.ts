@@ -1,9 +1,9 @@
 import { useState, useEffect, ChangeEvent } from "react";
 import { toast } from "react-toastify";
-import { request } from "../../common/request";
-import { IResponse } from "../../interfaces/response-type";
-import { useOrdersStore } from "../../store/orders/OrdersStore";
-import { useUserStore } from "../../store/user/UserStore";
+import { request } from "../common/request";
+import { IResponse } from "../interfaces/response-type";
+import { useOrdersStore } from "../store/orders/OrdersStore";
+import { useUserStore } from "../store/user/UserStore";
 
 export const useOrderDialogLogic = (
     id: number | undefined,
@@ -133,6 +133,12 @@ export const useOrderDialogLogic = (
             return;
         }
 
+        // Validar que existe comprobante de pago si se intenta cambiar a Entregado
+        if (status === "Entregado" && !selectedOrder.payment_receipt) {
+            toast.error("No se puede marcar como entregado sin un comprobante de pago ❌");
+            return;
+        }
+
         const body = new URLSearchParams();
         body.append("status_id", String(statusId));
         try {
@@ -146,7 +152,8 @@ export const useOrderDialogLogic = (
                 updateOrder(data.order);
                 toast.success(`Orden #${selectedOrder.name} actualizada a ${status} ✅`);
             } else {
-                toast.error("No se pudo actualizar el estado ❌");
+                const errorData = await response.json();
+                toast.error(errorData.message || "No se pudo actualizar el estado ❌");
             }
         } catch {
             toast.error("Error en el servidor al actualizar estado 🚨");
