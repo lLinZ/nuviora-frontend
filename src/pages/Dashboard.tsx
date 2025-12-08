@@ -1,130 +1,122 @@
 import { Toolbar, Box } from "@mui/material";
 import Masonry from "@mui/lab/Masonry";
+import { useEffect, useState } from "react";
 import { Layout } from "../components/ui/Layout";
 import { useUserStore } from "../store/user/UserStore";
 import { TypographyCustom } from "../components/custom";
 import { Loading } from "../components/ui/content/Loading";
 import { Widget } from "../components/widgets/Widget";
-import { useValidateSession } from "../hooks/useValidateSession"; // 👈 asumiendo esta ruta
+import { useValidateSession } from "../hooks/useValidateSession";
+import { request } from "../common/request";
+import { IResponse } from "../interfaces/response-type";
+
+interface DashboardStats {
+    // Admin/Gerente
+    total_sales?: number;
+    orders?: {
+        created?: number;
+        completed?: number; // Or delivered for deliverer
+        delivered?: number;
+        cancelled?: number;
+        assigned?: number;  // For vendor/deliverer
+    };
+    // Vendor/Deliverer
+    earnings_usd?: number;
+    earnings_local?: number;
+    rule?: string;
+    message?: string;
+}
+
+interface DashboardData {
+    role: string;
+    today: string;
+    rate: number;
+    stats: DashboardStats;
+}
 
 export const Dashboard = () => {
     const user = useUserStore((state) => state.user);
     const { loadingSession, isValid } = useValidateSession();
+    const [data, setData] = useState<DashboardData | null>(null);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        const fetchData = async () => {
+            if (!user.token) return;
+            setLoading(true);
+            try {
+                const { status, response }: IResponse = await request('/dashboard', 'GET');
+                if (status) {
+                    const json = await response.json();
+                    if (json.status) {
+                        setData(json.data);
+                    }
+                }
+            } catch (error) {
+                console.error("Failed to fetch dashboard data", error);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        if (isValid && !loadingSession) {
+            fetchData();
+        }
+    }, [user.token, isValid, loadingSession]);
 
     if (loadingSession || !isValid || !user.token) {
         return <Loading />;
     }
 
-    const role = user.role?.description; // "Admin" | "Gerente" | "Vendedor" | etc
+    if (loading || !data) {
+        return <Loading />;
+    }
 
-    const today = new Date().toLocaleDateString();
+    const { role, today, stats } = data;
 
     const renderWidgetsByRole = () => {
         switch (role) {
             case "Admin":
+            case "Gerente":
+            case "Master":
                 return (
                     <Masonry columns={{ xs: 1, sm: 3, md: 4 }} spacing={2}>
                         <Widget title="Resumen global de hoy">
                             <TypographyCustom variant="body1">
-                                Ganancias totales del día
+                                Ventas totales del día
                             </TypographyCustom>
                             <TypographyCustom variant="h5" fontWeight="bold">
-                                $0.00 {/* luego lo llenamos con datos reales */}
+                                ${stats.total_sales?.toFixed(2) ?? '0.00'}
                             </TypographyCustom>
                             <TypographyCustom variant="body2" color="text.secondary">
                                 Fecha: {today}
-                            </TypographyCustom>
-                        </Widget>
-
-                        <Widget title="Ganancias por rol">
-                            <TypographyCustom variant="body2">
-                                Vendedores: $0.00
-                            </TypographyCustom>
-                            <TypographyCustom variant="body2">
-                                Repartidores: $0.00
-                            </TypographyCustom>
-                            <TypographyCustom variant="body2">
-                                Gerentes: $0.00
                             </TypographyCustom>
                         </Widget>
 
                         <Widget title="Órdenes del día">
                             <TypographyCustom variant="body2">
-                                Órdenes creadas: 0
+                                Creadas: {stats.orders?.created ?? 0}
                             </TypographyCustom>
                             <TypographyCustom variant="body2">
-                                Órdenes completadas: 0
+                                Completadas: {stats.orders?.completed ?? 0}
                             </TypographyCustom>
                             <TypographyCustom variant="body2">
-                                Órdenes canceladas: 0
+                                Entregadas: {stats.orders?.delivered ?? 0}
+                            </TypographyCustom>
+                            <TypographyCustom variant="body2">
+                                Canceladas: {stats.orders?.cancelled ?? 0}
                             </TypographyCustom>
                         </Widget>
 
                         <Widget title="Top vendedoras">
                             <TypographyCustom variant="body2" color="text.secondary">
-                                {/* (Aquí mostraremos las vendedoras con más órdenes completadas) */}
+                                (Próximamente)
                             </TypographyCustom>
                         </Widget>
 
                         <Widget title="Top repartidores">
                             <TypographyCustom variant="body2" color="text.secondary">
-                                {/* (Aquí mostraremos los repartidores con más entregas) */}
-                            </TypographyCustom>
-                        </Widget>
-
-                        <Widget title="Filtros avanzados">
-                            <TypographyCustom variant="body2" color="text.secondary">
-                                {/* Ver ganancias por rango de fechas, por rol y por usuario. */}
-                            </TypographyCustom>
-                        </Widget>
-                    </Masonry>
-                );
-
-            case "Gerente":
-                return (
-                    <Masonry columns={{ xs: 1, sm: 2, md: 3 }} spacing={2}>
-                        <Widget title="Resumen de tu equipo hoy">
-                            <TypographyCustom variant="body1">
-                                Ganancias de tu equipo (vendedoras + repartidores)
-                            </TypographyCustom>
-                            <TypographyCustom variant="h5" fontWeight="bold">
-                                $0.00
-                            </TypographyCustom>
-                            <TypographyCustom variant="body2" color="text.secondary">
-                                Fecha: {today}
-                            </TypographyCustom>
-                        </Widget>
-
-                        <Widget title="Tus ganancias de hoy">
-                            <TypographyCustom variant="body2">
-                                Ganancia por ventas exitosas: $0.00
-                            </TypographyCustom>
-                            <TypographyCustom variant="body2" color="text.secondary">
-                                Regla: $0.5 por venta exitosa
-                            </TypographyCustom>
-                        </Widget>
-
-                        <Widget title="Órdenes por estado">
-                            <TypographyCustom variant="body2">
-                                Nuevas: 0
-                            </TypographyCustom>
-                            <TypographyCustom variant="body2">
-                                Confirmadas: 0
-                            </TypographyCustom>
-                            <TypographyCustom variant="body2">
-                                Entregadas: 0
-                            </TypographyCustom>
-                        </Widget>
-
-                        <Widget title="Rendimiento de vendedoras">
-                            <TypographyCustom variant="body2" color="text.secondary">
-                                {/* (Aquí mostraremos cuántas órdenes tiene cada vendedora) */}
-                            </TypographyCustom>
-                        </Widget>
-
-                        <Widget title="Rendimiento de repartidores">
-                            <TypographyCustom variant="body2" color="text.secondary">
-                                {/* (Aquí mostraremos cuántas entregas hizo cada repartidor) */}
+                                (Próximamente)
                             </TypographyCustom>
                         </Widget>
                     </Masonry>
@@ -135,31 +127,25 @@ export const Dashboard = () => {
                     <Masonry columns={{ xs: 1, sm: 2, md: 3 }} spacing={2}>
                         <Widget title="Tus ganancias de hoy">
                             <TypographyCustom variant="body1">
-                                Ganancia por órdenes completadas
+                                Ganancia por ventas
                             </TypographyCustom>
                             <TypographyCustom variant="h5" fontWeight="bold">
-                                $0.00
+                                ${stats.earnings_usd?.toFixed(2) ?? '0.00'} USD
                             </TypographyCustom>
                             <TypographyCustom variant="body2" color="text.secondary">
-                                Regla: $1 por orden completada
+                                {stats.earnings_local?.toFixed(2) ?? '0.00'} Bs
+                            </TypographyCustom>
+                            <TypographyCustom variant="body2" color="text.secondary" sx={{ mt: 1, fontSize: '0.8rem' }}>
+                                Regla: {stats.rule}
                             </TypographyCustom>
                         </Widget>
 
-                        <Widget title="Órdenes asignadas hoy">
+                        <Widget title="Tus Órdenes">
                             <TypographyCustom variant="body2">
-                                Total órdenes asignadas: 0
+                                Asignadas hoy: {stats.orders?.assigned ?? 0}
                             </TypographyCustom>
                             <TypographyCustom variant="body2">
-                                Órdenes confirmadas: 0
-                            </TypographyCustom>
-                            <TypographyCustom variant="body2">
-                                Órdenes en seguimiento: 0
-                            </TypographyCustom>
-                        </Widget>
-
-                        <Widget title="Historial rápido">
-                            <TypographyCustom variant="body2" color="text.secondary">
-                                {/* (Aquí mostraremos tus últimas órdenes trabajadas) */}
+                                Completadas hoy: {stats.orders?.completed ?? 0}
                             </TypographyCustom>
                         </Widget>
                     </Masonry>
@@ -170,43 +156,36 @@ export const Dashboard = () => {
                     <Masonry columns={{ xs: 1, sm: 2, md: 3 }} spacing={2}>
                         <Widget title="Tus ganancias de hoy">
                             <TypographyCustom variant="body1">
-                                Ganancia por órdenes entregadas
+                                Ganancia por entregas
                             </TypographyCustom>
                             <TypographyCustom variant="h5" fontWeight="bold">
-                                $0.00
+                                ${stats.earnings_usd?.toFixed(2) ?? '0.00'} USD
                             </TypographyCustom>
                             <TypographyCustom variant="body2" color="text.secondary">
-                                Regla: $2.5 por orden entregada
+                                {stats.earnings_local?.toFixed(2) ?? '0.00'} Bs
+                            </TypographyCustom>
+                            <TypographyCustom variant="body2" color="text.secondary" sx={{ mt: 1, fontSize: '0.8rem' }}>
+                                Regla: {stats.rule}
                             </TypographyCustom>
                         </Widget>
 
-                        <Widget title="Tus entregas">
+                        <Widget title="Tus Entregas">
                             <TypographyCustom variant="body2">
-                                Órdenes asignadas: 0
+                                Asignadas hoy: {stats.orders?.assigned ?? 0}
                             </TypographyCustom>
                             <TypographyCustom variant="body2">
-                                Órdenes entregadas: 0
-                            </TypographyCustom>
-                            <TypographyCustom variant="body2">
-                                Órdenes devueltas: 0
-                            </TypographyCustom>
-                        </Widget>
-
-                        <Widget title="Stock personal del día">
-                            <TypographyCustom variant="body2" color="text.secondary">
-                                {/* (Aquí mostraremos qué productos tienes en tu stock de hoy) */}
+                                Entregadas hoy: {stats.orders?.delivered ?? 0}
                             </TypographyCustom>
                         </Widget>
                     </Masonry>
                 );
 
             default:
-                // Por si acaso, algún rol raro o sin rol
                 return (
                     <Masonry columns={{ xs: 1, sm: 2, md: 3 }} spacing={2}>
                         <Widget title="Resumen">
                             <TypographyCustom variant="body2" color="text.secondary">
-                                No se ha detectado un rol específico, se muestra un resumen básico.
+                                {stats.message || "Bienvenido al sistema."}
                             </TypographyCustom>
                         </Widget>
                     </Masonry>
@@ -222,7 +201,7 @@ export const Dashboard = () => {
                     ¡Bienvenido {user.names}!
                 </TypographyCustom>
                 <TypographyCustom color={"text.secondary"} variant="body1">
-                    Hoy es {today}. Aquí tienes un resumen de tu día como {role || "usuario"}.
+                    Hoy es {today}. Aquí tienes un resumen de tu día como {role || user.role?.description || "usuario"}.
                 </TypographyCustom>
             </Box>
 

@@ -1,8 +1,11 @@
-import { createTheme } from "@mui/material/styles";
+import { createTheme, darken } from "@mui/material/styles";
 
-export const themeLight = createTheme({
+export const getThemeLight = (primaryColor: string) => createTheme({
     palette: {
         mode: 'light',
+        primary: {
+            main: primaryColor,
+        },
         background: {
             default: '#F7F7F7',
         },
@@ -21,11 +24,23 @@ export const themeLight = createTheme({
                 },
             },
         },
+        MuiPaper: {
+            styleOverrides: {
+                root: {
+                    backgroundColor: '#ffffff',
+                    backgroundImage: 'none',
+                }
+            }
+        }
     }
 });
-export const themeDark = createTheme({
+
+export const getThemeDark = (primaryColor: string) => createTheme({
     palette: {
         mode: 'dark',
+        primary: {
+            main: primaryColor,
+        },
         background: {
             default: '#191919'
         },
@@ -44,5 +59,13 @@ export const themeDark = createTheme({
                 },
             },
         },
+        MuiPaper: {
+            styleOverrides: {
+                root: {
+                    backgroundColor: darken(primaryColor, 0.8),
+                    backgroundImage: 'none',
+                }
+            }
+        }
     }
 });

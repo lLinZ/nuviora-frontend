@@ -2,7 +2,7 @@ import { ThemeProvider } from '@emotion/react';
 import { CssBaseline, Theme } from '@mui/material';
 import { useEffect, useState } from 'react'
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
-import { themeLight, themeDark } from './common/theme';
+import { getThemeLight, getThemeDark } from './common/theme';
 import { Login } from './pages/auth/Login';
 import { useUserStore } from './store/user/UserStore';
 import { Dashboard } from './pages/Dashboard';
@@ -23,18 +23,22 @@ import { StockAdjustment } from './pages/inventory/StockAdjustment';
 import { DelivererStock } from './pages/deliverers/DelivererStock';
 import { EarningsAdmin } from './pages/money/EarningsAdmin';
 import { MyEarningsPage } from './pages/money/EarningsMyPage';
+
 const useGetTheme = () => {
   const user = useUserStore((state) => state.user);
-  const [theme, setTheme] = useState<Theme>(themeLight)
+  const [theme, setTheme] = useState<Theme>(getThemeLight('#0073ff'))
+
   useEffect(() => {
+    const color = user?.color || '#0073ff';
     if (user?.theme === 'dark') {
-      setTheme(themeDark);
+      setTheme(getThemeDark(color));
     } else {
-      setTheme(themeLight);
+      setTheme(getThemeLight(color));
     }
-  }, [user?.theme])
+  }, [user?.theme, user?.color])
   return theme
 }
+
 function App() {
   const theme = useGetTheme()
   return (

@@ -7,6 +7,7 @@ import { TypographyCustom } from "../../components/custom";
 import { UsersDataTable } from "../../components/users/UsersDataTable";
 import { IResponse } from "../../interfaces/response-type";
 import { request } from "../../common/request";
+import { useValidateSession } from "../../hooks/useValidateSession";
 const useGetUsers = (url: string) => {
     const [data, setData] = useState<any>(null);
     const [errors, setErrors] = useState<any>(null);
@@ -34,21 +35,9 @@ const useGetUsers = (url: string) => {
     return { data, setData, errors, getData }
 }
 export const Users = () => {
-    const user = useUserStore(state => state.user);
     const { data, setData, errors } = useGetUsers('/users');
-    const validateToken = useUserStore((state) => state.validateToken);
-    const validarSesion = async () => {
-        const result = await validateToken();
-        console.log({ result });
-        if (!result.status) return window.location.href = '/';
-    }
-    useEffect(() => {
-        validarSesion();
-    }, [])
-    if (!user.token) return (
-        <Loading />
-    )
-
+    const { loadingSession, isValid, user } = useValidateSession();
+    if (loadingSession || !isValid || !user.token) return <Loading />;
     return (
         <Layout>
             <DescripcionDeVista title={"Usuarios"} description={"En esta vista podras consultar los usuarios registrados"} />
