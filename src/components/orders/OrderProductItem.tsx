@@ -1,14 +1,16 @@
 import React from "react";
-import { Box, Avatar, Typography } from "@mui/material";
+import { Box, Avatar, Typography, IconButton } from "@mui/material";
 import { TypographyCustom } from "../custom";
 import { fmtMoney } from "../../lib/money";
+import DeleteRoundedIcon from "@mui/icons-material/DeleteRounded";
 
 interface OrderProductItemProps {
     product: any;
     currency: string;
+    onDelete?: () => void;
 }
 
-export const OrderProductItem: React.FC<OrderProductItemProps> = ({ product, currency }) => {
+export const OrderProductItem: React.FC<OrderProductItemProps> = ({ product, currency, onDelete }) => {
     const subtotal = (Number(product.price) || 0) * (Number(product.quantity) || 0);
 
     return (
@@ -55,9 +57,16 @@ export const OrderProductItem: React.FC<OrderProductItemProps> = ({ product, cur
                 </Typography>
             </Box>
 
-            <TypographyCustom variant="body2" fontWeight="bold">
-                {fmtMoney(subtotal, currency)}
-            </TypographyCustom>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <TypographyCustom variant="body2" fontWeight="bold">
+                    {fmtMoney(subtotal, currency)}
+                </TypographyCustom>
+                {onDelete && (
+                    <IconButton size="small" color="error" onClick={onDelete}>
+                        <DeleteRoundedIcon />
+                    </IconButton>
+                )}
+            </Box>
         </Box>
     );
 };

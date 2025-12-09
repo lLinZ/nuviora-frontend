@@ -1,6 +1,6 @@
-import { AppBar, Box, Dialog, DialogActions, Divider, IconButton, Toolbar, Typography, useTheme } from "@mui/material";
+import { AppBar, Box, Dialog, DialogActions, Divider, IconButton, Toolbar, Typography, useTheme, DialogContent, DialogTitle, TextField, Button } from "@mui/material";
 import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
-import React, { FC } from "react";
+import React, { FC, useState } from "react";
 import { darken, lighten } from "@mui/material/styles";
 
 import { useOrderDialogLogic } from "../../hooks/useOrderDialogLogic";
@@ -15,6 +15,9 @@ import { OrderUpdateInput } from "./OrderUpdateInput";
 import { OrderProductsList } from "./OrderProductsList";
 import { OrderHeader } from "./OrderHeader";
 import { fmtMoney } from "../../lib/money";
+import { ButtonCustom } from "../custom";
+import { ProductSearchDialog } from "../products/ProductsSearchDialog";
+import { OrderProductItem } from "./OrderProductItem";
 
 interface OrderDialogProps {
     id?: number;
@@ -41,8 +44,16 @@ export const OrderDialog: FC<OrderDialogProps> = ({ id, open, setOpen }) => {
         rejectCancellation,
         changeStatus,
         handleChangeNewLocation,
-        updateOrder
+        updateOrder,
+        addUpsell,
+        removeUpsell
     } = useOrderDialogLogic(id, open, setOpen);
+
+    const [openSearch, setOpenSearch] = useState(false);
+    const [showUpsellConfirm, setShowUpsellConfirm] = useState(false);
+    const [upsellCandidate, setUpsellCandidate] = useState<any>(null);
+    const [upsellQty, setUpsellQty] = useState(1);
+    const [upsellPrice, setUpsellPrice] = useState(0);
 
     if (!order) return null;
 
@@ -153,13 +164,83 @@ export const OrderDialog: FC<OrderDialogProps> = ({ id, open, setOpen }) => {
                     <Typography variant="h6" sx={{ mb: 2 }}>
                         Productos de la orden
                     </Typography>
-                    <OrderProductsList products={order.products} currency={order.currency} />
+                    <OrderProductsList products={order.products.filter((p: any) => !p.is_upsell)} currency={order.currency} />
+
+                    {/* Sección Upsell */}
+                    <Divider sx={{ marginBlock: 3 }} />
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                        <Typography variant="h6">Ventas Adicionales (Upsell)</Typography>
+                        <ButtonCustom onClick={() => setOpenSearch(true)}>Agregar Upsell</ButtonCustom>
+                    </Box>
+
+                    <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
+                        {order.products.filter((p: any) => p.is_upsell).length > 0 ? (
+                            order.products.filter((p: any) => p.is_upsell).map((p: any) => (
+                                <OrderProductItem
+                                    key={p.id}
+                                    product={p}
+                                    currency={order.currency}
+                                    onDelete={() => {
+                                        if (confirm("¿Eliminar este upsell?")) removeUpsell(p.id);
+                                    }}
+                                />
+                            ))
+                        ) : (
+                            <Typography variant="body2" color="text.secondary">
+                                No hay ventas adicionales.
+                            </Typography>
+                        )}
+                    </Box>
 
                     <Divider sx={{ marginBlock: 2 }} />
                     <Typography variant="h6" textAlign="right">
                         Total: {fmtMoney(Number(order.current_total_price) || 0, order.currency)}
                     </Typography>
                     <Divider sx={{ my: 3 }} />
+
+                    {/* Dialogs para Upsell */}
+                    <ProductSearchDialog
+                        open={openSearch}
+                        onClose={() => setOpenSearch(false)}
+                        onPick={(product) => {
+                            setUpsellCandidate(product);
+                            setUpsellPrice(Number(product.price));
+                            setUpsellQty(1);
+                            setOpenSearch(false);
+                            setShowUpsellConfirm(true);
+                        }}
+                    />
+
+                    <Dialog open={showUpsellConfirm} onClose={() => setShowUpsellConfirm(false)}>
+                        <DialogTitle>Confirmar Upsell</DialogTitle>
+                        <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1, minWidth: 300 }}>
+                            <Typography variant="subtitle1" fontWeight="bold">
+                                {upsellCandidate?.name || upsellCandidate?.title}
+                            </Typography>
+                            <TextField
+                                label="Cantidad"
+                                type="number"
+                                value={upsellQty}
+                                onChange={(e) => setUpsellQty(Number(e.target.value))}
+                                fullWidth
+                            />
+                            <TextField
+                                label="Precio de Venta (c/u)"
+                                type="number"
+                                value={upsellPrice}
+                                onChange={(e) => setUpsellPrice(Number(e.target.value))}
+                                helperText="Puedes modificar el precio para dar un descuento"
+                                fullWidth
+                            />
+                        </DialogContent>
+                        <DialogActions>
+                            <Button onClick={() => setShowUpsellConfirm(false)}>Cancelar</Button>
+                            <ButtonCustom onClick={() => {
+                                addUpsell(upsellCandidate.id, upsellQty, upsellPrice);
+                                setShowUpsellConfirm(false);
+                            }}>Agregar</ButtonCustom>
+                        </DialogActions>
+                    </Dialog>
 
 
                     {/* Actualizaciones */}
