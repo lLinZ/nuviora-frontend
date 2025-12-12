@@ -4,6 +4,8 @@ import { useEffect, useState } from 'react'
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { getThemeLight, getThemeDark } from './common/theme';
 import { Login } from './pages/auth/Login';
+import { RecoverPassword } from './pages/auth/RecoverPassword';
+import { ResetPassword } from './pages/auth/ResetPassword';
 import { useUserStore } from './store/user/UserStore';
 import { Dashboard } from './pages/Dashboard';
 import { Profile } from './pages/auth/Profile';
@@ -47,6 +49,8 @@ function App() {
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Login />} />
+          <Route path="/recover-password" element={<RecoverPassword />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/profile" element={<Profile />} />
           <Route path="/orders" element={<Orders />} />

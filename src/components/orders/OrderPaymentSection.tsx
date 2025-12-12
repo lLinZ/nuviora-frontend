@@ -214,7 +214,7 @@ export const OrderPaymentSection: React.FC<OrderPaymentSectionProps> = ({ order 
     return (
         <Box sx={{ display: "flex", flexDirection: "column", gap: 2, mb: 3, width: "100%" }}>
             <PaymentMethodsSelector
-                key={order.id}
+                key={JSON.stringify(order.payments)} // Force re-render when payments change due to fetch
                 onSave={handleSavePayments}
                 initialValue={initialPayments}
             />

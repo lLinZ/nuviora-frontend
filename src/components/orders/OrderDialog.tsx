@@ -164,7 +164,7 @@ export const OrderDialog: FC<OrderDialogProps> = ({ id, open, setOpen }) => {
                     <Typography variant="h6" sx={{ mb: 2 }}>
                         Productos de la orden
                     </Typography>
-                    <OrderProductsList products={order.products.filter((p: any) => !p.is_upsell)} currency={order.currency} />
+                    <OrderProductsList products={(order.products || []).filter((p: any) => !p.is_upsell)} currency={order.currency} />
 
                     {/* Sección Upsell */}
                     <Divider sx={{ marginBlock: 3 }} />
@@ -174,8 +174,8 @@ export const OrderDialog: FC<OrderDialogProps> = ({ id, open, setOpen }) => {
                     </Box>
 
                     <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
-                        {order.products.filter((p: any) => p.is_upsell).length > 0 ? (
-                            order.products.filter((p: any) => p.is_upsell).map((p: any) => (
+                        {(order.products || []).filter((p: any) => p.is_upsell).length > 0 ? (
+                            (order.products || []).filter((p: any) => p.is_upsell).map((p: any) => (
                                 <OrderProductItem
                                     key={p.id}
                                     product={p}

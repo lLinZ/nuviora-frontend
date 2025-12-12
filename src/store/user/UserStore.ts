@@ -63,6 +63,8 @@ interface State {
     validateToken: () => Promise<Response>;
     changeTheme: (theme: string) => Promise<Response>;
     changeColor: (color: string) => Promise<Response>;
+    forgotPassword: (email: string) => Promise<Response>;
+    resetPassword: (data: any) => Promise<Response>;
 }
 export const useUserStore = create<State>((set, get) => ({
     user: initialState,
@@ -156,6 +158,46 @@ export const useUserStore = create<State>((set, get) => ({
             default:
                 console.log({ err });
                 return { status: false, message: "Ocurrio un error inesperado" }
+        }
+    },
+    forgotPassword: async (email: string) => {
+        const url = `${import.meta.env.VITE_BACKEND_API_URL}/forgot-password`;
+        const options = {
+            method: 'POST',
+            headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: new URLSearchParams({ email })
+        };
+        try {
+            const response = await fetch(url, options);
+            const data = await response.json();
+            return { status: response.status === 200, message: data.message };
+        } catch (error) {
+            console.log({ error });
+            return { status: false, message: 'No se logró conectar con el servidor' };
+        }
+    },
+    resetPassword: async (data: any) => {
+        const url = `${import.meta.env.VITE_BACKEND_API_URL}/reset-password`;
+        const options = {
+            method: 'POST',
+            headers: {
+                'Accept': 'application/json',
+                // 'Content-Type': 'application/x-www-form-urlencoded',
+                'Content-Type': 'application/json',
+            },
+            // body: new URLSearchParams(data)
+            body: JSON.stringify(data)
+        };
+        try {
+            const response = await fetch(url, options);
+            const result = await response.json();
+            return { status: response.status === 200, message: result.message };
+        } catch (error) {
+            console.log({ error });
+            return { status: false, message: 'No se logró conectar con el servidor' };
         }
     },
 }));

@@ -11,7 +11,6 @@ import { toast } from "react-toastify";
 import { useUserStore } from "../../store/user/UserStore";
 import { TypographyCustom, TextFieldCustom, ButtonCustom } from "../custom";
 import { useState } from "react";
-import { CircularProgress, darken, Dialog } from "@mui/material";
 import { Loading } from "../ui/content/Loading";
 
 const initialValues: FormData = {
@@ -24,7 +23,6 @@ interface FormData {
 }
 export const SignInCard = () => {
     const [loading, setLoading] = useState<boolean>(false)
-    const user = useUserStore((state) => state.user);
     const login = useUserStore((state) => state.login);
     const onSubmit = async (values: FormData, resetForm: (nextState?: Partial<FormikState<FormData>> | undefined) => void) => {
         setLoading(true)
@@ -42,85 +40,112 @@ export const SignInCard = () => {
 
     }
     return (
-        <Box sx={{ minWidth: 500, padding: 13 }}>
+        <Box sx={{ width: '100%', maxWidth: 450 }}>
             {loading && (<Loading />)}
-            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: { xs: '100%', md: '60%' }, margin: 'auto' }}>
-                {/* <img src='/logo.png' height='120px' width="100%" style={{ borderRadius: '10px' }} /> */}
+            <Box sx={{ mb: 4 }}>
+                <TypographyCustom
+                    textAlign={'left'}
+                    component="h1"
+                    variant="h4"
+                    fontWeight={'bold'}
+                    sx={{ fontSize: 'clamp(2rem, 5vw, 2.5rem)', mb: 1, color: '#0073ff' }}
+                >
+                    Iniciar sesión
+                </TypographyCustom>
+                <Typography variant="body1" color="text.secondary">
+                    Bienvenido de nuevo, por favor ingresa tus datos.
+                </Typography>
             </Box>
-            <TypographyCustom
-                textAlign={'center'}
-                component="h1"
-                variant="h4"
-                fontWeight={'bold'}
-                sx={{ width: '100%', fontSize: 'clamp(2rem, 10vw, 2.15rem)', mb: 2 }}
-            >
-                Iniciar sesion
-            </TypographyCustom>
+
             <Formik
                 initialValues={initialValues}
                 onSubmit={(values, { resetForm }) => onSubmit(values, resetForm)}
             >
                 {({ handleSubmit, handleChange, values }) => (
                     <Form onSubmit={handleSubmit}>
-                        <Box sx={{ display: 'flex', flexDirection: 'column', width: '100%', gap: 2 }}>
+                        <Box sx={{ display: 'flex', flexDirection: 'column', width: '100%', gap: 3 }}>
                             <FormControl sx={{ gap: 1 }}>
-                                <FormLabel htmlFor="email" sx={{ fontWeight: 'bold', gap: 1, display: 'flex', alignItems: 'center' }}><EmailRounded />Correo electronico</FormLabel>
+                                <FormLabel htmlFor="email" sx={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: 1 }}>
+                                    Correo electrónico
+                                </FormLabel>
                                 <TextFieldCustom
                                     id="email"
                                     type="email"
                                     name="email"
-                                    placeholder="ejemplo@email.com"
+                                    placeholder="nombre@ejemplo.com"
                                     autoComplete="email"
                                     value={values.email}
                                     autoFocus
                                     required
                                     fullWidth
                                     onChange={handleChange}
+                                    InputProps={{
+                                        startAdornment: <EmailRounded sx={{ color: 'text.secondary', mr: 1 }} />,
+                                    }}
                                 />
                             </FormControl>
-                            {/* <TextFieldCustom name="email" label='Correo' value={values.email} onChange={handleChange} fullWidth /> */}
 
                             <FormControl sx={{ gap: 1 }}>
                                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                    <FormLabel htmlFor="password" sx={{ fontWeight: 'bold', gap: 1, display: 'flex', alignItems: 'center' }}><LockRounded />Contraseña</FormLabel>
-                                    <Typography sx={{ textAlign: 'end' }}>
-                                        <span>
-                                            <Link
-                                                href="/recover-password"
-                                                variant="subtitle2"
-                                                sx={{ alignSelf: 'flex-end', fontSize: 12 }}
-                                            >
-                                                Recuperar contraseña
-                                            </Link>
-                                        </span>
-                                    </Typography>
+                                    <FormLabel htmlFor="password" sx={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: 1 }}>
+                                        Contraseña
+                                    </FormLabel>
                                 </Box>
                                 <TextFieldCustom
                                     id="password"
                                     type="password"
                                     name="password"
-                                    placeholder="•••••••••••••••"
+                                    placeholder="••••••••"
                                     autoComplete="password"
                                     value={values.password}
-                                    autoFocus
                                     required
                                     fullWidth
                                     onChange={handleChange}
+                                    InputProps={{
+                                        startAdornment: <LockRounded sx={{ color: 'text.secondary', mr: 1 }} />,
+                                    }}
                                 />
+                                <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 0.5 }}>
+                                    <Link
+                                        href="/recover-password"
+                                        variant="subtitle2"
+                                        underline="hover"
+                                        sx={{ fontWeight: 500, fontSize: '0.875rem' }}
+                                    >
+                                        ¿Olvidaste tu contraseña?
+                                    </Link>
+                                </Box>
                             </FormControl>
-                            <ButtonCustom variant="contained" fullWidth type='submit'>Iniciar sesion</ButtonCustom>
-                            <Typography sx={{ textAlign: 'center' }}>
-                                ¿No tienes cuenta?{' '}
-                                <span>
+
+                            <ButtonCustom
+                                variant="contained"
+                                fullWidth
+                                type='submit'
+                                sx={{
+                                    py: 1.5,
+                                    fontSize: '1rem',
+                                    fontWeight: 'bold',
+                                    borderRadius: 2,
+                                    textTransform: 'none',
+                                    mt: 1
+                                }}
+                            >
+                                Iniciar sesión
+                            </ButtonCustom>
+
+                            <Box sx={{ textAlign: 'center', mt: 2 }}>
+                                <Typography variant="body2" color="text.secondary">
+                                    ¿No tienes una cuenta?{' '}
                                     <Link
                                         href="/register"
-                                        variant="body2"
-                                        sx={{ alignSelf: 'center' }}
+                                        variant="subtitle2"
+                                        underline="hover"
+                                        sx={{ fontWeight: 'bold', cursor: 'pointer' }}
                                     >
-                                        Crear cuenta
+                                        Regístrate
                                     </Link>
-                                </span>
-                            </Typography>
+                                </Typography>
+                            </Box>
                         </Box>
                     </Form>
                 )}
