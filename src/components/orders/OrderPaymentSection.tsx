@@ -213,6 +213,42 @@ export const OrderPaymentSection: React.FC<OrderPaymentSectionProps> = ({ order 
 
     return (
         <Box sx={{ display: "flex", flexDirection: "column", gap: 2, mb: 3, width: "100%" }}>
+
+            {/* Sección de Pagos Registrados (Read-only) */}
+            <Box sx={{ mb: 1, p: 2, bgcolor: 'background.paper', borderRadius: 1, boxShadow: 1 }}>
+                <Typography variant="h6" sx={{ mb: 1, fontSize: '1rem', fontWeight: 600 }}>
+                    Pagos Registrados
+                </Typography>
+                {order.payments && order.payments.length > 0 ? (
+                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                        {order.payments.map((p: any, index: number) => (
+                            <Box key={index} sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', p: 1, borderBottom: '1px solid #eee' }}>
+                                <Box>
+                                    <Typography variant="body2" fontWeight="bold">
+                                        {p.method.replace(/_/g, " ")}
+                                    </Typography>
+                                    {p.rate && (
+                                        <Typography variant="caption" color="text.secondary">
+                                            Tasa: {p.rate}
+                                        </Typography>
+                                    )}
+                                </Box>
+                                <Typography variant="body1">
+                                    {Number(p.amount).toLocaleString('en-US', { style: 'currency', currency: 'USD' })}
+                                </Typography>
+                            </Box>
+                        ))}
+                    </Box>
+                ) : (
+                    <Typography variant="body2" color="text.secondary">
+                        No hay pagos registrados.
+                    </Typography>
+                )}
+            </Box>
+
+            <Typography variant="subtitle2" sx={{ mt: 1, mb: 0.5 }}>
+                Editar / Agregar Pagos:
+            </Typography>
             <PaymentMethodsSelector
                 key={JSON.stringify(order.payments)} // Force re-render when payments change due to fetch
                 onSave={handleSavePayments}
