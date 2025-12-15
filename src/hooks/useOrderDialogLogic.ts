@@ -17,6 +17,8 @@ export const useOrderDialogLogic = (
     const [openPostpone, setOpenPostpone] = useState(false);
     const [openApprove, setOpenApprove] = useState(false);
     const [openReject, setOpenReject] = useState(false);
+    const [openApproveDelivery, setOpenApproveDelivery] = useState(false);
+    const [openRejectDelivery, setOpenRejectDelivery] = useState(false);
     const [loadingReview, setLoadingReview] = useState(false);
     const [openAssignDeliverer, setOpenAssignDeliverer] = useState(false);
     const [openAssign, setOpenAssign] = useState(false);
@@ -209,6 +211,70 @@ export const useOrderDialogLogic = (
         }
     };
 
+    const approveDelivery = async (note: string) => {
+        if (!selectedOrder) return;
+        setLoadingReview(true);
+        try {
+            const pending = (selectedOrder.delivery_reviews ?? []).find((c: any) => c.status === "pending");
+            if (!pending) {
+                toast.error("No hay solicitud de entrega pendiente");
+                return;
+            }
+            const body = new URLSearchParams();
+            if (note.trim()) body.append("response_note", note.trim());
+
+            const { status, response }: IResponse = await request(
+                `/orders/delivery-review/${pending.id}/approve`,
+                "PUT",
+                body
+            );
+            if (status) {
+                const data = await response.json();
+                updateOrder(data.order);
+                toast.success("Entrega aprobada ✅");
+                setOpenApproveDelivery(false);
+            } else {
+                toast.error("No se pudo aprobar la entrega ❌");
+            }
+        } catch {
+            toast.error("Error al aprobar entrega 🚨");
+        } finally {
+            setLoadingReview(false);
+        }
+    };
+
+    const rejectDelivery = async (note: string) => {
+        if (!selectedOrder) return;
+        setLoadingReview(true);
+        try {
+            const pending = (selectedOrder.delivery_reviews ?? []).find((c: any) => c.status === "pending");
+            if (!pending) {
+                toast.error("No hay solicitud de entrega pendiente");
+                return;
+            }
+            const body = new URLSearchParams();
+            if (note.trim()) body.append("response_note", note.trim());
+
+            const { status, response }: IResponse = await request(
+                `/orders/delivery-review/${pending.id}/reject`,
+                "PUT",
+                body
+            );
+            if (status) {
+                const data = await response.json();
+                updateOrder(data.order);
+                toast.success("Entrega rechazada ❎");
+                setOpenRejectDelivery(false);
+            } else {
+                toast.error("No se pudo rechazar la entrega ❌");
+            }
+        } catch {
+            toast.error("Error al rechazar entrega 🚨");
+        } finally {
+            setLoadingReview(false);
+        }
+    };
+
     const handleChangeNewLocation = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         setNewLocation(e.target.value);
     };
@@ -232,6 +298,10 @@ export const useOrderDialogLogic = (
         handleChangeNewLocation,
         updateOrder,
         addUpsell,
-        removeUpsell
+        removeUpsell,
+        openApproveDelivery, setOpenApproveDelivery,
+        openRejectDelivery, setOpenRejectDelivery,
+        approveDelivery,
+        rejectDelivery
     };
 };

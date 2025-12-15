@@ -7,6 +7,7 @@ import { useOrderDialogLogic } from "../../hooks/useOrderDialogLogic";
 import { CancelOrderDialog } from "./CancelOrderDialog";
 import { PostponeOrderDialog } from "./PostponeOrderDialog";
 import { ReviewCancellationDialog } from "./ReviewCancellationDialog";
+import { ReviewDeliveryDialog } from "./ReviewDeliveryDialog";
 import { AssignDelivererDialog } from "./AssignDelivererDialog";
 import { AssignAgentDialog } from "./AssignAgentDialog";
 import { OrderPaymentSection } from "./OrderPaymentSection";
@@ -46,7 +47,11 @@ export const OrderDialog: FC<OrderDialogProps> = ({ id, open, setOpen }) => {
         handleChangeNewLocation,
         updateOrder,
         addUpsell,
-        removeUpsell
+        removeUpsell,
+        openApproveDelivery, setOpenApproveDelivery,
+        openRejectDelivery, setOpenRejectDelivery,
+        approveDelivery,
+        rejectDelivery
     } = useOrderDialogLogic(id, open, setOpen);
 
     const [openSearch, setOpenSearch] = useState(false);
@@ -141,6 +146,64 @@ export const OrderDialog: FC<OrderDialogProps> = ({ id, open, setOpen }) => {
                         onConfirm={rejectCancellation}
                         loading={loadingReview}
                     />
+
+                    {/* Alerta de Aprobación de Entrega */}
+                    {(user.role?.description === "Gerente" || user.role?.description === "Admin") &&
+                        order.status.description === "Por aprobar entrega" && (
+                            <Box
+                                sx={{
+                                    width: "100%",
+                                    p: 2,
+                                    mb: 2,
+                                    backgroundColor: "warning.light",
+                                    color: "warning.contrastText",
+                                    borderRadius: 1,
+                                    display: "flex",
+                                    justifyContent: "space-between",
+                                    alignItems: "center",
+                                }}
+                            >
+                                <Typography fontWeight="bold">
+                                    🚨 Esta orden espera aprobación de entrega.
+                                </Typography>
+                                <Box>
+                                    <Button
+                                        color="error"
+                                        variant="contained"
+                                        onClick={() => setOpenRejectDelivery(true)}
+                                        sx={{ mr: 1 }}
+                                    >
+                                        Rechazar
+                                    </Button>
+                                    <Button
+                                        color="success"
+                                        variant="contained"
+                                        onClick={() => setOpenApproveDelivery(true)}
+                                    >
+                                        Aprobar
+                                    </Button>
+                                </Box>
+                            </Box>
+                        )}
+
+                    <ReviewDeliveryDialog
+                        open={openApproveDelivery}
+                        onClose={() => setOpenApproveDelivery(false)}
+                        title="Aprobar Entrega"
+                        confirmText="Aprobar Entrega"
+                        onConfirm={approveDelivery}
+                        loading={loadingReview}
+                    />
+
+                    <ReviewDeliveryDialog
+                        open={openRejectDelivery}
+                        onClose={() => setOpenRejectDelivery(false)}
+                        title="Rechazar Entrega"
+                        confirmText="Rechazar"
+                        onConfirm={rejectDelivery}
+                        loading={loadingReview}
+                    />
+
                     <CancelOrderDialog
                         open={openCancel}
                         onClose={() => setOpenCancel(false)}
