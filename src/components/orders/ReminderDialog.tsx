@@ -45,9 +45,9 @@ export const ReminderDialog: FC<ReminderDialogProps> = ({ open, onClose, onSave 
                     />
                 </Box>
             </DialogContent>
-            <DialogActions>
-                <Button onClick={onClose} color="inherit">Cancelar</Button>
-                <ButtonCustom onClick={handleSave}>Guardar</ButtonCustom>
+            <DialogActions >
+                <ButtonCustom variant={'outlined'} onClick={onClose}>Cancelar</ButtonCustom>
+                <ButtonCustom variant={'contained'} onClick={handleSave}>Guardar</ButtonCustom>
             </DialogActions>
         </Dialog>
     );

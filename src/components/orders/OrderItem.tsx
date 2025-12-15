@@ -21,6 +21,7 @@ import { AssignAgentDialog } from "./AssignAgentDialog";
 import { OrderDialog } from "./OrderDialog";
 import { purple, blue, green, red, yellow, grey, orange } from "@mui/material/colors";
 import { AssignDelivererDialog } from "./AssignDelivererDialog";
+import { PostponeOrderDialog } from "./PostponeOrderDialog";
 
 interface OrderItemProps {
     order: any;
@@ -65,6 +66,7 @@ export const OrderItem: FC<OrderItemProps> = ({ order }) => {
     const [open, setOpen] = useState<boolean>(false);
     const [productsOpen, setProductsOpen] = useState<boolean>(false);
     const [openAssignDeliverer, setOpenAssignDeliverer] = useState(false);
+    const [openPostpone, setOpenPostpone] = useState(false); // 👈 New state
     const [orderProducts, setOrderProducts] = useState<any>([]);
     const [orderProductsEmpty, setOrderProductsEmpty] = useState<boolean>(false);
     const theme = useTheme();
@@ -92,6 +94,12 @@ export const OrderItem: FC<OrderItemProps> = ({ order }) => {
         }
     }
     const changeStatus = async (status: string, statusId: number) => {
+        // Intercept postponing
+        if (status === "Programado para otro dia" || status === "Programado para mas tarde") {
+            setOpenPostpone(true);
+            return;
+        }
+
         // 👇 Si quieren "Asignado a repartidor" pero aún no hay repartidor, primero elegimos uno
         if (status === "Asignado a repartidor" && !order.deliverer) {
             setOpenAssignDeliverer(true);
@@ -110,7 +118,7 @@ export const OrderItem: FC<OrderItemProps> = ({ order }) => {
             if (ok) {
                 const data = await response.json();
                 updateOrder(data.order);
-                toast.success(`Orden #${order.name} actualizada a ${status} ✅`);
+                toast.success(data.message || `Orden #${order.name} actualizada a ${status} ✅`);
             } else {
                 toast.error("No se pudo actualizar el estado ❌");
             }
@@ -237,6 +245,13 @@ export const OrderItem: FC<OrderItemProps> = ({ order }) => {
                 onClose={() => setOpenAssignDeliverer(false)}
                 orderId={order.id}
             />
+            {openPostpone && (
+                <PostponeOrderDialog
+                    open={openPostpone}
+                    onClose={() => setOpenPostpone(false)}
+                    orderId={order.id}
+                />
+            )}
             <OrderDialog open={open} setOpen={setOpen} id={order.id} />
         </Box>
     );

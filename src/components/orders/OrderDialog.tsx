@@ -95,6 +95,19 @@ export const OrderDialog: FC<OrderDialogProps> = ({ id, open, setOpen }) => {
                         }}
                     >
                         <Typography variant="h6">Detalle de la orden</Typography>
+                        {/* Botón de Recordatorio - Vendedora y Admin */}
+                        {(user.role?.description === "Vendedor" || user.role?.description === "Admin") && (
+                            <Box sx={{ display: 'flex', justifyContent: 'center', mt: 2 }}>
+                                <ButtonCustom variant="contained" onClick={() => setOpenReminder(true)}>
+                                    📅 Crear Recordatorio
+                                </ButtonCustom>
+                            </Box>
+                        )}
+                        <ReminderDialog
+                            open={openReminder}
+                            onClose={() => setOpenReminder(false)}
+                            onSave={setReminder}
+                        />
                         <IconButton onClick={handleClose}>
                             <CloseRoundedIcon
                                 sx={{ color: theme.palette.getContrastText(user.color) }}
@@ -131,14 +144,7 @@ export const OrderDialog: FC<OrderDialogProps> = ({ id, open, setOpen }) => {
                         <OrderPaymentSection order={order} />
                     </Box>
 
-                    {/* Botón de Recordatorio - Vendedora */}
-                    {user.role?.description === "Vendedor" && (
-                        <Box sx={{ display: 'flex', justifyContent: 'center', mt: 2 }}>
-                            <ButtonCustom onClick={() => setOpenReminder(true)}>
-                                📅 Crear Recordatorio
-                            </ButtonCustom>
-                        </Box>
-                    )}
+
                     {order.reminder_at && (
                         <Typography sx={{ textAlign: 'center', mt: 1, color: 'info.main' }}>
                             🔔 Recordatorio: {new Date(order.reminder_at).toLocaleString()}
@@ -147,11 +153,7 @@ export const OrderDialog: FC<OrderDialogProps> = ({ id, open, setOpen }) => {
 
                     <Divider sx={{ marginBlock: 3 }} />
 
-                    <ReminderDialog
-                        open={openReminder}
-                        onClose={() => setOpenReminder(false)}
-                        onSave={setReminder}
-                    />
+
 
                     <ReviewCancellationDialog
                         open={openApprove}
@@ -257,7 +259,7 @@ export const OrderDialog: FC<OrderDialogProps> = ({ id, open, setOpen }) => {
                     <Divider sx={{ marginBlock: 3 }} />
                     <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
                         <Typography variant="h6">Ventas Adicionales (Upsell)</Typography>
-                        <ButtonCustom onClick={() => setOpenSearch(true)}>Agregar Upsell</ButtonCustom>
+                        <ButtonCustom variant="contained" onClick={() => setOpenSearch(true)}>Agregar Upsell</ButtonCustom>
                     </Box>
 
                     <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>

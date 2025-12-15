@@ -13,10 +13,42 @@ interface OrderListProps {
 export const OrderList: FC<OrderListProps> = ({ title }) => {
     const user = useUserStore((state) => state.user);
     const { orders } = useOrdersStore(); // 👈 traemos las órdenes del store global
-    const count = useMemo(
-        () => orders.filter((order) => order.status.description === title).length,
-        [orders, title]
-    );
+    const filteredOrders = useMemo(() => {
+        const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD local approx (or handle timezone better if needed)
+
+        return orders.filter((order) => {
+            const status = order.status.description;
+            const scheduledAt = order.scheduled_for ? new Date(order.scheduled_for).toISOString().slice(0, 10) : null;
+
+            if (title === "Reprogramado para hoy") {
+                // Incluimos lo que explicitamente sea "Reprogramado para hoy"
+                if (status === "Reprogramado para hoy") return true;
+
+                // O lo que sea "Programado..." pero con fecha de hoy
+                if ((status === "Programado para otro dia" || status === "Programado para mas tarde") && scheduledAt === today) {
+                    return true;
+                }
+                return false;
+            }
+
+            // Para las otras columnas ("Programado para otro dia", "Programado para mas tarde")
+            // NO mostrarlas si ya cayeron en la lógica de hoy
+            if (title === "Programado para otro dia" || title === "Programado para mas tarde") {
+                if (status === title) {
+                    // Si es hoy, NO mostrarlo aqui (porque ya se muestra en Reprogramado para hoy)
+                    if (scheduledAt === today) return false;
+                    return true;
+                }
+                return false;
+            }
+
+            // Resto de columnas normales
+            return status === title;
+        });
+    }, [orders, title]);
+
+    const count = filteredOrders.length;
+
     return (
         <Box
             sx={{
@@ -67,11 +99,9 @@ export const OrderList: FC<OrderListProps> = ({ title }) => {
                     minWidth: "300px",
                 }}
             >
-                {orders
-                    .filter((order: any) => order.status.description === title)
-                    .map((order: any) => (
-                        <OrderItem key={order.id} order={order} />
-                    ))}
+                {filteredOrders.map((order: any) => (
+                    <OrderItem key={order.id} order={order} />
+                ))}
             </Box>
         </Box>
     );
