@@ -8,6 +8,7 @@ import { CancelOrderDialog } from "./CancelOrderDialog";
 import { PostponeOrderDialog } from "./PostponeOrderDialog";
 import { ReviewCancellationDialog } from "./ReviewCancellationDialog";
 import { ReviewDeliveryDialog } from "./ReviewDeliveryDialog";
+import { ReminderDialog } from "./ReminderDialog";
 import { AssignDelivererDialog } from "./AssignDelivererDialog";
 import { AssignAgentDialog } from "./AssignAgentDialog";
 import { OrderPaymentSection } from "./OrderPaymentSection";
@@ -51,8 +52,11 @@ export const OrderDialog: FC<OrderDialogProps> = ({ id, open, setOpen }) => {
         openApproveDelivery, setOpenApproveDelivery,
         openRejectDelivery, setOpenRejectDelivery,
         approveDelivery,
-        rejectDelivery
+        rejectDelivery,
+        setReminder
     } = useOrderDialogLogic(id, open, setOpen);
+
+    const [openReminder, setOpenReminder] = useState(false);
 
     const [openSearch, setOpenSearch] = useState(false);
     const [showUpsellConfirm, setShowUpsellConfirm] = useState(false);
@@ -127,7 +131,27 @@ export const OrderDialog: FC<OrderDialogProps> = ({ id, open, setOpen }) => {
                         <OrderPaymentSection order={order} />
                     </Box>
 
+                    {/* Botón de Recordatorio - Vendedora */}
+                    {user.role?.description === "Vendedor" && (
+                        <Box sx={{ display: 'flex', justifyContent: 'center', mt: 2 }}>
+                            <ButtonCustom onClick={() => setOpenReminder(true)}>
+                                📅 Crear Recordatorio
+                            </ButtonCustom>
+                        </Box>
+                    )}
+                    {order.reminder_at && (
+                        <Typography sx={{ textAlign: 'center', mt: 1, color: 'info.main' }}>
+                            🔔 Recordatorio: {new Date(order.reminder_at).toLocaleString()}
+                        </Typography>
+                    )}
+
                     <Divider sx={{ marginBlock: 3 }} />
+
+                    <ReminderDialog
+                        open={openReminder}
+                        onClose={() => setOpenReminder(false)}
+                        onSave={setReminder}
+                    />
 
                     <ReviewCancellationDialog
                         open={openApprove}

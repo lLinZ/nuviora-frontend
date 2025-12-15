@@ -55,6 +55,12 @@ export const OrderProductItem: React.FC<OrderProductItemProps> = ({ product, cur
                     Cantidad: <strong>{product.quantity}</strong> × Precio:{" "}
                     <strong>{fmtMoney(Number(product.price), currency)}</strong>
                 </Typography>
+
+                {product.upsell_user_name && (
+                    <Typography variant="caption" display="block" color="primary">
+                        Upsell por: {product.upsell_user_name}
+                    </Typography>
+                )}
             </Box>
 
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>

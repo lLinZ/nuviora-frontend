@@ -141,6 +141,12 @@ export const useOrderDialogLogic = (
             return;
         }
 
+        // Intercept postponing
+        if (status === "Programado para otro dia" || status === "Programado para mas tarde") {
+            setOpenPostpone(true);
+            return;
+        }
+
         const body = new URLSearchParams();
         body.append("status_id", String(statusId));
         try {
@@ -279,6 +285,29 @@ export const useOrderDialogLogic = (
         setNewLocation(e.target.value);
     };
 
+    const setReminder = async (date: string) => {
+        if (!selectedOrder) return;
+        try {
+            const body = new URLSearchParams();
+            body.append('reminder_at', date);
+
+            const { status, response }: IResponse = await request(
+                `/orders/${selectedOrder.id}/reminder`,
+                "PUT",
+                body
+            );
+            if (status) {
+                const data = await response.json();
+                updateOrder(data.order);
+                toast.success('Recordatorio establecido 📅');
+            } else {
+                toast.error('Error al guardar recordatorio');
+            }
+        } catch {
+            toast.error('Error de conexión');
+        }
+    };
+
     return {
         selectedOrder,
         user,
@@ -302,6 +331,7 @@ export const useOrderDialogLogic = (
         openApproveDelivery, setOpenApproveDelivery,
         openRejectDelivery, setOpenRejectDelivery,
         approveDelivery,
-        rejectDelivery
+        rejectDelivery,
+        setReminder
     };
 };
