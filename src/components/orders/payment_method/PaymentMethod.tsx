@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
     Box,
     Stack,
@@ -11,11 +11,19 @@ import {
     InputLabel,
     FormHelperText,
     Typography,
+    Dialog,
+    DialogTitle,
+    DialogContent,
+    DialogActions,
+    InputAdornment,
 } from "@mui/material";
 import AddCircleOutlineIcon from "@mui/icons-material/AddCircleOutline";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
+import CalculateIcon from "@mui/icons-material/Calculate";
 import { ButtonCustom, SelectCustom, TextFieldCustom, TypographyCustom } from "../../custom";
 import { useUserStore } from "../../../store/user/UserStore";
+import { request } from "../../../common/request";
+import { IResponse } from "../../../interfaces/response-type";
 
 export type PaymentMethodType =
     | "BOLIVARES_TRANSFERENCIA"
@@ -32,6 +40,7 @@ interface PaymentMethodsSelectorProps {
     initialValue?: PaymentMethod[];
     onChange?: (value: PaymentMethod[]) => void; // se dispara en cada cambio
     onSave?: (value: PaymentMethod[]) => void;   // se dispara al hacer click en "Guardar"
+    totalPrice?: number;
 }
 
 interface PaymentRowState {
@@ -50,6 +59,7 @@ const PaymentMethodsSelector: React.FC<PaymentMethodsSelectorProps> = ({
     initialValue,
     onChange,
     onSave,
+    totalPrice = 0,
 }) => {
     const [rows, setRows] = useState<PaymentRowState[]>(() => {
         if (initialValue && initialValue.length > 0) {
@@ -63,6 +73,35 @@ const PaymentMethodsSelector: React.FC<PaymentMethodsSelectorProps> = ({
 
     const [touched, setTouched] = useState(false);
     const user = useUserStore(state => state.user);
+
+    // Mixed Calculation States
+    const [showMixedCalc, setShowMixedCalc] = useState(false);
+    const [bcvRate, setBcvRate] = useState<number>(0);
+    const [calcData, setCalcData] = useState({
+        amountUsd: "",
+        discountPercent: "",
+    });
+
+    const fetchBcvRate = async () => {
+        try {
+            const { status, response }: IResponse = await request("/currency", "GET");
+            if (status === 200) {
+                const { data } = await response.json();
+                if (data.bcv_usd?.value) {
+                    setBcvRate(Number(data.bcv_usd.value));
+                }
+            }
+        } catch (error) {
+            console.error("Error fetching BCV rate:", error);
+        }
+    };
+
+    useEffect(() => {
+        if (showMixedCalc && bcvRate === 0) {
+            fetchBcvRate();
+        }
+    }, [showMixedCalc]);
+
     const serialize = (state: PaymentRowState[]): PaymentMethod[] => {
         return state
             .filter((row) => row.method !== "" && row.amount.trim() !== "")
@@ -123,25 +162,58 @@ const PaymentMethodsSelector: React.FC<PaymentMethodsSelectorProps> = ({
         const result = serialize(rows);
         console.log({ result })
         onSave?.(result);
-        // Aquí podrías hacer un reset si quisieras, pero lo dejo tal cual
+    };
+
+    const handleApplyMixedCalc = () => {
+        const mp = Number(calcData.amountUsd); // Monto Pagado en divisas
+        const d = Number(calcData.discountPercent) / 100; // Porcentaje de descuento
+
+        if (isNaN(mp) || isNaN(d) || bcvRate === 0) return;
+
+        // Formula 1: MP / (1-D) = ME (Monto Equivalente)
+        const me = mp / (1 - d);
+
+        // Formula 2: TO - ME = MAPD (Monto Restante a Pagar en Divisas)
+        const mapd = totalPrice - me;
+
+        // Formula 3: MAPD x BCV = MAPBS (Monto Restante a Pagar en Bolívares)
+        const mapbs = Math.max(0, mapd * bcvRate);
+
+        // Actualizar filas de pago
+        const newRows: PaymentRowState[] = [
+            { method: "DOLARES_EFECTIVO", amount: mp.toFixed(2) },
+            { method: "BOLIVARES_TRANSFERENCIA", amount: (mapbs).toFixed(2) }
+        ];
+
+        setRows(newRows);
+        onChange?.(serialize(newRows));
+        setShowMixedCalc(false);
     };
 
     return (
         <Box>
             <Box sx={{ display: 'flex', flexFlow: 'row wrap', gap: 2, alignItems: 'center', justifyContent: 'center', mb: 2 }}>
-
                 <TypographyCustom variant="h6" sx={{ mb: 1 }}>
                     Métodos de pago
                 </TypographyCustom>
-                <Box>
+                <Box sx={{ display: 'flex', gap: 1 }}>
                     <IconButton
                         sx={{ background: user.color, color: (theme) => theme.palette.getContrastText(user.color) }}
                         onClick={handleAddRow}
+                        title="Agregar Fila"
                     >
                         <AddCircleOutlineIcon />
                     </IconButton>
+                    <IconButton
+                        sx={{ background: '#4caf50', color: 'white' }}
+                        onClick={() => setShowMixedCalc(true)}
+                        title="Cálculo Mixto USD/VES"
+                    >
+                        <CalculateIcon />
+                    </IconButton>
                 </Box>
             </Box>
+
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                 {rows.map((row, index) => {
                     const showErrors = touched;
@@ -158,7 +230,6 @@ const PaymentMethodsSelector: React.FC<PaymentMethodsSelectorProps> = ({
                             key={index}
                             sx={{ display: 'flex', flexFlow: 'row nowrap', gap: 1, alignItems: 'center', justifyContent: 'center' }}
                         >
-                            {/* Botón eliminar fila */}
                             {user.role?.description !== 'Repartidor' && (
                                 <IconButton
                                     aria-label="Eliminar método"
@@ -169,7 +240,6 @@ const PaymentMethodsSelector: React.FC<PaymentMethodsSelectorProps> = ({
                                     <DeleteOutlineIcon />
                                 </IconButton>
                             )}
-                            {/* Select método de pago */}
                             <FormControl
                                 fullWidth
                                 error={methodError}
@@ -195,33 +265,92 @@ const PaymentMethodsSelector: React.FC<PaymentMethodsSelectorProps> = ({
                                 )}
                             </FormControl>
 
-                            {/* Monto */}
                             <TextFieldCustom
                                 variant="filled"
                                 label="Monto"
                                 value={row.amount}
-                                onChange={(e) =>
+                                onChange={(e: any) =>
                                     handleRowChange(index, "amount", e.target.value)
                                 }
                                 error={amountError}
                             />
-
                         </Box>
                     );
                 })}
 
-                {/* Botón para agregar otra fila */}
-
-
-                {/* Botón guardar */}
                 {user.role?.description !== 'Repartidor' && (
-
                     <Box textAlign="right" mt={1}>
                         <ButtonCustom variant="contained" color="primary" onClick={handleSave}>
                             Guardar
                         </ButtonCustom>
-                    </Box>)}
+                    </Box>
+                )}
             </Box>
+
+            {/* Diálogo de Cálculo Mixto */}
+            <Dialog open={showMixedCalc} onClose={() => setShowMixedCalc(false)} maxWidth="xs" fullWidth>
+                <DialogTitle>Cálculo Mixto (USD + VES)</DialogTitle>
+                <DialogContent>
+                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3, mt: 1 }}>
+                        <Typography variant="body2" color="text.secondary">
+                            Total de la orden: <strong>${totalPrice.toFixed(2)}</strong>
+                        </Typography>
+
+                        <TextField
+                            label="Monto en Dólares ($)"
+                            type="number"
+                            value={calcData.amountUsd}
+                            onChange={(e) => setCalcData({ ...calcData, amountUsd: e.target.value })}
+                            fullWidth
+                            InputProps={{
+                                startAdornment: <InputAdornment position="start">$</InputAdornment>,
+                            }}
+                        />
+
+                        <TextField
+                            label="Porcentaje de Descuento (%)"
+                            type="number"
+                            value={calcData.discountPercent}
+                            onChange={(e) => setCalcData({ ...calcData, discountPercent: e.target.value })}
+                            fullWidth
+                            InputProps={{
+                                endAdornment: <InputAdornment position="end">%</InputAdornment>,
+                            }}
+                            helperText="Descuento aplicado al monto en divisas"
+                        />
+
+                        <TextField
+                            label="Tasa BCV del día"
+                            type="number"
+                            value={bcvRate}
+                            onChange={(e) => setBcvRate(Number(e.target.value))}
+                            fullWidth
+                            helperText="Cargada automáticamente de la configuración"
+                        />
+
+                        {Number(calcData.amountUsd) > 0 && Number(calcData.discountPercent) >= 0 && (
+                            <Box sx={{ bgcolor: 'action.hover', p: 2, borderRadius: 1 }}>
+                                <Typography variant="subtitle2" gutterBottom>Resultados del cálculo:</Typography>
+                                <Typography variant="body2">
+                                    Monto Equivalente: <strong>${(Number(calcData.amountUsd) / (1 - (Number(calcData.discountPercent) / 100))).toFixed(2)}</strong>
+                                </Typography>
+                                <Typography variant="body2" color="primary" fontWeight="bold">
+                                    Restante en Bs: <strong>Bs. {Math.max(0, (totalPrice - (Number(calcData.amountUsd) / (1 - (Number(calcData.discountPercent) / 100)))) * bcvRate).toLocaleString('es-VE', { minimumFractionDigits: 2 })}</strong>
+                                </Typography>
+                            </Box>
+                        )}
+                    </Box>
+                </DialogContent>
+                <DialogActions>
+                    <Button onClick={() => setShowMixedCalc(false)}>Cancelar</Button>
+                    <ButtonCustom
+                        onClick={handleApplyMixedCalc}
+                        disabled={!calcData.amountUsd || !calcData.discountPercent || bcvRate === 0}
+                    >
+                        Aplicar Cálculo
+                    </ButtonCustom>
+                </DialogActions>
+            </Dialog>
         </Box>
     );
 };

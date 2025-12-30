@@ -107,6 +107,14 @@ export const Warehouses: React.FC = () => {
                                             size="small"
                                             variant="outlined"
                                         />
+                                        {warehouse.user && (
+                                            <Chip
+                                                label={`Rep: ${warehouse.user.names}`}
+                                                size="small"
+                                                color="secondary"
+                                                variant="outlined"
+                                            />
+                                        )}
                                     </Box>
                                 </CardContent>
                                 <CardActions>

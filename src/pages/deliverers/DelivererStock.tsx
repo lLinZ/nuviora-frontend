@@ -79,8 +79,8 @@ export const DelivererStock: React.FC = () => {
                     toast.error("No se pudieron cargar los repartidores ❌");
                 }
 
-                // Inventario general
-                const resInventory: IResponse = await request("/inventory", "GET");
+                // Inventario general (Bodega principal)
+                const resInventory: IResponse = await request("/inventory?main=true", "GET");
                 if (resInventory.status) {
                     const data = await resInventory.response.json();
                     setInventory(data.data ?? []);
@@ -110,7 +110,8 @@ export const DelivererStock: React.FC = () => {
                 );
                 if (res.status) {
                     const data = await res.response.json();
-                    setDelivererStock(data.data ?? []);
+                    const items = data.data?.items ?? data.data ?? [];
+                    setDelivererStock(items);
                 } else {
                     toast.error("No se pudo obtener el stock del repartidor ❌");
                 }

@@ -253,6 +253,7 @@ export const OrderPaymentSection: React.FC<OrderPaymentSectionProps> = ({ order 
                 key={JSON.stringify(order.payments)} // Force re-render when payments change due to fetch
                 onSave={handleSavePayments}
                 initialValue={initialPayments}
+                totalPrice={Number(order.current_total_price)}
             />
 
             {/* Payment Receipt Section */}

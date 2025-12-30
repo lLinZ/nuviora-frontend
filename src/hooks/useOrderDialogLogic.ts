@@ -19,6 +19,8 @@ export const useOrderDialogLogic = (
     const [openReject, setOpenReject] = useState(false);
     const [openApproveDelivery, setOpenApproveDelivery] = useState(false);
     const [openRejectDelivery, setOpenRejectDelivery] = useState(false);
+    const [openApproveLocation, setOpenApproveLocation] = useState(false);
+    const [openRejectLocation, setOpenRejectLocation] = useState(false);
     const [loadingReview, setLoadingReview] = useState(false);
     const [openAssignDeliverer, setOpenAssignDeliverer] = useState(false);
     const [openAssign, setOpenAssign] = useState(false);
@@ -281,6 +283,70 @@ export const useOrderDialogLogic = (
         }
     };
 
+    const approveLocation = async (note: string) => {
+        if (!selectedOrder) return;
+        setLoadingReview(true);
+        try {
+            const pending = (selectedOrder.location_reviews ?? []).find((c: any) => c.status === "pending");
+            if (!pending) {
+                toast.error("No hay solicitud de ubicación pendiente");
+                return;
+            }
+            const body = new URLSearchParams();
+            if (note.trim()) body.append("response_note", note.trim());
+
+            const { status, response }: IResponse = await request(
+                `/orders/location-review/${pending.id}/approve`,
+                "PUT",
+                body
+            );
+            if (status) {
+                const data = await response.json();
+                updateOrder(data.order);
+                toast.success("Cambio de ubicación aprobado ✅");
+                setOpenApproveLocation(false);
+            } else {
+                toast.error("No se pudo aprobar el cambio ❌");
+            }
+        } catch {
+            toast.error("Error al aprobar 🚨");
+        } finally {
+            setLoadingReview(false);
+        }
+    };
+
+    const rejectLocation = async (note: string) => {
+        if (!selectedOrder) return;
+        setLoadingReview(true);
+        try {
+            const pending = (selectedOrder.location_reviews ?? []).find((c: any) => c.status === "pending");
+            if (!pending) {
+                toast.error("No hay solicitud de ubicación pendiente");
+                return;
+            }
+            const body = new URLSearchParams();
+            if (note.trim()) body.append("response_note", note.trim());
+
+            const { status, response }: IResponse = await request(
+                `/orders/location-review/${pending.id}/reject`,
+                "PUT",
+                body
+            );
+            if (status) {
+                const data = await response.json();
+                updateOrder(data.order);
+                toast.success("Cambio de ubicación rechazado ❎");
+                setOpenRejectLocation(false);
+            } else {
+                toast.error("No se pudo rechazar el cambio ❌");
+            }
+        } catch {
+            toast.error("Error al rechazar 🚨");
+        } finally {
+            setLoadingReview(false);
+        }
+    };
+
     const handleChangeNewLocation = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         setNewLocation(e.target.value);
     };
@@ -332,6 +398,10 @@ export const useOrderDialogLogic = (
         openRejectDelivery, setOpenRejectDelivery,
         approveDelivery,
         rejectDelivery,
+        openApproveLocation, setOpenApproveLocation,
+        openRejectLocation, setOpenRejectLocation,
+        approveLocation,
+        rejectLocation,
         setReminder
     };
 };

@@ -72,7 +72,7 @@ export const InventoryOverview: React.FC = () => {
             // But that returns a flat list of inventory items (warehouse_id, product_id, qty).
             // We want to group by product.
 
-            const { status, response }: IResponse = await request('/inventory', 'GET');
+            const { status, response }: IResponse = await request('/inventory?overview=true', 'GET');
             if (status) {
                 const data = await response.json();
                 // data.data is Inventory[]

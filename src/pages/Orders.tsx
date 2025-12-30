@@ -15,7 +15,7 @@ import { SearchRounded } from "@mui/icons-material";
 
 export const Orders = () => {
     const user = useUserStore((state) => state.user);
-    const { setOrders } = useOrdersStore();
+    const { orders, setOrders } = useOrdersStore();
     const validateToken = useUserStore((state) => state.validateToken);
     const [openSearch, setOpenSearch] = useState(false);
 
@@ -24,31 +24,69 @@ export const Orders = () => {
         toast.info(`Seleccionaste: ${product.name ?? product.title}`);
         setOpenSearch(false);
     };
+
+    // Check for reminders every minute
+    useEffect(() => {
+        const checkReminders = () => {
+            const now = new Date();
+            orders.forEach(order => {
+                if (order.reminder_at) {
+                    const reminderTime = new Date(order.reminder_at);
+                    const diff = now.getTime() - reminderTime.getTime();
+                    // If reminder passed within the last 60 seconds
+                    if (diff >= 0 && diff < 60000) {
+                        toast.info(`🔔 Recordatorio para Orden #${order.name}`, {
+                            // enableHtml: true, // Removed invalid prop
+                            autoClose: false, // User must close it
+                            onClick: () => {
+                                // Optional: open order details
+                            }
+                        });
+                        // Play sound
+                        const audio = new Audio('/notification.mp3'); // Assuming file exists, otherwise standard beep or skip
+                        audio.play().catch(e => console.log('Audio warn', e));
+                    }
+                }
+            });
+        };
+
+        const interval = setInterval(checkReminders, 30000); // Check every 30s
+        return () => clearInterval(interval);
+    }, [orders]);
+
+    const fetchOrders = async (silent = false) => {
+        try {
+            const { status, response }: IResponse = await request("/orders", "GET");
+            if (status) {
+                const data = await response.json();
+                setOrders(data.data);
+                if (!silent) toast.success("Órdenes cargadas correctamente ✅");
+            } else if (!silent) {
+                toast.error("Error al cargar las órdenes ❌");
+            }
+        } catch (e) {
+            if (!silent) toast.error("No se pudieron cargar las órdenes 🚨");
+        }
+    };
+
     useEffect(() => {
         const init = async () => {
-            try {
-                // Validamos sesión
-                const result = await validateToken();
-                if (!result.status) {
-                    toast.error("Sesión expirada, inicia sesión nuevamente.");
-                    return (window.location.href = "/");
-                }
-
-                // Cargamos órdenes
-                const { status, response }: IResponse = await request("/orders", "GET");
-                if (status) {
-                    const data = await response.json();
-                    setOrders(data.data);
-                    console.log(data.data)
-                    toast.success("Órdenes cargadas correctamente ✅");
-                } else {
-                    toast.error("Error al cargar las órdenes ❌");
-                }
-            } catch (e) {
-                toast.error("No se pudieron cargar las órdenes 🚨");
+            const result = await validateToken();
+            if (!result.status) {
+                toast.error("Sesión expirada, inicia sesión nuevamente.");
+                return (window.location.href = "/");
             }
+            fetchOrders();
         };
+
         init();
+
+        // Polling every 30 seconds
+        const pollInterval = setInterval(() => {
+            fetchOrders(true);
+        }, 30000);
+
+        return () => clearInterval(pollInterval);
     }, []);
 
     if (!user.token) return <Loading />;
@@ -114,8 +152,10 @@ export const Orders = () => {
                         <OrderList title="En ruta" />
                         <OrderList title="Programado para mas tarde" />
                         <OrderList title="Programado para otro dia" />
+                        <OrderList title="Por aprobar cambio de ubicacion" />
                         <OrderList title="Cambio de ubicacion" />
                         <OrderList title="Rechazado" />
+                        <OrderList title="Por aprobar entrega" />
                         <OrderList title="Entregado" />
                         <OrderList title="Cancelado" />
                     </Box>

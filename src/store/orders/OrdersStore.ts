@@ -14,7 +14,13 @@ export const useOrdersStore = create<OrdersState>((set) => ({
     orders: [],
     selectedOrder: null,
     selectedAgentId: null,
-    setOrders: (orders) => set({ orders }),
+    setOrders: (orders) =>
+        set((state) => ({
+            orders,
+            selectedOrder: state.selectedOrder
+                ? orders.find((o) => o.id === state.selectedOrder.id) || state.selectedOrder
+                : null,
+        })),
     updateOrder: (order) =>
         set((state) => ({
             orders: state.orders.map((o) => (o.id === order.id ? order : o)),

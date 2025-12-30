@@ -30,7 +30,7 @@ interface IWarehouseType {
 export const CreateWarehouseDialog: React.FC<CreateWarehouseDialogProps> = ({ open, onClose, onSuccess }) => {
     const [loading, setLoading] = useState(false);
     const [types, setTypes] = useState<IWarehouseType[]>([]);
-    
+
     // Form state
     const [name, setName] = useState('');
     const [code, setCode] = useState('');
@@ -38,13 +38,28 @@ export const CreateWarehouseDialog: React.FC<CreateWarehouseDialogProps> = ({ op
     const [location, setLocation] = useState('');
     const [description, setDescription] = useState('');
     const [isMain, setIsMain] = useState(false);
+    const [userId, setUserId] = useState<number | ''>('');
+    const [deliverers, setDeliverers] = useState<any[]>([]);
 
     useEffect(() => {
         if (open) {
             loadTypes();
+            loadDeliverers();
             resetForm();
         }
     }, [open]);
+
+    const loadDeliverers = async () => {
+        try {
+            const { status, response }: IResponse = await request('/users/deliverers', 'GET');
+            if (status) {
+                const data = await response.json();
+                setDeliverers(data.data || []);
+            }
+        } catch (error) {
+            console.error('Error loading deliverers:', error);
+        }
+    };
 
     const loadTypes = async () => {
         try {
@@ -69,6 +84,7 @@ export const CreateWarehouseDialog: React.FC<CreateWarehouseDialogProps> = ({ op
         setLocation('');
         setDescription('');
         setIsMain(false);
+        setUserId('');
     };
 
     const handleSubmit = async () => {
@@ -86,11 +102,12 @@ export const CreateWarehouseDialog: React.FC<CreateWarehouseDialogProps> = ({ op
                 location,
                 description,
                 is_main: isMain,
-                is_active: true
+                is_active: true,
+                user_id: userId || null
             };
 
             const { status, response }: IResponse = await request('/warehouses', 'POST', JSON.stringify(body));
-            
+
             if (status === 201 || status === 200) {
                 toast.success('Almacén creado exitosamente');
                 onSuccess();
@@ -152,6 +169,25 @@ export const CreateWarehouseDialog: React.FC<CreateWarehouseDialogProps> = ({ op
                             ))}
                         </TextField>
                     </Grid>
+                    {typeId && types.find(t => t.id === typeId)?.code === 'repartidor' && (
+                        <Grid size={{ xs: 12 }}>
+                            <TextField
+                                select
+                                fullWidth
+                                label="Asignar a Repartidor"
+                                value={userId}
+                                onChange={(e) => setUserId(Number(e.target.value))}
+                                required
+                                helperText="Este almacén representará el stock de este repartidor"
+                            >
+                                {deliverers.map((user) => (
+                                    <MenuItem key={user.id} value={user.id}>
+                                        {user.names} {user.surnames} ({user.email})
+                                    </MenuItem>
+                                ))}
+                            </TextField>
+                        </Grid>
+                    )}
                     <Grid size={{ xs: 12 }}>
                         <TextField
                             fullWidth

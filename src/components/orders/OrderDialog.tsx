@@ -20,6 +20,7 @@ import { fmtMoney } from "../../lib/money";
 import { ButtonCustom } from "../custom";
 import { ProductSearchDialog } from "../products/ProductsSearchDialog";
 import { OrderProductItem } from "./OrderProductItem";
+import { NotificationAdd, NotificationAddRounded } from "@mui/icons-material";
 
 interface OrderDialogProps {
     id?: number;
@@ -53,6 +54,10 @@ export const OrderDialog: FC<OrderDialogProps> = ({ id, open, setOpen }) => {
         openRejectDelivery, setOpenRejectDelivery,
         approveDelivery,
         rejectDelivery,
+        openApproveLocation, setOpenApproveLocation,
+        openRejectLocation, setOpenRejectLocation,
+        approveLocation,
+        rejectLocation,
         setReminder
     } = useOrderDialogLogic(id, open, setOpen);
 
@@ -98,9 +103,9 @@ export const OrderDialog: FC<OrderDialogProps> = ({ id, open, setOpen }) => {
                         {/* Botón de Recordatorio - Vendedora y Admin */}
                         {(user.role?.description === "Vendedor" || user.role?.description === "Admin") && (
                             <Box sx={{ display: 'flex', justifyContent: 'center', mt: 2 }}>
-                                <ButtonCustom variant="contained" onClick={() => setOpenReminder(true)}>
-                                    📅 Crear Recordatorio
-                                </ButtonCustom>
+                                <IconButton onClick={() => setOpenReminder(true)}>
+                                    <NotificationAddRounded />
+                                </IconButton>
                             </Box>
                         )}
                         <ReminderDialog
@@ -173,7 +178,46 @@ export const OrderDialog: FC<OrderDialogProps> = ({ id, open, setOpen }) => {
                         loading={loadingReview}
                     />
 
-                    {/* Alerta de Aprobación de Entrega */}
+                    {/* Alerta de Aprobación de Cambio de Ubicación */}
+                    {(user.role?.description === "Gerente" || user.role?.description === "Admin") &&
+                        order.status.description === "Por aprobar cambio de ubicacion" && (
+                            <Box
+                                sx={{
+                                    width: "100%",
+                                    p: 2,
+                                    mb: 2,
+                                    backgroundColor: "warning.light",
+                                    color: "warning.contrastText",
+                                    borderRadius: 1,
+                                    display: "flex",
+                                    justifyContent: "space-between",
+                                    alignItems: "center",
+                                }}
+                            >
+                                <Typography fontWeight="bold">
+                                    🚨 Esta orden espera aprobación de cambio de ubicación.
+                                </Typography>
+                                <Box>
+                                    <Button
+                                        color="error"
+                                        variant="contained"
+                                        onClick={() => setOpenRejectLocation(true)}
+                                        sx={{ mr: 1 }}
+                                    >
+                                        Rechazar
+                                    </Button>
+                                    <Button
+                                        color="success"
+                                        variant="contained"
+                                        onClick={() => setOpenApproveLocation(true)}
+                                    >
+                                        Aprobar
+                                    </Button>
+                                </Box>
+                            </Box>
+                        )}
+
+                    {/* Alerta de Aprobación de Entrega (Opcional, si aún se usa o si la quitamos) */}
                     {(user.role?.description === "Gerente" || user.role?.description === "Admin") &&
                         order.status.description === "Por aprobar entrega" && (
                             <Box
@@ -227,6 +271,24 @@ export const OrderDialog: FC<OrderDialogProps> = ({ id, open, setOpen }) => {
                         title="Rechazar Entrega"
                         confirmText="Rechazar"
                         onConfirm={rejectDelivery}
+                        loading={loadingReview}
+                    />
+
+                    <ReviewDeliveryDialog
+                        open={openApproveLocation}
+                        onClose={() => setOpenApproveLocation(false)}
+                        title="Aprobar Cambio de Ubicación"
+                        confirmText="Aprobar"
+                        onConfirm={approveLocation}
+                        loading={loadingReview}
+                    />
+
+                    <ReviewDeliveryDialog
+                        open={openRejectLocation}
+                        onClose={() => setOpenRejectLocation(false)}
+                        title="Rechazar Cambio de Ubicación"
+                        confirmText="Rechazar"
+                        onConfirm={rejectLocation}
                         loading={loadingReview}
                     />
 

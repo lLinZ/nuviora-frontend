@@ -18,7 +18,7 @@ interface ReminderDialogProps {
 }
 
 export const ReminderDialog: FC<ReminderDialogProps> = ({ open, onClose, onSave }) => {
-    const [date, setDate] = useState("");
+    const [date, setDate] = useState(new Date().toISOString().slice(0, 16));
 
     const handleSave = async () => {
         if (!date) return;

@@ -8,6 +8,7 @@ import {
     useTheme,
 } from "@mui/material";
 import AddRoundedIcon from "@mui/icons-material/AddRounded";
+import { NotificationsActiveRounded } from "@mui/icons-material";
 import React, { FC, useState } from "react";
 import { darken } from "@mui/material/styles";
 import { toast } from "react-toastify";
@@ -58,6 +59,8 @@ export const statusColors: Record<string, string> = {
     "Rechazado": red[600],
     "Cancelado": red[800],
     "Pendiente Cancelación": red[400],
+    "Por aprobar entrega": yellow[700],
+    "Por aprobar cambio de ubicacion": yellow[800],
 };
 export const OrderItem: FC<OrderItemProps> = ({ order }) => {
     const user = useUserStore((state) => state.user);
@@ -218,6 +221,27 @@ export const OrderItem: FC<OrderItemProps> = ({ order }) => {
                         )}
                     </Avatar>
                 </Box>
+                {order.reminder_at && (
+                    <Box sx={{ display: 'flex', alignItems: 'center', mt: 1, gap: 1 }}>
+                        <TypographyCustom variant="caption" sx={{
+                            color: new Date(order.reminder_at) < new Date() ? 'error.main' : 'info.main',
+                            fontWeight: 'bold',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 0.5
+                        }}>
+                            <NotificationsActiveRounded fontSize="small" sx={{
+                                animation: new Date(order.reminder_at) < new Date() ? 'pulse 1.5s infinite' : 'none',
+                                '@keyframes pulse': {
+                                    '0%': { transform: 'scale(1)' },
+                                    '50%': { transform: 'scale(1.2)' },
+                                    '100%': { transform: 'scale(1)' },
+                                }
+                            }} />
+                            {new Date(order.reminder_at).toLocaleString()}
+                        </TypographyCustom>
+                    </Box>
+                )}
             </Box>
             <TypographyCustom sx={{ margin: 'auto', color: user.color, mt: 1 }} variant="subtitle1" onClick={() => getProducts()}>Ver productos</TypographyCustom>
 

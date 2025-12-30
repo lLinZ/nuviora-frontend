@@ -3,6 +3,7 @@
 export interface IWarehouse {
     id: number;
     warehouse_type_id: number;
+    user_id?: number | null;
     code: string;
     name: string;
     description?: string;
@@ -10,6 +11,7 @@ export interface IWarehouse {
     is_active: boolean;
     is_main: boolean;
     warehouse_type?: IWarehouseType;
+    user?: IUser;
     created_at?: string;
     updated_at?: string;
 }
@@ -69,7 +71,8 @@ export interface IProduct {
 
 export interface IUser {
     id: number;
-    name: string;
+    names: string;
+    surnames: string;
     email: string;
 }
 
