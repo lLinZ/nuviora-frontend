@@ -6,10 +6,10 @@ import {
     DialogActions,
     TextField,
     Button,
-    Grid,
     FormControlLabel,
     Switch,
-    MenuItem
+    MenuItem,
+    Box
 } from '@mui/material';
 import { request } from '../../common/request';
 import { IResponse } from '../../interfaces/response-type';
@@ -19,6 +19,7 @@ interface CreateWarehouseDialogProps {
     open: boolean;
     onClose: () => void;
     onSuccess: () => void;
+    warehouse?: any;
 }
 
 interface IWarehouseType {
@@ -27,7 +28,7 @@ interface IWarehouseType {
     code: string;
 }
 
-export const CreateWarehouseDialog: React.FC<CreateWarehouseDialogProps> = ({ open, onClose, onSuccess }) => {
+export const CreateWarehouseDialog: React.FC<CreateWarehouseDialogProps> = ({ open, onClose, onSuccess, warehouse }) => {
     const [loading, setLoading] = useState(false);
     const [types, setTypes] = useState<IWarehouseType[]>([]);
 
@@ -45,9 +46,19 @@ export const CreateWarehouseDialog: React.FC<CreateWarehouseDialogProps> = ({ op
         if (open) {
             loadTypes();
             loadDeliverers();
-            resetForm();
+            if (warehouse) {
+                setName(warehouse.name);
+                setCode(warehouse.code);
+                setTypeId(warehouse.warehouse_type_id || '');
+                setLocation(warehouse.location || '');
+                setDescription(warehouse.description || '');
+                setIsMain(warehouse.is_main || false);
+                setUserId(warehouse.user_id || '');
+            } else {
+                resetForm();
+            }
         }
-    }, [open]);
+    }, [open, warehouse]);
 
     const loadDeliverers = async () => {
         try {
@@ -106,15 +117,24 @@ export const CreateWarehouseDialog: React.FC<CreateWarehouseDialogProps> = ({ op
                 user_id: userId || null
             };
 
-            const { status, response }: IResponse = await request('/warehouses', 'POST', JSON.stringify(body));
+            let status, response;
+            if (warehouse) {
+                const res = await request(`/warehouses/${warehouse.id}`, 'PUT', JSON.stringify(body));
+                status = res.status;
+                response = res.response;
+            } else {
+                const res = await request('/warehouses', 'POST', JSON.stringify(body));
+                status = res.status;
+                response = res.response;
+            }
 
             if (status === 201 || status === 200) {
-                toast.success('Almacén creado exitosamente');
+                toast.success(warehouse ? 'Almacén actualizado exitosamente' : 'Almacén creado exitosamente');
                 onSuccess();
                 onClose();
             } else {
                 const data = await response.json();
-                toast.error(data.message || 'Error al crear almacén');
+                toast.error(data.message || 'Error al guardar almacén');
                 if (data.errors) {
                     Object.values(data.errors).forEach((err: any) => {
                         toast.error(err[0]);
@@ -131,10 +151,10 @@ export const CreateWarehouseDialog: React.FC<CreateWarehouseDialogProps> = ({ op
 
     return (
         <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
-            <DialogTitle>Nuevo Almacén</DialogTitle>
+            <DialogTitle>{warehouse ? 'Editar Almacén' : 'Nuevo Almacén'}</DialogTitle>
             <DialogContent>
-                <Grid container spacing={2} sx={{ mt: 1 }}>
-                    <Grid size={{ xs: 12, sm: 6 }}>
+                <Box display="flex" flexDirection="column" gap={2} mt={1}>
+                    <Box display="flex" gap={2}>
                         <TextField
                             fullWidth
                             label="Nombre"
@@ -142,8 +162,6 @@ export const CreateWarehouseDialog: React.FC<CreateWarehouseDialogProps> = ({ op
                             onChange={(e) => setName(e.target.value)}
                             required
                         />
-                    </Grid>
-                    <Grid size={{ xs: 12, sm: 6 }}>
                         <TextField
                             fullWidth
                             label="Código"
@@ -152,80 +170,74 @@ export const CreateWarehouseDialog: React.FC<CreateWarehouseDialogProps> = ({ op
                             required
                             helperText="Debe ser único"
                         />
-                    </Grid>
-                    <Grid size={{ xs: 12 }}>
+                    </Box>
+                    <TextField
+                        select
+                        fullWidth
+                        label="Tipo de Almacén"
+                        value={typeId}
+                        onChange={(e) => setTypeId(Number(e.target.value))}
+                        required
+                    >
+                        {types.map((type) => (
+                            <MenuItem key={type.id} value={type.id}>
+                                {type.name}
+                            </MenuItem>
+                        ))}
+                    </TextField>
+
+                    {typeId && types.find(t => t.id === typeId)?.code === 'DELIVERER' && (
                         <TextField
                             select
                             fullWidth
-                            label="Tipo de Almacén"
-                            value={typeId}
-                            onChange={(e) => setTypeId(Number(e.target.value))}
+                            label="Asignar a Repartidor"
+                            value={userId}
+                            onChange={(e) => setUserId(Number(e.target.value))}
                             required
+                            helperText="Este almacén representará el stock de este repartidor"
                         >
-                            {types.map((type) => (
-                                <MenuItem key={type.id} value={type.id}>
-                                    {type.name}
+                            {deliverers.map((user) => (
+                                <MenuItem key={user.id} value={user.id}>
+                                    {user.names} {user.surnames} ({user.email})
                                 </MenuItem>
                             ))}
                         </TextField>
-                    </Grid>
-                    {typeId && types.find(t => t.id === typeId)?.code === 'repartidor' && (
-                        <Grid size={{ xs: 12 }}>
-                            <TextField
-                                select
-                                fullWidth
-                                label="Asignar a Repartidor"
-                                value={userId}
-                                onChange={(e) => setUserId(Number(e.target.value))}
-                                required
-                                helperText="Este almacén representará el stock de este repartidor"
-                            >
-                                {deliverers.map((user) => (
-                                    <MenuItem key={user.id} value={user.id}>
-                                        {user.names} {user.surnames} ({user.email})
-                                    </MenuItem>
-                                ))}
-                            </TextField>
-                        </Grid>
                     )}
-                    <Grid size={{ xs: 12 }}>
-                        <TextField
-                            fullWidth
-                            label="Ubicación / Dirección"
-                            value={location}
-                            onChange={(e) => setLocation(e.target.value)}
-                        />
-                    </Grid>
-                    <Grid size={{ xs: 12 }}>
-                        <TextField
-                            fullWidth
-                            multiline
-                            rows={3}
-                            label="Descripción"
-                            value={description}
-                            onChange={(e) => setDescription(e.target.value)}
-                        />
-                    </Grid>
-                    <Grid size={{ xs: 12 }}>
-                        <FormControlLabel
-                            control={
-                                <Switch
-                                    checked={isMain}
-                                    onChange={(e) => setIsMain(e.target.checked)}
-                                    color="primary"
-                                />
-                            }
-                            label="Es Almacén Principal"
-                        />
-                    </Grid>
-                </Grid>
+
+                    <TextField
+                        fullWidth
+                        label="Ubicación / Dirección"
+                        value={location}
+                        onChange={(e) => setLocation(e.target.value)}
+                    />
+
+                    <TextField
+                        fullWidth
+                        multiline
+                        rows={3}
+                        label="Descripción"
+                        value={description}
+                        onChange={(e) => setDescription(e.target.value)}
+                    />
+
+                    <FormControlLabel
+                        control={
+                            <Switch
+                                checked={isMain}
+                                onChange={(e) => setIsMain(e.target.checked)}
+                                color="primary"
+                            />
+                        }
+                        label="Es Almacén Principal"
+                    />
+                </Box>
             </DialogContent>
             <DialogActions>
                 <Button onClick={onClose} disabled={loading}>
                     Cancelar
                 </Button>
                 <Button onClick={handleSubmit} variant="contained" disabled={loading}>
-                    {loading ? 'Creando...' : 'Crear Almacén'}
+                    {loading ? 'Guardando...' : (warehouse ? 'Actualizar' : 'Crear Almacén')}
                 </Button>
             </DialogActions>
         </Dialog>

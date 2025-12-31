@@ -11,12 +11,14 @@ import { request } from "../../common/request";
 import { toast } from "react-toastify";
 import { IResponse } from "../../interfaces/response-type";
 import { ButtonCustom } from "../custom";
+import { useUserStore } from "../../store/user/UserStore";
 
 interface OrderPaymentSectionProps {
     order: any;
 }
 
 export const OrderPaymentSection: React.FC<OrderPaymentSectionProps> = ({ order }) => {
+    const user = useUserStore((state) => state.user);
     const [uploading, setUploading] = useState(false);
     const [receiptPreview, setReceiptPreview] = useState<string | null>(null);
     const [viewerOpen, setViewerOpen] = useState(false);
@@ -246,15 +248,19 @@ export const OrderPaymentSection: React.FC<OrderPaymentSectionProps> = ({ order 
                 )}
             </Box>
 
-            <Typography variant="subtitle2" sx={{ mt: 1, mb: 0.5 }}>
-                Editar / Agregar Pagos:
-            </Typography>
-            <PaymentMethodsSelector
-                key={JSON.stringify(order.payments)} // Force re-render when payments change due to fetch
-                onSave={handleSavePayments}
-                initialValue={initialPayments}
-                totalPrice={Number(order.current_total_price)}
-            />
+            {user.role?.description !== 'Repartidor' && (
+                <>
+                    <Typography variant="subtitle2" sx={{ mt: 1, mb: 0.5 }}>
+                        Editar / Agregar Pagos:
+                    </Typography>
+                    <PaymentMethodsSelector
+                        key={JSON.stringify(order.payments)} // Force re-render when payments change due to fetch
+                        onSave={handleSavePayments}
+                        initialValue={initialPayments}
+                        totalPrice={Number(order.current_total_price)}
+                    />
+                </>
+            )}
 
             {/* Payment Receipt Section */}
             <Box sx={{ mt: 2 }}>

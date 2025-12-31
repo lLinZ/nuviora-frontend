@@ -32,6 +32,7 @@ export const Warehouses: React.FC = () => {
     const [warehouses, setWarehouses] = useState<IWarehouse[]>([]);
     const [loading, setLoading] = useState(false);
     const [createDialogOpen, setCreateDialogOpen] = useState(false);
+    const [selectedWarehouse, setSelectedWarehouse] = useState<IWarehouse | undefined>(undefined);
     const navigate = useNavigate();
     const { loadingSession, isValid, user } = useValidateSession();
 
@@ -68,7 +69,10 @@ export const Warehouses: React.FC = () => {
                     <ButtonCustom variant="outlined" startIcon={<InventoryIcon />} onClick={() => navigate('/inventory')}>
                         Ver Inventario Global
                     </ButtonCustom>
-                    <ButtonCustom variant='contained' startIcon={<AddIcon />} onClick={() => setCreateDialogOpen(true)}>
+                    <ButtonCustom variant='contained' startIcon={<AddIcon />} onClick={() => {
+                        setSelectedWarehouse(undefined);
+                        setCreateDialogOpen(true);
+                    }}>
                         Nuevo Almacén
                     </ButtonCustom>
                 </Box>
@@ -126,7 +130,10 @@ export const Warehouses: React.FC = () => {
                                         Ver Inventario
                                     </Button>
                                     <Box sx={{ flexGrow: 1 }} />
-                                    <IconButton size="small" color="primary">
+                                    <IconButton size="small" color="primary" onClick={() => {
+                                        setSelectedWarehouse(warehouse);
+                                        setCreateDialogOpen(true);
+                                    }}>
                                         <EditIcon />
                                     </IconButton>
                                 </CardActions>
@@ -141,6 +148,7 @@ export const Warehouses: React.FC = () => {
                 open={createDialogOpen}
                 onClose={() => setCreateDialogOpen(false)}
                 onSuccess={loadWarehouses}
+                warehouse={selectedWarehouse}
             />
         </Layout >
     );

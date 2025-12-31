@@ -86,7 +86,7 @@ export const Dashboard = () => {
                                 Ventas totales del día
                             </TypographyCustom>
                             <TypographyCustom variant="h5" fontWeight="bold">
-                                ${stats.total_sales?.toFixed(2) ?? '0.00'}
+                                ${Number(stats.total_sales || 0).toFixed(2)}
                             </TypographyCustom>
                             <TypographyCustom variant="body2" color="text.secondary">
                                 Fecha: {today}
@@ -130,10 +130,10 @@ export const Dashboard = () => {
                                 Ganancia por ventas
                             </TypographyCustom>
                             <TypographyCustom variant="h5" fontWeight="bold">
-                                ${stats.earnings_usd?.toFixed(2) ?? '0.00'} USD
+                                ${Number(stats.earnings_usd || 0).toFixed(2)} USD
                             </TypographyCustom>
                             <TypographyCustom variant="body2" color="text.secondary">
-                                {stats.earnings_local?.toFixed(2) ?? '0.00'} Bs
+                                {Number(stats.earnings_local || 0).toFixed(2)} Bs
                             </TypographyCustom>
                             <TypographyCustom variant="body2" color="text.secondary" sx={{ mt: 1, fontSize: '0.8rem' }}>
                                 Regla: {stats.rule}
@@ -159,10 +159,10 @@ export const Dashboard = () => {
                                 Ganancia por entregas
                             </TypographyCustom>
                             <TypographyCustom variant="h5" fontWeight="bold">
-                                ${stats.earnings_usd?.toFixed(2) ?? '0.00'} USD
+                                ${Number(stats.earnings_usd || 0).toFixed(2)} USD
                             </TypographyCustom>
                             <TypographyCustom variant="body2" color="text.secondary">
-                                {stats.earnings_local?.toFixed(2) ?? '0.00'} Bs
+                                {Number(stats.earnings_local || 0).toFixed(2)} Bs
                             </TypographyCustom>
                             <TypographyCustom variant="body2" color="text.secondary" sx={{ mt: 1, fontSize: '0.8rem' }}>
                                 Regla: {stats.rule}

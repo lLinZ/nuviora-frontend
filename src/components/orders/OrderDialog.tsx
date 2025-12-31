@@ -56,8 +56,12 @@ export const OrderDialog: FC<OrderDialogProps> = ({ id, open, setOpen }) => {
         rejectDelivery,
         openApproveLocation, setOpenApproveLocation,
         openRejectLocation, setOpenRejectLocation,
+        openApproveRejection, setOpenApproveRejection,
+        openRejectRejection, setOpenRejectRejection,
         approveLocation,
         rejectLocation,
+        approveRejection,
+        rejectRejection,
         setReminder
     } = useOrderDialogLogic(id, open, setOpen);
 
@@ -217,6 +221,46 @@ export const OrderDialog: FC<OrderDialogProps> = ({ id, open, setOpen }) => {
                             </Box>
                         )}
 
+                    {/* Alerta de Aprobación de Rechazo */}
+                    {(user.role?.description === "Gerente" || user.role?.description === "Admin") &&
+                        order.status.description === "Por aprobar rechazo" && (
+                            <Box
+                                sx={{
+                                    width: "100%",
+                                    p: 2,
+                                    mb: 2,
+                                    backgroundColor: "error.light",
+                                    color: "error.contrastText",
+                                    borderRadius: 1,
+                                    display: "flex",
+                                    justifyContent: "space-between",
+                                    alignItems: "center",
+                                }}
+                            >
+                                <Typography fontWeight="bold">
+                                    🚨 Esta orden espera aprobación de rechazo.
+                                </Typography>
+                                <Box>
+                                    <Button
+                                        color="inherit"
+                                        variant="outlined"
+                                        onClick={() => setOpenRejectRejection(true)}
+                                        sx={{ mr: 1, borderColor: 'white', color: 'white' }}
+                                    >
+                                        Denegar
+                                    </Button>
+                                    <Button
+                                        color="inherit"
+                                        variant="contained"
+                                        sx={{ bgcolor: 'white', color: 'error.main', '&:hover': { bgcolor: 'grey.100' } }}
+                                        onClick={() => setOpenApproveRejection(true)}
+                                    >
+                                        Aprobar Rechazo
+                                    </Button>
+                                </Box>
+                            </Box>
+                        )}
+
                     {/* Alerta de Aprobación de Entrega (Opcional, si aún se usa o si la quitamos) */}
                     {(user.role?.description === "Gerente" || user.role?.description === "Admin") &&
                         order.status.description === "Por aprobar entrega" && (
@@ -289,6 +333,24 @@ export const OrderDialog: FC<OrderDialogProps> = ({ id, open, setOpen }) => {
                         title="Rechazar Cambio de Ubicación"
                         confirmText="Rechazar"
                         onConfirm={rejectLocation}
+                        loading={loadingReview}
+                    />
+
+                    <ReviewDeliveryDialog
+                        open={openApproveRejection}
+                        onClose={() => setOpenApproveRejection(false)}
+                        title="Aprobar Rechazo"
+                        confirmText="Confirmar Rechazo"
+                        onConfirm={approveRejection}
+                        loading={loadingReview}
+                    />
+
+                    <ReviewDeliveryDialog
+                        open={openRejectRejection}
+                        onClose={() => setOpenRejectRejection(false)}
+                        title="Denegar Solicitud de Rechazo"
+                        confirmText="Denegar (Mantener Orden)"
+                        onConfirm={rejectRejection}
                         loading={loadingReview}
                     />
 

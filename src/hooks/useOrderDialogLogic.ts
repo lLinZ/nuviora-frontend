@@ -20,7 +20,10 @@ export const useOrderDialogLogic = (
     const [openApproveDelivery, setOpenApproveDelivery] = useState(false);
     const [openRejectDelivery, setOpenRejectDelivery] = useState(false);
     const [openApproveLocation, setOpenApproveLocation] = useState(false);
+
     const [openRejectLocation, setOpenRejectLocation] = useState(false);
+    const [openApproveRejection, setOpenApproveRejection] = useState(false);
+    const [openRejectRejection, setOpenRejectRejection] = useState(false);
     const [loadingReview, setLoadingReview] = useState(false);
     const [openAssignDeliverer, setOpenAssignDeliverer] = useState(false);
     const [openAssign, setOpenAssign] = useState(false);
@@ -347,6 +350,70 @@ export const useOrderDialogLogic = (
         }
     };
 
+    const approveRejection = async (note: string) => {
+        if (!selectedOrder) return;
+        setLoadingReview(true);
+        try {
+            const pending = (selectedOrder.rejection_reviews ?? []).find((c: any) => c.status === "pending");
+            if (!pending) {
+                toast.error("No hay solicitud de rechazo pendiente");
+                return;
+            }
+            const body = new URLSearchParams();
+            if (note.trim()) body.append("response_note", note.trim());
+
+            const { status, response }: IResponse = await request(
+                `/orders/rejection-review/${pending.id}/approve`,
+                "PUT",
+                body
+            );
+            if (status) {
+                const data = await response.json();
+                updateOrder(data.order);
+                toast.success("Rechazo aprobado ✅");
+                setOpenApproveRejection(false);
+            } else {
+                toast.error("No se pudo aprobar el rechazo ❌");
+            }
+        } catch {
+            toast.error("Error el aprobar 🚨");
+        } finally {
+            setLoadingReview(false);
+        }
+    };
+
+    const rejectRejection = async (note: string) => {
+        if (!selectedOrder) return;
+        setLoadingReview(true);
+        try {
+            const pending = (selectedOrder.rejection_reviews ?? []).find((c: any) => c.status === "pending");
+            if (!pending) {
+                toast.error("No hay solicitud de rechazo pendiente");
+                return;
+            }
+            const body = new URLSearchParams();
+            if (note.trim()) body.append("response_note", note.trim());
+
+            const { status, response }: IResponse = await request(
+                `/orders/rejection-review/${pending.id}/reject`,
+                "PUT",
+                body
+            );
+            if (status) {
+                const data = await response.json();
+                updateOrder(data.order);
+                toast.success("Solicitud de rechazo denegada ❎");
+                setOpenRejectRejection(false);
+            } else {
+                toast.error("No se pudo denegar la solicitud ❌");
+            }
+        } catch {
+            toast.error("Error al denegar 🚨");
+        } finally {
+            setLoadingReview(false);
+        }
+    };
+
     const handleChangeNewLocation = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         setNewLocation(e.target.value);
     };
@@ -400,8 +467,12 @@ export const useOrderDialogLogic = (
         rejectDelivery,
         openApproveLocation, setOpenApproveLocation,
         openRejectLocation, setOpenRejectLocation,
+        openApproveRejection, setOpenApproveRejection,
+        openRejectRejection, setOpenRejectRejection,
         approveLocation,
         rejectLocation,
+        approveRejection,
+        rejectRejection,
         setReminder
     };
 };
