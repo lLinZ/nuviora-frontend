@@ -409,6 +409,16 @@ export const OrderDialog: FC<OrderDialogProps> = ({ id, open, setOpen }) => {
                     <Typography variant="h6" textAlign="right">
                         Total: {fmtMoney(Number(order.current_total_price) || 0, order.currency)}
                     </Typography>
+                    {order.ves_price !== undefined && (
+                        <Typography variant="subtitle1" textAlign="right" color="text.secondary">
+                            Monto en Bs (Binance): {fmtMoney(order.ves_price, 'VES')}
+                        </Typography>
+                    )}
+                    {order.bcv_equivalence !== undefined && (
+                        <Typography variant="subtitle2" textAlign="right" color="text.secondary">
+                            Equivalencia BCV: {fmtMoney(order.bcv_equivalence, 'USD')}
+                        </Typography>
+                    )}
                     <Divider sx={{ my: 3 }} />
 
                     {/* Dialogs para Upsell */}

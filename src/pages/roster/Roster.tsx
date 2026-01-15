@@ -2,12 +2,11 @@
 import React, { useEffect, useState } from "react";
 import {
     Box, Paper, Typography, List, ListItem, ListItemIcon, Checkbox, ListItemText,
-    IconButton, Divider, TextField
+    IconButton, Divider, MenuItem, TextField
 } from "@mui/material";
 import RefreshRoundedIcon from "@mui/icons-material/RefreshRounded";
 import SaveRoundedIcon from "@mui/icons-material/SaveRounded";
 import PlayArrowRoundedIcon from "@mui/icons-material/PlayArrowRounded";
-import SettingsRoundedIcon from "@mui/icons-material/SettingsRounded";
 import { toast } from "react-toastify";
 import { Layout } from "../../components/ui/Layout";
 import { request } from "../../common/request";
@@ -25,65 +24,28 @@ export const Roster: React.FC = () => {
     const [assigning, setAssigning] = useState(false);
     const { loadingSession, isValid, user } = useValidateSession();
     const [business, setBusiness] = useState<{ date: string, open_at: string | null, close_at: string | null, is_open: boolean, last_close_at: string | null } | null>(null);
-    const [isOpen, setIsOpen] = useState<boolean>(false);
-    const [openDt, setOpenDt] = useState<string | null>(null);
-    const [closeDt, setCloseDt] = useState<string | null>(null);
 
-    const loadBusinessStatus = async () => {
+    // Multi-shop state
+    const [shops, setShops] = useState<any[]>([]);
+    const [selectedShopId, setSelectedShopId] = useState<number | ''>('');
+
+    const fetchShops = async () => {
         try {
-            const { status, response }: IResponse = await request("/business/status", "GET");
+            const { status, response }: IResponse = await request("/shops", "GET");
             if (status) {
                 const data = await response.json();
-                const d = data.data;
-                setIsOpen(!!d.is_open);
-                setOpenDt(d.open_dt);
-                setCloseDt(d.close_dt);
-            } else {
-                toast.error("No se pudo obtener el estado de la jornada");
+                setShops(data);
+                if (data.length > 0) setSelectedShopId(data[0].id);
             }
-        } catch {
-            toast.error("Error de conexión al cargar estado");
+        } catch (e) {
+            toast.error("Error al cargar tiendas");
         }
     };
 
-    useEffect(() => { loadBusinessStatus(); }, []);
-
-    const openDay = async (assignBacklog: boolean = false) => {
-        try {
-            const body = new URLSearchParams();
-            body.append("assign_backlog", assignBacklog ? "1" : "0");
-
-            const { status, response }: IResponse = await request("/business/open", "POST", body);
-            if (status) {
-                const data = await response.json();
-                toast.success(data.message || "Jornada abierta ✅");
-                await loadBusinessStatus();
-            } else {
-                toast.error("No se pudo abrir la jornada ❌");
-            }
-        } catch {
-            toast.error("Error abriendo la jornada 🚨");
-        }
-    };
-
-    const closeDay = async () => {
-        try {
-            const { status, response }: IResponse = await request("/business/close", "POST");
-            if (status) {
-                const data = await response.json();
-                toast.success(data.message || "Jornada cerrada ✅");
-                await loadBusinessStatus();
-            } else {
-                toast.error("No se pudo cerrar la jornada ❌");
-            }
-        } catch {
-            toast.error("Error cerrando la jornada 🚨");
-        }
-    };
-    // al cargar (además del roster)
     const loadBusiness = async () => {
+        if (!selectedShopId) return;
         try {
-            const { status, response }: IResponse = await request("/business/today", "GET");
+            const { status, response }: IResponse = await request(`/business/today?shop_id=${selectedShopId}`, "GET");
             if (status) {
                 const data = await response.json();
                 setBusiness(data.data);
@@ -93,14 +55,11 @@ export const Roster: React.FC = () => {
         }
     };
 
-    // en useEffect junto a load() del roster
-    useEffect(() => { load(); loadBusiness(); }, []);
-
-
-    const load = async () => {
+    const loadRoster = async () => {
+        if (!selectedShopId) return;
         setLoading(true);
         try {
-            const { status, response }: IResponse = await request("/roster/today", "GET");
+            const { status, response }: IResponse = await request(`/roster/today?shop_id=${selectedShopId}`, "GET");
             if (status) {
                 const data = await response.json();
                 setAllAgents(data.data.all ?? []);
@@ -115,25 +74,67 @@ export const Roster: React.FC = () => {
         }
     };
 
-    useEffect(() => { load(); }, []);
+    useEffect(() => {
+        if (isValid) fetchShops();
+    }, [isValid]);
+
+    useEffect(() => {
+        if (selectedShopId) {
+            loadRoster();
+            loadBusiness();
+        }
+    }, [selectedShopId]);
+
+    const openDay = async () => {
+        if (!selectedShopId) return;
+        try {
+            const { status, response }: IResponse = await request(`/business/open?shop_id=${selectedShopId}`, "POST");
+            if (status) {
+                const data = await response.json();
+                toast.success(data.message || "Jornada abierta ✅");
+                await loadBusiness();
+            } else {
+                toast.error("No se pudo abrir la jornada ❌");
+            }
+        } catch {
+            toast.error("Error abriendo la jornada 🚨");
+        }
+    };
+
+    const closeDay = async () => {
+        if (!selectedShopId) return;
+        try {
+            const { status, response }: IResponse = await request(`/business/close?shop_id=${selectedShopId}`, "POST");
+            if (status) {
+                const data = await response.json();
+                toast.success(data.message || "Jornada cerrada ✅");
+                await loadBusiness();
+            } else {
+                toast.error("No se pudo cerrar la jornada ❌");
+            }
+        } catch {
+            toast.error("Error cerrando la jornada 🚨");
+        }
+    };
 
     const toggle = (id: number) => {
         setActiveIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
     };
 
-    const save = async () => {
+    const saveRoster = async () => {
+        if (!selectedShopId) return;
         if (activeIds.length === 0) {
             toast.error("Selecciona al menos una vendedora");
             return;
         }
         try {
-            const body = new URLSearchParams();
-            activeIds.forEach(id => body.append("agent_ids[]", String(id)));
-
-            const { status }: IResponse = await request("/roster/today", "POST", body);
+            const { status }: IResponse = await request("/roster/today", "POST", {
+                shop_id: selectedShopId,
+                agent_ids: activeIds
+            } as any);
             if (status) {
                 toast.success("Roster guardado ✅");
-                load();
+                loadRoster();
             } else {
                 toast.error("No se pudo guardar el roster ❌");
             }
@@ -160,18 +161,37 @@ export const Roster: React.FC = () => {
     };
 
     if (loadingSession || !isValid || !user.token) return <Loading />;
+
     return (
         <Layout>
-            <DescripcionDeVista title={"Seleccion de vendedoras"} description={"Seleccionar vendedoras activas y reparticion de ordenes"} />
+            <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
+                <DescripcionDeVista title={"Roster y Jornadas"} description={"Gestión de vendedoras activas y horarios por tienda"} />
+                <TextField
+                    select
+                    label="Seleccionar Tienda"
+                    value={selectedShopId}
+                    onChange={(e) => setSelectedShopId(Number(e.target.value))}
+                    sx={{ minWidth: 200 }}
+                    size="small"
+                >
+                    {shops.map((s) => (
+                        <MenuItem key={s.id} value={s.id}>{s.name}</MenuItem>
+                    ))}
+                </TextField>
+            </Box>
+
             <RequireRole allowedRoles={["Gerente", "Admin"]}>
-                <Box sx={{ p: 3, display: "grid", gap: 2, gridTemplateColumns: "1fr 360px" }}>
-                    <Paper sx={{ p: 2 }}>
+                <Box sx={{ p: 1, display: "grid", gap: 2, gridTemplateColumns: { xs: "1fr", md: "1fr 400px" } }}>
+                    <Paper sx={{ p: 2, borderRadius: 4 }} elevation={3}>
                         <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 1 }}>
-                            <Typography variant="h6" fontWeight={700}>Roster del día</Typography>
-                            <IconButton onClick={load} disabled={loading}><RefreshRoundedIcon /></IconButton>
+                            <Typography variant="h6" fontWeight={700}>Vendedoras Disponibles</Typography>
+                            <IconButton onClick={loadRoster} disabled={loading}><RefreshRoundedIcon /></IconButton>
                         </Box>
+                        <Typography variant="caption" color="text.secondary" gutterBottom display="block">
+                            Solo se muestran las vendedoras vinculadas a la tienda seleccionada.
+                        </Typography>
                         <Divider sx={{ mb: 2 }} />
-                        <List dense>
+                        <List dense sx={{ maxHeight: 400, overflowY: 'auto' }}>
                             {allAgents.map(a => (
                                 <ListItem key={a.id} disablePadding secondaryAction={
                                     <Checkbox edge="end" checked={activeIds.includes(a.id)} onChange={() => toggle(a.id)} />
@@ -180,49 +200,70 @@ export const Roster: React.FC = () => {
                                     <ListItemText primary={`${a.names} ${a.surnames ?? ""}`} secondary={a.email} />
                                 </ListItem>
                             ))}
-                            {allAgents.length === 0 && <Box sx={{ p: 2, textAlign: "center" }}>{loading ? "Cargando…" : "No hay vendedoras"}</Box>}
+                            {allAgents.length === 0 && <Box sx={{ p: 2, textAlign: "center" }}>{loading ? "Cargando…" : "No hay vendedoras vinculadas a esta tienda"}</Box>}
                         </List>
                         <Box sx={{ display: "flex", gap: 1.5, mt: 2 }}>
-                            <ButtonCustom variant="contained" startIcon={<SaveRoundedIcon />} onClick={save}>Guardar roster</ButtonCustom>
+                            <ButtonCustom variant="contained" startIcon={<SaveRoundedIcon />} onClick={saveRoster} disabled={!selectedShopId}>
+                                Guardar roster
+                            </ButtonCustom>
                             <ButtonCustom startIcon={<PlayArrowRoundedIcon />} variant="outlined" onClick={assignBacklog} disabled={assigning}>
-                                Asignar backlog ahora
+                                Asignar backlog (Global)
                             </ButtonCustom>
                         </Box>
                     </Paper>
 
-                    <Paper sx={{ p: 2, mt: 2 }}>
-                        <Typography variant="subtitle1" fontWeight={700}>Jornada</Typography>
-                        <Divider sx={{ my: 1 }} />
-                        <Box sx={{ display: "flex", gap: 1.5 }}>
+                    <Paper sx={{ p: 2, borderRadius: 4 }} elevation={3}>
+                        <Typography variant="h6" fontWeight={700}>Estado de la Jornada</Typography>
+                        <Divider sx={{ my: 1, mb: 2 }} />
+
+                        <Box sx={{ mb: 3, p: 2, bgcolor: business?.is_open ? 'success.light' : 'error.light', borderRadius: 2, color: 'white' }}>
+                            <Typography variant="h5" align="center" fontWeight="bold">
+                                {business?.is_open ? "TIENDA ABIERTA" : "TIENDA CERRADA"}
+                            </Typography>
+                        </Box>
+
+                        <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
                             <ButtonCustom
                                 variant="contained"
-                                onClick={() => openDay(false)}
-                                disabled={isOpen}
+                                fullWidth
+                                onClick={openDay}
+                                disabled={business?.is_open || !selectedShopId}
+                                size="large"
                             >
                                 Abrir jornada
                             </ButtonCustom>
-                            {/* <ButtonCustom
-                                variant="outlined"
-                                onClick={() => openDay(true)}
-                                disabled={isOpen}
-                            >
-                                Abrir + Asignar backlog
-                            </ButtonCustom> */}
                             <ButtonCustom
                                 variant="contained"
                                 color="error"
+                                fullWidth
                                 onClick={closeDay}
-                                disabled={!isOpen}
+                                disabled={!business?.is_open || !selectedShopId}
+                                size="large"
                             >
                                 Cerrar jornada
                             </ButtonCustom>
                         </Box>
 
-                        <Typography variant="body2" sx={{ mt: 1 }}>
-                            Estado: {isOpen ? "Abierta" : "Cerrada"}<br />
-                            {openDt && <>Apertura: {new Date(openDt).toLocaleString()}<br /></>}
-                            {closeDt && <>Cierre: {new Date(closeDt).toLocaleString()}</>}
-                        </Typography>
+                        <Box sx={{ mt: 3 }}>
+                            <Typography variant="body2" sx={{ mb: 1 }}>
+                                <b>Historial de hoy:</b>
+                            </Typography>
+                            {business?.open_at && (
+                                <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
+                                    <Typography variant="caption">Apertura:</Typography>
+                                    <Typography variant="caption" fontWeight="bold">{new Date(business.open_at).toLocaleTimeString()}</Typography>
+                                </Box>
+                            )}
+                            {business?.close_at && (
+                                <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                                    <Typography variant="caption">Cierre:</Typography>
+                                    <Typography variant="caption" fontWeight="bold">{new Date(business.close_at).toLocaleTimeString()}</Typography>
+                                </Box>
+                            )}
+                            {!business?.open_at && (
+                                <Typography variant="caption" color="text.secondary">Aún no se ha registrado actividad hoy.</Typography>
+                            )}
+                        </Box>
                     </Paper>
                 </Box>
             </RequireRole>

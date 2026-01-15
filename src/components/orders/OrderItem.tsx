@@ -61,6 +61,7 @@ export const statusColors: Record<string, string> = {
     "Pendiente Cancelación": red[400],
     "Por aprobar entrega": yellow[700],
     "Por aprobar cambio de ubicacion": yellow[800],
+    "Por aprobar rechazo": orange[900],
 };
 export const OrderItem: FC<OrderItemProps> = ({ order }) => {
     const user = useUserStore((state) => state.user);

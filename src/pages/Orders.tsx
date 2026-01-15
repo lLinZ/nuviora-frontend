@@ -153,9 +153,10 @@ export const Orders = () => {
                         <OrderList title="Programado para mas tarde" />
                         <OrderList title="Programado para otro dia" />
                         <OrderList title="Por aprobar cambio de ubicacion" />
+                        <OrderList title="Por aprobar rechazo" />
+                        <OrderList title="Por aprobar entrega" />
                         <OrderList title="Cambio de ubicacion" />
                         <OrderList title="Rechazado" />
-                        <OrderList title="Por aprobar entrega" />
                         <OrderList title="Entregado" />
                         <OrderList title="Cancelado" />
                     </Box>

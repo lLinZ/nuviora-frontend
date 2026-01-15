@@ -25,6 +25,8 @@ import { StockAdjustment } from './pages/inventory/StockAdjustment';
 import { DelivererStock } from './pages/deliverers/DelivererStock';
 import { EarningsAdmin } from './pages/money/EarningsAdmin';
 import { MyEarningsPage } from './pages/money/EarningsMyPage';
+import { Shops } from './pages/shops/Shops';
+import { Metrics } from './pages/Metrics';
 
 const useGetTheme = () => {
   const user = useUserStore((state) => state.user);
@@ -70,6 +72,8 @@ function App() {
           {/* <Route path="/deliverer/stock" element={<DelivererStock />} /> */}
           <Route path="/me/earnings" element={<MyEarningsPage />} />
           <Route path="/deliverers/stock" element={<DelivererStock />} />
+          <Route path="/shops" element={<Shops />} />
+          <Route path="/metrics" element={<Metrics />} />
         </Routes>
       </BrowserRouter>
     </ThemeProvider>
