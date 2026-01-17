@@ -11,18 +11,42 @@ import { OrderList } from "../components/orders/OrderList";
 import { toast } from "react-toastify";
 import { ButtonCustom } from "../components/custom";
 import { ProductSearchDialog } from "../components/products/ProductsSearchDialog";
-import { SearchRounded } from "@mui/icons-material";
+import { SearchRounded, FilterListRounded } from "@mui/icons-material";
+import { TextField, MenuItem, Select, FormControl, InputLabel, Button, Grid, IconButton, Tooltip } from "@mui/material";
 
 export const Orders = () => {
     const user = useUserStore((state) => state.user);
     const { orders, setOrders } = useOrdersStore();
     const validateToken = useUserStore((state) => state.validateToken);
     const [openSearch, setOpenSearch] = useState(false);
+    const [cities, setCities] = useState<any[]>([]);
+    const [agencies, setAgencies] = useState<any[]>([]);
+    const [filters, setFilters] = useState({
+        city_id: '',
+        agency_id: '',
+        date_from: '',
+        date_to: ''
+    });
 
     const handlePickProduct = (product: any) => {
-        // Aquí decides qué hacer: ver detalle, copiar SKU, crear actualización, etc.
         toast.info(`Seleccionaste: ${product.name ?? product.title}`);
         setOpenSearch(false);
+    };
+
+    const fetchFiltersData = async () => {
+        try {
+            const [citiesRes, agenciesRes] = await Promise.all([
+                request("/cities", "GET"),
+                request("/users/role/Agencia", "GET")
+            ]);
+            if (citiesRes.status) setCities(await citiesRes.response.json());
+            if (agenciesRes.status) {
+                const data = await agenciesRes.response.json();
+                setAgencies(data.data);
+            }
+        } catch (e) {
+            console.error("Error fetching filters data", e);
+        }
     };
 
     // Check for reminders every minute
@@ -56,11 +80,17 @@ export const Orders = () => {
 
     const fetchOrders = async (silent = false) => {
         try {
-            const { status, response }: IResponse = await request("/orders", "GET");
+            const queryParams = new URLSearchParams();
+            if (filters.city_id) queryParams.append('city_id', filters.city_id);
+            if (filters.agency_id) queryParams.append('agency_id', filters.agency_id);
+            if (filters.date_from) queryParams.append('date_from', filters.date_from);
+            if (filters.date_to) queryParams.append('date_to', filters.date_to);
+
+            const { status, response }: IResponse = await request(`/orders?${queryParams.toString()}`, "GET");
             if (status) {
                 const data = await response.json();
                 setOrders(data.data);
-                if (!silent) toast.success("Órdenes cargadas correctamente ✅");
+                if (!silent) toast.success("Órdenes cargadas ✅");
             } else if (!silent) {
                 toast.error("Error al cargar las órdenes ❌");
             }
@@ -75,6 +105,9 @@ export const Orders = () => {
             if (!result.status) {
                 toast.error("Sesión expirada, inicia sesión nuevamente.");
                 return (window.location.href = "/");
+            }
+            if (['Admin', 'Gerente'].includes(user.role?.description || '')) {
+                fetchFiltersData();
             }
             fetchOrders();
         };
@@ -93,7 +126,46 @@ export const Orders = () => {
 
     return (
         <Layout>
-            <DescripcionDeVista title={"Kanban de ordenes"} description={""} />
+            <Box display="flex" justifyContent="space-between" alignItems="center">
+                <DescripcionDeVista title={"Kanban de ordenes"} description={"Gestiona el flujo de entregas y novedades"} />
+                {['Admin', 'Gerente'].includes(user.role?.description || '') && (
+                    <Box display="flex" gap={1} alignItems="center">
+                        <FormControl size="small" sx={{ minWidth: 150 }}>
+                            <InputLabel>Ciudad</InputLabel>
+                            <Select
+                                value={filters.city_id}
+                                label="Ciudad"
+                                onChange={(e) => {
+                                    setFilters({ ...filters, city_id: e.target.value });
+                                    setTimeout(() => fetchOrders(), 100);
+                                }}
+                            >
+                                <MenuItem value="">Todas</MenuItem>
+                                {cities.map(c => <MenuItem key={c.id} value={c.id}>{c.name}</MenuItem>)}
+                            </Select>
+                        </FormControl>
+                        <FormControl size="small" sx={{ minWidth: 150 }}>
+                            <InputLabel>Agencia</InputLabel>
+                            <Select
+                                value={filters.agency_id}
+                                label="Agencia"
+                                onChange={(e) => {
+                                    setFilters({ ...filters, agency_id: e.target.value });
+                                    setTimeout(() => fetchOrders(), 100);
+                                }}
+                            >
+                                <MenuItem value="">Todas</MenuItem>
+                                {agencies.map(a => <MenuItem key={a.id} value={a.id}>{a.names}</MenuItem>)}
+                            </Select>
+                        </FormControl>
+                        <Tooltip title="Filtrar">
+                            <IconButton onClick={() => fetchOrders()}>
+                                <FilterListRounded color="primary" />
+                            </IconButton>
+                        </Tooltip>
+                    </Box>
+                )}
+            </Box>
             {/* <Box sx={{ position: "fixed", right: 24, top: 24 }}> */}
             {/* <ButtonCustom variant="contained" startIcon={<SearchRounded />} onClick={() => setOpenSearch(true)}> */}
             <Fab sx={{ position: 'fixed', right: 24, bottom: 24 }} onClick={() => setOpenSearch(true)}>
@@ -141,6 +213,8 @@ export const Orders = () => {
                         onPick={handlePickProduct}
                     />
                     <Box sx={{ display: "flex", gap: 2, flexFlow: "row nowrap" }}>
+                        <OrderList title="Novedades" />
+                        <OrderList title="Novedad Solucionada" />
                         <OrderList title="Nuevo" />
                         <OrderList title="Reprogramado para hoy" />
                         <OrderList title="Asignado a vendedor" />

@@ -20,7 +20,7 @@ import BarChartRoundedIcon from "@mui/icons-material/BarChartRounded";
 import moment from "moment";
 import { TypographyCustom } from "../../custom";
 import { useUserStore } from "../../../store/user/UserStore";
-import { AssignmentReturnRounded, StoreRounded, HistoryRounded, SwapHorizRounded, EditNoteRounded, StorefrontRounded, PollRounded } from "@mui/icons-material";
+import { AssignmentReturnRounded, StoreRounded, HistoryRounded, SwapHorizRounded, EditNoteRounded, StorefrontRounded, PollRounded, MapRounded } from "@mui/icons-material";
 
 const Clock = () => {
     const [time, setTime] = useState<string>(moment().format("h:mm A"));
@@ -169,6 +169,12 @@ export const SideBar = () => {
                 icon: <EngineeringRoundedIcon />,
                 link: "/deliverers",
                 roles: ["Admin"],
+            },
+            {
+                text: "Ciudades y Agencias",
+                icon: <MapRounded />,
+                link: "/cities",
+                roles: ["Admin", "Gerente"],
             },
             {
                 text: "Tasa de dólar",

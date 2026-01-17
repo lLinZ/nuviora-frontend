@@ -24,6 +24,13 @@ export const useOrderDialogLogic = (
     const [openRejectLocation, setOpenRejectLocation] = useState(false);
     const [openApproveRejection, setOpenApproveRejection] = useState(false);
     const [openRejectRejection, setOpenRejectRejection] = useState(false);
+
+    // 🆕 Novedades and Cash
+    const [openMarkDelivered, setOpenMarkDelivered] = useState(false);
+    const [openReportNovedad, setOpenReportNovedad] = useState(false);
+    const [openResolveNovedad, setOpenResolveNovedad] = useState(false);
+    const [pendingStatus, setPendingStatus] = useState<{ description: string, id: number } | null>(null);
+
     const [loadingReview, setLoadingReview] = useState(false);
     const [openAssignDeliverer, setOpenAssignDeliverer] = useState(false);
     const [openAssign, setOpenAssign] = useState(false);
@@ -133,17 +140,39 @@ export const useOrderDialogLogic = (
         }
     };
 
-    const changeStatus = async (status: string, statusId: number) => {
+    const changeStatus = async (status: string, statusId: number, extraData: any = null) => {
         if (!selectedOrder) return;
+
+        // Intercept Novedades
+        if (status === "Novedades" && !extraData) {
+            setPendingStatus({ description: status, id: statusId });
+            setOpenReportNovedad(true);
+            return;
+        }
+
+        // Intercept Novedad Solucionada
+        if (status === "Novedad Solucionada" && !extraData) {
+            setPendingStatus({ description: status, id: statusId });
+            setOpenResolveNovedad(true);
+            return;
+        }
+
         if (status === "Asignado a repartidor" && !selectedOrder.deliverer) {
             setOpenAssignDeliverer(true);
             return;
         }
 
         // Validar que existe comprobante de pago si se intenta cambiar a Entregado
-        if (status === "Entregado" && !selectedOrder.payment_receipt) {
-            toast.error("No se puede marcar como entregado sin un comprobante de pago ❌");
-            return;
+        if (status === "Entregado") {
+            if (!selectedOrder.payment_receipt) {
+                toast.error("No se puede marcar como entregado sin un comprobante de pago ❌");
+                return;
+            }
+            if (!extraData) {
+                setPendingStatus({ description: status, id: statusId });
+                setOpenMarkDelivered(true);
+                return;
+            }
         }
 
         // Intercept postponing
@@ -154,6 +183,13 @@ export const useOrderDialogLogic = (
 
         const body = new URLSearchParams();
         body.append("status_id", String(statusId));
+
+        if (extraData) {
+            Object.keys(extraData).forEach(key => {
+                body.append(key, String(extraData[key]));
+            });
+        }
+
         try {
             const { status: ok, response }: IResponse = await request(
                 `/orders/${selectedOrder.id}/status`,
@@ -164,6 +200,12 @@ export const useOrderDialogLogic = (
                 const data = await response.json();
                 updateOrder(data.order);
                 toast.success(`Orden #${selectedOrder.name} actualizada a ${status} ✅`);
+
+                // Cleanup
+                setOpenMarkDelivered(false);
+                setOpenReportNovedad(false);
+                setOpenResolveNovedad(false);
+                setPendingStatus(null);
             } else {
                 const errorData = await response.json();
                 toast.error(errorData.message || "No se pudo actualizar el estado ❌");
@@ -473,6 +515,11 @@ export const useOrderDialogLogic = (
         rejectLocation,
         approveRejection,
         rejectRejection,
-        setReminder
+        setReminder,
+        // 🆕 
+        openMarkDelivered, setOpenMarkDelivered,
+        openReportNovedad, setOpenReportNovedad,
+        openResolveNovedad, setOpenResolveNovedad,
+        pendingStatus
     };
 };

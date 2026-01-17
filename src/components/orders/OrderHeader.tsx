@@ -101,7 +101,7 @@ export const OrderHeader: React.FC<OrderHeaderProps> = ({
             {order.deliverer && <TypographyCustom>Repartidor: {order.deliverer.names}</TypographyCustom>}
 
             {/** Ubicacion */}
-            {user.role?.description === 'Repartidor' ? (
+            {(user.role?.description === 'Repartidor' || user.role?.description === 'Agencia') ? (
                 (order.location ? (
                     <Link to={order.location} target="_blank" style={{ textDecoration: 'none' }}>
                         <TypographyCustom fontWeight={'bold'} sx={{ color: user.color }}>{order.location}</TypographyCustom>

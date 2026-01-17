@@ -23,11 +23,24 @@ export const Metrics = () => {
     const [endDate, setEndDate] = useState(new Date().toISOString().split('T')[0]);
     const [openAdSpend, setOpenAdSpend] = useState(false);
     const [products, setProducts] = useState<any[]>([]);
+    const [shops, setShops] = useState<any[]>([]);
+    const [cities, setCities] = useState<any[]>([]);
+    const [agencies, setAgencies] = useState<any[]>([]);
+    const [filters, setFilters] = useState({
+        shop_id: '',
+        city_id: '',
+        agency_id: ''
+    });
 
     const fetchMetrics = async () => {
         setLoading(true);
         try {
-            const { status, response }: IResponse = await request(`/metrics?start_date=${startDate}&end_date=${endDate}`, "GET");
+            const queryParams = new URLSearchParams({
+                start_date: startDate,
+                end_date: endDate,
+                ...filters
+            });
+            const { status, response }: IResponse = await request(`/metrics?${queryParams.toString()}`, "GET");
             if (status) {
                 const data = await response.json();
                 setMetrics(data);
@@ -49,12 +62,26 @@ export const Metrics = () => {
         } catch (e) { }
     };
 
+    const fetchFiltersData = async () => {
+        try {
+            const [shopsRes, citiesRes, agenciesRes] = await Promise.all([
+                request("/shops", "GET"),
+                request("/cities", "GET"),
+                request("/users/role/Agencia", "GET")
+            ]);
+            if (shopsRes.status) setShops(await shopsRes.response.json());
+            if (citiesRes.status) setCities(await citiesRes.response.json());
+            if (agenciesRes.status) setAgencies((await agenciesRes.response.json()).data);
+        } catch (e) { }
+    };
+
     useEffect(() => {
         if (isValid) {
             fetchMetrics();
             fetchProducts();
+            fetchFiltersData();
         }
-    }, [isValid, startDate, endDate]);
+    }, [isValid, startDate, endDate, filters]);
 
     const handleSaveAdSpend = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -79,9 +106,21 @@ export const Metrics = () => {
 
     return (
         <Layout>
-            <Box display="flex" justifyContent="space-between" alignItems="center" mb={4}>
+            <Box display="flex" justifyContent="space-between" alignItems="flex-start" mb={4} gap={2} flexWrap="wrap">
                 <DescripcionDeVista title="Sistema de Métricas" description="Análisis de efectividad, rentabilidad y ventas" />
-                <Box display="flex" gap={2}>
+                <Box display="flex" gap={1} flexWrap="wrap" justifyContent="flex-end">
+                    <TextField select size="small" label="Tienda" value={filters.shop_id} onChange={(e) => setFilters({ ...filters, shop_id: e.target.value })} sx={{ minWidth: 120 }}>
+                        <MenuItem value="">Todas</MenuItem>
+                        {shops.map(s => <MenuItem key={s.id} value={s.id}>{s.name || s.title}</MenuItem>)}
+                    </TextField>
+                    <TextField select size="small" label="Ciudad" value={filters.city_id} onChange={(e) => setFilters({ ...filters, city_id: e.target.value })} sx={{ minWidth: 120 }}>
+                        <MenuItem value="">Todas</MenuItem>
+                        {cities.map(c => <MenuItem key={c.id} value={c.id}>{c.name}</MenuItem>)}
+                    </TextField>
+                    <TextField select size="small" label="Agencia" value={filters.agency_id} onChange={(e) => setFilters({ ...filters, agency_id: e.target.value })} sx={{ minWidth: 120 }}>
+                        <MenuItem value="">Todas</MenuItem>
+                        {agencies.map(a => <MenuItem key={a.id} value={a.id}>{a.names}</MenuItem>)}
+                    </TextField>
                     <TextField size="small" type="date" label="Desde" value={startDate} onChange={(e) => setStartDate(e.target.value)} InputLabelProps={{ shrink: true }} />
                     <TextField size="small" type="date" label="Hasta" value={endDate} onChange={(e) => setEndDate(e.target.value)} InputLabelProps={{ shrink: true }} />
                     <Button variant="contained" startIcon={<AddIcon />} onClick={() => setOpenAdSpend(true)}>Ad Spend</Button>
@@ -96,7 +135,7 @@ export const Metrics = () => {
             </Grid>
 
             <Grid container spacing={3}>
-                <Grid size={{ xs: 12, lg: 7 }}>
+                <Grid size={{ xs: 12, lg: 4 }}>
                     <Card elevation={3} sx={{ borderRadius: 4 }}>
                         <CardContent>
                             <Typography variant="h6" gutterBottom>Efectividad y Ganancia por Producto</Typography>
@@ -105,8 +144,8 @@ export const Metrics = () => {
                                     <TableHead>
                                         <TableRow>
                                             <TableCell>Producto</TableCell>
-                                            <TableCell align="right">Efectividad</TableCell>
-                                            <TableCell align="right">Ganancia Neta</TableCell>
+                                            <TableCell align="right">Efec.</TableCell>
+                                            <TableCell align="right">Rentab.</TableCell>
                                         </TableRow>
                                     </TableHead>
                                     <TableBody>
@@ -126,7 +165,7 @@ export const Metrics = () => {
                     </Card>
                 </Grid>
 
-                <Grid size={{ xs: 12, lg: 5 }}>
+                <Grid size={{ xs: 12, lg: 4 }}>
                     <Card elevation={3} sx={{ borderRadius: 4 }}>
                         <CardContent>
                             <Typography variant="h6" gutterBottom>Efectividad de Vendedoras</Typography>
@@ -135,14 +174,42 @@ export const Metrics = () => {
                                     <TableHead>
                                         <TableRow>
                                             <TableCell>Vendedora</TableCell>
-                                            <TableCell align="right">Efectividad</TableCell>
+                                            <TableCell align="right">Cierre</TableCell>
+                                            <TableCell align="right">Entrega</TableCell>
                                         </TableRow>
                                     </TableHead>
                                     <TableBody>
                                         {metrics?.sellers.map((s: any) => (
                                             <TableRow key={s.id}>
                                                 <TableCell>{s.names || s.name}</TableCell>
-                                                <TableCell align="right">{s.effectiveness}%</TableCell>
+                                                <TableCell align="right">{s.closure_rate}%</TableCell>
+                                                <TableCell align="right">{s.delivery_rate}%</TableCell>
+                                            </TableRow>
+                                        ))}
+                                    </TableBody>
+                                </Table>
+                            </TableContainer>
+                        </CardContent>
+                    </Card>
+                </Grid>
+
+                <Grid size={{ xs: 12, lg: 4 }}>
+                    <Card elevation={3} sx={{ borderRadius: 4 }}>
+                        <CardContent>
+                            <Typography variant="h6" gutterBottom>Efectividad de Agencias</Typography>
+                            <TableContainer component={Paper} elevation={0}>
+                                <Table size="small">
+                                    <TableHead>
+                                        <TableRow>
+                                            <TableCell>Agencia</TableCell>
+                                            <TableCell align="right">Entrega</TableCell>
+                                        </TableRow>
+                                    </TableHead>
+                                    <TableBody>
+                                        {metrics?.agencies?.map((a: any) => (
+                                            <TableRow key={a.id}>
+                                                <TableCell>{a.names || a.name}</TableCell>
+                                                <TableCell align="right">{a.delivery_rate}%</TableCell>
                                             </TableRow>
                                         ))}
                                     </TableBody>

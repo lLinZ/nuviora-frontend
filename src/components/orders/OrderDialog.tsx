@@ -21,6 +21,9 @@ import { ButtonCustom } from "../custom";
 import { ProductSearchDialog } from "../products/ProductsSearchDialog";
 import { OrderProductItem } from "./OrderProductItem";
 import { NotificationAdd, NotificationAddRounded } from "@mui/icons-material";
+import { MarkDeliveredDialog } from "./MarkDeliveredDialog";
+import { ReportNovedadDialog } from "./ReportNovedadDialog";
+import { ResolveNovedadDialog } from "./ResolveNovedadDialog";
 
 interface OrderDialogProps {
     id?: number;
@@ -62,7 +65,11 @@ export const OrderDialog: FC<OrderDialogProps> = ({ id, open, setOpen }) => {
         rejectLocation,
         approveRejection,
         rejectRejection,
-        setReminder
+        setReminder,
+        openMarkDelivered, setOpenMarkDelivered,
+        openReportNovedad, setOpenReportNovedad,
+        openResolveNovedad, setOpenResolveNovedad,
+        pendingStatus
     } = useOrderDialogLogic(id, open, setOpen);
 
     const [openReminder, setOpenReminder] = useState(false);
@@ -72,6 +79,8 @@ export const OrderDialog: FC<OrderDialogProps> = ({ id, open, setOpen }) => {
     const [upsellCandidate, setUpsellCandidate] = useState<any>(null);
     const [upsellQty, setUpsellQty] = useState(1);
     const [upsellPrice, setUpsellPrice] = useState(0);
+
+    const binanceRate = Number(order?.binance_rate || 0);
 
     if (!order) return null;
 
@@ -380,14 +389,18 @@ export const OrderDialog: FC<OrderDialogProps> = ({ id, open, setOpen }) => {
                     <OrderProductsList products={(order.products || []).filter((p: any) => !p.is_upsell)} currency={order.currency} />
 
                     {/* Sección Upsell */}
-                    <Divider sx={{ marginBlock: 3 }} />
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                        <Typography variant="h6">Ventas Adicionales (Upsell)</Typography>
-                        <ButtonCustom variant="contained" onClick={() => setOpenSearch(true)}>Agregar Upsell</ButtonCustom>
-                    </Box>
+                    {user.role?.description !== 'Agencia' && (
+                        <>
+                            <Divider sx={{ marginBlock: 3 }} />
+                            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                                <Typography variant="h6">Ventas Adicionales (Upsell)</Typography>
+                                <ButtonCustom variant="contained" onClick={() => setOpenSearch(true)}>Agregar Upsell</ButtonCustom>
+                            </Box>
+                        </>
+                    )}
 
                     <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
-                        {(order.products || []).filter((p: any) => p.is_upsell).length > 0 ? (
+                        {user.role?.description !== 'Agencia' && (order.products || []).filter((p: any) => p.is_upsell).length > 0 ? (
                             (order.products || []).filter((p: any) => p.is_upsell).map((p: any) => (
                                 <OrderProductItem
                                     key={p.id}
@@ -398,7 +411,7 @@ export const OrderDialog: FC<OrderDialogProps> = ({ id, open, setOpen }) => {
                                     }}
                                 />
                             ))
-                        ) : (
+                        ) : user.role?.description !== 'Agencia' && (
                             <Typography variant="body2" color="text.secondary">
                                 No hay ventas adicionales.
                             </Typography>
@@ -409,12 +422,12 @@ export const OrderDialog: FC<OrderDialogProps> = ({ id, open, setOpen }) => {
                     <Typography variant="h6" textAlign="right">
                         Total: {fmtMoney(Number(order.current_total_price) || 0, order.currency)}
                     </Typography>
-                    {order.ves_price !== undefined && (
+                    {order.ves_price !== undefined && user.role?.description !== 'Agencia' && (
                         <Typography variant="subtitle1" textAlign="right" color="text.secondary">
                             Monto en Bs (Binance): {fmtMoney(order.ves_price, 'VES')}
                         </Typography>
                     )}
-                    {order.bcv_equivalence !== undefined && (
+                    {order.bcv_equivalence !== undefined && user.role?.description !== 'Agencia' && (
                         <Typography variant="subtitle2" textAlign="right" color="text.secondary">
                             Equivalencia BCV: {fmtMoney(order.bcv_equivalence, 'USD')}
                         </Typography>
@@ -464,6 +477,38 @@ export const OrderDialog: FC<OrderDialogProps> = ({ id, open, setOpen }) => {
                             }}>Agregar</ButtonCustom>
                         </DialogActions>
                     </Dialog>
+
+                    <MarkDeliveredDialog
+                        open={openMarkDelivered}
+                        onClose={() => setOpenMarkDelivered(false)}
+                        totalUSD={Number(order.current_total_price)}
+                        binanceRate={binanceRate}
+                        isCash={order.payments?.some((p: any) => p.method === 'EFECTIVO')}
+                        onConfirm={(data) => {
+                            if (pendingStatus) changeStatus(pendingStatus.description, pendingStatus.id, data);
+                        }}
+                    />
+
+                    <ReportNovedadDialog
+                        open={openReportNovedad}
+                        onClose={() => setOpenReportNovedad(false)}
+                        onConfirm={(data) => {
+                            if (pendingStatus) changeStatus(pendingStatus.description, pendingStatus.id, {
+                                novedad_type: data.type,
+                                novedad_description: data.description
+                            });
+                        }}
+                    />
+
+                    <ResolveNovedadDialog
+                        open={openResolveNovedad}
+                        onClose={() => setOpenResolveNovedad(false)}
+                        onConfirm={(resolution) => {
+                            if (pendingStatus) changeStatus(pendingStatus.description, pendingStatus.id, {
+                                novedad_resolution: resolution
+                            });
+                        }}
+                    />
 
 
                     {/* Actualizaciones */}

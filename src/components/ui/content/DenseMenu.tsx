@@ -27,6 +27,8 @@ export default function DenseMenu({
     const user = useUserStore((state) => state.user);
 
     const statuses: { id: number, description: string, color: string, roles: string[] }[] = [
+        { id: 16, description: 'Novedades', color: yellow[700], roles: ['Admin', 'Gerente', 'Repartidor', 'Agencia'] },
+        { id: 17, description: 'Novedad Solucionada', color: green[300], roles: ['Admin', 'Gerente', 'Vendedor'] },
         { id: 1, description: 'Nuevo', color: purple[300], roles: ['Admin'] },
         { id: 11, description: 'Reprogramado para hoy', color: green[500], roles: ['Admin', 'Gerente'] },
         { id: 2, description: 'Asignado a vendedor', color: blue[500], roles: ['Admin', 'Gerente'] },
@@ -35,13 +37,13 @@ export default function DenseMenu({
         { id: 5, description: 'Llamado 3', color: purple[300], roles: ['Admin', 'Gerente', 'Vendedor'] },
         { id: 6, description: 'Esperando ubicacion', color: blue[500], roles: ['Admin', 'Vendedor', 'Gerente',] },
         { id: 7, description: 'Asignado a repartidor', color: green[500], roles: ['Admin', 'Gerente', 'Vendedor'] },
-        { id: 8, description: 'En ruta', color: red[500], roles: ['Admin', 'Gerente', 'Repartidor'] },
-        { id: 9, description: 'Programado para mas tarde', color: purple[300], roles: ['Admin', 'Gerente', 'Vendedor', 'Repartidor'] }, // Validacion
-        { id: 10, description: 'Programado para otro dia', color: blue[500], roles: ['Admin', 'Gerente', 'Vendedor', 'Repartidor'] }, // Validacion
-        { id: 12, description: 'Cambio de ubicacion', color: red[500], roles: ['Admin', 'Gerente', 'Repartidor'] }, // Validacion
-        { id: 13, description: 'Rechazado', color: red[500], roles: ['Admin', 'Gerente', 'Repartidor'] }, // Validacion
-        { id: 14, description: 'Entregado', color: green[500], roles: ['Admin', 'Gerente', 'Repartidor'] },
-        { id: 14, description: 'Cancelado', color: red[500], roles: ['Admin', 'Gerente', 'Vendedor'] },
+        { id: 8, description: 'En ruta', color: red[500], roles: ['Admin', 'Gerente', 'Repartidor', 'Agencia'] },
+        { id: 9, description: 'Programado para mas tarde', color: purple[300], roles: ['Admin', 'Gerente', 'Vendedor', 'Repartidor'] },
+        { id: 10, description: 'Programado para otro dia', color: blue[500], roles: ['Admin', 'Gerente', 'Vendedor', 'Repartidor'] },
+        { id: 12, description: 'Cambio de ubicacion', color: red[500], roles: ['Admin', 'Gerente', 'Repartidor'] },
+        { id: 13, description: 'Rechazado', color: red[500], roles: ['Admin', 'Gerente', 'Repartidor'] },
+        { id: 14, description: 'Entregado', color: green[500], roles: ['Admin', 'Gerente', 'Repartidor', 'Agencia'] },
+        { id: 15, description: 'Cancelado', color: red[500], roles: ['Admin', 'Gerente', 'Vendedor'] },
     ];
     return (
         <>
