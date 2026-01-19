@@ -10,8 +10,9 @@ import {
     Typography, Dialog, DialogTitle, DialogContent,
     DialogActions, TextField, MenuItem
 } from "@mui/material";
-import { Edit as EditIcon, Delete as DeleteIcon, Add as AddIcon } from "@mui/icons-material";
+import { Edit as EditIcon, Delete as DeleteIcon, Add as AddIcon, PersonAdd as PersonAddIcon } from "@mui/icons-material";
 import { toast } from "react-toastify";
+import { AddUserDialog } from "../components/users/AddUserDialog";
 
 export const Cities = () => {
     const { loadingSession, isValid, user } = useValidateSession();
@@ -19,6 +20,7 @@ export const Cities = () => {
     const [agencies, setAgencies] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [openAdd, setOpenAdd] = useState(false);
+    const [openAddAgency, setOpenAddAgency] = useState(false);
     const [editingCity, setEditingCity] = useState<any>(null);
 
     const fetchData = async () => {
@@ -91,11 +93,16 @@ export const Cities = () => {
         <Layout>
             <Box display="flex" justifyContent="space-between" alignItems="center" mb={4}>
                 <DescripcionDeVista title="Ciudades y Agencias" description="Administración de ciudades, costos de delivery y agencias asignadas" />
-                {user.role?.description === 'Admin' && (
-                    <Button variant="contained" startIcon={<AddIcon />} onClick={() => { setEditingCity(null); setOpenAdd(true); }}>
-                        Nueva Ciudad
+                <Box display="flex" gap={2}>
+                    <Button variant="outlined" startIcon={<PersonAddIcon />} onClick={() => setOpenAddAgency(true)} color="secondary">
+                        Nueva Agencia
                     </Button>
-                )}
+                    {user.role?.description === 'Admin' && (
+                        <Button variant="contained" startIcon={<AddIcon />} onClick={() => { setEditingCity(null); setOpenAdd(true); }}>
+                            Nueva Ciudad
+                        </Button>
+                    )}
+                </Box>
             </Box>
 
             <Grid container spacing={3}>
@@ -162,6 +169,15 @@ export const Cities = () => {
                     </DialogActions>
                 </form>
             </Dialog>
+
+            <AddUserDialog
+                open={openAddAgency}
+                onClose={() => setOpenAddAgency(false)}
+                defaultRole="Agencia"
+                onUserAdded={() => {
+                    fetchData();
+                }}
+            />
         </Layout>
     );
 };

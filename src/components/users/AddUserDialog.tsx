@@ -7,9 +7,10 @@ interface AddUserDialogProps {
     open: boolean;
     onClose: () => void;
     onUserAdded: () => void;
+    defaultRole?: string;
 }
 
-export const AddUserDialog = ({ open, onClose, onUserAdded }: AddUserDialogProps) => {
+export const AddUserDialog = ({ open, onClose, onUserAdded, defaultRole }: AddUserDialogProps) => {
     const [roles, setRoles] = useState<any[]>([]);
     const [loading, setLoading] = useState(false);
     const [saving, setSaving] = useState(false);
@@ -35,8 +36,15 @@ export const AddUserDialog = ({ open, onClose, onUserAdded }: AddUserDialogProps
             const { response, status } = await request('/roles', 'GET');
             if (status === 200) {
                 const data = await response.json();
-                // Ensure data.data is an array
-                setRoles(Array.isArray(data.data) ? data.data : []);
+                const rolesList = Array.isArray(data.data) ? data.data : [];
+                setRoles(rolesList);
+
+                if (defaultRole) {
+                    const role = rolesList.find((r: any) => r.description === defaultRole);
+                    if (role) {
+                        setFormData(prev => ({ ...prev, role_id: role.id }));
+                    }
+                }
             }
         } catch (error) {
             console.error('Error fetching roles:', error);

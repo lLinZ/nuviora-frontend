@@ -54,10 +54,10 @@ export const Metrics = () => {
 
     const fetchProducts = async () => {
         try {
-            const { status, response }: IResponse = await request("/inventory/products", "GET");
+            const { status, response }: IResponse = await request("/inventory/products?paginate=false", "GET");
             if (status) {
                 const data = await response.json();
-                setProducts(data);
+                setProducts(Array.isArray(data) ? data : (data.data || []));
             }
         } catch (e) { }
     };
