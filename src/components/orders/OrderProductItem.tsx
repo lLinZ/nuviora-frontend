@@ -1,8 +1,9 @@
 import React from "react";
-import { Box, Avatar, Typography, IconButton } from "@mui/material";
+import { Box, Avatar, Typography, IconButton, Paper, Tooltip } from "@mui/material";
 import { TypographyCustom } from "../custom";
 import { fmtMoney } from "../../lib/money";
-import DeleteRoundedIcon from "@mui/icons-material/DeleteRounded";
+import DeleteOutlineRoundedIcon from "@mui/icons-material/DeleteOutlineRounded";
+import Inventory2OutlinedIcon from '@mui/icons-material/Inventory2Outlined';
 
 interface OrderProductItemProps {
     product: any;
@@ -14,65 +15,84 @@ export const OrderProductItem: React.FC<OrderProductItemProps> = ({ product, cur
     const subtotal = (Number(product.price) || 0) * (Number(product.quantity) || 0);
 
     return (
-        <Box
+        <Paper
+            elevation={0}
             sx={{
                 display: "flex",
                 alignItems: "center",
                 gap: 2,
-                p: 2,
-                borderRadius: 2,
-                border: "1px solid rgba(0,0,0,0.08)",
-                bgcolor: "background.paper",
+                p: 1.5,
+                borderRadius: 3,
+                border: "1px solid",
+                borderColor: (theme) => theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)',
+                bgcolor: (theme) => theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.02)' : 'white',
+                transition: 'transform 0.2s, box-shadow 0.2s',
+                '&:hover': {
+                    transform: 'translateY(-2px)',
+                    boxShadow: '0 4px 12px rgba(0,0,0,0.05)',
+                    borderColor: 'primary.main',
+                }
             }}
         >
             <Avatar
                 src={product.image || undefined}
                 alt={product.title}
                 variant="rounded"
-                sx={{ width: 56, height: 56 }}
+                sx={{
+                    width: 50,
+                    height: 50,
+                    borderRadius: 2,
+                    boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+                    bgcolor: 'grey.100',
+                    color: 'grey.800'
+                }}
             >
-                {!product.image && (product.title?.charAt(0) ?? "P")}
+                {!product.image && <Inventory2OutlinedIcon fontSize="small" />}
             </Avatar>
 
             <Box sx={{ flex: 1, minWidth: 0 }}>
                 <TypographyCustom
-                    variant="subtitle1"
+                    variant="body2"
+                    fontWeight="bold"
                     sx={{
                         whiteSpace: "nowrap",
                         overflow: "hidden",
                         textOverflow: "ellipsis",
+                        display: 'block'
                     }}
                     title={product.title}
                 >
                     {product.title}
                 </TypographyCustom>
 
-                <Typography variant="caption" color="text.secondary">
-                    {product.sku ? `SKU: ${product.sku}` : "SKU no disponible"}
-                </Typography>
-
-                <Typography variant="body2" sx={{ mt: 0.5 }}>
-                    Cantidad: <strong>{product.quantity}</strong> × Precio:{" "}
-                    <strong>{fmtMoney(Number(product.price), currency)}</strong>
-                </Typography>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 0.5 }}>
+                    <Typography variant="caption" sx={{ bgcolor: 'action.hover', px: 0.8, py: 0.2, borderRadius: 1, fontWeight: 'medium' }}>
+                        Cant: {product.quantity}
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary">
+                        × {fmtMoney(Number(product.price), currency)}
+                    </Typography>
+                </Box>
 
                 {product.upsell_user_name && (
-                    <Typography variant="caption" display="block" color="primary">
-                        Upsell por: {product.upsell_user_name}
+                    <Typography variant="caption" sx={{ color: 'primary.main', fontWeight: 'bold', display: 'block', mt: 0.5 }}>
+                        ✨ Upsell por: {product.upsell_user_name}
                     </Typography>
                 )}
             </Box>
 
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <TypographyCustom variant="body2" fontWeight="bold">
+            <Box sx={{ textAlign: 'right', display: 'flex', alignItems: 'center', gap: 1 }}>
+                <Typography variant="body2" fontWeight="black" color="text.primary">
                     {fmtMoney(subtotal, currency)}
-                </TypographyCustom>
+                </Typography>
                 {onDelete && (
-                    <IconButton size="small" color="error" onClick={onDelete}>
-                        <DeleteRoundedIcon />
-                    </IconButton>
+                    <Tooltip title="Eliminar Upsell">
+                        <IconButton size="small" color="error" onClick={onDelete} sx={{ '&:hover': { bgcolor: 'error.lighter' } }}>
+                            <DeleteOutlineRoundedIcon fontSize="small" />
+                        </IconButton>
+                    </Tooltip>
                 )}
             </Box>
-        </Box>
+        </Paper>
     );
 };

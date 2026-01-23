@@ -36,21 +36,27 @@ export const useOrderDialogLogic = (
     const [openAssign, setOpenAssign] = useState(false);
     const [newLocation, setNewLocation] = useState<string>("");
 
-    const handleClose = () => setOpen(false);
+    const handleClose = () => {
+        setOpen(false);
+        setSelectedOrder(null);
+    };
+
+    const fetchOrder = async () => {
+        if (!id) return;
+        const { status, response }: IResponse = await request(`/orders/${id}`, "GET");
+        if (status) {
+            const data = await response.json();
+            setSelectedOrder(data.order);
+            setNewLocation(data.order.location || "");
+        }
+    };
 
     useEffect(() => {
         if (id && open) {
-            const fetchOrder = async () => {
-                const { status, response }: IResponse = await request(`/orders/${id}`, "GET");
-                if (status) {
-                    const data = await response.json();
-                    setSelectedOrder(data.order);
-                    setNewLocation(data.order.location || "");
-                }
-            };
             fetchOrder();
         }
-    }, [id, open, setSelectedOrder]);
+    }, [id, open]);
+
 
     const sendLocation = async () => {
         if (!newLocation || !id) return;
@@ -65,7 +71,7 @@ export const useOrderDialogLogic = (
             );
             if (status === 200) {
                 const data = await response.json();
-                updateOrder(data);
+                updateOrder(data.data); // Backend returns the order in 'data' key for this specific endpoint
                 toast.success('Ubicacion actualizada');
             } else {
                 toast.error('No se logro añadir la ubicacion');
@@ -143,6 +149,12 @@ export const useOrderDialogLogic = (
     const changeStatus = async (status: string, statusId: number, extraData: any = null) => {
         if (!selectedOrder) return;
 
+        // 🔒 Strict rule: If currently "Novedades", ONLY can go to "Novedad Solucionada"
+        if (selectedOrder.status.description === "Novedades" && status !== "Novedad Solucionada") {
+            toast.error("Una orden en Novedades solo puede pasar a Novedad Solucionada ⚠️");
+            return;
+        }
+
         // Intercept Novedades
         if (status === "Novedades" && !extraData) {
             setPendingStatus({ description: status, id: statusId });
@@ -152,15 +164,40 @@ export const useOrderDialogLogic = (
 
         // Intercept Novedad Solucionada
         if (status === "Novedad Solucionada" && !extraData) {
+            // Validations
+            if (!selectedOrder.location) {
+                toast.error("Se requiere una ubicación para marcar como solucionada 📍");
+                return;
+            }
+            if (!selectedOrder.payments || selectedOrder.payments.length === 0) {
+                toast.error("Se requieren métodos de pago registrados 💳");
+                return;
+            }
+            // Check coverage/change
+            const totalPaid = selectedOrder.payments.reduce((acc: number, p: any) => acc + Number(p.amount), 0);
+            const total = Number(selectedOrder.current_total_price);
+
+            // Allow a small margin of error for float comparisons (though typically strict >= is fine here)
+            // But strict requirement: "totalmente pagados"
+            if (totalPaid < total - 0.01) {
+                toast.error(`El monto pagado ($${totalPaid.toFixed(2)}) es menor al total ($${total.toFixed(2)}). Debe cubrirse el total.`);
+                return;
+            }
+
+            // Validate excess payment (change)
+            if (totalPaid > total + 0.01) {
+                if (!selectedOrder.change_covered_by) {
+                    toast.error("El monto pagado excede el total. Debe registrar quién cubre el vuelto (Agencia/Empresa) 💸");
+                    return;
+                }
+            }
+
             setPendingStatus({ description: status, id: statusId });
             setOpenResolveNovedad(true);
             return;
         }
 
-        if (status === "Asignado a repartidor" && !selectedOrder.deliverer) {
-            setOpenAssignDeliverer(true);
-            return;
-        }
+
 
         // Validar que existe comprobante de pago si se intenta cambiar a Entregado
         if (status === "Entregado") {
@@ -196,7 +233,7 @@ export const useOrderDialogLogic = (
                 "PUT",
                 body
             );
-            if (ok) {
+            if (ok === 200) {
                 const data = await response.json();
                 updateOrder(data.order);
                 toast.success(`Orden #${selectedOrder.name} actualizada a ${status} ✅`);
@@ -520,6 +557,8 @@ export const useOrderDialogLogic = (
         openMarkDelivered, setOpenMarkDelivered,
         openReportNovedad, setOpenReportNovedad,
         openResolveNovedad, setOpenResolveNovedad,
-        pendingStatus
+        pendingStatus,
+        fetchOrder,
+        refreshOrder: fetchOrder,
     };
 };

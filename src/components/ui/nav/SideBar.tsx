@@ -102,7 +102,7 @@ export const SideBar = () => {
                 text: "Dashboard",
                 icon: <DashboardRoundedIcon />,
                 link: "/dashboard",
-                roles: ["Admin", "Gerente", "Vendedor", "Repartidor"],
+                roles: ["Admin", "Gerente", "Vendedor", "Repartidor", "Agencia"],
             },
             {
                 text: "Usuarios",
@@ -114,7 +114,7 @@ export const SideBar = () => {
                 text: "Órdenes",
                 icon: <LocalShippingRoundedIcon />,
                 link: "/orders",
-                roles: ["Admin", "Gerente", "Vendedor", "Repartidor"],
+                roles: ["Admin", "Gerente", "Vendedor", "Repartidor", "Agencia"],
             },
             {
                 text: "Órdenes canceladas",
@@ -186,7 +186,7 @@ export const SideBar = () => {
                 text: 'Stock repartidores',
                 icon: <AssignmentReturnRounded />,
                 link: '/deliverers/stock',
-                roles: ["Admin"],
+                roles: ["Admin", "Agencia"],
             },
             {
                 text: "Mis ganancias",
@@ -211,6 +211,12 @@ export const SideBar = () => {
                 icon: <PollRounded />,
                 link: "/metrics",
                 roles: ["Admin", "Gerente"],
+            },
+            {
+                text: "Metricas del negocio",
+                icon: <PollRounded />,
+                link: "/business-metrics",
+                roles: ["Admin"],
             },
         ],
         []

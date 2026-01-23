@@ -19,17 +19,13 @@ export const request = async (
         Authorization: `Bearer ${token}`,
     };
 
-    // Auto-detect Content-Type if not multipart
-    if (!multipart) {
-        if (body && typeof body === 'string') {
+    // Auto-detect Content-Type if not multipart and there's a body
+    if (!multipart && body && method !== "GET") {
+        if (typeof body === 'string') {
             headers["Content-Type"] = "application/json";
-        } else if (body && !(body instanceof URLSearchParams) && !(body instanceof FormData)) {
-            // If body is a plain object, stringify it and set JSON header
-            // But the signature says BodyType = URLSearchParams | FormData | undefined
-            // We need to update the signature first.
-            // However, for now, let's assume the caller stringifies it.
+        } else if (!(body instanceof URLSearchParams) && !(body instanceof FormData)) {
             headers["Content-Type"] = "application/json";
-        } else {
+        } else if (body instanceof URLSearchParams) {
             headers["Content-Type"] = "application/x-www-form-urlencoded";
         }
     }
@@ -39,8 +35,13 @@ export const request = async (
         headers,
     };
 
+    let finalBody = body;
     if (method !== "GET" && body) {
-        options.body = body as any;
+        if (!(body instanceof URLSearchParams) && !(body instanceof FormData) && typeof body !== "string") {
+            finalBody = JSON.stringify(body);
+            headers["Content-Type"] = "application/json";
+        }
+        options.body = finalBody as any;
     }
 
     try {

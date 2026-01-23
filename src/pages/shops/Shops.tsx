@@ -31,7 +31,7 @@ export const Shops = () => {
             const { status, response }: IResponse = await request("/shops", "GET");
             if (status) {
                 const data = await response.json();
-                setShops(data);
+                setShops(data.data || data);
             }
         } catch (e) {
             toast.error("Error al cargar tiendas");

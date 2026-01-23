@@ -44,7 +44,7 @@ export const OrderList: FC<OrderListProps> = ({ title }) => {
 
             // Resto de columnas normales
             return status === title;
-        });
+        }).sort((a: any, b: any) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime());
     }, [orders, title]);
 
     const count = filteredOrders.length;

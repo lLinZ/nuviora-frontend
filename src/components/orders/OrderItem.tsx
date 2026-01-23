@@ -23,6 +23,8 @@ import { OrderDialog } from "./OrderDialog";
 import { purple, blue, green, red, yellow, grey, orange } from "@mui/material/colors";
 import { AssignDelivererDialog } from "./AssignDelivererDialog";
 import { PostponeOrderDialog } from "./PostponeOrderDialog";
+import { AssignAgencyDialog } from "./AssignAgencyDialog";
+import { NoveltyDialog } from "./NoveltyDialog";
 
 interface OrderItemProps {
     order: any;
@@ -62,6 +64,8 @@ export const statusColors: Record<string, string> = {
     "Por aprobar entrega": yellow[700],
     "Por aprobar cambio de ubicacion": yellow[800],
     "Por aprobar rechazo": orange[900],
+    "Asignar a agencia": blue[400],
+    "Esperando Ubicacion": purple[300],
 };
 export const OrderItem: FC<OrderItemProps> = ({ order }) => {
     const user = useUserStore((state) => state.user);
@@ -70,7 +74,12 @@ export const OrderItem: FC<OrderItemProps> = ({ order }) => {
     const [open, setOpen] = useState<boolean>(false);
     const [productsOpen, setProductsOpen] = useState<boolean>(false);
     const [openAssignDeliverer, setOpenAssignDeliverer] = useState(false);
-    const [openPostpone, setOpenPostpone] = useState(false); // 👈 New state
+    const [openPostpone, setOpenPostpone] = useState(false);
+    const [openAssignAgency, setOpenAssignAgency] = useState(false);
+    const [openNovelty, setOpenNovelty] = useState(false);
+    const [targetStatus, setTargetStatus] = useState<string>("");
+    const [targetStatusId, setTargetStatusId] = useState<number>(0);
+
     const [orderProducts, setOrderProducts] = useState<any>([]);
     const [orderProductsEmpty, setOrderProductsEmpty] = useState<boolean>(false);
     const theme = useTheme();
@@ -100,13 +109,49 @@ export const OrderItem: FC<OrderItemProps> = ({ order }) => {
     const changeStatus = async (status: string, statusId: number) => {
         // Intercept postponing
         if (status === "Programado para otro dia" || status === "Programado para mas tarde") {
+            setTargetStatus(status);
             setOpenPostpone(true);
             return;
         }
 
-        // 👇 Si quieren "Asignado a repartidor" pero aún no hay repartidor, primero elegimos uno
-        if (status === "Asignado a repartidor" && !order.deliverer) {
-            setOpenAssignDeliverer(true);
+
+
+        if (status === "Asignar a agencia" && !order.agency) {
+            // Primero intentamos actualizar el estado para que el backend intente el auto-match
+            const body = new URLSearchParams();
+            body.append("status_id", String(statusId));
+            try {
+                const { status: ok, response }: IResponse = await request(
+                    `/orders/${order.id}/status`,
+                    "PUT",
+                    body
+                );
+
+                const data = await response.json();
+
+                if (ok) {
+                    updateOrder(data.order);
+                    toast.success(data.message || `Agencia auto-asignada exitosamente ✅`);
+                    return;
+                } else if (data.require_manual_agency) {
+                    // Si el backend dice que hace falta manual, abrimos diálogo
+                    toast.info(data.message);
+                    setOpenAssignAgency(true);
+                    return;
+                } else {
+                    toast.error(data.message || "Error al asignar agencia");
+                    return;
+                }
+            } catch (e) {
+                console.error(e);
+                toast.error("Error de conexión al intentar asignar agencia");
+                return;
+            }
+        }
+
+        if (status === "Novedades") {
+            setTargetStatusId(statusId);
+            setOpenNovelty(true);
             return;
         }
 
@@ -119,15 +164,41 @@ export const OrderItem: FC<OrderItemProps> = ({ order }) => {
                 "PUT",
                 body
             );
-            if (ok) {
+            if (ok === 200) {
                 const data = await response.json();
                 updateOrder(data.order);
                 toast.success(data.message || `Orden #${order.name} actualizada a ${status} ✅`);
             } else {
-                toast.error("No se pudo actualizar el estado ❌");
+                const errorData = await response.json();
+                toast.error(errorData.message || "No se pudo actualizar el estado ❌");
             }
         } catch {
             toast.error("Error en el servidor al actualizar estado 🚨");
+        }
+    };
+
+    const handleNoveltySubmit = async (type: string, description: string) => {
+        const body = new URLSearchParams();
+        body.append("status_id", String(targetStatusId));
+        body.append("novedad_type", type);
+        body.append("novedad_description", description);
+
+        try {
+            const { status: ok, response }: IResponse = await request(
+                `/orders/${order.id}/status`,
+                "PUT",
+                body
+            );
+            if (ok) {
+                const data = await response.json();
+                updateOrder(data.order);
+                toast.success(`Novedad registrada: ${type} ✅`);
+                setOpenNovelty(false);
+            } else {
+                toast.error("No se pudo registrar la novedad ❌");
+            }
+        } catch {
+            toast.error("Error en el servidor 🚨");
         }
     };
 
@@ -167,7 +238,7 @@ export const OrderItem: FC<OrderItemProps> = ({ order }) => {
                         textOverflow: "ellipsis",
                     }}
                 >
-                    {order.client.first_name} {order.client.last_name}
+                    {order.client?.first_name} {order.client?.last_name}
                 </TypographyCustom>
                 <TypographyCustom
                     variant="subtitle2"
@@ -179,7 +250,7 @@ export const OrderItem: FC<OrderItemProps> = ({ order }) => {
                         textOverflow: "ellipsis",
                     }}
                 >
-                    {order.client.phone}
+                    {order.client?.phone}
                 </TypographyCustom>
                 <TypographyCustom
                     variant="subtitle2"
@@ -191,11 +262,21 @@ export const OrderItem: FC<OrderItemProps> = ({ order }) => {
                         textOverflow: "ellipsis",
                     }}
                 >
-                    {order.client.province}
+                    {order.client?.city}
                 </TypographyCustom>
                 <TypographyCustom variant="subtitle2">
                     {order.current_total_price} {order.currency}
                 </TypographyCustom>
+                {order.agency && (
+                    <TypographyCustom variant="caption" color="primary.main" sx={{ fontWeight: 'bold', display: 'block' }}>
+                        Agencia: {order.agency?.names}
+                    </TypographyCustom>
+                )}
+                {order.novedad_type && (
+                    <TypographyCustom variant="caption" sx={{ color: order.status.description === 'Novedad Solucionada' ? 'green' : 'orange', fontWeight: 'bold', display: 'block', mt: 0.5 }}>
+                        {order.status.description === 'Novedad Solucionada' ? 'Resuelta: ' : 'Novedad: '} {order.novedad_type}
+                    </TypographyCustom>
+                )}
 
                 <Divider sx={{ marginBlock: 2 }} />
 
@@ -208,19 +289,33 @@ export const OrderItem: FC<OrderItemProps> = ({ order }) => {
                             fontWeight: "bold",
                         }}
                     />
-                    <Avatar
-                        sx={{ width: 30, height: 30, cursor: "pointer", color: (theme) => theme.palette.getContrastText(order.agent?.color ?? '#4e4e4eff'), background: order.agent?.color ?? '#4e4e4eff' }}
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            setOpenAssign(true);
-                        }}
-                    >
-                        {order.agent?.names ? (
-                            order.agent.names.charAt(0)
-                        ) : (
-                            <AddRoundedIcon />
-                        )}
-                    </Avatar>
+                    {['Admin', 'Gerente', 'Master'].includes(user.role?.description || '') ? (
+                        <Avatar
+                            sx={{ width: 30, height: 30, cursor: "pointer", color: (theme) => theme.palette.getContrastText(order.agent?.color ?? '#4e4e4eff'), background: order.agent?.color ?? '#4e4e4eff' }}
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                setOpenAssign(true);
+                            }}
+                        >
+                            {order.agent?.names ? (
+                                order.agent.names.charAt(0)
+                            ) : (
+                                <AddRoundedIcon />
+                            )}
+                        </Avatar>
+                    ) : (
+                        <Avatar
+                            sx={{ width: 30, height: 30, color: (theme) => theme.palette.getContrastText(order.agent?.color ?? '#4e4e4eff'), background: order.agent?.color ?? '#4e4e4eff' }}
+                        >
+                            {order.agent?.names ? (
+                                order.agent.names.charAt(0)
+                            ) : (
+                                <Box sx={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: grey[300] }}>
+                                    <AddRoundedIcon sx={{ color: grey[500] }} />
+                                </Box>
+                            )}
+                        </Avatar>
+                    )}
                 </Box>
                 {order.reminder_at && (
                     <Box sx={{ display: 'flex', alignItems: 'center', mt: 1, gap: 1 }}>
@@ -239,7 +334,30 @@ export const OrderItem: FC<OrderItemProps> = ({ order }) => {
                                     '100%': { transform: 'scale(1)' },
                                 }
                             }} />
-                            {new Date(order.reminder_at).toLocaleString()}
+                            R: {new Date(order.reminder_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        </TypographyCustom>
+                    </Box>
+                )}
+
+                {(order.status.description === 'Programado para mas tarde' || order.status.description === 'Reprogramado para hoy') && order.scheduled_for && (
+                    <Box sx={{ display: 'flex', alignItems: 'center', mt: 0.5, gap: 1 }}>
+                        <TypographyCustom variant="caption" sx={{
+                            color: new Date(order.scheduled_for) < new Date() ? 'error.main' : 'warning.main',
+                            fontWeight: 'bold',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 0.5
+                        }}>
+                            <NotificationsActiveRounded fontSize="small" sx={{
+                                color: new Date(order.scheduled_for) < new Date() ? 'error.main' : 'warning.main',
+                                animation: new Date(order.scheduled_for) < new Date() ? 'pulse-fast 1s infinite' : 'none',
+                                '@keyframes pulse-fast': {
+                                    '0%': { transform: 'scale(1)', opacity: 1 },
+                                    '50%': { transform: 'scale(1.3)', opacity: 0.7 },
+                                    '100%': { transform: 'scale(1)', opacity: 1 },
+                                }
+                            }} />
+                            Vence: {new Date(order.scheduled_for).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                         </TypographyCustom>
                     </Box>
                 )}
@@ -270,13 +388,28 @@ export const OrderItem: FC<OrderItemProps> = ({ order }) => {
                 onClose={() => setOpenAssignDeliverer(false)}
                 orderId={order.id}
             />
+
+            <NoveltyDialog
+                open={openNovelty}
+                onClose={() => setOpenNovelty(false)}
+                onSubmit={handleNoveltySubmit}
+            />
             {openPostpone && (
                 <PostponeOrderDialog
                     open={openPostpone}
-                    onClose={() => setOpenPostpone(false)}
+                    onClose={() => {
+                        setOpenPostpone(false);
+                        setTargetStatus("");
+                    }}
                     orderId={order.id}
+                    targetStatus={targetStatus}
                 />
             )}
+            <AssignAgencyDialog
+                open={openAssignAgency}
+                onClose={() => setOpenAssignAgency(false)}
+                orderId={order.id}
+            />
             <OrderDialog open={open} setOpen={setOpen} id={order.id} />
         </Box>
     );

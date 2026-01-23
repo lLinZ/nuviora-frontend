@@ -19,22 +19,21 @@ export const Layout: FC<Props> = ({ children, container = true }) => {
             <SideBar />
             {!container ? (
                 <Box sx={{
-                    margin: 'auto',
+                    flex: 1, // Usar flex: 1 para que ocupe el espacio restante sin desbordar
                     minHeight: '100vh',
-                    maxHeight: '100%',
                     p: 2,
                     background: (theme) => theme.palette.mode === 'dark' ? darken(user.color, 0.9) : lighten(user.color, 0.97),
+                    overflowX: 'hidden'
                 }}>
                     {children}
                 </Box>
             ) : (
                 <Box sx={{
-                    margin: 'auto',
+                    flex: 1, // Usar flex: 1 para que ocupe el espacio restante sin desbordar
                     minHeight: '100vh',
-                    maxHeight: '100%',
                     p: 2,
                     background: (theme) => theme.palette.mode === 'dark' ? darken(user.color, 0.9) : lighten(user.color, 0.97),
-                    width: '100%',
+                    overflowX: 'hidden'
                 }}>
                     {children}
                 </Box>

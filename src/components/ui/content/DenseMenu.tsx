@@ -1,7 +1,7 @@
 import { MoreHorizRounded, Check } from "@mui/icons-material";
-import { IconButton, Menu, MenuList, Divider, Chip, MenuItem, ListItemIcon, ListItemText, Box } from "@mui/material";
-import { purple, blue, green, red, grey, yellow } from "@mui/material/colors";
-import { Fragment, useState } from "react";
+import { IconButton, Menu, MenuList, Divider, Chip, MenuItem, ListItemIcon, ListItemText, Box, Tooltip } from "@mui/material";
+import { purple, blue, green, red, yellow } from "@mui/material/colors";
+import { useState } from "react";
 import { useUserStore } from "../../../store/user/UserStore";
 
 export default function DenseMenu({
@@ -27,28 +27,46 @@ export default function DenseMenu({
     const user = useUserStore((state) => state.user);
 
     const statuses: { id: number, description: string, color: string, roles: string[] }[] = [
-        { id: 16, description: 'Novedades', color: yellow[700], roles: ['Admin', 'Gerente', 'Repartidor', 'Agencia'] },
-        { id: 17, description: 'Novedad Solucionada', color: green[300], roles: ['Admin', 'Gerente', 'Vendedor'] },
-        { id: 1, description: 'Nuevo', color: purple[300], roles: ['Admin'] },
-        { id: 11, description: 'Reprogramado para hoy', color: green[500], roles: ['Admin', 'Gerente'] },
-        { id: 2, description: 'Asignado a vendedor', color: blue[500], roles: ['Admin', 'Gerente'] },
-        { id: 3, description: 'Llamado 1', color: green[500], roles: ['Admin', 'Gerente', 'Vendedor'] },
-        { id: 4, description: 'Llamado 2', color: red[500], roles: ['Admin', 'Gerente', 'Vendedor'] },
-        { id: 5, description: 'Llamado 3', color: purple[300], roles: ['Admin', 'Gerente', 'Vendedor'] },
-        { id: 6, description: 'Esperando ubicacion', color: blue[500], roles: ['Admin', 'Vendedor', 'Gerente',] },
-        { id: 7, description: 'Asignado a repartidor', color: green[500], roles: ['Admin', 'Gerente', 'Vendedor'] },
-        { id: 8, description: 'En ruta', color: red[500], roles: ['Admin', 'Gerente', 'Repartidor', 'Agencia'] },
-        { id: 9, description: 'Programado para mas tarde', color: purple[300], roles: ['Admin', 'Gerente', 'Vendedor', 'Repartidor'] },
-        { id: 10, description: 'Programado para otro dia', color: blue[500], roles: ['Admin', 'Gerente', 'Vendedor', 'Repartidor'] },
-        { id: 12, description: 'Cambio de ubicacion', color: red[500], roles: ['Admin', 'Gerente', 'Repartidor'] },
-        { id: 13, description: 'Rechazado', color: red[500], roles: ['Admin', 'Gerente', 'Repartidor'] },
-        { id: 14, description: 'Entregado', color: green[500], roles: ['Admin', 'Gerente', 'Repartidor', 'Agencia'] },
-        { id: 15, description: 'Cancelado', color: red[500], roles: ['Admin', 'Gerente', 'Vendedor'] },
+        { id: 18, description: 'Novedades', color: yellow[700], roles: ['Admin', 'Gerente', 'Repartidor', 'Agencia'] },
+        { id: 19, description: 'Novedad Solucionada', color: green[300], roles: ['Admin', 'Gerente', 'Vendedor'] },
+        { id: 3, description: 'Nuevo', color: purple[300], roles: ['Admin'] },
+        { id: 13, description: 'Reprogramado', color: green[500], roles: ['Admin', 'Gerente'] },
+        { id: 4, description: 'Asignado a vendedor', color: blue[500], roles: ['Admin', 'Gerente'] },
+        { id: 5, description: 'Llamado 1', color: green[500], roles: ['Admin', 'Gerente', 'Vendedor'] },
+        { id: 6, description: 'Llamado 2', color: red[500], roles: ['Admin', 'Gerente', 'Vendedor'] },
+        { id: 7, description: 'Llamado 3', color: purple[300], roles: ['Admin', 'Gerente', 'Vendedor'] },
+        { id: 24, description: 'Esperando Ubicacion', color: blue[500], roles: ['Admin', 'Vendedor', 'Gerente',] },
+        { id: 9, description: 'Asignado a repartidor', color: green[500], roles: ['Admin', 'Gerente', 'Vendedor', 'Agencia'] },
+        { id: 10, description: 'En ruta', color: red[500], roles: ['Admin', 'Gerente', 'Repartidor', 'Agencia'] },
+        { id: 11, description: 'Programado para mas tarde', color: purple[300], roles: ['Admin', 'Gerente', 'Vendedor', 'Repartidor'] },
+        { id: 12, description: 'Programado para otro dia', color: blue[500], roles: ['Admin', 'Gerente', 'Vendedor', 'Repartidor'] },
+        { id: 16, description: 'Entregado', color: green[500], roles: ['Admin', 'Gerente', 'Repartidor', 'Agencia'] },
+        { id: 17, description: 'Cancelado', color: red[500], roles: ['Admin', 'Gerente', 'Vendedor'] },
+        { id: 22, description: 'Asignar a agencia', color: blue[400], roles: ['Admin', 'Gerente', 'Vendedor'] },
     ];
+
+    // Statuses that Sellers can ALWAYS access without payment info
+    const SELLER_PUBLIC_STATUSES = [
+        'Llamado 1', 'Llamado 2', 'Llamado 3',
+        'Programado para otro dia', 'Programado para mas tarde',
+        'Cancelado', 'Novedad Solucionada', 'Esperando Ubicacion'
+    ];
+
+    const isSeller = user?.role?.description === 'Vendedor';
+    const totalPaid = data.payments?.reduce((acc: number, p: any) => acc + Number(p.amount), 0) || 0;
+    const currentTotal = Number(data.current_total_price || 0);
+    const changeAmount = totalPaid - currentTotal;
+
+    // Valid only if:
+    // 1. Payment is exact (change = 0)
+    // 2. OR There is a surplus (change > 0) AND we know who covers it
+    // 3. (If change < 0, there is a debt, so it stays invalid for logistics)
+    const hasChangeInfo = (Math.abs(changeAmount) < 0.01) || (changeAmount > 0 && !!data.change_covered_by);
+    const hasPayments = totalPaid > 0;
+
     return (
         <>
             {icon ? (
-
                 <IconButton onClick={handleClick}>
                     <MoreHorizRounded />
                 </IconButton>
@@ -77,16 +95,64 @@ export default function DenseMenu({
                     <Divider textAlign="left">
                         <Chip label="Status" size="small" />
                     </Divider>
-                    {statuses.map((status) => (
-                        user && status.roles.includes(user.role?.description ?? '') && (
+                    {statuses.map((status) => {
+                        const isAllowedByRole = user && status.roles.includes(user.role?.description ?? '');
+                        if (!isAllowedByRole) return null;
+
+                        // Constraint logic for Sellers
+                        let isDisabled = false;
+                        let tooltipTitle = "";
+
+                        // 🔒 En Ruta Lock: Only forward to Delivered or Novedades
+                        if (data.status?.description === 'En ruta') {
+                            if (status.description !== 'Entregado' && status.description !== 'Novedades') {
+                                isDisabled = true;
+                                tooltipTitle = "Orden En Ruta solo puede pasar a Entregado o Novedades 🔒";
+                            }
+                        }
+
+                        // 🔒 Agencia Novedades Lock
+                        if (data.status?.description === 'Novedades' && user?.role?.description === 'Agencia') {
+                            isDisabled = true;
+                            tooltipTitle = "Agencia no puede gestionar Novedades 🚫";
+                        }
+
+                        // 🔒 Vendedor Novedades Lock
+                        if (data.status?.description === 'Novedades' && user?.role?.description === 'Vendedor') {
+                            // Can resolve OR cancel
+                            if (status.description !== 'Novedad Solucionada' && status.description !== 'Cancelado') {
+                                isDisabled = true;
+                                tooltipTitle = "Solo puede marcar como Novedad Solucionada o Cancelado ⚠️";
+                            }
+                        }
+
+                        // 🔒 Vendedor Novedad Solucionada Lock
+                        if (data.status?.description === 'Novedad Solucionada' && user?.role?.description === 'Vendedor') {
+                            if (status.description !== 'Programado para mas tarde' && status.description !== 'Programado para otro dia') {
+                                isDisabled = true;
+                                tooltipTitle = "Desde Solucionada solo puede reprogramar (Otro día / Más tarde) 📅";
+                            }
+                        }
+
+                        if (!isDisabled && isSeller && !SELLER_PUBLIC_STATUSES.includes(status.description)) {
+                            if (!hasPayments || !hasChangeInfo) {
+                                isDisabled = true;
+                                tooltipTitle = "Debe registrar pagos y vuelto antes de cambiar a este estado";
+                            }
+                        }
+
+                        const menuItem = (
                             <MenuItem
                                 key={status.id}
+                                disabled={isDisabled}
                                 onClick={() => {
-                                    changeStatus(status.description, status.id);
-                                    handleClose();
+                                    if (!isDisabled) {
+                                        changeStatus(status.description, status.id);
+                                        handleClose();
+                                    }
                                 }}
                             >
-                                {status.description === data.status ? (
+                                {status.description === data.status?.description ? (
                                     <>
                                         <ListItemIcon>
                                             <Check sx={{ color: status.color }} />
@@ -98,8 +164,15 @@ export default function DenseMenu({
                                         {status.description}
                                     </ListItemText>
                                 )}
-                            </MenuItem>)
-                    ))}
+                            </MenuItem>
+                        );
+
+                        return isDisabled ? (
+                            <Tooltip key={status.id} title={tooltipTitle} placement="left" arrow>
+                                <span>{menuItem}</span>
+                            </Tooltip>
+                        ) : menuItem;
+                    })}
                 </MenuList>
             </Menu>
         </>

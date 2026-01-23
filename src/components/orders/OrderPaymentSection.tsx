@@ -6,6 +6,7 @@ import DownloadIcon from "@mui/icons-material/Download";
 import ZoomInIcon from "@mui/icons-material/ZoomIn";
 import ZoomOutIcon from "@mui/icons-material/ZoomOut";
 import FullscreenIcon from "@mui/icons-material/Fullscreen";
+import ReceiptLongRounded from "@mui/icons-material/ReceiptLongRounded";
 import PaymentMethodsSelector, { PaymentMethod } from "./payment_method/PaymentMethod";
 import { request } from "../../common/request";
 import { toast } from "react-toastify";
@@ -15,9 +16,11 @@ import { useUserStore } from "../../store/user/UserStore";
 
 interface OrderPaymentSectionProps {
     order: any;
+    onPaymentsChange?: (payments: PaymentMethod[]) => void;
+    onUpdate?: () => void;
 }
 
-export const OrderPaymentSection: React.FC<OrderPaymentSectionProps> = ({ order }) => {
+export const OrderPaymentSection: React.FC<OrderPaymentSectionProps> = ({ order, onPaymentsChange, onUpdate }) => {
     const user = useUserStore((state) => state.user);
     const [uploading, setUploading] = useState(false);
     const [receiptPreview, setReceiptPreview] = useState<string | null>(null);
@@ -53,6 +56,7 @@ export const OrderPaymentSection: React.FC<OrderPaymentSectionProps> = ({ order 
             if (status) {
                 const data = await response.json();
                 toast.success(data.message || "Pagos actualizados correctamente");
+                if (onUpdate) onUpdate();
             } else {
                 toast.error("Error al guardar los pagos");
             }
@@ -96,7 +100,7 @@ export const OrderPaymentSection: React.FC<OrderPaymentSectionProps> = ({ order 
                 toast.success(data.message || 'Comprobante subido exitosamente');
                 setReceiptPreview(data.payment_receipt_url);
                 // Reload order to get updated data
-                window.location.reload();
+                if (onUpdate) onUpdate();
             } else {
                 const errorData = await response.json().catch(() => ({ message: 'Error al subir el comprobante' }));
                 toast.error(errorData.message || 'Error al subir el comprobante');
@@ -217,38 +221,50 @@ export const OrderPaymentSection: React.FC<OrderPaymentSectionProps> = ({ order 
         <Box sx={{ display: "flex", flexDirection: "column", gap: 2, mb: 3, width: "100%" }}>
 
             {/* Sección de Pagos Registrados (Read-only) */}
-            <Box sx={{ mb: 1, p: 2, bgcolor: 'background.paper', borderRadius: 1, boxShadow: 1 }}>
-                <Typography variant="h6" sx={{ mb: 1, fontSize: '1rem', fontWeight: 600 }}>
-                    Pagos Registrados
+            <Box sx={{
+                mb: 1, p: 2,
+                bgcolor: 'background.paper',
+                borderRadius: 3,
+                border: '1px solid',
+                borderColor: 'divider',
+                boxShadow: '0 2px 8px rgba(0,0,0,0.02)'
+            }}>
+                <Typography variant="subtitle2" sx={{ mb: 1.5, fontWeight: 'bold', color: 'text.secondary', display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <ReceiptLongRounded sx={{ fontSize: '1rem' }} /> PAGOS REGISTRADOS
                 </Typography>
                 {order.payments && order.payments.length > 0 ? (
-                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
                         {order.payments.map((p: any, index: number) => (
-                            <Box key={index} sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', p: 1, borderBottom: '1px solid #eee' }}>
+                            <Box key={index} sx={{
+                                display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                                p: 1.5, borderRadius: 2,
+                                bgcolor: 'action.hover',
+                                mb: 0.5
+                            }}>
                                 <Box>
                                     <Typography variant="body2" fontWeight="bold">
                                         {p.method.replace(/_/g, " ")}
                                     </Typography>
-                                    {p.rate && (
-                                        <Typography variant="caption" color="text.secondary">
-                                            Tasa: {p.rate}
+                                    {(p.usd_rate || p.rate) && (
+                                        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', fontSize: '0.7rem' }}>
+                                            Tasa: {p.usd_rate || p.rate}
                                         </Typography>
                                     )}
                                 </Box>
-                                <Typography variant="body1">
+                                <Typography variant="body2" fontWeight="black" color="success.main">
                                     {Number(p.amount).toLocaleString('en-US', { style: 'currency', currency: 'USD' })}
                                 </Typography>
                             </Box>
                         ))}
                     </Box>
                 ) : (
-                    <Typography variant="body2" color="text.secondary">
-                        No hay pagos registrados.
+                    <Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic', textAlign: 'center', py: 2 }}>
+                        No hay pagos registrados aún.
                     </Typography>
                 )}
             </Box>
 
-            {user.role?.description !== 'Repartidor' && (
+            {!['Repartidor', 'Agencia'].includes(user.role?.description || '') && (
                 <>
                     <Typography variant="subtitle2" sx={{ mt: 1, mb: 0.5 }}>
                         Editar / Agregar Pagos:
@@ -256,6 +272,7 @@ export const OrderPaymentSection: React.FC<OrderPaymentSectionProps> = ({ order 
                     <PaymentMethodsSelector
                         key={JSON.stringify(order.payments)} // Force re-render when payments change due to fetch
                         onSave={handleSavePayments}
+                        onChange={onPaymentsChange}
                         initialValue={initialPayments}
                         totalPrice={Number(order.current_total_price)}
                     />

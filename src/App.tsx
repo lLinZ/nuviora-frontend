@@ -27,6 +27,7 @@ import { EarningsAdmin } from './pages/money/EarningsAdmin';
 import { MyEarningsPage } from './pages/money/EarningsMyPage';
 import { Shops } from './pages/shops/Shops';
 import { Metrics } from './pages/Metrics';
+import { BusinessMetrics } from './pages/BusinessMetrics';
 import { Cities } from './pages/Cities';
 
 const useGetTheme = () => {
@@ -75,6 +76,7 @@ function App() {
           <Route path="/deliverers/stock" element={<DelivererStock />} />
           <Route path="/shops" element={<Shops />} />
           <Route path="/metrics" element={<Metrics />} />
+          <Route path="/business-metrics" element={<BusinessMetrics />} />
           <Route path="/cities" element={<Cities />} />
         </Routes>
       </BrowserRouter>

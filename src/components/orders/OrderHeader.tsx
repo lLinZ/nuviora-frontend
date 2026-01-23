@@ -1,124 +1,157 @@
 import React, { ChangeEvent } from "react";
-import { Avatar, Box, Chip, CircularProgress, Typography } from "@mui/material";
-import { TypographyCustom, TextFieldCustom } from "../custom";
+import { Box, Typography, Grid, Stack, IconButton, Tooltip, Paper } from "@mui/material";
+import { TextFieldCustom } from "../custom";
 import { Link } from "react-router-dom";
-import DenseMenu from "../ui/content/DenseMenu";
+import PersonIcon from '@mui/icons-material/Person';
+import PhoneIcon from '@mui/icons-material/Phone';
+import LocationOnIcon from '@mui/icons-material/LocationOn';
+import StorefrontIcon from '@mui/icons-material/Storefront';
+import LocalShippingIcon from '@mui/icons-material/LocalShipping';
+import MapIcon from '@mui/icons-material/Map';
 
 interface OrderHeaderProps {
     order: any;
     user: any;
-    changeStatus: (status: string, statusId: number) => void;
     newLocation: string;
     sendLocation: () => Promise<void>;
     handleChangeNewLocation: (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => void;
+    onEditLogistics?: () => void;
 }
 
 export const OrderHeader: React.FC<OrderHeaderProps> = ({
     order,
     user,
-    changeStatus,
     newLocation,
     sendLocation,
-    handleChangeNewLocation
+    handleChangeNewLocation,
+    onEditLogistics,
 }) => {
     return (
-        <Box sx={{ paddingBlock: 4, display: 'flex', flexFlow: 'column wrap', justifyContent: 'center', alignItems: 'center' }}>
-            {order.products?.length > 0 ? (
-                <Avatar
-                    src={order.products[0].image || undefined}
-                    alt={order.products[0].title}
-                    variant="rounded"
-                    sx={{ width: 150, height: 150, mb: 2, borderRadius: '50%' }}
-                >
-                    {!order.products[0].image && (order.products[0].title?.charAt(0) ?? "P")}
-                </Avatar>
-            ) : (
-                <Avatar
-                    variant="rounded"
-                    sx={{ width: 150, height: 150, mb: 2, borderRadius: '50%' }}
-                >
-                    <CircularProgress />
-                </Avatar>
-            )}
+        <Grid container spacing={4}>
+            {/* 👤 SECCIÓN CLIENTE */}
+            <Grid size={{ xs: 12, sm: 6 }}>
+                <Typography variant="overline" color="text.secondary" fontWeight="bold">Detalles del Cliente</Typography>
+                <Stack spacing={2} sx={{ mt: 1 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                        <Paper elevation={0} sx={{ p: 1, bgcolor: 'primary.main', color: 'white', borderRadius: 2 }}>
+                            <PersonIcon fontSize="small" />
+                        </Paper>
+                        <Box>
+                            <Typography variant="caption" color="text.secondary" display="block">Nombre</Typography>
+                            <Typography variant="body1" fontWeight="bold">
+                                {order.client?.first_name} {order.client?.last_name}
+                            </Typography>
+                        </Box>
+                    </Box>
 
-            <Box sx={{ display: 'flex', gap: 2 }}>
-                <TypographyCustom variant="h5">Orden {order.name}</TypographyCustom>
-                <DenseMenu
-                    data={order}
-                    changeStatus={changeStatus}
-                    icon={false}
-                    customComponent={
-                        <Chip
-                            sx={{
-                                cursor: 'pointer',
-                                background: user.color,
-                                color: (theme) => theme.palette.getContrastText(user.color)
-                            }}
-                            label={`Status ${order.status.description}`}
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                        <Paper elevation={0} sx={{ p: 1, bgcolor: 'success.main', color: 'white', borderRadius: 2 }}>
+                            <PhoneIcon fontSize="small" />
+                        </Paper>
+                        <Box>
+                            <Typography variant="caption" color="text.secondary" display="block">Teléfono</Typography>
+                            <Typography variant="body1" fontWeight="bold">
+                                {order.client?.phone}
+                            </Typography>
+                        </Box>
+                    </Box>
+
+                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                            <Paper elevation={0} sx={{ p: 1, bgcolor: 'warning.main', color: 'white', borderRadius: 2 }}>
+                                <LocationOnIcon fontSize="small" />
+                            </Paper>
+                            <Box>
+                                <Typography variant="caption" color="text.secondary" display="block">Provincia / Ciudad</Typography>
+                                <Typography variant="body1" fontWeight="bold">
+                                    {order.city?.name || order.client?.city || 'No especificada'}
+                                </Typography>
+                            </Box>
+                        </Box>
+                        {['Admin', 'Gerente'].includes(user.role?.description || '') && onEditLogistics && (
+                            <Tooltip title="Editar Ciudad">
+                                <IconButton size="small" onClick={onEditLogistics} sx={{ color: user.color }}>
+                                    <MapIcon fontSize="small" />
+                                </IconButton>
+                            </Tooltip>
+                        )}
+                    </Box>
+                </Stack>
+            </Grid>
+
+            {/* 🚚 SECCIÓN LOGÍSTICA */}
+            <Grid size={{ xs: 12, sm: 6 }}>
+                <Typography variant="overline" color="text.secondary" fontWeight="bold">Logística y Entrega</Typography>
+                <Stack spacing={2} sx={{ mt: 1 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                        <Paper elevation={0} sx={{ p: 1, bgcolor: 'secondary.main', color: 'white', borderRadius: 2 }}>
+                            <StorefrontIcon fontSize="small" />
+                        </Paper>
+                        <Box>
+                            <Typography variant="caption" color="text.secondary" display="block">Vendedor Asignado</Typography>
+                            <Typography variant="body1" fontWeight="bold">
+                                {order.agent?.names || 'Pendiente de asignar'}
+                            </Typography>
+                        </Box>
+                    </Box>
+
+                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                            <Paper elevation={0} sx={{ p: 1, bgcolor: 'info.main', color: 'white', borderRadius: 2 }}>
+                                <LocalShippingIcon fontSize="small" />
+                            </Paper>
+                            <Box>
+                                <Typography variant="caption" color="text.secondary" display="block">Logística / Agencia</Typography>
+                                <Typography variant="body1" fontWeight="bold">
+                                    {order.deliverer?.names || (order.agency?.names ? `Agencia: ${order.agency.names}` : 'Sin asignar')}
+                                </Typography>
+                            </Box>
+                        </Box>
+                        {['Admin', 'Gerente'].includes(user.role?.description || '') && onEditLogistics && (
+                            <Tooltip title="Editar Logística">
+                                <IconButton size="small" onClick={onEditLogistics} sx={{ color: user.color }}>
+                                    <StorefrontIcon fontSize="small" />
+                                </IconButton>
+                            </Tooltip>
+                        )}
+                    </Box>
+
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                        <Paper elevation={0} sx={{ p: 1, bgcolor: 'error.main', color: 'white', borderRadius: 2 }}>
+                            <MapIcon fontSize="small" />
+                        </Paper>
+                        <Box sx={{ flex: 1 }}>
+                            <Typography variant="caption" color="text.secondary" display="block">Link de Ubicación</Typography>
+                            {order.location ? (
+                                <Link to={order.location} target="_blank" style={{ textDecoration: 'none', color: user.color }}>
+                                    <Typography variant="body2" fontWeight="bold" sx={{ textDecoration: 'underline' }}>
+                                        Abrir en Google Maps
+                                    </Typography>
+                                </Link>
+                            ) : (
+                                <Typography variant="body2" color="error" fontWeight="bold">Pendiente de Link</Typography>
+                            )}
+                        </Box>
+                    </Box>
+                </Stack>
+            </Grid>
+
+            {/* 📍 INPUT DE UBICACIÓN (SI ES VENDEDOR O ADMIN) */}
+            {!(user.role?.description === 'Repartidor' || user.role?.description === 'Agencia') && (
+                <Grid size={{ xs: 12 }}>
+                    <Box sx={{ mt: 2 }}>
+                        <TextFieldCustom
+                            onBlur={sendLocation}
+                            onChange={handleChangeNewLocation}
+                            value={newLocation}
+                            label="Actualizar Enlace de Google Maps"
+                            fullWidth
+                            variant="outlined"
+                            placeholder="Pega aquí el link de la ubicación exacta..."
                         />
-                    }
-                />
-            </Box>
-
-            <TypographyCustom>
-                Cliente: {order.client.first_name} {order.client.last_name}
-            </TypographyCustom>
-
-            <TypographyCustom
-                variant="subtitle2"
-                color="text.secondary"
-                sx={{
-                    maxWidth: "200px",
-                    whiteSpace: "nowrap",
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
-                }}
-            >
-                {order.client.phone}
-            </TypographyCustom>
-
-            <TypographyCustom
-                variant="subtitle2"
-                color="text.secondary"
-                sx={{
-                    maxWidth: "200px",
-                    whiteSpace: "nowrap",
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
-                }}
-            >
-                {order.client.province}
-            </TypographyCustom>
-
-            <TypographyCustom>
-                Total: {order.current_total_price} {order.currency}
-            </TypographyCustom>
-
-            {/** Vendedor */}
-            {order.agent && <TypographyCustom>Vendedor: {order.agent.names}</TypographyCustom>}
-
-            {/** Repartidor */}
-            {order.deliverer && <TypographyCustom>Repartidor: {order.deliverer.names}</TypographyCustom>}
-
-            {/** Ubicacion */}
-            {(user.role?.description === 'Repartidor' || user.role?.description === 'Agencia') ? (
-                (order.location ? (
-                    <Link to={order.location} target="_blank" style={{ textDecoration: 'none' }}>
-                        <TypographyCustom fontWeight={'bold'} sx={{ color: user.color }}>{order.location}</TypographyCustom>
-                    </Link>
-                ) : (
-                    <TypographyCustom color="error">No hay ubicacion asignada aun</TypographyCustom>
-                ))
-            ) : (
-                <Box sx={{ display: 'flex', flexFlow: 'row nowrap', gap: 1, justifyContent: 'space-evenly', alignItems: 'center' }}>
-                    <TextFieldCustom
-                        onBlur={sendLocation}
-                        onChange={handleChangeNewLocation}
-                        value={newLocation}
-                        label="Ubicacion"
-                    />
-                </Box>
+                    </Box>
+                </Grid>
             )}
-        </Box>
+        </Grid>
     );
 };

@@ -33,6 +33,11 @@ export const Metrics = () => {
     });
 
     const fetchMetrics = async () => {
+        // Validation: Ensure year is reasonable to avoid server crashes
+        const startYear = parseInt(startDate.split('-')[0]);
+        const endYear = parseInt(endDate.split('-')[0]);
+        if (isNaN(startYear) || startYear < 2000 || isNaN(endYear) || endYear < 2000) return;
+
         setLoading(true);
         try {
             const queryParams = new URLSearchParams({
@@ -69,7 +74,10 @@ export const Metrics = () => {
                 request("/cities", "GET"),
                 request("/users/role/Agencia", "GET")
             ]);
-            if (shopsRes.status) setShops(await shopsRes.response.json());
+            if (shopsRes.status) {
+                const data = await shopsRes.response.json();
+                setShops(data.data || data);
+            }
             if (citiesRes.status) setCities(await citiesRes.response.json());
             if (agenciesRes.status) setAgencies((await agenciesRes.response.json()).data);
         } catch (e) { }

@@ -14,23 +14,35 @@ interface Props {
     open: boolean;
     onClose: () => void;
     orderId?: number;
+    targetStatus?: string;
 }
 
-export const PostponeOrderDialog: FC<Props> = ({ open, onClose, orderId }) => {
+export const PostponeOrderDialog: FC<Props> = ({ open, onClose, orderId, targetStatus }) => {
     const { updateOrder } = useOrdersStore();
     const [scheduledFor, setScheduledFor] = useState<string>("");
     const [reason, setReason] = useState<string>("");
     const [loading, setLoading] = useState(false);
 
+    const isTodayOnly = targetStatus === "Programado para mas tarde";
+
     const handlePostpone = async () => {
         if (!orderId) return;
         if (!scheduledFor) {
-            toast.error("Debes seleccionar fecha y hora");
+            toast.error("Debes seleccionar " + (isTodayOnly ? "la hora" : "fecha y hora"));
             return;
         }
+
         setLoading(true);
         const body = new URLSearchParams();
-        body.append("scheduled_for", scheduledFor);
+
+        let finalScheduled = scheduledFor;
+        // Si solo capturamos hora (HH:mm), lo unimos a la fecha de hoy
+        if (isTodayOnly && scheduledFor.length === 5) {
+            const today = new Date().toISOString().split('T')[0];
+            finalScheduled = `${today}T${scheduledFor}`;
+        }
+
+        body.append("scheduled_for", finalScheduled);
         if (reason.trim()) body.append("reason", reason.trim());
 
         try {
@@ -41,7 +53,7 @@ export const PostponeOrderDialog: FC<Props> = ({ open, onClose, orderId }) => {
             );
             if (status) {
                 const data = await response.json();
-                updateOrder(data.order); // trae status + scheduled_for
+                updateOrder(data.order);
                 toast.success("Orden pospuesta correctamente ✅");
                 setReason("");
                 setScheduledFor("");
@@ -59,7 +71,7 @@ export const PostponeOrderDialog: FC<Props> = ({ open, onClose, orderId }) => {
     return (
         <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
             <DialogTitle sx={{ display: "flex", justifyContent: "space-between" }}>
-                Posponer orden
+                {isTodayOnly ? "Programar para más tarde" : "Programar para otro día"}
                 <IconButton onClick={onClose}>
                     <CloseRoundedIcon />
                 </IconButton>
@@ -67,12 +79,13 @@ export const PostponeOrderDialog: FC<Props> = ({ open, onClose, orderId }) => {
 
             <DialogContent sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
                 <TextField
-                    label="Fecha y hora"
-                    type="datetime-local"
+                    label={isTodayOnly ? "Seleccionar hora para hoy" : "Fecha y hora"}
+                    type={isTodayOnly ? "time" : "datetime-local"}
                     value={scheduledFor}
                     onChange={(e) => setScheduledFor(e.target.value)}
                     InputLabelProps={{ shrink: true }}
                     fullWidth
+                    helperText={isTodayOnly ? "La orden se mantendrá programada para la fecha actual." : ""}
                 />
                 <TextFieldCustom
                     label="Motivo (opcional)"

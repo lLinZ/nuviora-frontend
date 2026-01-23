@@ -34,8 +34,11 @@ export const Roster: React.FC = () => {
             const { status, response }: IResponse = await request("/shops", "GET");
             if (status) {
                 const data = await response.json();
-                setShops(data);
-                if (data.length > 0) setSelectedShopId(data[0].id);
+                const shopsData = data.data || data || [];
+                setShops(Array.isArray(shopsData) ? shopsData : []);
+                if (Array.isArray(shopsData) && shopsData.length > 0) {
+                    setSelectedShopId(shopsData[0].id);
+                }
             }
         } catch (e) {
             toast.error("Error al cargar tiendas");
