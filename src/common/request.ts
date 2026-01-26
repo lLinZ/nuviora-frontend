@@ -2,7 +2,7 @@ import { getCookieValue } from "../lib/functions";
 import { useUserStore } from "../store/user/UserStore";
 
 type Method = "POST" | "GET" | "PUT" | "DELETE";
-type BodyType = URLSearchParams | FormData | string | undefined;
+type BodyType = URLSearchParams | FormData | string | any | undefined;
 
 export const request = async (
     _url: string,

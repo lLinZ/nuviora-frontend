@@ -21,7 +21,8 @@ export const AddUserDialog = ({ open, onClose, onUserAdded, defaultRole }: AddUs
         phone: '',
         password: '',
         address: '',
-        role_id: ''
+        role_id: '',
+        delivery_cost: ''
     });
 
     useEffect(() => {
@@ -96,7 +97,8 @@ export const AddUserDialog = ({ open, onClose, onUserAdded, defaultRole }: AddUs
             phone: '',
             password: '',
             address: '',
-            role_id: ''
+            role_id: '',
+            delivery_cost: ''
         });
         onClose();
     }
@@ -190,6 +192,19 @@ export const AddUserDialog = ({ open, onClose, onUserAdded, defaultRole }: AddUs
                         multiline
                         rows={2}
                     />
+
+                    {roles.find(r => r.id === formData.role_id)?.description === 'Agencia' && (
+                        <TextField
+                            label="Costo de Delivery (Comisión)"
+                            name="delivery_cost"
+                            type="number"
+                            value={formData.delivery_cost}
+                            onChange={handleChange}
+                            fullWidth
+                            variant="outlined"
+                            helperText="Se generará esta comisión cada vez que una orden pase a 'En ruta'"
+                        />
+                    )}
 
                     <TextField
                         label="Contraseña"

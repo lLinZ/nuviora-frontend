@@ -41,11 +41,13 @@ export const CreateWarehouseDialog: React.FC<CreateWarehouseDialogProps> = ({ op
     const [isMain, setIsMain] = useState(false);
     const [userId, setUserId] = useState<number | ''>('');
     const [deliverers, setDeliverers] = useState<any[]>([]);
+    const [agencies, setAgencies] = useState<any[]>([]);
 
     useEffect(() => {
         if (open) {
             loadTypes();
             loadDeliverers();
+            loadAgencies();
             if (warehouse) {
                 setName(warehouse.name);
                 setCode(warehouse.code);
@@ -69,6 +71,18 @@ export const CreateWarehouseDialog: React.FC<CreateWarehouseDialogProps> = ({ op
             }
         } catch (error) {
             console.error('Error loading deliverers:', error);
+        }
+    };
+
+    const loadAgencies = async () => {
+        try {
+            const { status, response }: IResponse = await request('/users/role/Agencia', 'GET');
+            if (status) {
+                const data = await response.json();
+                setAgencies(data.data || []);
+            }
+        } catch (error) {
+            console.error('Error loading agencies:', error);
         }
     };
 
@@ -149,6 +163,11 @@ export const CreateWarehouseDialog: React.FC<CreateWarehouseDialogProps> = ({ op
         }
     };
 
+    // Helper to determine active selection list and label
+    const selectedTypeCode = typeId ? types.find(t => t.id === typeId)?.code : '';
+    const isDelivererType = selectedTypeCode === 'DELIVERER';
+    const isAgencyType = selectedTypeCode === 'AGENCY';
+
     return (
         <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
             <DialogTitle>{warehouse ? 'Editar Almacén' : 'Nuevo Almacén'}</DialogTitle>
@@ -186,19 +205,19 @@ export const CreateWarehouseDialog: React.FC<CreateWarehouseDialogProps> = ({ op
                         ))}
                     </TextField>
 
-                    {typeId && types.find(t => t.id === typeId)?.code === 'DELIVERER' && (
+                    {(isDelivererType || isAgencyType) && (
                         <TextField
                             select
                             fullWidth
-                            label="Asignar a Repartidor"
+                            label={isAgencyType ? "Asignar a Agencia" : "Asignar a Repartidor"}
                             value={userId}
                             onChange={(e) => setUserId(Number(e.target.value))}
                             required
-                            helperText="Este almacén representará el stock de este repartidor"
+                            helperText={isAgencyType ? "Este almacén registrará el stock de esta agencia" : "Este almacén representará el stock de este repartidor"}
                         >
-                            {deliverers.map((user) => (
+                            {(isAgencyType ? agencies : deliverers).map((user) => (
                                 <MenuItem key={user.id} value={user.id}>
-                                    {user.names} {user.surnames} ({user.email})
+                                    {user.names} {user.surnames} {user.email ? `(${user.email})` : ''}
                                 </MenuItem>
                             ))}
                         </TextField>

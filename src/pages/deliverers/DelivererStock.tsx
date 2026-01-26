@@ -47,7 +47,11 @@ interface DelivererStockProduct {
     quantity: number;
 }
 
-export const DelivererStock: React.FC = () => {
+interface Props {
+    isEmbedded?: boolean;
+}
+
+export const DelivererStock: React.FC<Props> = ({ isEmbedded }) => {
     const { user } = useUserStore.getState();
     const { loadingSession, isValid } = useValidateSession();
 
@@ -61,8 +65,6 @@ export const DelivererStock: React.FC = () => {
     // cantidades que escribes en los inputs
     const [assignQty, setAssignQty] = useState<Record<number, number>>({});
     const [returnQty, setReturnQty] = useState<Record<number, number>>({});
-
-
 
     // 🔹 Cargar repartidores + inventario al montar
     useEffect(() => {
@@ -165,8 +167,7 @@ export const DelivererStock: React.FC = () => {
                     toast.error(message);
                     break;
 
-            }                // limpiar input para ese producto
-
+            }
         } catch (err) {
             console.error(err);
             toast.error("Error en servidor al asignar stock 🚨");
@@ -224,17 +225,12 @@ export const DelivererStock: React.FC = () => {
     if (loadingSession || !isValid || !user.token) {
         return <Loading />;
     }
-    return (
-        <Layout>
+
+    const content = (
+        <Box sx={{ p: isEmbedded ? 0 : 2 }}>
             {loading && <Loading />}
 
-            <DescripcionDeVista
-                title="Stock de repartidores"
-                description="Asigna y controla el stock diario de cada repartidor."
-            />
-
-            {/* Selector de repartidor */}
-            <Box sx={{ mb: 3, display: "flex", gap: 2 }}>
+            <Box sx={{ mb: 3, display: "flex", gap: 2, flexWrap: 'wrap' }}>
                 <FormControl size="small" sx={{ minWidth: 260 }}>
                     <InputLabel id="deliverer-select-label">Repartidor</InputLabel>
                     <Select
@@ -434,6 +430,19 @@ export const DelivererStock: React.FC = () => {
                     </Paper>
                 </Grid>
             </Grid>
+        </Box>
+    );
+
+    if (isEmbedded) return content;
+
+    return (
+        <Layout>
+            <DescripcionDeVista
+                title="Stock de repartidores"
+                description="Asigna y controla el stock diario de cada repartidor."
+            />
+            {content}
         </Layout>
     );
 };
+

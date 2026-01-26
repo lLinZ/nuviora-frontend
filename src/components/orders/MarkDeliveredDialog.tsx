@@ -1,119 +1,104 @@
-import React, { useState, useEffect } from "react";
-import { Dialog, DialogTitle, DialogContent, DialogActions, TextField, Button, MenuItem, Typography, Box, Divider } from "@mui/material";
+import React from "react";
+import { Dialog, DialogTitle, DialogContent, DialogActions, Button, Typography, Box, Divider } from "@mui/material";
 import { fmtMoney } from "../../lib/money";
 
 interface MarkDeliveredDialogProps {
     open: boolean;
     onClose: () => void;
     onConfirm: (data: any) => void;
-    totalUSD: number;
+    order: any;
     binanceRate: number;
-    isCash: boolean;
 }
 
 export const MarkDeliveredDialog: React.FC<MarkDeliveredDialogProps> = ({
     open,
     onClose,
     onConfirm,
-    totalUSD,
-    binanceRate,
-    isCash
+    order,
+    binanceRate
 }) => {
-    const [cashReceived, setCashReceived] = useState<number>(totalUSD);
-    const [changeCoveredBy, setChangeCoveredBy] = useState<string>("agency");
-    const [changeCompany, setChangeCompany] = useState<number>(0);
-    const [changeAgency, setChangeAgency] = useState<number>(0);
+    if (!order) return null;
 
-    const changeAmount = Math.max(0, cashReceived - totalUSD);
+    const cashMethods = ['DOLARES_EFECTIVO', 'BOLIVARES_EFECTIVO', 'EUROS_EFECTIVO'];
 
-    useEffect(() => {
-        if (changeCoveredBy === "agency") {
-            setChangeAgency(changeAmount);
-            setChangeCompany(0);
-        } else if (changeCoveredBy === "company") {
-            setChangeCompany(changeAmount);
-            setChangeAgency(0);
-        }
-    }, [changeAmount, changeCoveredBy]);
+    // Sumamos el efectivo REAL registrado en los pagos
+    const cashReceived = order.payments?.filter((p: any) => cashMethods.includes(p.method))
+        .reduce((acc: number, p: any) => acc + Number(p.amount), 0) || 0;
+
+    const totalPaid = order.payments?.reduce((acc: number, p: any) => acc + Number(p.amount), 0) || 0;
+    const totalUSD = Number(order.current_total_price || 0);
+
+    // El vuelto se calcula sobre el total pagado vs el total de la orden
+    const changeAmount = Math.max(0, totalPaid - totalUSD);
+    const hasChange = changeAmount > 0.01;
+
+    // Tomamos los valores que YA están registrados en la orden
+    const changeCoveredBy = order.change_covered_by || "agency";
+    const changeAmountCompany = order.change_amount_company || 0;
+    const changeAmountAgency = order.change_amount_agency || 0;
 
     const handleConfirm = () => {
+        // Enviamos exactamente lo que ya está en la orden para que el backend valide correctamente
         onConfirm({
             cash_received: cashReceived,
             change_covered_by: changeCoveredBy,
-            change_amount_company: changeCompany,
-            change_amount_agency: changeAgency,
+            change_amount_company: changeAmountCompany,
+            change_amount_agency: changeAmountAgency,
         });
     };
 
     return (
         <Dialog open={open} onClose={onClose} fullWidth maxWidth="xs">
-            <DialogTitle>Marcar como Entregado</DialogTitle>
+            <DialogTitle sx={{ textAlign: 'center', fontWeight: 'bold' }}>Resumen de Entrega</DialogTitle>
             <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>
-                <Typography variant="subtitle2" color="text.secondary">
-                    Total a pagar: <b>{fmtMoney(totalUSD, 'USD')}</b> / ≈ {fmtMoney(totalUSD * binanceRate, 'VES')}
+
+                <Box sx={{ p: 2, bgcolor: 'action.hover', borderRadius: 3, border: '1px dashed', borderColor: 'divider' }}>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                        <Typography variant="body2" color="text.secondary">Total Orden:</Typography>
+                        <Typography variant="body2" fontWeight="bold">{fmtMoney(totalUSD, 'USD')}</Typography>
+                    </Box>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                        <Typography variant="body2" color="text.secondary">Total Pagado:</Typography>
+                        <Typography variant="body2" fontWeight="bold" color="success.main">
+                            {fmtMoney(totalPaid, 'USD')}
+                        </Typography>
+                    </Box>
+                    <Divider sx={{ my: 1 }} />
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <Typography variant="body2" color="text.secondary">Efectivo Recibido:</Typography>
+                        <Typography variant="body2" fontWeight="bold" color="primary">{fmtMoney(cashReceived, 'USD')}</Typography>
+                    </Box>
+                </Box>
+
+                {hasChange ? (
+                    <Box sx={{ p: 2, bgcolor: 'warning.light', borderRadius: 2, color: 'warning.contrastText' }}>
+                        <Typography variant="subtitle2" align="center" fontWeight="bold">
+                            VUELTO REGISTRADO: {fmtMoney(changeAmount, 'USD')}
+                        </Typography>
+                        <Typography variant="body2" align="center">
+                            Será cubierto por: <b>{changeCoveredBy === 'company' ? 'La Empresa (Nuviora)' : (changeCoveredBy === 'agency' ? 'La Agencia' : 'Parcial')}</b>
+                        </Typography>
+                    </Box>
+                ) : (
+                    <Typography variant="body2" align="center" color="success.main" fontWeight="bold">
+                        ✅ Pago exacto. Sin vuelto pendiente.
+                    </Typography>
+                )}
+
+                <Typography variant="body2" align="center" sx={{ mt: 1, opacity: 0.8 }}>
+                    ¿Deseas completar la entrega con esta información?
                 </Typography>
 
-                {isCash ? (
-                    <>
-                        <TextField
-                            label="Efectivo Recibido (USD)"
-                            type="number"
-                            fullWidth
-                            value={cashReceived}
-                            onChange={(e) => setCashReceived(Number(e.target.value))}
-                        />
-                        <Typography variant="body2">
-                            Vuelto Total: <b>{fmtMoney(changeAmount, 'USD')}</b>
-                        </Typography>
-
-                        <TextField
-                            select
-                            label="Quién cubre el vuelto?"
-                            fullWidth
-                            value={changeCoveredBy}
-                            onChange={(e) => setChangeCoveredBy(e.target.value)}
-                        >
-                            <MenuItem value="agency">Agencia</MenuItem>
-                            <MenuItem value="company">Empresa</MenuItem>
-                            <MenuItem value="partial">Parcial (Agencia + Empresa)</MenuItem>
-                        </TextField>
-
-                        {changeCoveredBy === "partial" && (
-                            <Box sx={{ display: 'flex', gap: 1 }}>
-                                <TextField
-                                    label="Monto Empresa"
-                                    type="number"
-                                    value={changeCompany}
-                                    onChange={(e) => setChangeCompany(Number(e.target.value))}
-                                />
-                                <TextField
-                                    label="Monto Agencia"
-                                    type="number"
-                                    value={changeAgency}
-                                    onChange={(e) => setChangeAgency(Number(e.target.value))}
-                                />
-                            </Box>
-                        )}
-
-                        {changeCoveredBy === "partial" && (changeCompany + changeAgency !== changeAmount) && (
-                            <Typography variant="caption" color="error">
-                                La suma ({changeCompany + changeAgency}) debe ser igual al vuelto total ({changeAmount})
-                            </Typography>
-                        )}
-                    </>
-                ) : (
-                    <Typography>Confirma que el pedido ha sido entregado correctamente.</Typography>
-                )}
             </DialogContent>
-            <DialogActions>
-                <Button onClick={onClose}>Cancelar</Button>
+            <DialogActions sx={{ p: 2, pt: 0, justifyContent: 'center', gap: 2 }}>
+                <Button onClick={onClose} color="inherit">Cancelar</Button>
                 <Button
                     variant="contained"
                     color="success"
                     onClick={handleConfirm}
-                    disabled={isCash && changeCoveredBy === "partial" && (Math.abs((changeCompany + changeAgency) - changeAmount) > 0.01)}
+                    sx={{ px: 4, fontWeight: 'bold' }}
                 >
-                    Confirmar Entrega
+                    Sí, Confirmar Entrega
                 </Button>
             </DialogActions>
         </Dialog>

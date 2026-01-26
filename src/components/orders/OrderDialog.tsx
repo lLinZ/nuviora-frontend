@@ -16,8 +16,10 @@ import { OrderPaymentSection } from "./OrderPaymentSection";
 import { OrderChangeSection } from "./OrderChangeSection";
 import { OrderUpdatesList } from "./OrderUpdatesList";
 import { OrderUpdateInput } from "./OrderUpdateInput";
+import { OrderActivityList } from "./OrderActivityList";
 import { OrderProductsList } from "./OrderProductsList";
 import { OrderHeader } from "./OrderHeader";
+import { OrderCompanyAccounts } from "./OrderCompanyAccounts";
 import { fmtMoney } from "../../lib/money";
 import { ButtonCustom } from "../custom";
 import { ProductSearchDialog } from "../products/ProductsSearchDialog";
@@ -35,7 +37,9 @@ import {
     ContentCopyRounded,
     WarningAmberRounded,
     ApartmentRounded,
-    CheckCircleRounded
+    CheckCircleRounded,
+    RuleRounded,
+    Inventory2Outlined as Inventory2OutlinedIcon
 } from "@mui/icons-material";
 import { MarkDeliveredDialog } from "./MarkDeliveredDialog";
 import { ReportNovedadDialog } from "./ReportNovedadDialog";
@@ -93,6 +97,7 @@ export const OrderDialog: FC<OrderDialogProps> = ({ id, open, setOpen }) => {
         openReportNovedad, setOpenReportNovedad,
         openResolveNovedad, setOpenResolveNovedad,
         pendingStatus,
+        targetStatus,
         refreshOrder
     } = useOrderDialogLogic(id, open, setOpen);
 
@@ -119,7 +124,11 @@ export const OrderDialog: FC<OrderDialogProps> = ({ id, open, setOpen }) => {
     const copyGeneralInfo = () => {
         if (!order) return;
         const productsList = order.products?.map((p: any) => `• ${p.quantity}x ${p.title}`).join('\n') || 'Sin productos';
-        const message = `🚀 *ORDEN #${order.name}*\n📍 *Ubicación:* ${order.location || 'No asignada'}\n👤 *Cliente:* ${order.client?.first_name} ${order.client?.last_name}\n📞 *Teléfono:* ${order.client?.phone}\n📦 *Productos:*\n${productsList}\n💳 *Métodos de Pago:*\n${order.payments && order.payments.length > 0 ? order.payments.map((p: any) => `• ${p.method}: $${Number(p.amount).toFixed(2)}`).join('\n') : "Pendiente"}\n💰 *Total:* ${fmtMoney(Number(order.current_total_price), order.currency)}`;
+        const agencyDisplay = order.agency?.names
+            ? (user.role?.description === 'Vendedor' ? 'Asignada a Agencia' : order.agency.names)
+            : 'No asignada';
+
+        const message = `🚀 *ORDEN #${order.name}*\n📍 *Ubicación:* ${order.location || 'No asignada'}\n🏢 *Agencia:* ${agencyDisplay}\n👤 *Cliente:* ${order.client?.first_name} ${order.client?.last_name}\n📞 *Teléfono:* ${order.client?.phone}\n📦 *Productos:*\n${productsList}\n💳 *Métodos de Pago:*\n${order.payments && order.payments.length > 0 ? order.payments.map((p: any) => `• ${p.method}: $${Number(p.amount).toFixed(2)}`).join('\n') : "Pendiente"}\n💰 *Total:* ${fmtMoney(Number(order.current_total_price), order.currency)}`;
         navigator.clipboard.writeText(message);
         toast.info('📋 Información copiada');
     };
@@ -242,39 +251,59 @@ export const OrderDialog: FC<OrderDialogProps> = ({ id, open, setOpen }) => {
                             <Tab label="Detalle" icon={<ShoppingCartRounded sx={{ fontSize: '1.2rem' }} />} iconPosition="start" />
                             <Tab label="Finanzas" icon={<ReceiptLongRounded sx={{ fontSize: '1.2rem' }} />} iconPosition="start" />
                             <Tab label="Historial" icon={<HistoryRounded sx={{ fontSize: '1.2rem' }} />} iconPosition="start" />
+                            {['Admin', 'Gerente'].includes(user.role?.description || '') && (
+                                <Tab label="Acciones" icon={<RuleRounded sx={{ fontSize: '1.2rem' }} />} iconPosition="start" />
+                            )}
                         </Tabs>
                     </Box>
                 </AppBar>
 
-                {/* 📋 CONTENT AREA */}
-                <DialogContent sx={{ p: { xs: 1, sm: 3 }, pb: 15 }}>
+                {/* 📋 CONTENT AREA (Massive pb to ensure space for the large absolute comment bar at bottom) */}
+                <DialogContent sx={{ p: { xs: 1, sm: 3 }, pb: 45 }}>
                     <Box sx={{ maxWidth: '1200px', margin: 'auto' }}>
 
-                        {/* ⚠️ NOVEDADES ALERT */}
-                        {(order.status.description === "Novedades" || order.novedad_type) && (
+                        {/* ⚠️ STOCK WARNING ALERT */}
+                        {order.has_stock_warning && (
                             <Paper elevation={0} sx={{
                                 p: 2, mb: 3,
                                 borderRadius: 3,
-                                bgcolor: order.status.description === 'Novedad Solucionada' ? 'rgba(76, 175, 80, 0.1)' : 'rgba(255, 152, 0, 0.1)',
+                                bgcolor: 'rgba(211, 47, 47, 0.1)',
                                 border: '1px solid',
-                                borderColor: order.status.description === 'Novedad Solucionada' ? 'success.main' : 'warning.main',
+                                borderColor: 'error.main',
                                 display: 'flex', gap: 2, alignItems: 'center'
                             }}>
-                                {order.status.description === 'Novedad Solucionada' ? (
-                                    <CheckCircleRounded color="success" />
-                                ) : (
-                                    <WarningAmberRounded color="warning" />
-                                )}
+                                <Inventory2OutlinedIcon color="error" />
                                 <Box>
-                                    <Typography variant="subtitle2" fontWeight="bold">
-                                        {order.status.description === 'Novedad Solucionada' ? `Novedad Resuelta: ${order.novedad_type}` : `Novedad: ${order.novedad_type}`}
+                                    <Typography variant="subtitle2" fontWeight="bold" color="error">
+                                        Stock Insuficiente
                                     </Typography>
-                                    <Typography variant="body2">{order.novedad_description}</Typography>
-                                    {order.status.description === 'Novedad Solucionada' && order.novedad_resolution && (
-                                        <Typography variant="body2" sx={{ mt: 1, p: 1, bgcolor: 'rgba(255,255,255,0.5)', borderRadius: 1 }}>
-                                            <strong>Solución:</strong> {order.novedad_resolution}
-                                        </Typography>
-                                    )}
+                                    <Typography variant="body2">
+                                        Uno o más productos no tienen existencias suficientes en el almacén de la agencia asignada ({order.agency?.names || 'Principal'}). No se puede marcar como Entregado ni En ruta hasta corregir el stock.
+                                    </Typography>
+                                </Box>
+                            </Paper>
+                        )}
+
+                        {/* ⚠️ NOVEDADES ALERT */}
+
+                        {/* ⚠️ POSTPONEMENT WARNING */}
+                        {order.postponements && order.postponements.length > 0 && (
+                            <Paper elevation={0} sx={{
+                                p: 2, mb: 3,
+                                borderRadius: 3,
+                                bgcolor: 'rgba(255, 152, 0, 0.1)',
+                                border: '1px solid',
+                                borderColor: 'warning.main',
+                                display: 'flex', gap: 2, alignItems: 'center'
+                            }}>
+                                <EventRepeatRounded sx={{ color: 'warning.dark' }} />
+                                <Box>
+                                    <Typography variant="subtitle2" fontWeight="bold" color="warning.dark">
+                                        Esta orden ha sido reprogramada {order.postponements.length} {order.postponements.length === 1 ? 'vez' : 'veces'}
+                                    </Typography>
+                                    <Typography variant="body2" sx={{ opacity: 0.8 }}>
+                                        Puedes ver los detalles y motivos en la pestaña de <b>Historial</b>.
+                                    </Typography>
                                 </Box>
                             </Paper>
                         )}
@@ -355,6 +384,9 @@ export const OrderDialog: FC<OrderDialogProps> = ({ id, open, setOpen }) => {
                                         payments={stagedPayments}
                                     />
                                 </Grid>
+                                <Grid size={{ xs: 12 }}>
+                                    <OrderCompanyAccounts />
+                                </Grid>
                             </Grid>
                         )}
 
@@ -363,6 +395,15 @@ export const OrderDialog: FC<OrderDialogProps> = ({ id, open, setOpen }) => {
                                 <OrderUpdatesList updates={order.updates} />
                             </Box>
                         )}
+
+                        {activeTab === 3 && (
+                            <Box sx={{ maxWidth: '1000px', margin: 'auto' }}>
+                                <OrderActivityList orderId={order.id} />
+                            </Box>
+                        )}
+
+                        {/* 🛡️ SAFE AREA SPACER: Guarantees that content can always be scrolled above the fixed comment input */}
+                        <Box sx={{ height: { xs: 200, sm: 300 }, width: '100%' }} />
                     </Box>
                 </DialogContent>
 
@@ -439,7 +480,7 @@ export const OrderDialog: FC<OrderDialogProps> = ({ id, open, setOpen }) => {
                 <ReviewDeliveryDialog open={openApproveRejection} onClose={() => setOpenApproveRejection(false)} title="Aprobar Rechazo" confirmText="Confirmar Rechazo" onConfirm={approveRejection} loading={loadingReview} />
                 <ReviewDeliveryDialog open={openRejectRejection} onClose={() => setOpenRejectRejection(false)} title="Denegar Solicitud de Rechazo" confirmText="Denegar (Mantener Orden)" onConfirm={rejectRejection} loading={loadingReview} />
                 <CancelOrderDialog open={openCancel} onClose={() => setOpenCancel(false)} orderId={id} onCancelled={(cancellation: any) => { updateOrder({ ...order, cancellations: [...(order.cancellations ?? []), cancellation], status: { description: "Pendiente Cancelación" } }); }} />
-                <PostponeOrderDialog open={openPostpone} onClose={() => setOpenPostpone(false)} orderId={id} />
+                <PostponeOrderDialog open={openPostpone} onClose={() => setOpenPostpone(false)} orderId={id} targetStatus={targetStatus} />
                 <MarkDeliveredDialog open={openMarkDelivered} onClose={() => setOpenMarkDelivered(false)} totalUSD={Number(order.current_total_price)} binanceRate={binanceRate} isCash={order.payments?.some((p: any) => p.method === 'EFECTIVO')} onConfirm={(data) => { if (pendingStatus) changeStatus(pendingStatus.description, pendingStatus.id, data); }} />
                 <ReportNovedadDialog open={openReportNovedad} onClose={() => setOpenReportNovedad(false)} onConfirm={(data) => { if (pendingStatus) changeStatus(pendingStatus.description, pendingStatus.id, { novedad_type: data.type, novedad_description: data.description }); }} />
                 <ResolveNovedadDialog open={openResolveNovedad} onClose={() => setOpenResolveNovedad(false)} onConfirm={(resolution) => { if (pendingStatus) changeStatus(pendingStatus.description, pendingStatus.id, { novedad_resolution: resolution }); }} />

@@ -13,7 +13,6 @@ import { ButtonCustom } from "../components/custom";
 import { ProductSearchDialog } from "../components/products/ProductsSearchDialog";
 import { SearchRounded, FilterListRounded, FilterListOffRounded } from "@mui/icons-material";
 import { TextField, MenuItem, Select, FormControl, InputLabel, Button, Grid, IconButton, Tooltip, Chip } from "@mui/material";
-import { OrderAlertPopup } from "../components/orders/OrderAlertPopup";
 import { OrderDialog } from "../components/orders/OrderDialog";
 
 
@@ -32,13 +31,6 @@ export const Orders = () => {
     });
 
     const [countdown, setCountdown] = useState(30);
-
-
-    // Alert states
-    const [alertOrder, setAlertOrder] = useState<any>(null);
-    const [showGlobalDialog, setShowGlobalDialog] = useState(false);
-    const [globalOrderId, setGlobalOrderId] = useState<number | null>(null);
-    const notifiedOrders = React.useRef<Set<number>>(new Set());
     const filtersRef = useRef(filters);
 
     // Update ref whenever filters change
@@ -69,45 +61,7 @@ export const Orders = () => {
         }
     };
 
-    // Check for reminders every minute
-    useEffect(() => {
-        const checkReminders = () => {
-            const now = new Date();
-            orders.forEach(order => {
-                const checkTime = (timeStr: string, label: string) => {
-                    const time = new Date(timeStr);
-                    const diff = now.getTime() - time.getTime();
-                    // If time is now or in the past
-                    if (diff >= 0) {
-                        // Check if already notified in this session/window
-                        if (!notifiedOrders.current.has(order.id)) {
-                            setAlertOrder(order);
-                            notifiedOrders.current.add(order.id);
-
-                            toast.warning(`⏰ ${label}: Orden #${order.name}`, {
-                                autoClose: 5000,
-                            });
-                            const audio = new Audio('/notification.mp3');
-                            audio.play().catch(e => console.log('Audio warn', e));
-                        }
-                    }
-
-                };
-
-
-                if (order.reminder_at) {
-                    checkTime(order.reminder_at, "Recordatorio");
-                }
-
-                if (order.scheduled_for && (order.status.description === 'Programado para mas tarde' || order.status.description === 'Reprogramado para hoy')) {
-                    checkTime(order.scheduled_for, "Hora de contacto/entrega");
-                }
-            });
-        };
-
-        const interval = setInterval(checkReminders, 30000); // Check every 30s
-        return () => clearInterval(interval);
-    }, [orders]);
+    // Unified notifications handled by NotificationMonitor
 
     const fetchOrders = useCallback(async (silent = false) => {
         try {
@@ -296,7 +250,10 @@ export const Orders = () => {
 
                         {/* El Vendedor NO ve "Nuevo" ni "Asignado a repartidor" ni "Por aprobar..." */}
                         {['Admin', 'Gerente', 'Master'].includes(user.role?.description || '') && (
-                            <OrderList title="Nuevo" />
+                            <>
+                                <OrderList title="Nuevo" />
+                                <OrderList title="Sin Stock" />
+                            </>
                         )}
 
                         {!['Agencia'].includes(user.role?.description || '') && (
@@ -333,24 +290,6 @@ export const Orders = () => {
                 </Box>
             </Box>
 
-            {/* Global Alert Popups & Dialogs */}
-            <OrderAlertPopup
-                open={!!alertOrder}
-                order={alertOrder}
-                onClose={() => setAlertOrder(null)}
-                onView={(id: number) => {
-                    setGlobalOrderId(id);
-                    setShowGlobalDialog(true);
-                }}
-            />
-
-            {showGlobalDialog && globalOrderId && (
-                <OrderDialog
-                    open={showGlobalDialog}
-                    setOpen={setShowGlobalDialog}
-                    id={globalOrderId}
-                />
-            )}
         </Layout>
     );
 };

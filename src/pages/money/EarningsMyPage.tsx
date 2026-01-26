@@ -67,7 +67,7 @@ export const MyEarningsPage: React.FC = () => {
                         <Grid size={{ xs: 12, md: 6 }}>
                             <Card sx={{ borderRadius: 4, height: '100%', borderLeft: 6, borderColor: 'primary.main' }} elevation={3}>
                                 <CardContent>
-                                    <Typography variant="subtitle2" color="text.secondary" gutterBottom>Órdenes Entregadas</Typography>
+                                    <Typography variant="subtitle2" color="text.secondary" gutterBottom>Órdenes Completadas</Typography>
                                     <Typography variant="h3" fontWeight="bold">{data?.orders_count ?? 0}</Typography>
                                     <Typography variant="body2" sx={{ mt: 1 }}>
                                         Rol: <b>{user?.role?.description ?? "—"}</b>
@@ -86,7 +86,22 @@ export const MyEarningsPage: React.FC = () => {
                                         </Typography>
                                         <Typography variant="subtitle1" color="text.secondary">USD</Typography>
                                     </Box>
-                                    <Typography variant="h6" color="text.secondary" sx={{ mt: 1 }}>
+
+                                    {data?.breakdown && (
+                                        <Box sx={{ mt: 1, display: 'flex', gap: 2 }}>
+                                            <Box>
+                                                <Typography variant="caption" color="text.secondary" display="block">Órdenes</Typography>
+                                                <Typography variant="body2" fontWeight="bold">${data.breakdown.orders}</Typography>
+                                            </Box>
+                                            <Divider orientation="vertical" flexItem />
+                                            <Box>
+                                                <Typography variant="caption" color="text.secondary" display="block">Upsell</Typography>
+                                                <Typography variant="body2" fontWeight="bold">${data.breakdown.upsells}</Typography>
+                                            </Box>
+                                        </Box>
+                                    )}
+
+                                    <Typography variant="h6" color="text.secondary" sx={{ mt: 2 }}>
                                         ≈ {fmtMoney(data?.amount_local ?? 0, "VES")}
                                     </Typography>
                                     <Typography variant="caption" color="text.secondary">
@@ -96,10 +111,11 @@ export const MyEarningsPage: React.FC = () => {
                             </Card>
                         </Grid>
 
+
                         <Grid size={{ xs: 12 }}>
                             <Paper sx={{ p: 3, borderRadius: 4, bgcolor: 'info.light', color: 'info.contrastText' }}>
                                 <Typography variant="body1">
-                                    <b>Nota:</b> Las comisiones se calculan en base a las órdenes marcadas como <b>"Entregado"</b> en la fecha seleccionada.
+                                    <b>Nota:</b> Las comisiones se calculan en base a las órdenes marcadas como <b>"Confirmado"</b> o <b>"Entregado"</b> en la fecha seleccionada.
                                 </Typography>
                             </Paper>
                         </Grid>

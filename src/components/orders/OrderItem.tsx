@@ -8,7 +8,7 @@ import {
     useTheme,
 } from "@mui/material";
 import AddRoundedIcon from "@mui/icons-material/AddRounded";
-import { NotificationsActiveRounded } from "@mui/icons-material";
+import { NotificationsActiveRounded, WarningAmberRounded } from "@mui/icons-material";
 import React, { FC, useState } from "react";
 import { darken } from "@mui/material/styles";
 import { toast } from "react-toastify";
@@ -25,6 +25,7 @@ import { AssignDelivererDialog } from "./AssignDelivererDialog";
 import { PostponeOrderDialog } from "./PostponeOrderDialog";
 import { AssignAgencyDialog } from "./AssignAgencyDialog";
 import { NoveltyDialog } from "./NoveltyDialog";
+import { MarkDeliveredDialog } from "./MarkDeliveredDialog";
 
 interface OrderItemProps {
     order: any;
@@ -66,6 +67,7 @@ export const statusColors: Record<string, string> = {
     "Por aprobar rechazo": orange[900],
     "Asignar a agencia": blue[400],
     "Esperando Ubicacion": purple[300],
+    "Sin Stock": grey[700],
 };
 export const OrderItem: FC<OrderItemProps> = ({ order }) => {
     const user = useUserStore((state) => state.user);
@@ -77,6 +79,8 @@ export const OrderItem: FC<OrderItemProps> = ({ order }) => {
     const [openPostpone, setOpenPostpone] = useState(false);
     const [openAssignAgency, setOpenAssignAgency] = useState(false);
     const [openNovelty, setOpenNovelty] = useState(false);
+    const [openMarkDelivered, setOpenMarkDelivered] = useState(false);
+    const [pendingStatus, setPendingStatus] = useState<{ description: string, id: number } | null>(null);
     const [targetStatus, setTargetStatus] = useState<string>("");
     const [targetStatusId, setTargetStatusId] = useState<number>(0);
 
@@ -106,7 +110,7 @@ export const OrderItem: FC<OrderItemProps> = ({ order }) => {
             console.log('error consultando products')
         }
     }
-    const changeStatus = async (status: string, statusId: number) => {
+    const changeStatus = async (status: string, statusId: number, extraData: any = null) => {
         // Intercept postponing
         if (status === "Programado para otro dia" || status === "Programado para mas tarde") {
             setTargetStatus(status);
@@ -114,10 +118,21 @@ export const OrderItem: FC<OrderItemProps> = ({ order }) => {
             return;
         }
 
+        // Intercept Entregado to ask for cash details if needed
+        if (status === "Entregado" && !extraData) {
+            const cashMethods = ['DOLARES_EFECTIVO', 'BOLIVARES_EFECTIVO', 'EUROS_EFECTIVO'];
+            const needsCashInfo = order.payment_method === 'EFECTIVO' ||
+                order.payments?.some((p: any) => cashMethods.includes(p.method));
 
+            if (needsCashInfo) {
+                setPendingStatus({ description: status, id: statusId });
+                setOpenMarkDelivered(true);
+                return;
+            }
+        }
 
         if (status === "Asignar a agencia" && !order.agency) {
-            // Primero intentamos actualizar el estado para que el backend intente el auto-match
+            // ... (keeping existing agency logic)
             const body = new URLSearchParams();
             body.append("status_id", String(statusId));
             try {
@@ -126,15 +141,12 @@ export const OrderItem: FC<OrderItemProps> = ({ order }) => {
                     "PUT",
                     body
                 );
-
                 const data = await response.json();
-
                 if (ok) {
                     updateOrder(data.order);
                     toast.success(data.message || `Agencia auto-asignada exitosamente ✅`);
                     return;
                 } else if (data.require_manual_agency) {
-                    // Si el backend dice que hace falta manual, abrimos diálogo
                     toast.info(data.message);
                     setOpenAssignAgency(true);
                     return;
@@ -158,6 +170,13 @@ export const OrderItem: FC<OrderItemProps> = ({ order }) => {
         // caso normal: actualizar status
         const body = new URLSearchParams();
         body.append("status_id", String(statusId));
+
+        if (extraData) {
+            Object.keys(extraData).forEach(key => {
+                body.append(key, String(extraData[key]));
+            });
+        }
+
         try {
             const { status: ok, response }: IResponse = await request(
                 `/orders/${order.id}/status`,
@@ -168,6 +187,8 @@ export const OrderItem: FC<OrderItemProps> = ({ order }) => {
                 const data = await response.json();
                 updateOrder(data.order);
                 toast.success(data.message || `Orden #${order.name} actualizada a ${status} ✅`);
+                setOpenMarkDelivered(false);
+                setPendingStatus(null);
             } else {
                 const errorData = await response.json();
                 toast.error(errorData.message || "No se pudo actualizar el estado ❌");
@@ -221,9 +242,16 @@ export const OrderItem: FC<OrderItemProps> = ({ order }) => {
             }}
         >
             <Box sx={{ display: "flex", justifyContent: "space-between", mb: 1 }}>
-                <TypographyCustom variant="subtitle1" fontWeight={"bold"}>
-                    Orden {order.name}
-                </TypographyCustom>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <TypographyCustom variant="subtitle1" fontWeight={"bold"}>
+                        Orden {order.name}
+                    </TypographyCustom>
+                    {order.has_stock_warning && (
+                        <Tooltip title="Stock insuficiente en almacén">
+                            <WarningAmberRounded sx={{ color: red[500], fontSize: '1.2rem' }} />
+                        </Tooltip>
+                    )}
+                </Box>
                 <DenseMenu data={order} changeStatus={changeStatus} />
             </Box>
 
@@ -409,6 +437,15 @@ export const OrderItem: FC<OrderItemProps> = ({ order }) => {
                 open={openAssignAgency}
                 onClose={() => setOpenAssignAgency(false)}
                 orderId={order.id}
+            />
+            <MarkDeliveredDialog
+                open={openMarkDelivered}
+                onClose={() => setOpenMarkDelivered(false)}
+                order={order}
+                binanceRate={order.binance_rate ?? 0}
+                onConfirm={(data) => {
+                    if (pendingStatus) changeStatus(pendingStatus.description, pendingStatus.id, data);
+                }}
             />
             <OrderDialog open={open} setOpen={setOpen} id={order.id} />
         </Box>

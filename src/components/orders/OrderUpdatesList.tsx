@@ -33,7 +33,7 @@ export const OrderUpdatesList: React.FC<OrderUpdatesListProps> = ({ updates }) =
             display: "flex",
             flexDirection: "column",
             gap: 3,
-            pb: 15, // Space for the floating input
+            pb: 25, // Extra space for the fixed floating comment input
             width: { xs: '100%', md: '85%', lg: '70%' },
             margin: 'auto',
             position: 'relative'

@@ -32,16 +32,29 @@ export const PostponeOrderDialog: FC<Props> = ({ open, onClose, orderId, targetS
             return;
         }
 
-        setLoading(true);
-        const body = new URLSearchParams();
-
         let finalScheduled = scheduledFor;
+        const now = new Date();
+        const todayStr = now.toISOString().split('T')[0];
+
         // Si solo capturamos hora (HH:mm), lo unimos a la fecha de hoy
         if (isTodayOnly && scheduledFor.length === 5) {
-            const today = new Date().toISOString().split('T')[0];
-            finalScheduled = `${today}T${scheduledFor}`;
+            finalScheduled = `${todayStr}T${scheduledFor}`;
+
+            const selectedDateTime = new Date(finalScheduled);
+            if (selectedDateTime <= now) {
+                toast.error("La hora seleccionada debe ser mayor a la hora actual ⏰");
+                return;
+            }
+        } else if (!isTodayOnly) {
+            const selectedDateTime = new Date(scheduledFor);
+            if (selectedDateTime <= now) {
+                toast.error("La fecha y hora seleccionada debe ser en el futuro 📅");
+                return;
+            }
         }
 
+        setLoading(true);
+        const body = new URLSearchParams();
         body.append("scheduled_for", finalScheduled);
         if (reason.trim()) body.append("reason", reason.trim());
 

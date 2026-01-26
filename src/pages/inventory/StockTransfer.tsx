@@ -21,7 +21,11 @@ import { useNavigate } from 'react-router-dom';
 import { useValidateSession } from '../../hooks/useValidateSession';
 import { Loading } from '../../components/ui/content/Loading';
 
-export const StockTransfer: React.FC = () => {
+interface Props {
+    isEmbedded?: boolean;
+}
+
+export const StockTransfer: React.FC<Props> = ({ isEmbedded }) => {
     const navigate = useNavigate();
     const [products, setProducts] = useState<IProduct[]>([]);
     const [selectedProduct, setSelectedProduct] = useState<IProduct | null>(null);
@@ -47,7 +51,7 @@ export const StockTransfer: React.FC = () => {
 
     const loadProducts = async () => {
         try {
-            const { status, response }: IResponse = await request('/inventory/products', 'GET'); // Or whatever endpoint lists products
+            const { status, response }: IResponse = await request('/inventory/products', 'GET');
             if (status) {
                 const data = await response.json();
                 setProducts(data.data || []);
@@ -66,8 +70,14 @@ export const StockTransfer: React.FC = () => {
             );
             if (status) {
                 const data = await response.json();
-                // Assuming response structure
-                const stock = data.inventory?.find((i: any) => i.product_id === selectedProduct.id)?.quantity || 0;
+                // Use the new current_stock field from backend if it exists, 
+                // otherwise fallback to searching in the array
+                let stock = 0;
+                if (data.current_stock !== undefined) {
+                    stock = data.current_stock;
+                } else if (data.inventory) {
+                    stock = data.inventory.find((i: any) => i.product_id == selectedProduct.id)?.quantity || 0;
+                }
                 setAvailableStock(stock);
             }
         } catch (error) {
@@ -107,7 +117,7 @@ export const StockTransfer: React.FC = () => {
 
             if (status) {
                 toast.success('Transferencia realizada con éxito');
-                navigate('/inventory/movements');
+                if (!isEmbedded) navigate('/inventory/movements');
             } else {
                 const data = await response.json();
                 toast.error(data.message || 'Error al realizar transferencia');
@@ -121,86 +131,93 @@ export const StockTransfer: React.FC = () => {
 
     if (loadingSession || !isValid || !user.token) return <Loading />;
 
+    const content = (
+        <Box sx={{ p: isEmbedded ? 0 : 2, maxWidth: isEmbedded ? '100%' : 800, mx: isEmbedded ? 0 : 'auto' }}>
+            <Paper sx={{ p: 3 }}>
+                <Grid container spacing={3}>
+                    <Grid size={{ xs: 12 }}>
+                        <Typography variant="h6" gutterBottom>Transferencia de Stock</Typography>
+                        <Divider />
+                    </Grid>
+
+                    <Grid size={{ xs: 12 }}>
+                        <Autocomplete
+                            options={products}
+                            getOptionLabel={(option) => `${option.title} (${option.sku})`}
+                            value={selectedProduct}
+                            onChange={(_, newValue) => setSelectedProduct(newValue)}
+                            renderInput={(params) => <TextFieldCustom {...params} label="Producto" placeholder="Buscar producto..." />}
+                        />
+                    </Grid>
+
+                    <Grid size={{ xs: 12 }}>
+                        <WarehouseSelector
+                            label="Desde Almacén (Origen)"
+                            value={fromWarehouseId}
+                            onChange={setFromWarehouseId}
+                        />
+                        {availableStock !== null && (
+                            <Alert severity="info" sx={{ mt: 1, py: 0 }}>
+                                Stock disponible: <strong>{availableStock}</strong>
+                            </Alert>
+                        )}
+                    </Grid>
+
+                    <Grid size={{ xs: 12, md: 6 }}>
+                        <WarehouseSelector
+                            label="Hacia Almacén (Destino)"
+                            value={toWarehouseId}
+                            onChange={setToWarehouseId}
+                        />
+                    </Grid>
+
+                    <Grid size={{ xs: 12, md: 6 }}>
+                        <TextField
+                            fullWidth
+                            label="Cantidad a Transferir"
+                            type="number"
+                            value={quantity}
+                            onChange={(e) => setQuantity(Number(e.target.value))}
+                            inputProps={{ min: 1, max: availableStock || undefined }}
+                        />
+                    </Grid>
+
+                    <Grid size={{ xs: 12 }}>
+                        <TextField
+                            fullWidth
+                            multiline
+                            rows={3}
+                            label="Notas / Observaciones"
+                            value={notes}
+                            onChange={(e) => setNotes(e.target.value)}
+                        />
+                    </Grid>
+
+                    <Grid size={{ xs: 12 }} sx={{ display: 'flex', justifyContent: 'flex-end', gap: 2 }}>
+                        {!isEmbedded && (
+                            <ButtonCustom variant="outlined" onClick={() => navigate(-1)}>
+                                Cancelar
+                            </ButtonCustom>
+                        )}
+                        <ButtonCustom onClick={handleSubmit} disabled={loading}>
+                            {loading ? 'Procesando...' : 'Confirmar Transferencia'}
+                        </ButtonCustom>
+                    </Grid>
+                </Grid>
+            </Paper>
+        </Box>
+    );
+
+    if (isEmbedded) return content;
+
     return (
         <Layout>
             <DescripcionDeVista
                 title="Nueva Transferencia"
                 description="Mover stock entre almacenes"
             />
-
-            <Box sx={{ p: 2, maxWidth: 800, mx: 'auto' }}>
-                <Paper sx={{ p: 3 }}>
-                    <Grid container spacing={3}>
-                        <Grid size={{ xs: 12 }}>
-                            <Typography variant="h6" gutterBottom>Detalles de Transferencia</Typography>
-                            <Divider />
-                        </Grid>
-
-                        <Grid size={{ xs: 12 }}>
-                            <Autocomplete
-                                options={products}
-                                getOptionLabel={(option) => `${option.title} (${option.sku})`}
-                                value={selectedProduct}
-                                onChange={(_, newValue) => setSelectedProduct(newValue)}
-                                renderInput={(params) => <TextFieldCustom {...params} label="Producto" placeholder="Buscar producto..." />}
-                            />
-                        </Grid>
-
-                        <Grid size={{ xs: 12 }}>
-                            <WarehouseSelector
-                                label="Desde Almacén (Origen)"
-                                value={fromWarehouseId}
-                                onChange={setFromWarehouseId}
-                            />
-                            {availableStock !== null && (
-                                <Alert severity="info" sx={{ mt: 1, py: 0 }}>
-                                    Stock disponible: <strong>{availableStock}</strong>
-                                </Alert>
-                            )}
-                        </Grid>
-
-                        <Grid size={{ xs: 12, md: 6 }}>
-                            <WarehouseSelector
-                                label="Hacia Almacén (Destino)"
-                                value={toWarehouseId}
-                                onChange={setToWarehouseId}
-                            />
-                        </Grid>
-
-                        <Grid size={{ xs: 12, md: 6 }}>
-                            <TextField
-                                fullWidth
-                                label="Cantidad a Transferir"
-                                type="number"
-                                value={quantity}
-                                onChange={(e) => setQuantity(Number(e.target.value))}
-                                inputProps={{ min: 1, max: availableStock || undefined }}
-                            />
-                        </Grid>
-
-                        <Grid size={{ xs: 12 }}>
-
-                            <TextField
-                                fullWidth
-                                multiline
-                                rows={3}
-                                label="Notas / Observaciones"
-                                value={notes}
-                                onChange={(e) => setNotes(e.target.value)}
-                            />
-                        </Grid>
-
-                        <Grid size={{ xs: 12 }} sx={{ display: 'flex', justifyContent: 'flex-end', gap: 2 }}>
-                            <ButtonCustom variant="outlined" onClick={() => navigate(-1)}>
-                                Cancelar
-                            </ButtonCustom>
-                            <ButtonCustom onClick={handleSubmit} disabled={loading}>
-                                {loading ? 'Procesando...' : 'Confirmar Transferencia'}
-                            </ButtonCustom>
-                        </Grid>
-                    </Grid>
-                </Paper>
-            </Box>
+            {content}
         </Layout>
     );
 };
+

@@ -66,9 +66,18 @@ export const OrderProductItem: React.FC<OrderProductItemProps> = ({ product, cur
                 </TypographyCustom>
 
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 0.5 }}>
-                    <Typography variant="caption" sx={{ bgcolor: 'action.hover', px: 0.8, py: 0.2, borderRadius: 1, fontWeight: 'medium' }}>
+                    <Typography variant="caption" sx={{
+                        bgcolor: product.has_stock === false ? 'error.main' : 'action.hover',
+                        color: product.has_stock === false ? 'white' : 'text.primary',
+                        px: 0.8, py: 0.2, borderRadius: 1, fontWeight: 'bold'
+                    }}>
                         Cant: {product.quantity}
                     </Typography>
+                    {product.stock_available !== undefined && (
+                        <Typography variant="caption" sx={{ color: product.has_stock === false ? 'error.main' : 'text.secondary', fontWeight: 'bold' }}>
+                            (Disp: {product.stock_available})
+                        </Typography>
+                    )}
                     <Typography variant="caption" color="text.secondary">
                         × {fmtMoney(Number(product.price), currency)}
                     </Typography>

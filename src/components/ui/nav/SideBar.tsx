@@ -20,7 +20,8 @@ import BarChartRoundedIcon from "@mui/icons-material/BarChartRounded";
 import moment from "moment";
 import { TypographyCustom } from "../../custom";
 import { useUserStore } from "../../../store/user/UserStore";
-import { AssignmentReturnRounded, StoreRounded, HistoryRounded, SwapHorizRounded, EditNoteRounded, StorefrontRounded, PollRounded, MapRounded } from "@mui/icons-material";
+import { AssignmentReturnRounded, StoreRounded, HistoryRounded, SwapHorizRounded, EditNoteRounded, StorefrontRounded, PollRounded, MapRounded, PaymentRounded, AccountBalanceRounded, ReceiptLongRounded } from "@mui/icons-material";
+import { NotificationBell } from "../notifications/NotificationBell";
 
 const Clock = () => {
     const [time, setTime] = useState<string>(moment().format("h:mm A"));
@@ -129,40 +130,16 @@ export const SideBar = () => {
                 roles: ["Admin"],
             },
             {
-                text: "Inventario General",
+                text: "Inventario",
                 icon: <Inventory2RoundedIcon />,
                 link: "/inventory",
-                roles: ["Admin"],
-            },
-            {
-                text: "Almacenes",
-                icon: <StoreRounded />,
-                link: "/inventory/warehouses",
-                roles: ["Admin"],
-            },
-            {
-                text: "Movimientos",
-                icon: <HistoryRounded />,
-                link: "/inventory/movements",
-                roles: ["Admin"],
-            },
-            {
-                text: "Transferir Stock",
-                icon: <SwapHorizRounded />,
-                link: "/inventory/transfer",
-                roles: ["Admin"],
-            },
-            {
-                text: "Ajustar Stock",
-                icon: <EditNoteRounded />,
-                link: "/inventory/adjust",
-                roles: ["Admin"],
+                roles: ["Admin", "Agencia"],
             },
             {
                 text: "Stock repartidor",
                 icon: <LocalMallRoundedIcon />,
-                link: "/deliverer/stock",
-                roles: ["Repartidor", "Admin"],
+                link: "/deliverers/stock",
+                roles: ["Repartidor"],
             },
             {
                 text: "Repartidores",
@@ -177,17 +154,30 @@ export const SideBar = () => {
                 roles: ["Admin", "Gerente"],
             },
             {
+                text: "Cuentas Empresa",
+                icon: <PaymentRounded />,
+                link: "/admin/company-accounts",
+                roles: ["Admin", "Gerente"],
+            },
+            {
+                text: "Bancos",
+                icon: <AccountBalanceRounded />,
+                link: "/admin/banks",
+                roles: ["Admin", "Gerente"],
+            },
+            {
+                text: "Vueltos Pendientes",
+                icon: <ReceiptLongRounded />,
+                link: "/admin/pending-vueltos",
+                roles: ["Admin", "Gerente"],
+            },
+            {
                 text: "Tasa de dólar",
                 icon: <AttachMoneyRoundedIcon />,
                 link: "/currency",
                 roles: ["Admin"],
             },
-            {
-                text: 'Stock repartidores',
-                icon: <AssignmentReturnRounded />,
-                link: '/deliverers/stock',
-                roles: ["Admin", "Agencia"],
-            },
+
             {
                 text: "Mis ganancias",
                 icon: <SavingsRoundedIcon />,
@@ -319,6 +309,9 @@ export const SideBar = () => {
                             >
                                 <ManageAccountsRoundedIcon />
                             </IconButton>
+
+                            <NotificationBell />
+
                             <IconButton sx={{ alignSelf: "flex-end" }} onClick={logout}>
                                 <LogoutRoundedIcon color="error" />
                             </IconButton>

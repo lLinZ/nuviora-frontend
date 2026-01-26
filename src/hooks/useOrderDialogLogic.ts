@@ -30,6 +30,7 @@ export const useOrderDialogLogic = (
     const [openReportNovedad, setOpenReportNovedad] = useState(false);
     const [openResolveNovedad, setOpenResolveNovedad] = useState(false);
     const [pendingStatus, setPendingStatus] = useState<{ description: string, id: number } | null>(null);
+    const [targetStatus, setTargetStatus] = useState<string | undefined>(undefined);
 
     const [loadingReview, setLoadingReview] = useState(false);
     const [openAssignDeliverer, setOpenAssignDeliverer] = useState(false);
@@ -214,6 +215,7 @@ export const useOrderDialogLogic = (
 
         // Intercept postponing
         if (status === "Programado para otro dia" || status === "Programado para mas tarde") {
+            setTargetStatus(status);
             setOpenPostpone(true);
             return;
         }
@@ -558,6 +560,7 @@ export const useOrderDialogLogic = (
         openReportNovedad, setOpenReportNovedad,
         openResolveNovedad, setOpenResolveNovedad,
         pendingStatus,
+        targetStatus,
         fetchOrder,
         refreshOrder: fetchOrder,
     };

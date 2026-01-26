@@ -1,6 +1,6 @@
 import { MoreHorizRounded, Check } from "@mui/icons-material";
 import { IconButton, Menu, MenuList, Divider, Chip, MenuItem, ListItemIcon, ListItemText, Box, Tooltip } from "@mui/material";
-import { purple, blue, green, red, yellow } from "@mui/material/colors";
+import { purple, blue, green, red, yellow, grey } from "@mui/material/colors";
 import { useState } from "react";
 import { useUserStore } from "../../../store/user/UserStore";
 
@@ -27,29 +27,31 @@ export default function DenseMenu({
     const user = useUserStore((state) => state.user);
 
     const statuses: { id: number, description: string, color: string, roles: string[] }[] = [
-        { id: 18, description: 'Novedades', color: yellow[700], roles: ['Admin', 'Gerente', 'Repartidor', 'Agencia'] },
-        { id: 19, description: 'Novedad Solucionada', color: green[300], roles: ['Admin', 'Gerente', 'Vendedor'] },
+        { id: 15, description: 'Novedades', color: yellow[700], roles: ['Admin', 'Gerente', 'Repartidor', 'Agencia'] },
+        { id: 16, description: 'Novedad Solucionada', color: green[300], roles: ['Admin', 'Gerente', 'Vendedor'] },
         { id: 3, description: 'Nuevo', color: purple[300], roles: ['Admin'] },
-        { id: 13, description: 'Reprogramado', color: green[500], roles: ['Admin', 'Gerente'] },
+        { id: 12, description: 'Reprogramado', color: green[500], roles: ['Admin', 'Gerente'] },
         { id: 4, description: 'Asignado a vendedor', color: blue[500], roles: ['Admin', 'Gerente'] },
         { id: 5, description: 'Llamado 1', color: green[500], roles: ['Admin', 'Gerente', 'Vendedor'] },
         { id: 6, description: 'Llamado 2', color: red[500], roles: ['Admin', 'Gerente', 'Vendedor'] },
         { id: 7, description: 'Llamado 3', color: purple[300], roles: ['Admin', 'Gerente', 'Vendedor'] },
-        { id: 24, description: 'Esperando Ubicacion', color: blue[500], roles: ['Admin', 'Vendedor', 'Gerente',] },
-        { id: 9, description: 'Asignado a repartidor', color: green[500], roles: ['Admin', 'Gerente', 'Vendedor', 'Agencia'] },
-        { id: 10, description: 'En ruta', color: red[500], roles: ['Admin', 'Gerente', 'Repartidor', 'Agencia'] },
-        { id: 11, description: 'Programado para mas tarde', color: purple[300], roles: ['Admin', 'Gerente', 'Vendedor', 'Repartidor'] },
-        { id: 12, description: 'Programado para otro dia', color: blue[500], roles: ['Admin', 'Gerente', 'Vendedor', 'Repartidor'] },
-        { id: 16, description: 'Entregado', color: green[500], roles: ['Admin', 'Gerente', 'Repartidor', 'Agencia'] },
-        { id: 17, description: 'Cancelado', color: red[500], roles: ['Admin', 'Gerente', 'Vendedor'] },
-        { id: 22, description: 'Asignar a agencia', color: blue[400], roles: ['Admin', 'Gerente', 'Vendedor'] },
+        { id: 22, description: 'Esperando Ubicacion', color: blue[500], roles: ['Admin', 'Vendedor', 'Gerente',] },
+        { id: 21, description: 'Confirmado', color: green[500], roles: ['Admin', 'Vendedor', 'Gerente',] },
+        { id: 8, description: 'Asignado a repartidor', color: green[500], roles: ['Admin', 'Gerente', 'Vendedor', 'Agencia'] },
+        { id: 9, description: 'En ruta', color: red[500], roles: ['Admin', 'Gerente', 'Repartidor', 'Agencia'] },
+        { id: 10, description: 'Programado para mas tarde', color: purple[300], roles: ['Admin', 'Gerente', 'Vendedor', 'Repartidor'] },
+        { id: 11, description: 'Programado para otro dia', color: blue[500], roles: ['Admin', 'Gerente', 'Vendedor', 'Repartidor'] },
+        { id: 13, description: 'Entregado', color: green[500], roles: ['Admin', 'Gerente', 'Repartidor', 'Agencia'] },
+        { id: 14, description: 'Cancelado', color: red[500], roles: ['Admin', 'Gerente', 'Vendedor'] },
+        { id: 17, description: 'Asignar a agencia', color: blue[400], roles: ['Admin', 'Gerente', 'Vendedor'] },
+        { id: 20, description: 'Sin Stock', color: grey[700], roles: ['Admin', 'Gerente'] },
     ];
 
     // Statuses that Sellers can ALWAYS access without payment info
     const SELLER_PUBLIC_STATUSES = [
         'Llamado 1', 'Llamado 2', 'Llamado 3',
         'Programado para otro dia', 'Programado para mas tarde',
-        'Cancelado', 'Novedad Solucionada', 'Esperando Ubicacion'
+        'Cancelado', 'Novedad Solucionada', 'Esperando Ubicacion', 'Confirmado'
     ];
 
     const isSeller = user?.role?.description === 'Vendedor';
@@ -115,6 +117,12 @@ export default function DenseMenu({
                         if (data.status?.description === 'Novedades' && user?.role?.description === 'Agencia') {
                             isDisabled = true;
                             tooltipTitle = "Agencia no puede gestionar Novedades 🚫";
+                        }
+
+                        // 🔒 Stock Lock: Block Entregado and En ruta if stock is insufficient
+                        if (data.has_stock_warning && (status.description === 'Entregado' || status.description === 'En ruta')) {
+                            isDisabled = true;
+                            tooltipTitle = "No hay suficiente stock en el almacén para procesar esta orden 📦❌";
                         }
 
                         // 🔒 Vendedor Novedades Lock

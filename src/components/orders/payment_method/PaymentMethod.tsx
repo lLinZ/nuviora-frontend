@@ -37,10 +37,15 @@ import { green, blue, purple, grey, red } from "@mui/material/colors";
 import { darken, lighten } from "@mui/material/styles";
 
 export type PaymentMethodType =
-    | "BOLIVARES_TRANSFERENCIA"
-    | "BOLIVARES_EFECTIVO"
     | "DOLARES_EFECTIVO"
-    | "ZELLE_DOLARES";
+    | "BOLIVARES_EFECTIVO"
+    | "EUROS_EFECTIVO"
+    | "PAGOMOVIL"
+    | "TRANSFERENCIA_BANCARIA_BOLIVARES"
+    | "ZINLI"
+    | "ZELLE"
+    | "BINANCE"
+    | "PAYPAL";
 
 export interface PaymentMethod {
     method: PaymentMethodType;
@@ -60,10 +65,15 @@ interface PaymentRowState {
 }
 
 const PAYMENT_METHOD_OPTIONS: { value: PaymentMethodType; label: string; icon: any; color: string }[] = [
-    { value: "BOLIVARES_TRANSFERENCIA", label: "Bolívares transferencia", icon: <AccountBalanceIcon />, color: blue[600] },
-    { value: "BOLIVARES_EFECTIVO", label: "Bolívares efectivo", icon: <PaymentsIcon />, color: green[600] },
-    { value: "DOLARES_EFECTIVO", label: "Dólares efectivo", icon: <AccountBalanceWalletIcon />, color: '#85bb65' },
-    { value: "ZELLE_DOLARES", label: "Dólares Zelle", icon: <ContactlessIcon />, color: purple[600] },
+    { value: "DOLARES_EFECTIVO", label: "Dólares efectivo", icon: <PaymentsIcon />, color: '#85bb65' },
+    { value: "BOLIVARES_EFECTIVO", label: "Bolívares efectivo", icon: <PaymentsIcon />, color: '#00a859' },
+    { value: "EUROS_EFECTIVO", label: "Euros efectivo", icon: <PaymentsIcon />, color: '#003399' },
+    { value: "PAGOMOVIL", label: "Pago Móvil", icon: <ContactlessIcon />, color: '#ff4d4f' },
+    { value: "TRANSFERENCIA_BANCARIA_BOLIVARES", label: "Transf. Bancaria BS", icon: <AccountBalanceIcon />, color: '#1890ff' },
+    { value: "ZINLI", label: "Zinli", icon: <AccountBalanceWalletIcon />, color: '#52c41a' },
+    { value: "ZELLE", label: "Zelle", icon: <CheckCircleOutlineIcon />, color: '#6d1ed1' },
+    { value: "BINANCE", label: "Binance", icon: <AccountBalanceWalletIcon />, color: '#f3ba2f' },
+    { value: "PAYPAL", label: "PayPal", icon: <AccountBalanceWalletIcon />, color: '#003087' },
 ];
 
 const PaymentMethodsSelector: React.FC<PaymentMethodsSelectorProps> = ({
@@ -187,7 +197,7 @@ const PaymentMethodsSelector: React.FC<PaymentMethodsSelectorProps> = ({
 
         const newRows: PaymentRowState[] = [
             { method: "DOLARES_EFECTIVO", amount: mp.toFixed(2) },
-            { method: "BOLIVARES_TRANSFERENCIA", amount: (mapbs).toFixed(2) }
+            { method: "TRANSFERENCIA_BANCARIA_BOLIVARES", amount: (mapbs).toFixed(2) }
         ];
 
         setRows(newRows);

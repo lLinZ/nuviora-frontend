@@ -21,6 +21,11 @@ import CurrencyExchangeIcon from '@mui/icons-material/CurrencyExchange';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
+import ContentCopyIcon from '@mui/icons-material/ContentCopy';
+import CloudUploadIcon from '@mui/icons-material/CloudUpload';
+import VisibilityIcon from '@mui/icons-material/Visibility';
+import DownloadIcon from '@mui/icons-material/Download';
+import CameraAltIcon from '@mui/icons-material/CameraAlt';
 
 import { ButtonCustom, SelectCustom } from "../custom";
 import { useUserStore } from "../../store/user/UserStore";
@@ -29,6 +34,11 @@ import { toast } from "react-toastify";
 import { IResponse } from "../../interfaces/response-type";
 import { green, blue, orange, grey, red } from "@mui/material/colors";
 import { darken, lighten } from "@mui/material/styles";
+import { IBank } from "../../interfaces/bank.types";
+import MailOutlineIcon from '@mui/icons-material/MailOutline';
+import ContactPageIcon from '@mui/icons-material/ContactPage';
+import AccountBalanceIcon from '@mui/icons-material/AccountBalance';
+import PhoneIphoneIcon from '@mui/icons-material/PhoneIphone';
 
 interface OrderChangeSectionProps {
     order: any;
@@ -37,10 +47,18 @@ interface OrderChangeSectionProps {
 }
 
 const CHANGE_METHOD_OPTIONS = [
+    { value: "BOLIVARES_PAGOMOVIL", label: "Pago Móvil (Bolívares)" },
+    { value: "BOLIVARES_TRANSFERENCIA", label: "Transferencia Bancaria (Bs)" },
+    { value: "ZELLE_DOLARES", label: "Zelle (Dólares)" },
+    { value: "BINANCE_DOLARES", label: "Binance PAY (USDT)" },
+    { value: "PAYPAL_DOLARES", label: "Paypal (Dólares)" },
+    { value: "ZINLI_DOLARES", label: "Zinli (Dólares)" },
     { value: "DOLARES_EFECTIVO", label: "Dólares efectivo" },
-    { value: "BOLIVARES_TRANSFERENCIA", label: "Bolívares transferencia" },
+];
+
+const AGENCY_CHANGE_METHOD_OPTIONS = [
+    { value: "DOLARES_EFECTIVO", label: "Dólares efectivo" },
     { value: "BOLIVARES_EFECTIVO", label: "Bolívares efectivo" },
-    { value: "ZELLE_DOLARES", label: "Dólares Zelle" },
 ];
 
 export const OrderChangeSection: React.FC<OrderChangeSectionProps> = ({ order, onUpdate, payments }) => {
@@ -59,7 +77,21 @@ export const OrderChangeSection: React.FC<OrderChangeSectionProps> = ({ order, o
         change_method_company: order.change_method_company || "",
         change_method_agency: order.change_method_agency || "",
         change_rate: Number(order.change_rate) || 0,
+        change_payment_details: order.change_payment_details || {},
     });
+
+    const [banks, setBanks] = useState<IBank[]>([]);
+
+    useEffect(() => {
+        const fetchBanks = async () => {
+            const { status, response }: IResponse = await request("/banks", "GET");
+            if (status === 200) {
+                const data = await response.json();
+                setBanks(data);
+            }
+        };
+        fetchBanks();
+    }, []);
 
     useEffect(() => {
         const fetchRates = async () => {
@@ -98,16 +130,25 @@ export const OrderChangeSection: React.FC<OrderChangeSectionProps> = ({ order, o
     }, [payments, order.current_total_price]);
 
     useEffect(() => {
-        setForm({
-            cash_received: order.cash_received || "",
-            change_amount: order.change_amount || "",
-            change_covered_by: order.change_covered_by || "",
-            change_amount_company: order.change_amount_company || "",
-            change_amount_agency: order.change_amount_agency || "",
-            change_method_company: order.change_method_company || "",
-            change_method_agency: order.change_method_agency || "",
+        setForm(prev => ({
+            ...prev,
+            cash_received: order.cash_received ?? "",
+            change_amount: order.change_amount ?? "",
+            change_covered_by: order.change_covered_by ?? "",
+            change_amount_company: order.change_amount_company ?? "",
+            change_amount_agency: order.change_amount_agency ?? "",
+            change_method_company: order.change_method_company ?? "",
+            change_method_agency: order.change_method_agency ?? "",
             change_rate: Number(order.change_rate) || euroRate,
-        });
+            change_payment_details: (typeof order.change_payment_details === 'object' && order.change_payment_details !== null) ? order.change_payment_details : {},
+        }));
+    }, [order]);
+
+    useEffect(() => {
+        console.log("Order updated in OrderChangeSection:", order);
+        if (order.change_payment_details) {
+            console.log("Order has details:", order.change_payment_details);
+        }
     }, [order]);
 
     const canEdit = ['Gerente', 'Admin', 'Vendedor'].includes(user.role?.description || '');
@@ -117,27 +158,99 @@ export const OrderChangeSection: React.FC<OrderChangeSectionProps> = ({ order, o
         setForm(prev => ({ ...prev, [name]: value }));
     };
 
-    const handleSave = async () => {
+    const handleDetailChange = (name: string, value: any) => {
+        setForm(prev => ({
+            ...prev,
+            change_payment_details: {
+                ...(typeof prev.change_payment_details === 'object' ? prev.change_payment_details : {}),
+                [name]: value
+            }
+        }));
+    };
+
+    const handleCopyDetails = () => {
+        if (!form.change_payment_details) return;
+
+        let text = "";
+        const details = form.change_payment_details as any;
+
+        if (form.change_method_company === 'BOLIVARES_PAGOMOVIL') {
+            const bank = banks.find(b => b.id === details.bank_id)?.name || "N/A";
+            text = `PAGO MÓVIL\nCédula: ${details.cedula}\nBanco: ${bank}\nTeléfono: ${details.phone_prefix}${details.phone_number}`;
+        } else if (form.change_method_company === 'BOLIVARES_TRANSFERENCIA') {
+            const bank = banks.find(b => b.id === details.bank_id)?.name || "N/A";
+            text = `TRANSFERENCIA BANCARIA\nCuenta: ${details.account_number}\nCédula: ${details.cedula}\nBanco: ${bank}`;
+        } else if (['ZELLE_DOLARES', 'BINANCE_DOLARES', 'PAYPAL_DOLARES', 'ZINLI_DOLARES'].includes(form.change_method_company)) {
+            text = `${form.change_method_company.split('_')[0]}: ${details.email}`;
+        }
+
+        if (text) {
+            navigator.clipboard.writeText(text);
+            toast.info("Datos copiados al portapapeles 📋");
+        }
+    };
+
+    const handleUploadReceipt = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        const formData = new FormData();
+        formData.append("change_receipt", file);
+
         setLoading(true);
         try {
-            const body = new URLSearchParams();
-            Object.entries(form).forEach(([key, value]) => {
-                if (value !== null && value !== undefined) {
-                    body.append(key, value.toString());
-                }
-            });
-
             const { status, response }: IResponse = await request(
-                `/orders/${order.id}/change`,
-                "PUT",
-                body
+                `/orders/${order.id}/change-receipt`,
+                "POST",
+                formData,
+                true // isJson=false for FormData
             );
 
             if (status) {
+                toast.success("Comprobante de vuelto subido");
+                if (onUpdate) onUpdate();
+            } else {
+                const data = await response.json();
+                toast.error(data.message || "Error al subir comprobante");
+            }
+        } catch (error) {
+            console.error(error);
+            toast.error("Error de conexión");
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleSave = async () => {
+        setLoading(true);
+        try {
+            const formData = new FormData();
+            formData.append("_method", "PUT");
+            formData.append("cash_received", form.cash_received);
+            formData.append("change_amount", form.change_amount);
+            formData.append("change_covered_by", form.change_covered_by);
+            formData.append("change_amount_company", form.change_amount_company);
+            formData.append("change_amount_agency", form.change_amount_agency);
+            formData.append("change_method_company", form.change_method_company);
+            formData.append("change_method_agency", form.change_method_agency);
+            formData.append("change_rate", String(form.change_rate));
+            formData.append("change_payment_details", JSON.stringify(form.change_payment_details));
+
+            console.log("Saving form data via FormData:", Object.fromEntries(formData.entries()));
+
+            const { status, response }: IResponse = await request(
+                `/orders/${order.id}/change`,
+                "POST",
+                formData,
+                true // multipart
+            );
+
+            if (status === 200) {
                 toast.success("Vuelto actualizado correctamente");
                 if (onUpdate) onUpdate();
             } else {
                 const data = await response.json();
+                console.error("Save error:", data);
                 toast.error(data.message || "Error al actualizar el vuelto");
             }
         } catch (error) {
@@ -154,11 +267,30 @@ export const OrderChangeSection: React.FC<OrderChangeSectionProps> = ({ order, o
     // Validamos que los montos parciales sumen el total del vuelto con una tolerancia para decimales
     const isSumCorrect = form.change_covered_by !== 'partial' || Math.abs(partialTotal - changeAmountNum) < 0.01;
 
+    const isDetailsFilled = () => {
+        if (form.change_covered_by === 'agency') return true;
+        const method = form.change_method_company;
+        if (!method || method === 'DOLARES_EFECTIVO') return true;
+        const details = form.change_payment_details as any;
+        if (!details) return false;
+
+        if (method === 'BOLIVARES_PAGOMOVIL') {
+            return !!(details.cedula && details.bank_id && details.phone_number);
+        }
+        if (method === 'BOLIVARES_TRANSFERENCIA') {
+            return !!(details.account_number && details.cedula && details.bank_id);
+        }
+        if (['ZELLE_DOLARES', 'BINANCE_DOLARES', 'PAYPAL_DOLARES', 'ZINLI_DOLARES'].includes(method)) {
+            return !!details.email;
+        }
+        return true;
+    };
+
     const isMethodSelected =
-        form.change_covered_by === 'company' ? !!form.change_method_company :
+        (form.change_covered_by === 'company' ? (!!form.change_method_company && isDetailsFilled()) :
             form.change_covered_by === 'agency' ? !!form.change_method_agency :
-                form.change_covered_by === 'partial' ? (!!form.change_method_company && !!form.change_method_agency) :
-                    false;
+                form.change_covered_by === 'partial' ? (!!form.change_method_company && !!form.change_method_agency && isDetailsFilled()) :
+                    false);
 
     // El botón se bloquea si es parcial y la suma no cuadra, o si no hay vuelto que registrar pero alguien intenta forzarlo,
     // o si faltan métodos de pago requeridos.
@@ -380,6 +512,17 @@ export const OrderChangeSection: React.FC<OrderChangeSectionProps> = ({ order, o
                                     <MenuItem key={opt.value} value={opt.value}>{opt.label}</MenuItem>
                                 ))}
                             </SelectCustom>
+
+                            {form.change_method_company && (
+                                <StructuredDetailForm
+                                    method={form.change_method_company}
+                                    details={form.change_payment_details}
+                                    onChange={handleDetailChange}
+                                    onCopy={handleCopyDetails}
+                                    banks={banks}
+                                    disabled={!canEdit || loading}
+                                />
+                            )}
                         </Box>
                     </Collapse>
 
@@ -398,7 +541,7 @@ export const OrderChangeSection: React.FC<OrderChangeSectionProps> = ({ order, o
                                 inputProps={{ readOnly: !canEdit }}
                             >
                                 <MenuItem value="">Seleccione un método</MenuItem>
-                                {CHANGE_METHOD_OPTIONS.map(opt => (
+                                {AGENCY_CHANGE_METHOD_OPTIONS.map(opt => (
                                     <MenuItem key={opt.value} value={opt.value}>{opt.label}</MenuItem>
                                 ))}
                             </SelectCustom>
@@ -465,7 +608,7 @@ export const OrderChangeSection: React.FC<OrderChangeSectionProps> = ({ order, o
                                             inputProps={{ readOnly: !canEdit }}
                                         >
                                             <MenuItem value="">Seleccione método</MenuItem>
-                                            {CHANGE_METHOD_OPTIONS.map(opt => (
+                                            {AGENCY_CHANGE_METHOD_OPTIONS.map(opt => (
                                                 <MenuItem key={opt.value} value={opt.value}>{opt.label}</MenuItem>
                                             ))}
                                         </SelectCustom>
@@ -480,9 +623,101 @@ export const OrderChangeSection: React.FC<OrderChangeSectionProps> = ({ order, o
                                     </Typography>
                                 </Grid>
                             </Grid>
+
+                            {form.change_method_company && (
+                                <StructuredDetailForm
+                                    method={form.change_method_company}
+                                    details={form.change_payment_details}
+                                    onChange={handleDetailChange}
+                                    onCopy={handleCopyDetails}
+                                    banks={banks}
+                                    disabled={!canEdit || loading}
+                                />
+                            )}
                         </Box>
                     </Collapse>
                 </Grid>
+
+                {/* SECCIÓN DE COMPROBANTE DE VUELTO (Solo visible si hay vuelto de empresa/parcial) */}
+                {(form.change_covered_by === 'company' || form.change_covered_by === 'partial') && changeAmountNum > 0 && (
+                    <Grid size={{ xs: 12 }}>
+                        <Divider sx={{ my: 2 }} />
+                        <Typography variant="subtitle2" fontWeight="bold" color="text.secondary" sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <CameraAltIcon fontSize="small" /> Comprobante de Vuelto
+                        </Typography>
+
+                        <Paper elevation={0} sx={{
+                            p: 3,
+                            border: '1px dashed',
+                            borderColor: order.change_receipt ? green[300] : 'divider',
+                            bgcolor: order.change_receipt ? (isDark ? darken(green[900], 0.7) : green[50]) : 'action.hover',
+                            borderRadius: 4,
+                            textAlign: 'center'
+                        }}>
+                            {order.change_receipt ? (
+                                <Stack spacing={2} alignItems="center">
+                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, color: green[700] }}>
+                                        <CheckCircleIcon />
+                                        <Typography fontWeight="bold">Vuelto Pagado / Comprobante disponible</Typography>
+                                    </Box>
+                                    <Stack direction="row" spacing={1}>
+                                        <ButtonCustom
+                                            variant="outlined"
+                                            startIcon={<VisibilityIcon />}
+                                            onClick={() => window.open(`${import.meta.env.VITE_API_URL || 'http://localhost:8000/api'}/orders/${order.id}/change-receipt`, '_blank')}
+                                            sx={{ borderColor: green[500], color: green[700] }}
+                                        >
+                                            Ver Comprobante
+                                        </ButtonCustom>
+                                        <ButtonCustom
+                                            variant="outlined"
+                                            startIcon={<DownloadIcon />}
+                                            onClick={() => {
+                                                const link = document.createElement('a');
+                                                link.href = `${import.meta.env.VITE_API_URL || 'http://localhost:8000/api'}/orders/${order.id}/change-receipt`;
+                                                link.download = `Vuelto_Orden_${order.name}.jpg`;
+                                                link.click();
+                                            }}
+                                            sx={{ borderColor: green[500], color: green[700] }}
+                                        >
+                                            Bajar
+                                        </ButtonCustom>
+                                    </Stack>
+                                </Stack>
+                            ) : (
+                                <Box>
+                                    <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                                        Aún no se ha cargado el comprobante de pago del vuelto por administración.
+                                    </Typography>
+                                </Box>
+                            )}
+
+                            {/* El Admin/Gerente puede (re)subir el comprobante */}
+                            {['Admin', 'Gerente'].includes(user.role?.description || '') && (
+                                <Box sx={{ mt: order.change_receipt ? 2 : 0 }}>
+                                    <input
+                                        accept="image/*"
+                                        style={{ display: 'none' }}
+                                        id="change-receipt-upload"
+                                        type="file"
+                                        onChange={handleUploadReceipt}
+                                    />
+                                    <label htmlFor="change-receipt-upload">
+                                        <ButtonCustom
+                                            component="span"
+                                            variant="contained"
+                                            startIcon={<CloudUploadIcon />}
+                                            disabled={loading}
+                                            sx={{ bgcolor: blue[600], '&:hover': { bgcolor: blue[700] } }}
+                                        >
+                                            {order.change_receipt ? "Cambiar Comprobante" : "Subir Comprobante de Vuelto"}
+                                        </ButtonCustom>
+                                    </label>
+                                </Box>
+                            )}
+                        </Paper>
+                    </Grid>
+                )}
 
                 {canEdit && (
                     <Grid size={{ xs: 12 }}>
@@ -503,4 +738,102 @@ export const OrderChangeSection: React.FC<OrderChangeSectionProps> = ({ order, o
             </Grid>
         </Paper>
     );
+};
+
+const PHONE_PREFIXES = ["0414", "0424", "0412", "0422", "0416", "0426"];
+
+const StructuredDetailForm = ({ method, details, onChange, onCopy, banks, disabled }: any) => {
+    const isDark = useTheme().palette.mode === 'dark';
+
+    if (method === 'BOLIVARES_PAGOMOVIL') {
+        return (
+            <Box sx={{ mt: 2, p: 2.5, bgcolor: isDark ? 'rgba(25, 118, 210, 0.05)' : 'white', borderRadius: 3, border: '1px solid', borderColor: 'divider' }}>
+                <Typography variant="caption" fontWeight="bold" color="primary" sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <PhoneIphoneIcon fontSize="small" /> DATOS PARA PAGO MÓVIL
+                </Typography>
+                <Grid container spacing={2}>
+                    <Grid size={{ xs: 12, sm: 4 }}>
+                        <TextField fullWidth size="small" label="Cédula" placeholder="12345678"
+                            value={details.cedula || ""} onChange={(e) => onChange('cedula', e.target.value.replace(/\D/g, ""))}
+                            disabled={disabled} />
+                    </Grid>
+                    <Grid size={{ xs: 12, sm: 8 }}>
+                        <SelectCustom fullWidth size="small" label="Banco" value={details.bank_id || ""}
+                            onChange={(e) => onChange('bank_id', e.target.value)} disabled={disabled}>
+                            {banks.map((b: any) => <MenuItem key={b.id} value={b.id}>{b.name}</MenuItem>)}
+                        </SelectCustom>
+                    </Grid>
+                    <Grid size={{ xs: 5, sm: 4 }}>
+                        <SelectCustom fullWidth size="small" label="Prefijo" value={details.phone_prefix || ""}
+                            onChange={(e) => onChange('phone_prefix', e.target.value)} disabled={disabled}>
+                            {PHONE_PREFIXES.map(p => <MenuItem key={p} value={p}>{p}</MenuItem>)}
+                        </SelectCustom>
+                    </Grid>
+                    <Grid size={{ xs: 7, sm: 8 }}>
+                        <TextField fullWidth size="small" label="Teléfono" placeholder="1234567"
+                            value={details.phone_number || ""} onChange={(e) => onChange('phone_number', e.target.value.replace(/\D/g, "").substring(0, 7))}
+                            disabled={disabled} />
+                    </Grid>
+                    <Grid size={{ xs: 12 }}>
+                        <ButtonCustom fullWidth variant="outlined" startIcon={<ContentCopyIcon />} onClick={onCopy} disabled={!details.cedula}>
+                            Copiar Datos para Admin
+                        </ButtonCustom>
+                    </Grid>
+                </Grid>
+            </Box>
+        );
+    }
+
+    if (method === 'BOLIVARES_TRANSFERENCIA') {
+        return (
+            <Box sx={{ mt: 2, p: 2.5, bgcolor: isDark ? 'rgba(25, 118, 210, 0.05)' : 'white', borderRadius: 3, border: '1px solid', borderColor: 'divider' }}>
+                <Typography variant="caption" fontWeight="bold" color="primary" sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <AccountBalanceIcon fontSize="small" /> DATOS PARA TRANSFERENCIA
+                </Typography>
+                <Grid container spacing={2}>
+                    <Grid size={{ xs: 12 }}>
+                        <TextField fullWidth size="small" label="Número de Cuenta" placeholder="20 dígitos"
+                            value={details.account_number || ""} onChange={(e) => onChange('account_number', e.target.value.replace(/\D/g, ""))}
+                            disabled={disabled} />
+                    </Grid>
+                    <Grid size={{ xs: 12, sm: 6 }}>
+                        <TextField fullWidth size="small" label="Cédula" placeholder="12345678"
+                            value={details.cedula || ""} onChange={(e) => onChange('cedula', e.target.value.replace(/\D/g, ""))}
+                            disabled={disabled} />
+                    </Grid>
+                    <Grid size={{ xs: 12, sm: 6 }}>
+                        <SelectCustom fullWidth size="small" label="Banco" value={details.bank_id || ""}
+                            onChange={(e) => onChange('bank_id', e.target.value)} disabled={disabled}>
+                            {banks.map((b: any) => <MenuItem key={b.id} value={b.id}>{b.name}</MenuItem>)}
+                        </SelectCustom>
+                    </Grid>
+                    <Grid size={{ xs: 12 }}>
+                        <ButtonCustom fullWidth variant="outlined" startIcon={<ContentCopyIcon />} onClick={onCopy} disabled={!details.account_number}>
+                            Copiar Datos para Admin
+                        </ButtonCustom>
+                    </Grid>
+                </Grid>
+            </Box>
+        );
+    }
+
+    if (['ZELLE_DOLARES', 'BINANCE_DOLARES', 'PAYPAL_DOLARES', 'ZINLI_DOLARES'].includes(method)) {
+        return (
+            <Box sx={{ mt: 2, p: 2.5, bgcolor: isDark ? 'rgba(25, 118, 210, 0.05)' : 'white', borderRadius: 3, border: '1px solid', borderColor: 'divider' }}>
+                <Typography variant="caption" fontWeight="bold" color="primary" sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <MailOutlineIcon fontSize="small" /> DATOS DEL RECEPTOR
+                </Typography>
+                <Stack direction="row" spacing={1}>
+                    <TextField fullWidth size="small" label="Correo Electrónico" placeholder="usuario@ejemplo.com"
+                        value={details.email || ""} onChange={(e) => onChange('email', e.target.value)}
+                        disabled={disabled} />
+                    <IconButton onClick={onCopy} disabled={!details.email} sx={{ bgcolor: blue[50] }}>
+                        <ContentCopyIcon color="primary" />
+                    </IconButton>
+                </Stack>
+            </Box>
+        );
+    }
+
+    return null;
 };

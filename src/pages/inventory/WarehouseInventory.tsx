@@ -56,7 +56,7 @@ export const WarehouseInventory: React.FC = () => {
             const invReq: IResponse = await request(`/warehouses/${id}/inventory`, 'GET');
             if (invReq.status) {
                 const invData = await invReq.response.json();
-                setInventory(invData.data || []);
+                setInventory(invData.inventory || []);
             }
         } catch (error) {
             console.error(error);

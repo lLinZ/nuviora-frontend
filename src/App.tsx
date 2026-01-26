@@ -4,6 +4,8 @@ import { useEffect, useState } from 'react'
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { getThemeLight, getThemeDark } from './common/theme';
 import { Login } from './pages/auth/Login';
+import { TestRegister } from './pages/auth/TestRegister';
+
 import { RecoverPassword } from './pages/auth/RecoverPassword';
 import { ResetPassword } from './pages/auth/ResetPassword';
 import { useUserStore } from './store/user/UserStore';
@@ -29,6 +31,9 @@ import { Shops } from './pages/shops/Shops';
 import { Metrics } from './pages/Metrics';
 import { BusinessMetrics } from './pages/BusinessMetrics';
 import { Cities } from './pages/Cities';
+import { CompanyAccounts } from './pages/admin/CompanyAccounts';
+import { Banks } from './pages/admin/Banks';
+import { PendingVueltos } from './pages/admin/PendingVueltos';
 
 const useGetTheme = () => {
   const user = useUserStore((state) => state.user);
@@ -45,6 +50,8 @@ const useGetTheme = () => {
   return theme
 }
 
+import { InventoryDashboard } from './pages/inventory/InventoryDashboard';
+
 function App() {
   const theme = useGetTheme()
   return (
@@ -53,6 +60,7 @@ function App() {
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Login />} />
+          <Route path="/test-register" element={<TestRegister />} />
           <Route path="/recover-password" element={<RecoverPassword />} />
           <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/dashboard" element={<Dashboard />} />
@@ -63,25 +71,30 @@ function App() {
           <Route path="/currency" element={<Currency />} />
           <Route path="/users" element={<Users />} />
           <Route path="/roster" element={<Roster />} />
-          <Route path="/inventory" element={<InventoryOverview />} />
-          <Route path="/inventory/warehouses" element={<Warehouses />} />
+
+          {/* Unified Inventory Dashboard */}
+          <Route path="/inventory" element={<InventoryDashboard />} />
+          <Route path="/inventory/warehouses" element={<InventoryDashboard />} />
           <Route path="/inventory/warehouses/:id" element={<WarehouseInventory />} />
-          <Route path="/inventory/movements" element={<InventoryMovements />} />
-          <Route path="/inventory/transfer" element={<StockTransfer />} />
-          <Route path="/inventory/adjust" element={<StockAdjustment />} />
+          <Route path="/inventory/movements" element={<InventoryDashboard />} />
+          <Route path="/inventory/transfer" element={<InventoryDashboard />} />
+          <Route path="/inventory/adjust" element={<InventoryDashboard />} />
+          <Route path="/deliverers/stock" element={<InventoryDashboard />} />
+
           <Route path="/earnings" element={<EarningsAdmin />} />
-          {/* <Route path="/deliverer/my-stock" element={<DelivererStock />} /> */}
-          {/* <Route path="/deliverer/stock" element={<DelivererStock />} /> */}
           <Route path="/me/earnings" element={<MyEarningsPage />} />
-          <Route path="/deliverers/stock" element={<DelivererStock />} />
           <Route path="/shops" element={<Shops />} />
           <Route path="/metrics" element={<Metrics />} />
           <Route path="/business-metrics" element={<BusinessMetrics />} />
           <Route path="/cities" element={<Cities />} />
+          <Route path="/admin/company-accounts" element={<CompanyAccounts />} />
+          <Route path="/admin/banks" element={<Banks />} />
+          <Route path="/admin/pending-vueltos" element={<PendingVueltos />} />
         </Routes>
       </BrowserRouter>
     </ThemeProvider>
   )
 }
+
 
 export default App

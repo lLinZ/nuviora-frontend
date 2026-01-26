@@ -6,6 +6,7 @@ import { Bounce, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { useUserStore } from '../../store/user/UserStore';
 import { SideBar } from './nav';
+import { NotificationMonitor } from './notifications/NotificationMonitor';
 type Props = {
     children: React.ReactNode;
     noMargin?: boolean;
@@ -16,6 +17,7 @@ export const Layout: FC<Props> = ({ children, container = true }) => {
     const user = useUserStore((state) => state.user);
     return (
         <Box sx={{ display: 'flex', flexDirection: 'row', minHeight: '100vh', justifyContent: 'space-between' }}>
+            <NotificationMonitor />
             <SideBar />
             {!container ? (
                 <Box sx={{

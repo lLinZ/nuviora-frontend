@@ -12,6 +12,9 @@ export interface IWarehouse {
     is_main: boolean;
     warehouse_type?: IWarehouseType;
     user?: IUser;
+    // Metrics
+    total_products_unique?: number;
+    total_items_stock?: number;
     created_at?: string;
     updated_at?: string;
 }
@@ -63,6 +66,7 @@ export interface IProduct {
     sku?: string;
     price?: number;
     cost?: number;
+    cost_usd?: number;
     image?: string;
     stock?: number;
     created_at?: string;

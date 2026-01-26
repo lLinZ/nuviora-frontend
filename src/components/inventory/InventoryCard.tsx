@@ -12,7 +12,8 @@ import {
 import {
     History as HistoryIcon,
     SwapHoriz as TransferIcon,
-    Edit as EditIcon
+    Edit as EditIcon,
+    Tune as AdjustIcon
 } from '@mui/icons-material';
 import { IProductStock } from '../../interfaces/inventory.types';
 import { TypographyCustom } from '../custom';
@@ -21,6 +22,7 @@ interface InventoryCardProps {
     productStock: IProductStock;
     onTransfer: (product: IProductStock) => void;
     onAdjust: (product: IProductStock) => void;
+    onEdit: (product: IProductStock) => void;
     onViewHistory: (product: IProductStock) => void;
 }
 
@@ -28,6 +30,7 @@ export const InventoryCard: React.FC<InventoryCardProps> = ({
     productStock,
     onTransfer,
     onAdjust,
+    onEdit,
     onViewHistory
 }) => {
     const { product, warehouses, total_quantity } = productStock;
@@ -99,8 +102,13 @@ export const InventoryCard: React.FC<InventoryCardProps> = ({
                         <TransferIcon />
                     </IconButton>
                 </Tooltip>
-                <Tooltip title="Ajustar Stock">
+                <Tooltip title="Ajustar Stock (Cantidades)">
                     <IconButton size="small" color="warning" onClick={() => onAdjust(productStock)}>
+                        <AdjustIcon />
+                    </IconButton>
+                </Tooltip>
+                <Tooltip title="Editar Producto (Costo, SKU...)">
+                    <IconButton size="small" color="info" onClick={() => onEdit(productStock)}>
                         <EditIcon />
                     </IconButton>
                 </Tooltip>

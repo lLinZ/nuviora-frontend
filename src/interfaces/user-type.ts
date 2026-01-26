@@ -9,4 +9,5 @@ export interface UserType {
     status: string;
     created_at: string;
     updated_at: string;
+    delivery_cost?: string | number;
 }

@@ -1,76 +1,157 @@
-// src/components/inventory/EditProductDialog.tsx
-import React, { useEffect, useState } from "react";
-import { Dialog, DialogTitle, DialogContent, DialogActions, Box, MenuItem } from "@mui/material";
-import { ButtonCustom, TextFieldCustom } from "../custom";
-import { toast } from "react-toastify";
-import { request } from "../../common/request";
-import { IResponse } from "../../interfaces/response-type";
+import React, { useState, useEffect } from 'react';
+import {
+    Dialog,
+    DialogTitle,
+    DialogContent,
+    DialogActions,
+    TextField,
+    Box,
+    Typography,
+    Grid,
+    CircularProgress
+} from '@mui/material';
+import { ButtonCustom } from '../custom';
+import { IProduct } from '../../interfaces/inventory.types';
+import { request } from '../../common/request';
+import { toast } from 'react-toastify';
+import { IResponse } from '../../interfaces/response-type';
 
-export const EditProductDialog: React.FC<{
+interface EditProductDialogProps {
     open: boolean;
     onClose: () => void;
-    product: any | null;
-    onSaved: (p: any) => void;
-}> = ({ open, onClose, product, onSaved }) => {
-    const [form, setForm] = useState<any>({ price: 0, cost: 0, currency: "USD", stock: 0 });
+    onSuccess: () => void;
+    product?: IProduct;
+}
+
+export const EditProductDialog: React.FC<EditProductDialogProps> = ({
+    open,
+    onClose,
+    onSuccess,
+    product
+}) => {
+    const [loading, setLoading] = useState(false);
+    const [formData, setFormData] = useState({
+        title: '',
+        sku: '',
+        price: 0,
+        cost_usd: 0
+    });
 
     useEffect(() => {
-        setForm(product ?? { price: 0, cost: 0, currency: "USD", stock: 0 });
-    }, [product]);
+        if (open && product) {
+            setFormData({
+                title: product.title || '',
+                sku: product.sku || '',
+                price: product.price || 0,
+                cost_usd: product.cost_usd || 0
+            });
+        }
+    }, [open, product]);
 
-    const save = async () => {
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!product) return;
+
+        setLoading(true);
         try {
-            const body = new URLSearchParams();
-            ['sku', 'title', 'name', 'image', 'currency'].forEach(k => form[k] !== undefined && body.append(k, form[k] ?? ''));
-            ['price', 'cost', 'stock'].forEach(k => body.append(k, String(form[k] ?? 0)));
+            const { status, response }: IResponse = await request(
+                `/inventory/products/${product.id}`,
+                'PUT',
+                JSON.stringify(formData)
+            );
 
-            let res: IResponse;
-            if (form?.id) {
-                res = await request(`/inventory/products/${form.id}`, "PUT", body);
-            } else {
-                res = await request(`/inventory/products`, "POST", body);
-            }
-            if (res.status) {
-                const data = await res.response.json();
-                onSaved(data.product);
-                toast.success(data.message ?? "Guardado ✅");
+            if (status === 200) {
+                toast.success('Producto actualizado con éxito');
+                onSuccess();
                 onClose();
             } else {
-                toast.error("No se pudo guardar ❌");
+                const data = await response.json();
+                toast.error(data.message || 'Error al actualizar producto');
             }
-        } catch {
-            toast.error("Error al guardar 🚨");
+        } catch (error) {
+            toast.error('Error de conexión');
+        } finally {
+            setLoading(false);
         }
+    };
+
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const { name, value } = e.target;
+        setFormData(prev => ({
+            ...prev,
+            [name]: name === 'price' || name === 'cost_usd' ? Number(value) : value
+        }));
     };
 
     return (
         <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
-            <DialogTitle>{form?.id ? "Editar producto" : "Nuevo producto"}</DialogTitle>
-            <DialogContent>
-                <Box sx={{ display: "grid", gap: 2, mt: 1 }}>
-                    <TextFieldCustom label="SKU" value={form.sku ?? ''} onChange={(e: any) => setForm({ ...form, sku: e.target.value })} />
-                    <TextFieldCustom label="Nombre/Título" value={form.title ?? form.name ?? ''} onChange={(e: any) => setForm({ ...form, title: e.target.value })} />
-                    <Box sx={{ display: 'flex', gap: 2 }}>
-                        <TextFieldCustom label="Costo" type="number" value={form.cost} onChange={(e: any) => setForm({ ...form, cost: e.target.value })} />
-                        <TextFieldCustom label="Precio" type="number" value={form.price} onChange={(e: any) => setForm({ ...form, price: e.target.value })} />
-                        <TextFieldCustom
-                            select
-                            label="Moneda"
-                            value={form.currency ?? 'USD'}
-                            onChange={(e: any) => setForm({ ...form, currency: e.target.value })}
-                        >
-                            <MenuItem value="USD">USD</MenuItem>
-                            <MenuItem value="VES">VES</MenuItem>
-                        </TextFieldCustom>
+            <DialogTitle sx={{ fontWeight: 'bold' }}>Editar Detalles del Producto</DialogTitle>
+            <form onSubmit={handleSubmit}>
+                <DialogContent>
+                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5, mt: 1 }}>
+                        <TextField
+                            fullWidth
+                            label="Título del Producto"
+                            name="title"
+                            value={formData.title}
+                            onChange={handleChange}
+                            required
+                            size="small"
+                        />
+                        <TextField
+                            fullWidth
+                            label="SKU"
+                            name="sku"
+                            value={formData.sku}
+                            onChange={handleChange}
+                            size="small"
+                        />
+                        <Grid container spacing={2}>
+                            <Grid size={{ xs: 6 }}>
+                                <TextField
+                                    fullWidth
+                                    label="Precio de Venta (USD)"
+                                    name="price"
+                                    type="number"
+                                    value={formData.price}
+                                    onChange={handleChange}
+                                    required
+                                    size="small"
+                                    inputProps={{ step: "0.01", min: 0 }}
+                                />
+                            </Grid>
+                            <Grid size={{ xs: 6 }}>
+                                <TextField
+                                    fullWidth
+                                    label="Costo de Compra (USD)"
+                                    name="cost_usd"
+                                    type="number"
+                                    value={formData.cost_usd}
+                                    onChange={handleChange}
+                                    required
+                                    size="small"
+                                    inputProps={{ step: "0.01", min: 0 }}
+                                    helperText="Este valor se usará para calcular la ganancia en métricas"
+                                    sx={{ '& .MuiFormHelperText-root': { color: 'primary.main', fontWeight: 'medium' } }}
+                                />
+                            </Grid>
+                        </Grid>
                     </Box>
-                    <TextFieldCustom label="Stock" type="number" value={form.stock} onChange={(e: any) => setForm({ ...form, stock: e.target.value })} />
-                    <TextFieldCustom label="Imagen (URL)" value={form.image ?? ''} onChange={(e: any) => setForm({ ...form, image: e.target.value })} />
-                </Box>
-            </DialogContent>
-            <DialogActions>
-                <ButtonCustom variant="outlined" onClick={onClose}>Cancelar</ButtonCustom>
-                <ButtonCustom onClick={save}>Guardar</ButtonCustom>
-            </DialogActions>
+                </DialogContent>
+                <DialogActions sx={{ p: 2, pt: 0 }}>
+                    <ButtonCustom onClick={onClose} color="inherit" variant="text">
+                        Cancelar
+                    </ButtonCustom>
+                    <ButtonCustom
+                        type="submit"
+                        disabled={loading}
+                        variant="contained"
+                        sx={{ px: 4 }}
+                    >
+                        {loading ? <CircularProgress size={24} color="inherit" /> : 'Guardar Cambios'}
+                    </ButtonCustom>
+                </DialogActions>
+            </form>
         </Dialog>
     );
 };

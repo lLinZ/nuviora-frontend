@@ -25,6 +25,7 @@ export const TableData = ({ data }: DataProps) => {
         address: data.address,
         role: data.role,
         status: data.status,
+        delivery_cost: data.delivery_cost ?? 0,
     }
     const [info, setInfo] = useState<UserType>(data);
     const [values, setValues] = useState<InitialValues>(initialValues);
@@ -73,6 +74,11 @@ export const TableData = ({ data }: DataProps) => {
                     <TableCell sx={{ whiteSpace: 'nowrap', textAlign: 'center' }}><TextFieldCustom name="email" onChange={handleChange} value={values.email} /></TableCell>
                     <TableCell sx={{ whiteSpace: 'nowrap', textAlign: 'center' }}><TextFieldCustom name="address" onChange={handleChange} value={values.address} /></TableCell>
                     <TableCell sx={{ whiteSpace: 'nowrap', textAlign: 'center' }}>
+                        {data.role?.description === 'Agencia' && (
+                            <TextFieldCustom name="delivery_cost" type="number" onChange={handleChange} value={values.delivery_cost} />
+                        )}
+                    </TableCell>
+                    <TableCell sx={{ whiteSpace: 'nowrap', textAlign: 'center' }}>
                         <IconButton onClick={onSubmit}>
                             <CheckRounded />
                         </IconButton>
@@ -89,6 +95,7 @@ export const TableData = ({ data }: DataProps) => {
                         <TableCell sx={{ whiteSpace: 'nowrap', textAlign: 'center' }}>{info.phone}</TableCell>
                         <TableCell sx={{ whiteSpace: 'nowrap', textAlign: 'center' }}>{info.email}</TableCell>
                         <TableCell sx={{ whiteSpace: 'nowrap', textAlign: 'center' }}>{info.address}</TableCell>
+                        <TableCell sx={{ whiteSpace: 'nowrap', textAlign: 'center' }}>{info.delivery_cost || 0}</TableCell>
                         <TableCell sx={{ whiteSpace: 'nowrap', textAlign: 'center' }}>
                             <IconButton onClick={toggleEdit}>
                                 <EditRounded />

@@ -157,7 +157,7 @@ export const Metrics = () => {
                                         </TableRow>
                                     </TableHead>
                                     <TableBody>
-                                        {metrics?.products.map((p: any) => (
+                                        {metrics?.products?.map((p: any) => (
                                             <TableRow key={p.id}>
                                                 <TableCell>{p.title || p.name}</TableCell>
                                                 <TableCell align="right">{p.effectiveness}%</TableCell>
@@ -187,7 +187,7 @@ export const Metrics = () => {
                                         </TableRow>
                                     </TableHead>
                                     <TableBody>
-                                        {metrics?.sellers.map((s: any) => (
+                                        {metrics?.sellers?.map((s: any) => (
                                             <TableRow key={s.id}>
                                                 <TableCell>{s.names || s.name}</TableCell>
                                                 <TableCell align="right">{s.closure_rate}%</TableCell>
@@ -243,7 +243,7 @@ export const Metrics = () => {
                                         </TableRow>
                                     </TableHead>
                                     <TableBody>
-                                        {metrics?.daily.map((d: any) => (
+                                        {metrics?.daily?.map((d: any) => (
                                             <TableRow key={d.date}>
                                                 <TableCell>{d.date}</TableCell>
                                                 <TableCell align="right">{fmtMoney(d.revenue, 'USD')}</TableCell>
