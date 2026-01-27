@@ -133,8 +133,11 @@ export const Shops = () => {
                         <Card elevation={3} sx={{ borderRadius: 4, height: '100%' }}>
                             <CardContent>
                                 <Box display="flex" justifyContent="space-between" alignItems="flex-start">
-                                    <Box>
-                                        <Typography variant="h6" fontWeight="bold">{shop.name}</Typography>
+                                    <Box flex={1}>
+                                        <Box display="flex" alignItems="center" gap={1} mb={0.5}>
+                                            <Typography variant="h6" fontWeight="bold">{shop.name}</Typography>
+                                            <Chip label={`ID: ${shop.id}`} size="small" color="primary" variant="outlined" />
+                                        </Box>
                                         <Typography variant="body2" color="text.secondary">{shop.shopify_domain || 'Sin dominio'}</Typography>
                                     </Box>
                                     <Box>
