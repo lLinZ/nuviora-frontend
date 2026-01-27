@@ -177,8 +177,26 @@ export const Shops = () => {
                     <DialogContent>
                         <Box display="flex" flexDirection="column" gap={2} mt={1}>
                             <TextField name="name" label="Nombre de la Tienda" fullWidth required defaultValue={editingShop?.name} />
-                            <TextField name="shopify_domain" label="Dominio Shopify" fullWidth defaultValue={editingShop?.shopify_domain} />
-                            <TextField name="shopify_webhook_secret" label="Shopify Webhook Secret" fullWidth defaultValue={editingShop?.shopify_webhook_secret} />
+                            <TextField name="shopify_domain" label="Dominio Shopify (ej: tutienda.myshopify.com)" fullWidth defaultValue={editingShop?.shopify_domain}
+                                placeholder="tutienda.myshopify.com"
+                                helperText="El dominio de tu tienda en Shopify"
+                            />
+                            <TextField
+                                name="shopify_access_token"
+                                label="Access Token de Shopify"
+                                fullWidth
+                                defaultValue={editingShop?.shopify_access_token}
+                                type="password"
+                                helperText="Token de acceso a la API de Shopify"
+                            />
+                            <TextField
+                                name="shopify_webhook_secret"
+                                label="Webhook Secret de Shopify"
+                                fullWidth
+                                defaultValue={editingShop?.shopify_webhook_secret}
+                                type="password"
+                                helperText="Secreto para validar webhooks de Shopify"
+                            />
                         </Box>
                     </DialogContent>
                     <DialogActions>
