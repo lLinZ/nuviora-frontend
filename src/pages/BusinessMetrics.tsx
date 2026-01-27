@@ -249,7 +249,7 @@ export const BusinessMetrics: React.FC = () => {
                 {/* SECCIÓN A: FLUJO DE PEDIDOS NUEVOS */}
                 <ChartContainer title="🔄 Flujo de Pedidos Nuevos" sectionId="sectionA">
                     <Grid container spacing={3}>
-                        <Grid item xs={12} lg={8}>
+                        <Grid size={{ xs: 12, lg: 8 }}>
                             {/* Make height explicit and ensure Grid item has width */}
                             <Box sx={{ height: 400, width: '100%', minHeight: 300, position: 'relative' }}>
                                 <ResponsiveContainer width="100%" height="100%">
@@ -379,23 +379,23 @@ export const BusinessMetrics: React.FC = () => {
                 <ChartContainer title="👩‍💼 Rendimiento de Vendedoras" sectionId="sectionC">
                     <Grid container spacing={3}>
                         {data?.sectionC?.vendedoras?.map((v: any) => (
-                            <Grid item xs={12} md={6} lg={4} key={v.id}>
+                            <Grid size={{ xs: 12, md: 6, lg: 4 }} key={v.id}>
                                 <Paper variant="outlined" sx={{ p: 3, borderRadius: 4, bgcolor: isDark ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.01)' }}>
                                     <Typography variant="h6" fontWeight="bold" mb={2}>{v.name}</Typography>
                                     <Grid container spacing={2}>
-                                        <Grid item xs={6}>
+                                        <Grid size={{ xs: 6 }}>
                                             <Typography variant="caption" color="text.secondary">Asignados</Typography>
                                             <Typography variant="h5" fontWeight="bold">{v.stats.assigned}</Typography>
                                         </Grid>
-                                        <Grid item xs={6}>
+                                        <Grid size={{ xs: 6 }}>
                                             <Typography variant="caption" color="text.secondary">Tasa Entrega</Typography>
                                             <Typography variant="h5" fontWeight="bold" color={green[500]}>{v.stats.delivery_rate}%</Typography>
                                         </Grid>
-                                        <Grid item xs={6}>
+                                        <Grid size={{ xs: 6 }}>
                                             <Typography variant="caption" color="text.secondary">Tasa Agencia</Typography>
                                             <Typography variant="h5" fontWeight="bold" color={blue[500]}>{v.stats.agency_rate}%</Typography>
                                         </Grid>
-                                        <Grid item xs={6}>
+                                        <Grid size={{ xs: 6 }}>
                                             <Typography variant="caption" color="text.secondary">Tasa Cancelado</Typography>
                                             <Typography variant="h5" fontWeight="bold" color={red[500]}>{v.stats.cancel_rate}%</Typography>
                                         </Grid>
@@ -457,7 +457,7 @@ export const BusinessMetrics: React.FC = () => {
                 <ChartContainer title="📦 Desempeño por Producto" sectionId="sectionE">
                     <Grid container spacing={3}>
                         {data?.sectionE?.productos?.map((p: any) => (
-                            <Grid item xs={12} key={p.id}>
+                            <Grid size={{ xs: 12 }} key={p.id}>
                                 <Paper variant="outlined" sx={{ p: 3, borderRadius: 4 }}>
                                     <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" spacing={2} mb={2}>
                                         <Box>
@@ -476,7 +476,7 @@ export const BusinessMetrics: React.FC = () => {
                                         </Box>
                                     </Stack>
                                     <Grid container spacing={2}>
-                                        <Grid item xs={12}>
+                                        <Grid size={{ xs: 12 }}>
                                             <Stack direction="row" spacing={1} sx={{ width: '100%', height: 24, bgcolor: grey[200], borderRadius: 12, overflow: 'hidden' }}>
                                                 <Box sx={{ width: `${p.effectiveness}%`, bgcolor: green[500], transition: 'width 1s' }} />
                                                 <Box sx={{ width: `${p.quality.rejection_rate}%`, bgcolor: red[500], transition: 'width 1s' }} />

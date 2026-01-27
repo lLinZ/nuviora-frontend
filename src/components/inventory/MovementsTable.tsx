@@ -61,7 +61,7 @@ export const MovementsTable: React.FC<MovementsTableProps> = ({ movements, loadi
                             <TableCell align="right" sx={{ fontWeight: 'bold' }}>
                                 {row.quantity}
                             </TableCell>
-                            <TableCell>{row.user?.name || 'Sistema'}</TableCell>
+                            <TableCell>{row.user?.names || 'Sistema'}</TableCell>
                             <TableCell sx={{ maxWidth: 200 }} title={row.notes || ''}>
                                 <Typography variant="body2" noWrap>{row.notes || '—'}</Typography>
                             </TableCell>

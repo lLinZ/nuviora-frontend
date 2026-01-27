@@ -139,13 +139,13 @@ export const EarningsAdmin: React.FC = () => {
                         <>
                             {/* Tasas del Día */}
                             <Grid container spacing={2}>
-                                <Grid item xs={12} md={4}>
+                                <Grid size={{ xs: 12, md: 4 }}>
                                     <RateCard title="Tasa BCV (USD/VES)" rate={data.rates.bcv} icon={<CurrencyExchangeRoundedIcon />} color="#2196f3" />
                                 </Grid>
-                                <Grid item xs={12} md={4}>
+                                <Grid size={{ xs: 12, md: 4 }}>
                                     <RateCard title="Tasa Binance (P2P)" rate={data.rates.binance} icon={<CurrencyExchangeRoundedIcon />} color="#fbc02d" />
                                 </Grid>
-                                <Grid item xs={12} md={4}>
+                                <Grid size={{ xs: 12, md: 4 }}>
                                     <RateCard title="Tasa BCV (EUR/VES)" rate={data.rates.bcv_eur} icon={<CurrencyExchangeRoundedIcon />} color="#9c27b0" />
                                 </Grid>
                             </Grid>
@@ -156,12 +156,12 @@ export const EarningsAdmin: React.FC = () => {
                                     <TrendingUpRoundedIcon sx={{ fontSize: 200, color: 'white' }} />
                                 </Box>
                                 <Grid container spacing={4} alignItems="center">
-                                    <Grid item xs={12} md={4}>
+                                    <Grid size={{ xs: 12, md: 4 }}>
                                         <Typography variant="overline" sx={{ opacity: 0.8, letterSpacing: 2, color: 'white' }}>TOTAL GENERAL COMISIONES</Typography>
                                         <Typography variant="h2" fontWeight="900" sx={{ mb: 1, color: 'white' }}>{fmtMoney(data.totals.all_usd, 'USD')}</Typography>
                                         <Chip label="Periodo Seleccionado" size="small" sx={{ color: 'white', borderColor: 'rgba(255,255,255,0.3)' }} variant="outlined" />
                                     </Grid>
-                                    <Grid item xs={12} md={8}>
+                                    <Grid size={{ xs: 12, md: 8 }}>
                                         <Grid container spacing={3}>
                                             <TotalProjection title="Proyección BCV" amountUsd={data.totals.all_usd} rate={data.rates.bcv} />
                                             <TotalProjection title="Proyección Binance" amountUsd={data.totals.all_usd} rate={data.rates.binance} />
@@ -235,17 +235,17 @@ export const EarningsAdmin: React.FC = () => {
                             <Typography variant="h6" fontWeight="bold" sx={{ mt: 2, mb: -1 }}>Detalle por Categoría</Typography>
 
                             <Grid container spacing={3}>
-                                <Grid item xs={12} lg={6}>
+                                <Grid size={{ xs: 12, lg: 6 }}>
                                     <EarningsTable title="Vendedoras ($1.00 / orden)" rows={data.vendors} icon={<GroupsRoundedIcon color="primary" />} />
                                 </Grid>
-                                <Grid item xs={12} lg={6}>
+                                <Grid size={{ xs: 12, lg: 6 }}>
                                     <EarningsTable title="Repartidores ($2.50 / orden)" rows={data.deliverers} icon={<GroupsRoundedIcon color="secondary" />} />
                                 </Grid>
 
-                                <Grid item xs={12} lg={6}>
+                                <Grid size={{ xs: 12, lg: 6 }}>
                                     <EarningsTable title="Upsells ($1.00 / producto adicional)" rows={data.upsells} icon={<TrendingUpRoundedIcon sx={{ color: '#ff9800' }} />} />
                                 </Grid>
-                                <Grid item xs={12}>
+                                <Grid size={{ xs: 12 }}>
                                     <EarningsTable title="Resumen Gerentes ($0.50 / venta exitosa)" rows={data.managers} icon={<GroupsRoundedIcon sx={{ color: '#e91e63' }} />} />
                                 </Grid>
                             </Grid>
@@ -276,7 +276,7 @@ const RateCard = ({ title, rate, icon, color }: any) => (
 );
 
 const TotalProjection = ({ title, amountUsd, rate }: any) => (
-    <Grid item xs={4}>
+    <Grid size={{ xs: 4 }}>
         <Typography variant="caption" sx={{ opacity: 0.7, display: 'block', mb: 0.5, color: 'white' }}>{title}</Typography>
         <Typography variant="body1" fontWeight="bold" sx={{ color: 'white' }}>{fmtMoney(amountUsd * rate, 'VES')}</Typography>
     </Grid>
