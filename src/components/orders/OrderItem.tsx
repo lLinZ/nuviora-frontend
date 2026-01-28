@@ -81,7 +81,7 @@ export const OrderItem: FC<OrderItemProps> = ({ order }) => {
     const [openAssignAgency, setOpenAssignAgency] = useState(false);
     const [openNovelty, setOpenNovelty] = useState(false);
     const [openMarkDelivered, setOpenMarkDelivered] = useState(false);
-    const [pendingStatus, setPendingStatus] = useState<{ description: string, id: number } | null>(null);
+    const [pendingStatus, setPendingStatus] = useState<{ description: string } | null>(null);
     const [targetStatus, setTargetStatus] = useState<string>("");
     const [targetStatusId, setTargetStatusId] = useState<number>(0);
 
@@ -111,7 +111,7 @@ export const OrderItem: FC<OrderItemProps> = ({ order }) => {
             console.log('error consultando products')
         }
     }
-    const changeStatus = async (status: string, statusId: number, extraData: any = null) => {
+    const changeStatus = async (status: string, extraData: any = null) => {
         // Intercept postponing
         if (status === "Programado para otro dia" || status === "Programado para mas tarde") {
             setTargetStatus(status);
@@ -126,7 +126,7 @@ export const OrderItem: FC<OrderItemProps> = ({ order }) => {
                 order.payments?.some((p: any) => cashMethods.includes(p.method));
 
             if (needsCashInfo) {
-                setPendingStatus({ description: status, id: statusId });
+                setPendingStatus({ description: status });
                 setOpenMarkDelivered(true);
                 return;
             }
@@ -449,7 +449,7 @@ export const OrderItem: FC<OrderItemProps> = ({ order }) => {
                 order={order}
                 binanceRate={order.binance_rate ?? 0}
                 onConfirm={(data) => {
-                    if (pendingStatus) changeStatus(pendingStatus.description, pendingStatus.id, data);
+                    if (pendingStatus) changeStatus(pendingStatus.description, data);
                 }}
             />
             <OrderDialog open={open} setOpen={setOpen} id={order.id} />
