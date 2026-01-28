@@ -18,7 +18,7 @@ import { OrderDialog } from "../components/orders/OrderDialog";
 
 export const Orders = () => {
     const user = useUserStore((state) => state.user);
-    const { orders, setOrders } = useOrdersStore();
+    const { orders, setOrders, searchTerm, setSearchTerm } = useOrdersStore();
     const validateToken = useUserStore((state) => state.validateToken);
     const [openSearch, setOpenSearch] = useState(false);
     const [cities, setCities] = useState<any[]>([]);
@@ -143,6 +143,7 @@ export const Orders = () => {
             date_to: ''
         };
         setFilters(resetFilters);
+        setSearchTerm(""); // Limpiar búsqueda también
         // El ref se actualizará solo por el useEffect previo
         setTimeout(() => fetchOrders(), 100);
         toast.info("Filtros limpiados ✨");
@@ -167,8 +168,21 @@ export const Orders = () => {
                         label={`🔄 Próxima actualización en: ${countdown}s`}
                         variant="outlined"
                         color="primary"
-                        size="small"
                         sx={{ fontWeight: 'bold', borderStyle: 'dashed' }}
+                    />
+                </Box>
+                <Box flexGrow={1} display="flex" justifyContent="center">
+                    <TextField
+                        size="small"
+                        placeholder="Buscar por orden, cliente, telf..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        slotProps={{
+                            input: {
+                                startAdornment: <SearchRounded sx={{ color: 'action.active', mr: 1 }} />,
+                            },
+                        }}
+                        sx={{ maxWidth: 400, width: '100%', bgcolor: 'background.paper', borderRadius: 1 }}
                     />
                 </Box>
                 {['Admin'].includes(user.role?.description || '') && (

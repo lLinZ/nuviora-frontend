@@ -4,16 +4,19 @@ interface OrdersState {
     orders: any[];
     selectedOrder: any | null;
     selectedAgentId: number | null;
+    searchTerm: string; // Nuevo estado global
     setOrders: (orders: any[]) => void;
     updateOrder: (order: any) => void;
     setSelectedOrder: (order: any | null) => void;
     setSelectedAgentId: (id: number | null) => void;
+    setSearchTerm: (term: string) => void;
 }
 
 export const useOrdersStore = create<OrdersState>((set) => ({
     orders: [],
     selectedOrder: null,
     selectedAgentId: null,
+    searchTerm: "",
     setOrders: (orders) =>
         set((state) => {
             const found = state.selectedOrder
@@ -47,4 +50,5 @@ export const useOrdersStore = create<OrdersState>((set) => ({
         })),
     setSelectedOrder: (order) => set({ selectedOrder: order }),
     setSelectedAgentId: (id) => set({ selectedAgentId: id }),
+    setSearchTerm: (term) => set({ searchTerm: term }),
 }));

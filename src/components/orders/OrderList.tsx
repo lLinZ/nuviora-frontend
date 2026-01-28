@@ -12,11 +12,28 @@ interface OrderListProps {
 
 export const OrderList: FC<OrderListProps> = ({ title }) => {
     const user = useUserStore((state) => state.user);
-    const { orders } = useOrdersStore(); // 👈 traemos las órdenes del store global
+    const { orders, searchTerm } = useOrdersStore(); // 👈 traemos las órdenes y la búsqueda del store global
     const filteredOrders = useMemo(() => {
         const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD local approx (or handle timezone better if needed)
 
-        return orders.filter((order) => {
+        let list = orders;
+
+        // 🔍 Filtrado por término de búsqueda (si existe)
+        if (searchTerm && searchTerm.trim() !== "") {
+            const lowerTerm = searchTerm.toLowerCase();
+            list = list.filter(o =>
+                (o.name && o.name.toLowerCase().includes(lowerTerm)) ||
+                (o.id && o.id.toString().includes(lowerTerm)) ||
+                (o.scheduled_for && o.scheduled_for.includes(lowerTerm)) ||
+                (o.client?.first_name && o.client.first_name.toLowerCase().includes(lowerTerm)) ||
+                (o.client?.last_name && o.client.last_name.toLowerCase().includes(lowerTerm)) ||
+                (o.client?.phone && o.client.phone.includes(lowerTerm)) ||
+                (o.client?.city && o.client.city.toLowerCase().includes(lowerTerm)) ||
+                (o.client?.province && o.client.province.toLowerCase().includes(lowerTerm))
+            );
+        }
+
+        return list.filter((order) => {
             const status = order.status.description;
             const scheduledAt = order.scheduled_for ? new Date(order.scheduled_for).toISOString().slice(0, 10) : null;
 
@@ -45,7 +62,7 @@ export const OrderList: FC<OrderListProps> = ({ title }) => {
             // Resto de columnas normales
             return status === title;
         }).sort((a: any, b: any) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime());
-    }, [orders, title]);
+    }, [orders, title, searchTerm]);
 
     const count = filteredOrders.length;
 
