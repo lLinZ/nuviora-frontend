@@ -1,4 +1,4 @@
-import { TableRow, TableCell, IconButton, SelectChangeEvent } from "@mui/material";
+import { TableRow, TableCell, IconButton, SelectChangeEvent, Box, Stack } from "@mui/material";
 import moment from "moment";
 import { ChangeEvent, ReactNode, useState } from "react";
 import EditRounded from "@mui/icons-material/EditRounded";
@@ -7,8 +7,9 @@ import { UserType } from "../../interfaces/user-type";
 import { errorArrayLaravelTransformToString } from "../../lib/functions";
 import { request } from "../../common/request";
 import { IResponse } from "../../interfaces/response-type";
-import { CancelRounded, CheckRounded } from "@mui/icons-material";
-import { TextFieldCustom } from "../custom";
+import { CancelRounded, CheckRounded, KeyRounded } from "@mui/icons-material";
+import { TextFieldCustom, ButtonCustom } from "../custom";
+import { useUserStore } from "../../store/user/UserStore";
 
 
 type InitialValues = Omit<UserType, 'id' | 'created_at' | 'updated_at' | 'closing_date' | 'observations'>
@@ -17,6 +18,7 @@ interface DataProps {
     data: any;
 }
 export const TableData = ({ data }: DataProps) => {
+    const user = useUserStore(state => state.user);
     const initialValues: InitialValues = {
         names: data.names,
         surnames: data.surnames,
@@ -30,6 +32,9 @@ export const TableData = ({ data }: DataProps) => {
     const [info, setInfo] = useState<UserType>(data);
     const [values, setValues] = useState<InitialValues>(initialValues);
     const [editing, setEditing] = useState<boolean>(false);
+    const [newPassword, setNewPassword] = useState<string>('');
+    const [changingPassword, setChangingPassword] = useState<boolean>(false);
+
     const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
         setValues({ ...values, [e.target.name]: e.target.value })
     }
@@ -39,6 +44,7 @@ export const TableData = ({ data }: DataProps) => {
     }
     const toggleEdit = () => {
         setEditing(!editing);
+        setNewPassword(''); // Reset password field
     }
 
     const onSubmit = async () => {
@@ -63,6 +69,38 @@ export const TableData = ({ data }: DataProps) => {
                 toast.error(`Ocurrio un error inesperado (${response.status})`)
         }
     }
+
+    const handleChangePassword = async () => {
+        if (!newPassword || newPassword.length < 6) {
+            toast.error('La contraseña debe tener al menos 6 caracteres');
+            return;
+        }
+
+        setChangingPassword(true);
+        try {
+            const body = new URLSearchParams();
+            body.append('new_password', newPassword);
+
+            const { status, response }: IResponse = await request(`/user/${data.id}/change/password`, 'PUT', body);
+
+            if (status) {
+                const result = await response.json();
+                if (result.status) {
+                    toast.success('Contraseña actualizada exitosamente');
+                    setNewPassword('');
+                } else {
+                    toast.error(result.message || 'Error al actualizar contraseña');
+                }
+            } else {
+                toast.error('Error al actualizar contraseña');
+            }
+        } catch (error) {
+            toast.error('Error en el servidor');
+        } finally {
+            setChangingPassword(false);
+        }
+    };
+
     return (
         <>
             {editing ?
@@ -79,12 +117,40 @@ export const TableData = ({ data }: DataProps) => {
                         )}
                     </TableCell>
                     <TableCell sx={{ whiteSpace: 'nowrap', textAlign: 'center' }}>
-                        <IconButton onClick={onSubmit}>
-                            <CheckRounded />
-                        </IconButton>
-                        <IconButton onClick={toggleEdit}>
-                            <CancelRounded />
-                        </IconButton>
+                        <Stack direction="column" spacing={1} alignItems="center">
+                            <Box display="flex" gap={1}>
+                                <IconButton onClick={onSubmit} color="success">
+                                    <CheckRounded />
+                                </IconButton>
+                                <IconButton onClick={toggleEdit} color="error">
+                                    <CancelRounded />
+                                </IconButton>
+                            </Box>
+                            {user.role?.description === 'Admin' && (
+                                <Box display="flex" gap={1} alignItems="center" width="100%">
+                                    <TextFieldCustom
+                                        size="small"
+                                        type="password"
+                                        placeholder="Nueva Contraseña"
+                                        value={newPassword}
+                                        onChange={(e: any) => setNewPassword(e.target.value)}
+                                        sx={{ minWidth: '150px' }}
+                                    />
+                                    <ButtonCustom
+                                        size="small"
+                                        variant="contained"
+                                        color="primary"
+                                        onClick={handleChangePassword}
+                                        loading={changingPassword}
+                                        disabled={changingPassword || !newPassword}
+                                        startIcon={<KeyRounded />}
+                                        sx={{ whiteSpace: 'nowrap' }}
+                                    >
+                                        Cambiar Clave
+                                    </ButtonCustom>
+                                </Box>
+                            )}
+                        </Stack>
                     </TableCell>
                 </TableRow>
                 : (
