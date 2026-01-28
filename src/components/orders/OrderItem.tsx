@@ -305,6 +305,11 @@ export const OrderItem: FC<OrderItemProps> = ({ order }) => {
                         {order.status.description === 'Novedad Solucionada' ? 'Resuelta: ' : 'Novedad: '} {order.novedad_type}
                     </TypographyCustom>
                 )}
+                {['Admin', 'Gerente', 'Master'].includes(user.role?.description || '') && order.shop && (
+                    <TypographyCustom variant="caption" sx={{ color: 'text.secondary', display: 'block', mt: 0.5 }}>
+                        Tienda: <b>{order.shop.name}</b>
+                    </TypographyCustom>
+                )}
 
                 <Divider sx={{ marginBlock: 2 }} />
 

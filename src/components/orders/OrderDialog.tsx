@@ -181,6 +181,18 @@ export const OrderDialog: FC<OrderDialogProps> = ({ id, open, setOpen }) => {
                                 </Typography>
                             </Box>
 
+                            {['Admin', 'Gerente', 'Master'].includes(user.role?.description || '') && order.shop && (
+                                <>
+                                    <Divider orientation="vertical" flexItem sx={{ bgcolor: 'rgba(255,255,255,0.2)', mx: 1 }} />
+                                    <Box>
+                                        <Typography variant="caption" color="text.secondary" display="block">Tienda</Typography>
+                                        <Typography variant="body1" fontWeight="bold" sx={{ color: 'white' }}>
+                                            {order.shop.name}
+                                        </Typography>
+                                    </Box>
+                                </>
+                            )}
+
                             <Divider orientation="vertical" flexItem sx={{ bgcolor: 'rgba(255,255,255,0.2)', mx: 1 }} />
 
                             <Box>
