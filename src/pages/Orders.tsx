@@ -29,6 +29,7 @@ export const Orders = () => {
         date_from: '',
         date_to: ''
     });
+    const [visibleColumns, setVisibleColumns] = useState<string[] | null>(null);
 
     const [countdown, setCountdown] = useState(30);
     const filtersRef = useRef(filters);
@@ -96,6 +97,20 @@ export const Orders = () => {
             }
             if (['Admin', 'Gerente'].includes(user.role?.description || '')) {
                 fetchFiltersData();
+            } else {
+                // Load dynamic columns for other roles
+                request('/config/flow', 'GET').then(async ({ status, response }) => {
+                    if (status === 200) {
+                        try {
+                            const data = await response.json();
+                            if (data && data.visible_columns) {
+                                setVisibleColumns(data.visible_columns);
+                            }
+                        } catch (e) {
+                            console.error("Error parsing flow config", e);
+                        }
+                    }
+                });
             }
             fetchOrders();
         };
@@ -245,47 +260,56 @@ export const Orders = () => {
                         onPick={handlePickProduct}
                     />
                     <Box sx={{ display: "flex", gap: 2, flexFlow: "row nowrap" }}>
-                        <OrderList title="Novedades" />
-                        <OrderList title="Novedad Solucionada" />
-
-                        {/* El Vendedor NO ve "Nuevo" ni "Asignado a repartidor" ni "Por aprobar..." */}
-                        {['Admin', 'Gerente', 'Master'].includes(user.role?.description || '') && (
+                        {visibleColumns && visibleColumns.length > 0 ? (
+                            // 🌟 Renderizado Dinámico basado en Configuración
+                            visibleColumns.map((col) => (
+                                <OrderList key={col} title={col} />
+                            ))
+                        ) : (
+                            // 🔒 Renderizado Fallback / Admin (Vista Completa Legacy)
                             <>
-                                <OrderList title="Nuevo" />
-                                <OrderList title="Sin Stock" />
+                                <OrderList title="Novedades" />
+                                <OrderList title="Novedad Solucionada" />
+
+                                {['Admin', 'Gerente', 'Master'].includes(user.role?.description || '') && (
+                                    <>
+                                        <OrderList title="Nuevo" />
+                                        <OrderList title="Sin Stock" />
+                                    </>
+                                )}
+
+                                {!['Agencia'].includes(user.role?.description || '') && (
+                                    <>
+                                        <OrderList title="Reprogramado" />
+                                        <OrderList title="Asignado a vendedor" />
+                                        <OrderList title="Llamado 1" />
+                                        <OrderList title="Llamado 2" />
+                                        <OrderList title="Llamado 3" />
+                                        <OrderList title="Esperando Ubicacion" />
+                                        <OrderList title="Confirmado" />
+                                    </>
+                                )}
+
+                                <OrderList title="Asignar a agencia" />
+
+                                {['Admin', 'Gerente', 'Master', 'Agencia'].includes(user.role?.description || '') && (
+                                    <>
+                                        <OrderList title="Asignado a repartidor" />
+                                        <OrderList title="En ruta" />
+                                    </>
+                                )}
+
+                                {!['Agencia'].includes(user.role?.description || '') && (
+                                    <>
+                                        <OrderList title="Programado para mas tarde" />
+                                        <OrderList title="Programado para otro dia" />
+                                    </>
+                                )}
+
+                                <OrderList title="Entregado" />
+                                <OrderList title="Cancelado" />
                             </>
                         )}
-
-                        {!['Agencia'].includes(user.role?.description || '') && (
-                            <>
-                                <OrderList title="Reprogramado" />
-                                <OrderList title="Asignado a vendedor" />
-                                <OrderList title="Llamado 1" />
-                                <OrderList title="Llamado 2" />
-                                <OrderList title="Llamado 3" />
-                                <OrderList title="Esperando Ubicacion" />
-                                <OrderList title="Confirmado" />
-                            </>
-                        )}
-
-                        <OrderList title="Asignar a agencia" />
-
-                        {['Admin', 'Gerente', 'Master', 'Agencia'].includes(user.role?.description || '') && (
-                            <>
-                                <OrderList title="Asignado a repartidor" />
-                                <OrderList title="En ruta" />
-                            </>
-                        )}
-
-                        {!['Agencia'].includes(user.role?.description || '') && (
-                            <>
-                                <OrderList title="Programado para mas tarde" />
-                                <OrderList title="Programado para otro dia" />
-                            </>
-                        )}
-
-                        <OrderList title="Entregado" />
-                        <OrderList title="Cancelado" />
                     </Box>
                 </Box>
             </Box>

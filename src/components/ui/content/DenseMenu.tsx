@@ -1,8 +1,9 @@
 import { MoreHorizRounded, Check } from "@mui/icons-material";
 import { IconButton, Menu, MenuList, Divider, Chip, MenuItem, ListItemIcon, ListItemText, Box, Tooltip } from "@mui/material";
 import { purple, blue, green, red, yellow, grey } from "@mui/material/colors";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useUserStore } from "../../../store/user/UserStore";
+import { request } from "../../../common/request";
 
 export default function DenseMenu({
     data,
@@ -66,6 +67,37 @@ export default function DenseMenu({
     const hasChangeInfo = (Math.abs(changeAmount) < 0.01) || (changeAmount > 0 && !!data.change_covered_by);
     const hasPayments = totalPaid > 0;
 
+    // Estado para reglas de flujo dinámicas
+    const [transitions, setTransitions] = useState<Record<string, string[]> | null>(null);
+
+    // Cargar reglas del backend al montar
+    useEffect(() => {
+        if (!user?.role?.description || ['Admin', 'Gerente', 'Master'].includes(user.role.description)) return;
+
+        const roleKey = `flow_rules_v2_${user.role.description}`;
+        const cached = sessionStorage.getItem(roleKey);
+
+        if (cached) {
+            try {
+                setTransitions(JSON.parse(cached));
+            } catch (e) {
+                console.error("Error parsing flow rules", e);
+            }
+        } else {
+            request('/config/flow', 'GET').then(async ({ status, response }) => {
+                if (status === 200) {
+                    try {
+                        const data = await response.json();
+                        if (data && data.transitions) {
+                            sessionStorage.setItem(roleKey, JSON.stringify(data.transitions));
+                            setTransitions(data.transitions);
+                        }
+                    } catch (e) { }
+                }
+            }).catch(() => { });
+        }
+    }, [user?.role?.description]);
+
     return (
         <>
             {icon ? (
@@ -101,22 +133,22 @@ export default function DenseMenu({
                         const isAllowedByRole = user && status.roles.includes(user.role?.description ?? '');
                         if (!isAllowedByRole) return null;
 
-                        // Constraint logic for Sellers
+                        // Validaciones EXTRA (Condiciones de negocio: Stock, Pagos, etc)
                         let isDisabled = false;
                         let tooltipTitle = "";
 
-                        // 🔒 En Ruta Lock: Only forward to Delivered or Novedades
-                        if (data.status?.description === 'En ruta') {
-                            if (status.description !== 'Entregado' && status.description !== 'Novedades') {
-                                isDisabled = true;
-                                tooltipTitle = "Orden En Ruta solo puede pasar a Entregado o Novedades 🔒";
-                            }
-                        }
+                        // 🛡️ REGLA MAESTRA DE FLUJO (Dynamic Flow)
+                        if (transitions) {
+                            const currentStatus = data.status?.description;
+                            // Si no hay transiciones definidas para el status actual, bloqueamos todo
+                            // (a menos que sea el mismo status, para mostrar check)
+                            const allowedNext = transitions[currentStatus] || [];
 
-                        // 🔒 Agencia Novedades Lock
-                        if (data.status?.description === 'Novedades' && user?.role?.description === 'Agencia') {
-                            isDisabled = true;
-                            tooltipTitle = "Agencia no puede gestionar Novedades 🚫";
+                            // Permitimos ver el status actual (para el check) y los permitidos
+                            if (status.description !== currentStatus && !allowedNext.includes(status.description)) {
+                                isDisabled = true;
+                                tooltipTitle = `No puedes pasar de '${currentStatus}' a '${status.description}' según el flujo establecido.`;
+                            }
                         }
 
                         // 🔒 Stock Lock: Block Entregado and En ruta if stock is insufficient
@@ -125,21 +157,10 @@ export default function DenseMenu({
                             tooltipTitle = "No hay suficiente stock en el almacén para procesar esta orden 📦❌";
                         }
 
-                        // 🔒 Vendedor Novedades Lock
-                        if (data.status?.description === 'Novedades' && user?.role?.description === 'Vendedor') {
-                            // Can resolve OR cancel
-                            if (status.description !== 'Novedad Solucionada' && status.description !== 'Cancelado') {
-                                isDisabled = true;
-                                tooltipTitle = "Solo puede marcar como Novedad Solucionada o Cancelado ⚠️";
-                            }
-                        }
-
-                        // 🔒 Vendedor Novedad Solucionada Lock
-                        if (data.status?.description === 'Novedad Solucionada' && user?.role?.description === 'Vendedor') {
-                            if (status.description !== 'Programado para mas tarde' && status.description !== 'Programado para otro dia') {
-                                isDisabled = true;
-                                tooltipTitle = "Desde Solucionada solo puede reprogramar (Otro día / Más tarde) 📅";
-                            }
+                        // 🔒 Agencia Novedades Lock (Legacy override if needed)
+                        if (data.status?.description === 'Novedades' && user?.role?.description === 'Agencia') {
+                            // Dejamos pasar si está en la lista de transiciones, pero si quieres bloquear adicionalmente:
+                            // isDisabled = true; 
                         }
 
                         if (!isDisabled && isSeller && !SELLER_PUBLIC_STATUSES.includes(status.description)) {
@@ -153,6 +174,7 @@ export default function DenseMenu({
                             <MenuItem
                                 key={status.id}
                                 disabled={isDisabled}
+                                sx={isDisabled ? { opacity: 0.5, color: 'text.disabled' } : {}}
                                 onClick={() => {
                                     if (!isDisabled) {
                                         changeStatus(status.description, status.id);
