@@ -161,42 +161,61 @@ export const OrderDialog: FC<OrderDialogProps> = ({ id, open, setOpen }) => {
                         borderColor: 'rgba(255,255,255,0.1)',
                     }}
                 >
-                    <Toolbar sx={{ justifyContent: 'space-between', px: { xs: 1, sm: 2 } }}>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                            <Box>
-                                <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.7)', display: 'block', lineHeight: 1 }}>
-                                    Orden
-                                </Typography>
-                                <Typography variant="h6" fontWeight="bold" sx={{ color: 'white' }}>
-                                    #{order.name}
-                                </Typography>
+                    <Toolbar sx={{
+                        display: 'flex',
+                        flexDirection: { xs: 'column', sm: 'row' },
+                        alignItems: { xs: 'stretch', sm: 'center' },
+                        justifyContent: 'space-between',
+                        px: { xs: 1.5, sm: 2 },
+                        py: { xs: 1.5, sm: 0 },
+                        minHeight: { xs: 'auto', sm: 64 },
+                        gap: { xs: 1.5, sm: 0 }
+                    }}>
+                        {/* 1️⃣ BLOQUE INFO (Orden, Tienda, etc) */}
+                        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flex: 1 }}>
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                                <Box>
+                                    <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.7)', display: 'block', lineHeight: 1 }}>
+                                        Orden
+                                    </Typography>
+                                    <Typography variant="h6" fontWeight="bold" sx={{ color: 'white', fontSize: { xs: '1.1rem', sm: '1.25rem' } }}>
+                                        #{order.name}
+                                    </Typography>
+                                </Box>
+
+                                <Divider orientation="vertical" flexItem sx={{ bgcolor: 'rgba(255,255,255,0.2)', mx: 1, display: { xs: 'none', md: 'block' } }} />
+
+                                <Box sx={{ display: { xs: 'none', md: 'block' } }}>
+                                    <Typography variant="caption" color="text.secondary" display="block">Provincia / Ciudad</Typography>
+                                    <Typography variant="body1" fontWeight="bold" sx={{ color: 'white' }}>
+                                        {order.client?.province || 'No esp.'} / {order.client?.city || 'No esp.'}
+                                    </Typography>
+                                </Box>
+
+                                {['Admin', 'Gerente', 'Master'].includes(user.role?.description || '') && order.shop && (
+                                    <>
+                                        <Divider orientation="vertical" flexItem sx={{ bgcolor: 'rgba(255,255,255,0.2)', mx: 1, display: { xs: 'none', md: 'block' } }} />
+                                        <Box sx={{ display: { xs: 'none', md: 'block' } }}>
+                                            <Typography variant="caption" color="text.secondary" display="block">Tienda</Typography>
+                                            <Typography variant="body1" fontWeight="bold" sx={{ color: 'white' }}>
+                                                {order.shop.name}
+                                            </Typography>
+                                        </Box>
+                                    </>
+                                )}
                             </Box>
 
-                            <Divider orientation="vertical" flexItem sx={{ bgcolor: 'rgba(255,255,255,0.2)', mx: 1 }} />
+                            {/* ❌ CLOSE BUTTON (MOBILE ONLY - Top Right) */}
+                            <IconButton onClick={handleClose} sx={{ color: 'white', display: { xs: 'flex', sm: 'none' }, p: 0.5 }}>
+                                <CloseRoundedIcon />
+                            </IconButton>
+                        </Box>
 
+                        {/* 2️⃣ BLOQUE ACCIONES (Estado + Botones) */}
+                        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2, width: { xs: '100%', sm: 'auto' } }}>
+                            {/* ESTADO DEL PEDIDO */}
                             <Box>
-                                <Typography variant="caption" color="text.secondary" display="block">Provincia / Ciudad</Typography>
-                                <Typography variant="body1" fontWeight="bold" sx={{ color: 'white' }}>
-                                    {order.client?.province || 'No esp.'} / {order.client?.city || 'No esp.'}
-                                </Typography>
-                            </Box>
-
-                            {['Admin', 'Gerente', 'Master'].includes(user.role?.description || '') && order.shop && (
-                                <>
-                                    <Divider orientation="vertical" flexItem sx={{ bgcolor: 'rgba(255,255,255,0.2)', mx: 1 }} />
-                                    <Box>
-                                        <Typography variant="caption" color="text.secondary" display="block">Tienda</Typography>
-                                        <Typography variant="body1" fontWeight="bold" sx={{ color: 'white' }}>
-                                            {order.shop.name}
-                                        </Typography>
-                                    </Box>
-                                </>
-                            )}
-
-                            <Divider orientation="vertical" flexItem sx={{ bgcolor: 'rgba(255,255,255,0.2)', mx: 1 }} />
-
-                            <Box>
-                                <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.7)', display: 'block', lineHeight: 1 }}>
+                                <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.7)', display: { xs: 'none', sm: 'block' }, lineHeight: 1 }}>
                                     Estado Actual
                                 </Typography>
                                 <DenseMenu
@@ -205,45 +224,49 @@ export const OrderDialog: FC<OrderDialogProps> = ({ id, open, setOpen }) => {
                                     icon={false}
                                     customComponent={
                                         <Paper elevation={0} sx={{
-                                            px: 1.5, py: 0.2,
+                                            px: { xs: 1.5, sm: 1.5 }, py: 0.2,
                                             borderRadius: 2,
                                             bgcolor: 'rgba(255,255,255,0.2)',
                                             color: 'white',
                                             cursor: 'pointer',
                                             transition: 'all 0.2s',
-                                            '&:hover': { bgcolor: 'rgba(255,255,255,0.3)' }
+                                            '&:hover': { bgcolor: 'rgba(255,255,255,0.3)' },
+                                            display: 'flex', alignItems: 'center', gap: 1
                                         }}>
-                                            <Typography variant="subtitle2" fontWeight="bold">
+                                            <Typography variant="subtitle2" fontWeight="bold" sx={{ fontSize: { xs: '0.8rem', sm: '0.875rem' } }}>
                                                 {order.status.description}
                                             </Typography>
+                                            <MoreVertRounded sx={{ fontSize: '1rem', opacity: 0.7 }} />
                                         </Paper>
                                     }
                                 />
                             </Box>
-                        </Box>
 
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                            <Tooltip title="Copiar resumen">
-                                <IconButton onClick={copyGeneralInfo} sx={{ color: 'white' }}>
-                                    <ContentCopyRounded />
+                            {/* BOTONES ACCION */}
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 0.5, sm: 1 } }}>
+                                <Tooltip title="Copiar resumen">
+                                    <IconButton onClick={copyGeneralInfo} sx={{ color: 'white', p: { xs: 1, sm: 1 } }}>
+                                        <ContentCopyRounded sx={{ fontSize: { xs: '1.2rem', sm: '1.5rem' } }} />
+                                    </IconButton>
+                                </Tooltip>
+
+                                <Tooltip title="Recordatorio">
+                                    <IconButton onClick={() => setOpenReminder(true)} sx={{ color: 'white', p: { xs: 1, sm: 1 } }}>
+                                        <NotificationAddRounded sx={{ fontSize: { xs: '1.2rem', sm: '1.5rem' } }} />
+                                    </IconButton>
+                                </Tooltip>
+
+                                <Tooltip title="Acciones">
+                                    <IconButton onClick={handleMenuOpen} sx={{ color: 'white', p: { xs: 1, sm: 1 }, display: { xs: 'none', sm: 'flex' } }}>
+                                        <MoreVertRounded sx={{ fontSize: { xs: '1.2rem', sm: '1.5rem' } }} />
+                                    </IconButton>
+                                </Tooltip>
+
+                                {/* ❌ CLOSE BUTTON (DESKTOP ONLY) */}
+                                <IconButton onClick={handleClose} sx={{ ml: 1, color: 'white', display: { xs: 'none', sm: 'flex' } }}>
+                                    <CloseRoundedIcon />
                                 </IconButton>
-                            </Tooltip>
-
-                            <Tooltip title="Recordatorio">
-                                <IconButton onClick={() => setOpenReminder(true)} sx={{ color: 'white' }}>
-                                    <NotificationAddRounded />
-                                </IconButton>
-                            </Tooltip>
-
-                            <Tooltip title="Acciones">
-                                <IconButton onClick={handleMenuOpen} sx={{ color: 'white' }}>
-                                    <MoreVertRounded />
-                                </IconButton>
-                            </Tooltip>
-
-                            <IconButton onClick={handleClose} sx={{ ml: 1, color: 'white' }}>
-                                <CloseRoundedIcon />
-                            </IconButton>
+                            </Box>
                         </Box>
                     </Toolbar>
 
@@ -254,7 +277,9 @@ export const OrderDialog: FC<OrderDialogProps> = ({ id, open, setOpen }) => {
                             onChange={(_, v) => setActiveTab(v)}
                             textColor="inherit"
                             indicatorColor="secondary"
-                            centered
+                            variant="scrollable"
+                            scrollButtons="auto"
+                            allowScrollButtonsMobile
                             sx={{
                                 '& .MuiTab-root': { py: 1.5, minHeight: 0, color: 'rgba(255,255,255,0.6)', fontWeight: 'bold' },
                                 '& .Mui-selected': { color: 'white !important' }
