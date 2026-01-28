@@ -3,13 +3,15 @@ import { useSocketStore } from "../../../store/sockets/SocketStore";
 import { useUserStore } from "../../../store/user/UserStore";
 import { toast } from "react-toastify";
 import { useOrdersStore } from "../../../store/orders/OrdersStore";
-import { Avatar, Box } from "@mui/material";
+import { Avatar } from "@mui/material";
 import { AssignmentIndRounded } from "@mui/icons-material";
+import { request } from "../../../common/request";
+import { IResponse } from "../../../interfaces/response-type";
 
 export const BroadcastMonitor = () => {
     const { echo } = useSocketStore();
     const { user } = useUserStore();
-    const { fetchOrders } = useOrdersStore();
+    const { updateOrder } = useOrdersStore();
 
     useEffect(() => {
         if (!echo || !user?.id) return;
@@ -19,7 +21,7 @@ export const BroadcastMonitor = () => {
 
         try {
             echo.private(channelName)
-                .notification((notification: any) => {
+                .notification(async (notification: any) => {
                     console.log("🔔 Broadcast received:", notification);
 
                     // 1. Play Sound
@@ -32,8 +34,18 @@ export const BroadcastMonitor = () => {
                         autoClose: 8000
                     });
 
-                    // 3. Refresh Data if needed
-                    fetchOrders();
+                    // 3. Refresh Specific Order Data
+                    if (notification.order_id) {
+                        try {
+                            const { status, response }: IResponse = await request(`/orders/${notification.order_id}`, 'GET');
+                            if (status) {
+                                const data = await response.json();
+                                updateOrder(data.order || data);
+                            }
+                        } catch (err) {
+                            console.error("Error fetching updated order", err);
+                        }
+                    }
                 });
         } catch (e) {
             console.error("Socket error:", e);
@@ -42,7 +54,7 @@ export const BroadcastMonitor = () => {
         return () => {
             if (echo) echo.leave(channelName);
         };
-    }, [echo, user?.id]);
+    }, [echo, user?.id, updateOrder]);
 
     return null;
 };
