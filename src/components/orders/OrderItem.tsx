@@ -134,7 +134,7 @@ export const OrderItem: FC<OrderItemProps> = ({ order }) => {
         if (status === "Asignar a agencia" && !order.agency) {
             // ... (keeping existing agency logic)
             const body = new URLSearchParams();
-            body.append("status_id", String(statusId));
+            body.append("status", status);
             try {
                 const { status: ok, response }: IResponse = await request(
                     `/orders/${order.id}/status`,
@@ -162,14 +162,14 @@ export const OrderItem: FC<OrderItemProps> = ({ order }) => {
         }
 
         if (status === "Novedades") {
-            setTargetStatusId(statusId);
+            setTargetStatus(status);
             setOpenNovelty(true);
             return;
         }
 
         // caso normal: actualizar status
         const body = new URLSearchParams();
-        body.append("status_id", String(statusId));
+        body.append("status", status);
 
         if (extraData) {
             Object.keys(extraData).forEach(key => {
@@ -200,7 +200,7 @@ export const OrderItem: FC<OrderItemProps> = ({ order }) => {
 
     const handleNoveltySubmit = async (type: string, description: string) => {
         const body = new URLSearchParams();
-        body.append("status_id", String(targetStatusId));
+        body.append("status", targetStatus);
         body.append("novedad_type", type);
         body.append("novedad_description", description);
 
