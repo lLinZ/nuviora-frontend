@@ -315,7 +315,7 @@ export const OrderDialog: FC<OrderDialogProps> = ({ id, open, setOpen }) => {
                                         Stock Insuficiente
                                     </Typography>
                                     <Typography variant="body2">
-                                        Uno o más productos no tienen existencias suficientes en el almacén de la agencia asignada ({order.agency?.names || 'Principal'}). No se puede marcar como Entregado ni En ruta hasta corregir el stock.
+                                        Uno o más productos no tienen existencias suficientes en el almacén de la agencia asignada ({user.role?.description === 'Vendedor' ? 'asignada' : (order.agency?.names || 'Principal')}). No se puede marcar como Entregado ni En ruta hasta corregir el stock.
                                     </Typography>
                                 </Box>
                             </Paper>

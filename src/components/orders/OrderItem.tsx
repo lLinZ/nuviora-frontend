@@ -297,7 +297,7 @@ export const OrderItem: FC<OrderItemProps> = ({ order }) => {
                 </TypographyCustom>
                 {order.agency && (
                     <TypographyCustom variant="caption" color="primary.main" sx={{ fontWeight: 'bold', display: 'block' }}>
-                        Agencia: {order.agency?.names}
+                        Agencia: {user.role?.description === 'Vendedor' ? 'Asignada' : order.agency?.names}
                     </TypographyCustom>
                 )}
                 {order.novedad_type && (
