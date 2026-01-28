@@ -8,6 +8,7 @@ import LocationOnIcon from '@mui/icons-material/LocationOn';
 import StorefrontIcon from '@mui/icons-material/Storefront';
 import LocalShippingIcon from '@mui/icons-material/LocalShipping';
 import MapIcon from '@mui/icons-material/Map';
+import { PhoneActionMenu } from './PhoneActionMenu';
 
 interface OrderHeaderProps {
     order: any;
@@ -50,9 +51,11 @@ export const OrderHeader: React.FC<OrderHeaderProps> = ({
                         </Paper>
                         <Box>
                             <Typography variant="caption" color="text.secondary" display="block">Teléfono</Typography>
-                            <Typography variant="body1" fontWeight="bold">
-                                {order.client?.phone}
-                            </Typography>
+                            {order.client?.phone ? (
+                                <PhoneActionMenu phone={order.client.phone} sx={{ fontWeight: 'bold', fontSize: '1rem' }} />
+                            ) : (
+                                <Typography variant="body1" fontWeight="bold">No disponible</Typography>
+                            )}
                         </Box>
                     </Box>
 

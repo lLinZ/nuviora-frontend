@@ -26,6 +26,7 @@ import { PostponeOrderDialog } from "./PostponeOrderDialog";
 import { AssignAgencyDialog } from "./AssignAgencyDialog";
 import { NoveltyDialog } from "./NoveltyDialog";
 import { MarkDeliveredDialog } from "./MarkDeliveredDialog";
+import { PhoneActionMenu } from "./PhoneActionMenu";
 
 interface OrderItemProps {
     order: any;
@@ -268,18 +269,17 @@ export const OrderItem: FC<OrderItemProps> = ({ order }) => {
                 >
                     {order.client?.first_name} {order.client?.last_name}
                 </TypographyCustom>
-                <TypographyCustom
-                    variant="subtitle2"
-                    color="text.secondary"
-                    sx={{
-                        maxWidth: "200px",   // 🔹 ajusta el ancho máximo permitido
-                        whiteSpace: "nowrap",
-                        overflow: "hidden",
-                        textOverflow: "ellipsis",
-                    }}
-                >
-                    {order.client?.phone}
-                </TypographyCustom>
+                {order.client?.phone && (
+                    <PhoneActionMenu
+                        phone={order.client.phone}
+                        sx={{
+                            maxWidth: "200px",
+                            whiteSpace: "nowrap",
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                        }}
+                    />
+                )}
                 <TypographyCustom
                     variant="subtitle2"
                     color="text.secondary"
