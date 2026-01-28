@@ -29,7 +29,7 @@ export const useOrderDialogLogic = (
     const [openMarkDelivered, setOpenMarkDelivered] = useState(false);
     const [openReportNovedad, setOpenReportNovedad] = useState(false);
     const [openResolveNovedad, setOpenResolveNovedad] = useState(false);
-    const [pendingStatus, setPendingStatus] = useState<{ description: string, id: number } | null>(null);
+    const [pendingStatus, setPendingStatus] = useState<{ description: string } | null>(null);
     const [targetStatus, setTargetStatus] = useState<string | undefined>(undefined);
 
     const [loadingReview, setLoadingReview] = useState(false);
@@ -147,7 +147,7 @@ export const useOrderDialogLogic = (
         }
     };
 
-    const changeStatus = async (status: string, statusId: number, extraData: any = null) => {
+    const changeStatus = async (status: string, extraData: any = null) => {
         if (!selectedOrder) return;
 
         // 🔒 Strict rule: If currently "Novedades", ONLY can go to "Novedad Solucionada"
@@ -158,7 +158,7 @@ export const useOrderDialogLogic = (
 
         // Intercept Novedades
         if (status === "Novedades" && !extraData) {
-            setPendingStatus({ description: status, id: statusId });
+            setPendingStatus({ description: status });
             setOpenReportNovedad(true);
             return;
         }
@@ -193,7 +193,7 @@ export const useOrderDialogLogic = (
                 }
             }
 
-            setPendingStatus({ description: status, id: statusId });
+            setPendingStatus({ description: status });
             setOpenResolveNovedad(true);
             return;
         }
@@ -207,7 +207,7 @@ export const useOrderDialogLogic = (
                 return;
             }
             if (!extraData) {
-                setPendingStatus({ description: status, id: statusId });
+                setPendingStatus({ description: status });
                 setOpenMarkDelivered(true);
                 return;
             }
@@ -221,7 +221,7 @@ export const useOrderDialogLogic = (
         }
 
         const body = new URLSearchParams();
-        body.append("status_id", String(statusId));
+        body.append("status", status);
 
         if (extraData) {
             Object.keys(extraData).forEach(key => {
