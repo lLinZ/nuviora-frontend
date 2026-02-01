@@ -8,8 +8,18 @@ export const request = async (
     _url: string,
     method: Method,
     body?: BodyType,
-    multipart = false
+    multipartOrSignal: boolean | AbortSignal = false
 ) => {
+    // Handle overloaded parameter: multipart boolean OR AbortSignal
+    let multipart = false;
+    let signal: AbortSignal | undefined = undefined;
+
+    if (typeof multipartOrSignal === 'boolean') {
+        multipart = multipartOrSignal;
+    } else if (multipartOrSignal) {
+        signal = multipartOrSignal;
+    }
+
     const url = `${import.meta.env.VITE_BACKEND_API_URL}${_url}`;
     const token =
         useUserStore.getState().user.token ?? getCookieValue("token");
@@ -33,6 +43,7 @@ export const request = async (
     const options: RequestInit = {
         method,
         headers,
+        signal, // Add signal for abort support
     };
 
     let finalBody = body;

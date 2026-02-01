@@ -201,7 +201,7 @@ export const Roster: React.FC = () => {
                     <Paper sx={{ p: 2, borderRadius: 4 }} elevation={3}>
                         <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 1 }}>
                             <Typography variant="h6" fontWeight={700}>Vendedoras Disponibles</Typography>
-                            <IconButton onClick={loadRoster} disabled={loading}><RefreshRoundedIcon /></IconButton>
+                            <IconButton onClick={() => loadRoster()} disabled={loading}><RefreshRoundedIcon /></IconButton>
                         </Box>
                         <Typography variant="caption" color="text.secondary" gutterBottom display="block">
                             Solo se muestran las vendedoras vinculadas a la tienda seleccionada.
