@@ -42,7 +42,7 @@ export const LogisticsDialog: FC<LogisticsDialogProps> = ({ open, onClose, order
         agency_id: order.agency_id || "",
     });
 
-    const { updateOrder } = useOrdersStore();
+    const { updateOrderInColumns } = useOrdersStore();
 
     useEffect(() => {
         if (open) {
@@ -87,7 +87,7 @@ export const LogisticsDialog: FC<LogisticsDialogProps> = ({ open, onClose, order
             const { status, response }: IResponse = await request(`/orders/${order.id}/logistics`, "PUT", body);
             if (status) {
                 const data = await response.json();
-                updateOrder(data.order);
+                updateOrderInColumns(data.order);
                 toast.success("Logística actualizada ✅");
                 onClose();
             } else {

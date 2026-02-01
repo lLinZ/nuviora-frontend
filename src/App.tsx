@@ -16,7 +16,7 @@ import { Currency } from './pages/currency/Currency';
 import { Users } from './pages/users/Users';
 import { DeliverersPage } from './pages/deliverers/Deliverers';
 import { CancellationsReview } from './pages/orders/cancellations/CancellationsReview';
-import { Roster } from './pages/roster/Roster';
+// import { Roster } from './pages/roster/Roster';
 // import { InventoryPage } from './pages/inventory/Inventory';
 import { InventoryOverview } from './pages/inventory/InventoryOverview';
 import { Warehouses } from './pages/inventory/Warehouses';
@@ -70,7 +70,7 @@ function App() {
           <Route path="/deliverers" element={<DeliverersPage />} />
           <Route path="/currency" element={<Currency />} />
           <Route path="/users" element={<Users />} />
-          <Route path="/roster" element={<Roster />} />
+          {/* <Route path="/roster" element={<Roster />} /> */}
 
           {/* Unified Inventory Dashboard */}
           <Route path="/inventory" element={<InventoryDashboard />} />

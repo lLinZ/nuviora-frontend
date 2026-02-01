@@ -11,7 +11,7 @@ import { IResponse } from "../../../interfaces/response-type";
 export const BroadcastMonitor = () => {
     const { echo } = useSocketStore();
     const { user } = useUserStore();
-    const { updateOrder } = useOrdersStore();
+    const { updateOrderInColumns } = useOrdersStore();
 
     useEffect(() => {
         if (!echo || !user?.id) return;
@@ -40,7 +40,7 @@ export const BroadcastMonitor = () => {
                             const { status, response }: IResponse = await request(`/orders/${notification.order_id}`, 'GET');
                             if (status) {
                                 const data = await response.json();
-                                updateOrder(data.order || data);
+                                updateOrderInColumns(data.order || data);
                             }
                         } catch (err) {
                             console.error("Error fetching updated order", err);
@@ -54,7 +54,7 @@ export const BroadcastMonitor = () => {
         return () => {
             if (echo) echo.leave(channelName);
         };
-    }, [echo, user?.id, updateOrder]);
+    }, [echo, user?.id, updateOrderInColumns]);
 
     return null;
 };

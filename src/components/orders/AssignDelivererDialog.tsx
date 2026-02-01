@@ -22,7 +22,7 @@ export const AssignDelivererDialog: FC<Props> = ({ open, onClose, orderId }) => 
     const [deliverers, setDeliverers] = useState<any[]>([]);
     const [loading, setLoading] = useState(false);
     const [assigning, setAssigning] = useState(false);
-    const { updateOrder } = useOrdersStore();
+    const { updateOrderInColumns } = useOrdersStore();
 
     useEffect(() => {
         if (open) loadDeliverers();
@@ -32,10 +32,10 @@ export const AssignDelivererDialog: FC<Props> = ({ open, onClose, orderId }) => 
         setLoading(true);
         try {
             const { status, response }: IResponse = await request("/users/deliverers", "GET");
-            if (status) {
+            if (status === 200) {
                 const data = await response.json();
                 setDeliverers(data.data ?? []);
-                toast.success("Repartidores cargados ✅");
+                // toast.success("Repartidores cargados ✅"); // Remove noisy toast
             } else {
                 toast.error("No se pudieron cargar los repartidores ❌");
             }
@@ -60,7 +60,7 @@ export const AssignDelivererDialog: FC<Props> = ({ open, onClose, orderId }) => 
 
             if (status) {
                 const data = await response.json();
-                updateOrder(data.order); // incluye deliverer + status
+                updateOrderInColumns(data.order); // incluye deliverer + status
                 toast.success(`Repartidor asignado correctamente 🚚`);
                 onClose();
             } else {

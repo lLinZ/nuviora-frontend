@@ -13,7 +13,7 @@ import GroupsRoundedIcon from "@mui/icons-material/GroupsRounded";
 import DoNotDisturbAltRoundedIcon from "@mui/icons-material/DoNotDisturbAltRounded";
 import Inventory2RoundedIcon from "@mui/icons-material/Inventory2Rounded";
 import LocalMallRoundedIcon from "@mui/icons-material/LocalMallRounded";
-import AssignmentIndRoundedIcon from "@mui/icons-material/AssignmentIndRounded";
+// import AssignmentIndRoundedIcon from "@mui/icons-material/AssignmentIndRounded";
 import SavingsRoundedIcon from "@mui/icons-material/SavingsRounded";
 import BarChartRoundedIcon from "@mui/icons-material/BarChartRounded";
 
@@ -122,12 +122,6 @@ export const SideBar = () => {
                 icon: <DoNotDisturbAltRoundedIcon />,
                 link: "/orders/cancelled",
                 roles: ["Admin", "Gerente"],
-            },
-            {
-                text: "Roster vendedoras",
-                icon: <AssignmentIndRoundedIcon />,
-                link: "/roster",
-                roles: ["Admin"],
             },
             {
                 text: "Inventario",

@@ -18,7 +18,7 @@ import { OrderDialog } from "../components/orders/OrderDialog";
 
 export const Orders = () => {
     const user = useUserStore((state) => state.user);
-    const { orders, setOrders, searchTerm, setSearchTerm } = useOrdersStore();
+    const { searchTerm, setSearchTerm } = useOrdersStore();
     const validateToken = useUserStore((state) => state.validateToken);
     const [openSearch, setOpenSearch] = useState(false);
     const [cities, setCities] = useState<any[]>([]);
@@ -30,15 +30,6 @@ export const Orders = () => {
         date_to: ''
     });
     const [visibleColumns, setVisibleColumns] = useState<string[] | null>(null);
-
-    const [countdown, setCountdown] = useState(30);
-    const filtersRef = useRef(filters);
-
-    // Update ref whenever filters change
-    useEffect(() => {
-        filtersRef.current = filters;
-    }, [filters]);
-
 
 
     const handlePickProduct = (product: any) => {
@@ -62,31 +53,8 @@ export const Orders = () => {
         }
     };
 
-    // Unified notifications handled by NotificationMonitor
-
-    const fetchOrders = useCallback(async (silent = false) => {
-        try {
-            const queryParams = new URLSearchParams();
-            // Usamos el ref para que el polling siempre tenga lo último
-            const currentFilters = filtersRef.current;
-            if (currentFilters.city_id) queryParams.append('city_id', currentFilters.city_id);
-            if (currentFilters.agency_id) queryParams.append('agency_id', currentFilters.agency_id);
-            if (currentFilters.date_from) queryParams.append('date_from', currentFilters.date_from);
-            if (currentFilters.date_to) queryParams.append('date_to', currentFilters.date_to);
-
-            const { status, response }: IResponse = await request(`/orders?${queryParams.toString()}`, "GET");
-            if (status) {
-                const data = await response.json();
-                setOrders(data.data);
-                if (!silent) toast.success("Órdenes cargadas ✅");
-                setCountdown(30);
-            } else if (!silent) {
-                toast.error("Error al cargar las órdenes ❌");
-            }
-        } catch (e) {
-            if (!silent) toast.error("No se pudieron cargar las órdenes 🚨");
-        }
-    }, []); // El ref nos permite no depender de nada cambiante aquí
+    // NOTA: La carga de órdenes ahora es responsabilidad de cada columna (OrderList)
+    // Orders.tsx solo gestiona los filtros globales.
 
     useEffect(() => {
         const init = async () => {
@@ -112,27 +80,9 @@ export const Orders = () => {
                     }
                 });
             }
-            fetchOrders();
         };
 
         init();
-
-        // Polling every second to update UI countdown
-        const timer = setInterval(() => {
-            // Si hay una orden seleccionada (diálogo abierto), pausamos el polling
-            // para evitar que los datos se sobrescriban mientras el usuario edita.
-            if (useOrdersStore.getState().selectedOrder) return;
-
-            setCountdown(prev => {
-                if (prev <= 1) {
-                    fetchOrders(true);
-                    return 30;
-                }
-                return prev - 1;
-            });
-        }, 1000);
-
-        return () => clearInterval(timer);
     }, []);
 
     const handleClearFilters = () => {
@@ -143,9 +93,8 @@ export const Orders = () => {
             date_to: ''
         };
         setFilters(resetFilters);
-        setSearchTerm(""); // Limpiar búsqueda también
-        // El ref se actualizará solo por el useEffect previo
-        setTimeout(() => fetchOrders(), 100);
+        useOrdersStore.getState().setFilters(resetFilters);
+        setSearchTerm("");
         toast.info("Filtros limpiados ✨");
     };
 
@@ -164,12 +113,6 @@ export const Orders = () => {
             >
                 <Box display="flex" alignItems="center" gap={2} flexWrap="wrap">
                     <DescripcionDeVista title={"Kanban de ordenes"} description={"Gestiona el flujo de entregas y novedades"} />
-                    <Chip
-                        label={`🔄 Próxima actualización en: ${countdown}s`}
-                        variant="outlined"
-                        color="primary"
-                        sx={{ fontWeight: 'bold', borderStyle: 'dashed' }}
-                    />
                 </Box>
                 <Box flexGrow={1} display="flex" justifyContent="center">
                     <TextField
@@ -193,8 +136,9 @@ export const Orders = () => {
                                 value={filters.city_id}
                                 label="Ciudad"
                                 onChange={(e) => {
-                                    setFilters({ ...filters, city_id: e.target.value });
-                                    setTimeout(() => fetchOrders(), 100);
+                                    const newVal = { ...filters, city_id: e.target.value };
+                                    setFilters(newVal);
+                                    useOrdersStore.getState().setFilters(newVal);
                                 }}
                             >
                                 <MenuItem value="">Todas</MenuItem>
@@ -207,8 +151,9 @@ export const Orders = () => {
                                 value={filters.agency_id}
                                 label="Agencia"
                                 onChange={(e) => {
-                                    setFilters({ ...filters, agency_id: e.target.value });
-                                    setTimeout(() => fetchOrders(), 100);
+                                    const newVal = { ...filters, agency_id: e.target.value };
+                                    setFilters(newVal);
+                                    useOrdersStore.getState().setFilters(newVal);
                                 }}
                             >
                                 <MenuItem value="">Todas</MenuItem>
@@ -220,11 +165,7 @@ export const Orders = () => {
                                 <FilterListOffRounded color="error" />
                             </IconButton>
                         </Tooltip>
-                        <Tooltip title="Filtrar">
-                            <IconButton onClick={() => fetchOrders()}>
-                                <FilterListRounded color="primary" />
-                            </IconButton>
-                        </Tooltip>
+                        {/* Remove manual filter button as it updates automatically via store */}
                     </Box>
                 )}
             </Box>
@@ -294,7 +235,7 @@ export const Orders = () => {
 
                                 {!['Agencia'].includes(user.role?.description || '') && (
                                     <>
-                                        <OrderList title="Reprogramado" />
+                                        <OrderList title="Reprogramado para hoy" />
                                         <OrderList title="Asignado a vendedor" />
                                         <OrderList title="Llamado 1" />
                                         <OrderList title="Llamado 2" />

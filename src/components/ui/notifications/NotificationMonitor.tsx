@@ -4,7 +4,7 @@ import { useNotificationStore, AppNotification } from "../../../store/notificati
 import { toast } from "react-toastify";
 
 export const NotificationMonitor = () => {
-    const { orders } = useOrdersStore();
+    const { columns } = useOrdersStore();
     const { addNotification, dismissedOrderIds, notifications } = useNotificationStore();
     const toastedRef = useRef<Set<number>>(new Set());
 
@@ -13,8 +13,12 @@ export const NotificationMonitor = () => {
             const now = new Date();
             let newFound = false;
 
-            orders.forEach(order => {
+            // Gather all currently loaded orders from all columns
+            const allLoadedOrders = Object.values(columns).flatMap(col => col.items);
+
+            allLoadedOrders.forEach(order => {
                 const processAlert = (timeStr: string, type: AppNotification['type'], label: string) => {
+                    if (!timeStr) return;
                     const time = new Date(timeStr);
                     const diff = now.getTime() - time.getTime();
 
@@ -58,7 +62,7 @@ export const NotificationMonitor = () => {
                     processAlert(order.reminder_at, "reminder", "Recordatorio");
                 }
 
-                if (order.scheduled_for && (order.status.description === 'Programado para mas tarde' || order.status.description === 'Reprogramado para hoy')) {
+                if (order.scheduled_for && order.status && (order.status.description === 'Programado para mas tarde' || order.status.description === 'Reprogramado para hoy')) {
                     processAlert(order.scheduled_for, "scheduled", "Contacto/Entrega");
                 }
             });
@@ -72,7 +76,7 @@ export const NotificationMonitor = () => {
         const interval = setInterval(checkReminders, 20000); // Revisar cada 20s
         checkReminders();
         return () => clearInterval(interval);
-    }, [orders, dismissedOrderIds, addNotification, notifications]);
+    }, [columns, dismissedOrderIds, addNotification, notifications]);
 
     return null;
 };

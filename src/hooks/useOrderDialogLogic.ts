@@ -10,7 +10,7 @@ export const useOrderDialogLogic = (
     open: boolean,
     setOpen: React.Dispatch<React.SetStateAction<boolean>>
 ) => {
-    const { selectedOrder, setSelectedOrder, updateOrder } = useOrdersStore();
+    const { selectedOrder, setSelectedOrder, updateOrderInColumns } = useOrdersStore();
     const user = useUserStore((state) => state.user);
 
     const [openCancel, setOpenCancel] = useState(false);
@@ -72,7 +72,7 @@ export const useOrderDialogLogic = (
             );
             if (status === 200) {
                 const data = await response.json();
-                updateOrder(data.data); // Backend returns the order in 'data' key for this specific endpoint
+                updateOrderInColumns(data.data); // Backend returns the order in 'data' key for this specific endpoint
                 toast.success('Ubicacion actualizada');
             } else {
                 toast.error('No se logro añadir la ubicacion');
@@ -102,7 +102,7 @@ export const useOrderDialogLogic = (
             );
             if (status) {
                 const data = await response.json();
-                updateOrder(data.order);
+                updateOrderInColumns(data.order);
                 toast.success("Cancelación aprobada ✅");
                 setOpenApprove(false);
             } else {
@@ -134,7 +134,7 @@ export const useOrderDialogLogic = (
             );
             if (status) {
                 const data = await response.json();
-                updateOrder(data.order);
+                updateOrderInColumns(data.order);
                 toast.success("Cancelación rechazada ❎");
                 setOpenReject(false);
             } else {
@@ -237,7 +237,7 @@ export const useOrderDialogLogic = (
             );
             if (ok === 200) {
                 const data = await response.json();
-                updateOrder(data.order);
+                updateOrderInColumns(data.order);
                 toast.success(`Orden #${selectedOrder.name} actualizada a ${status} ✅`);
 
                 // Cleanup
@@ -249,7 +249,8 @@ export const useOrderDialogLogic = (
                 const errorData = await response.json();
                 toast.error(errorData.message || "No se pudo actualizar el estado ❌");
             }
-        } catch {
+        } catch (e) {
+            console.error("Error updating status:", e);
             toast.error("Error en el servidor al actualizar estado 🚨");
         }
     };
@@ -270,7 +271,7 @@ export const useOrderDialogLogic = (
 
             if (status) {
                 const data = await response.json();
-                updateOrder(data.order);
+                updateOrderInColumns(data.order);
                 toast.success("Upsell agregado correctamente ✅");
                 return true;
             } else {
@@ -293,7 +294,7 @@ export const useOrderDialogLogic = (
 
             if (status) {
                 const data = await response.json();
-                updateOrder(data.order);
+                updateOrderInColumns(data.order);
                 toast.success("Upsell eliminado correctamente ✅");
             } else {
                 toast.error("Error al eliminar upsell ❌");
@@ -322,7 +323,7 @@ export const useOrderDialogLogic = (
             );
             if (status) {
                 const data = await response.json();
-                updateOrder(data.order);
+                updateOrderInColumns(data.order);
                 toast.success("Entrega aprobada ✅");
                 setOpenApproveDelivery(false);
             } else {
@@ -354,7 +355,7 @@ export const useOrderDialogLogic = (
             );
             if (status) {
                 const data = await response.json();
-                updateOrder(data.order);
+                updateOrderInColumns(data.order);
                 toast.success("Entrega rechazada ❎");
                 setOpenRejectDelivery(false);
             } else {
@@ -386,7 +387,7 @@ export const useOrderDialogLogic = (
             );
             if (status) {
                 const data = await response.json();
-                updateOrder(data.order);
+                updateOrderInColumns(data.order);
                 toast.success("Cambio de ubicación aprobado ✅");
                 setOpenApproveLocation(false);
             } else {
@@ -418,7 +419,7 @@ export const useOrderDialogLogic = (
             );
             if (status) {
                 const data = await response.json();
-                updateOrder(data.order);
+                updateOrderInColumns(data.order);
                 toast.success("Cambio de ubicación rechazado ❎");
                 setOpenRejectLocation(false);
             } else {
@@ -450,7 +451,7 @@ export const useOrderDialogLogic = (
             );
             if (status) {
                 const data = await response.json();
-                updateOrder(data.order);
+                updateOrderInColumns(data.order);
                 toast.success("Rechazo aprobado ✅");
                 setOpenApproveRejection(false);
             } else {
@@ -482,7 +483,7 @@ export const useOrderDialogLogic = (
             );
             if (status) {
                 const data = await response.json();
-                updateOrder(data.order);
+                updateOrderInColumns(data.order);
                 toast.success("Solicitud de rechazo denegada ❎");
                 setOpenRejectRejection(false);
             } else {
@@ -512,7 +513,7 @@ export const useOrderDialogLogic = (
             );
             if (status) {
                 const data = await response.json();
-                updateOrder(data.order);
+                updateOrderInColumns(data.order);
                 toast.success('Recordatorio establecido 📅');
             } else {
                 toast.error('Error al guardar recordatorio');
@@ -539,7 +540,7 @@ export const useOrderDialogLogic = (
         rejectCancellation,
         changeStatus,
         handleChangeNewLocation,
-        updateOrder,
+        updateOrder: updateOrderInColumns,
         addUpsell,
         removeUpsell,
         openApproveDelivery, setOpenApproveDelivery,

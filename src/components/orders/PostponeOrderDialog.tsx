@@ -18,7 +18,7 @@ interface Props {
 }
 
 export const PostponeOrderDialog: FC<Props> = ({ open, onClose, orderId, targetStatus }) => {
-    const { updateOrder } = useOrdersStore();
+    const { updateOrderInColumns } = useOrdersStore();
     const [scheduledFor, setScheduledFor] = useState<string>("");
     const [reason, setReason] = useState<string>("");
     const [loading, setLoading] = useState(false);
@@ -66,7 +66,7 @@ export const PostponeOrderDialog: FC<Props> = ({ open, onClose, orderId, targetS
             );
             if (status) {
                 const data = await response.json();
-                updateOrder(data.order);
+                updateOrderInColumns(data.order);
                 toast.success("Orden pospuesta correctamente ✅");
                 setReason("");
                 setScheduledFor("");

@@ -45,24 +45,26 @@ export const Roster: React.FC = () => {
         }
     };
 
-    const loadBusiness = async () => {
+    const loadBusiness = async (signal?: AbortSignal) => {
         if (!selectedShopId) return;
         try {
-            const { status, response }: IResponse = await request(`/business/today?shop_id=${selectedShopId}`, "GET");
+            const { status, response }: IResponse = await request(`/business/today?shop_id=${selectedShopId}`, "GET", undefined, signal);
             if (status) {
                 const data = await response.json();
                 setBusiness(data.data);
             }
-        } catch {
-            toast.error("No se pudo cargar la jornada");
+        } catch (e: any) {
+            if (e.name !== 'AbortError') {
+                toast.error("No se pudo cargar la jornada");
+            }
         }
     };
 
-    const loadRoster = async () => {
+    const loadRoster = async (signal?: AbortSignal) => {
         if (!selectedShopId) return;
         setLoading(true);
         try {
-            const { status, response }: IResponse = await request(`/roster/today?shop_id=${selectedShopId}`, "GET");
+            const { status, response }: IResponse = await request(`/roster/today?shop_id=${selectedShopId}`, "GET", undefined, signal);
             if (status) {
                 const data = await response.json();
                 setAllAgents(data.data.all ?? []);
@@ -70,9 +72,13 @@ export const Roster: React.FC = () => {
             } else {
                 toast.error("No se pudo cargar el roster");
             }
-        } catch {
-            toast.error("Error cargando roster");
+        } catch (e: any) {
+            if (e.name !== 'AbortError') {
+                toast.error("Error cargando roster");
+            }
         } finally {
+            // Only turn off loading if we weren't aborted (or strict mode check)
+            // Ideally we'd track if *this* variable is still relevant, but simple catch is okay
             setLoading(false);
         }
     };
@@ -83,8 +89,15 @@ export const Roster: React.FC = () => {
 
     useEffect(() => {
         if (selectedShopId) {
-            loadRoster();
-            loadBusiness();
+            setBusiness(null);
+            setAllAgents([]);
+            setActiveIds([]);
+
+            const controller = new AbortController();
+            loadRoster(controller.signal);
+            loadBusiness(controller.signal);
+
+            return () => controller.abort();
         }
     }, [selectedShopId]);
 

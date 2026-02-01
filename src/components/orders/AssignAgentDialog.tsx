@@ -39,7 +39,7 @@ export const AssignAgentDialog: FC<AssignAgentDialogProps> = ({
     const [loading, setLoading] = useState(false);
     const [assigning, setAssigning] = useState(false);
 
-    const { updateOrder } = useOrdersStore();
+    const { updateOrderInColumns } = useOrdersStore();
 
     useEffect(() => {
         if (open) {
@@ -49,14 +49,15 @@ export const AssignAgentDialog: FC<AssignAgentDialogProps> = ({
 
     const fetchAgents = async () => {
         setLoading(true);
+        console.log("Fetching agents...");
         try {
             const { status, response }: IResponse = await request("/users/agents", "GET");
-            if (status) {
-
+            if (status === 200) {
                 const data = await response.json();
+                console.log("Agents loaded:", data.data?.length);
                 setAgents(data.data ?? []);
-                toast.success("Lista de vendedores cargada ✅");
             } else {
+                console.error("Failed to fetch agents", response);
                 toast.error("No se pudieron obtener los vendedores ❌");
             }
         } catch (e) {
@@ -83,7 +84,7 @@ export const AssignAgentDialog: FC<AssignAgentDialogProps> = ({
                 const data = await response.json();
 
                 // 🔹 Asegúrate de que se actualice TODO (status + agent)
-                updateOrder(data.order);
+                updateOrderInColumns(data.order);
 
                 if (onAssigned) onAssigned(data.order.agent);
 

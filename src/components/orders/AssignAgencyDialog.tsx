@@ -39,7 +39,7 @@ export const AssignAgencyDialog: FC<AssignAgencyDialogProps> = ({
     const [loading, setLoading] = useState(false);
     const [assigning, setAssigning] = useState(false);
 
-    const { updateOrder } = useOrdersStore();
+    const { updateOrderInColumns } = useOrdersStore();
 
     useEffect(() => {
         if (open) {
@@ -51,7 +51,7 @@ export const AssignAgencyDialog: FC<AssignAgencyDialogProps> = ({
         setLoading(true);
         try {
             const { status, response }: IResponse = await request("/users/role/Agencia", "GET");
-            if (status) {
+            if (status === 200) {
                 const data = await response.json();
                 setAgencies(data.data ?? []);
             } else {
@@ -79,7 +79,7 @@ export const AssignAgencyDialog: FC<AssignAgencyDialogProps> = ({
 
             if (status) {
                 const data = await response.json();
-                updateOrder(data.order);
+                updateOrderInColumns(data.order);
 
                 if (onAssigned) onAssigned(data.order.agency);
 

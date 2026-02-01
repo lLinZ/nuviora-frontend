@@ -29,7 +29,7 @@ export const CancelOrderDialog: FC<CancelOrderDialogProps> = ({
 }) => {
     const [reason, setReason] = useState("");
     const [loading, setLoading] = useState(false);
-    const { updateOrder } = useOrdersStore();
+    const { updateOrderInColumns } = useOrdersStore();
 
     const handleCancelOrder = async () => {
         if (!reason.trim() || !orderId) {
@@ -53,7 +53,7 @@ export const CancelOrderDialog: FC<CancelOrderDialogProps> = ({
                 const data = await response.json();
 
                 // Actualizamos estado global de la orden
-                updateOrder({
+                updateOrderInColumns({
                     ...data.order,
                     status: { description: "Pendiente Cancelación" },
                 });

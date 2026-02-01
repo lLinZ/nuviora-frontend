@@ -17,7 +17,7 @@ export const OrderUpdateInput: React.FC<OrderUpdateInputProps> = ({ orderId }) =
     const theme = useTheme();
     const isDark = theme.palette.mode === "dark";
     const user = useUserStore((state) => state.user);
-    const { selectedOrder, updateOrder } = useOrdersStore();
+    const { selectedOrder, updateOrderInColumns } = useOrdersStore();
 
     const [newUpdate, setNewUpdate] = useState<string>("");
     const [newUpdateImage, setNewUpdateImage] = useState<File | null>(null);
@@ -44,7 +44,7 @@ export const OrderUpdateInput: React.FC<OrderUpdateInputProps> = ({ orderId }) =
             if (status) {
                 const data = await response.json();
 
-                updateOrder({
+                updateOrderInColumns({
                     ...selectedOrder,
                     updates: [...(selectedOrder?.updates ?? []), data.update],
                 });

@@ -55,6 +55,7 @@ export const statusColors: Record<string, string> = {
     "Programado para mas tarde": yellow[600],
     "Programado para otro dia": yellow[800],
     "Reprogramado": yellow[900],
+    "Reprogramado para hoy": yellow[900],
 
     // Cambios / neutros
     "Cambio de ubicacion": grey[500],
@@ -72,7 +73,7 @@ export const statusColors: Record<string, string> = {
 };
 export const OrderItem: FC<OrderItemProps> = ({ order }) => {
     const user = useUserStore((state) => state.user);
-    const { updateOrder, setSelectedOrder } = useOrdersStore();
+    const { updateOrderInColumns, setSelectedOrder } = useOrdersStore();
     const [openAssign, setOpenAssign] = useState(false);
     const [open, setOpen] = useState<boolean>(false);
     const [productsOpen, setProductsOpen] = useState<boolean>(false);
@@ -144,7 +145,7 @@ export const OrderItem: FC<OrderItemProps> = ({ order }) => {
                 );
                 const data = await response.json();
                 if (ok) {
-                    updateOrder(data.order);
+                    updateOrderInColumns(data.order);
                     toast.success(data.message || `Agencia auto-asignada exitosamente ✅`);
                     return;
                 } else if (data.require_manual_agency) {
@@ -186,7 +187,7 @@ export const OrderItem: FC<OrderItemProps> = ({ order }) => {
             );
             if (ok === 200) {
                 const data = await response.json();
-                updateOrder(data.order);
+                updateOrderInColumns(data.order);
                 toast.success(data.message || `Orden #${order.name} actualizada a ${status} ✅`);
                 setOpenMarkDelivered(false);
                 setPendingStatus(null);
@@ -213,7 +214,7 @@ export const OrderItem: FC<OrderItemProps> = ({ order }) => {
             );
             if (ok) {
                 const data = await response.json();
-                updateOrder(data.order);
+                updateOrderInColumns(data.order);
                 toast.success(`Novedad registrada: ${type} ✅`);
                 setOpenNovelty(false);
             } else {
