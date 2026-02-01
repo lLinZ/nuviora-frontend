@@ -744,6 +744,8 @@ const PHONE_PREFIXES = ["0414", "0424", "0412", "0422", "0416", "0426"];
 
 const StructuredDetailForm = ({ method, details, onChange, onCopy, banks, disabled }: any) => {
     const isDark = useTheme().palette.mode === 'dark';
+    const userRole = useUserStore((state) => state.user.role?.description);
+    const isSeller = userRole === 'Vendedor';
 
     if (method === 'BOLIVARES_PAGOMOVIL') {
         return (
@@ -774,11 +776,13 @@ const StructuredDetailForm = ({ method, details, onChange, onCopy, banks, disabl
                             value={details.phone_number || ""} onChange={(e) => onChange('phone_number', e.target.value.replace(/\D/g, "").substring(0, 7))}
                             disabled={disabled} />
                     </Grid>
-                    <Grid size={{ xs: 12 }}>
-                        <ButtonCustom fullWidth variant="outlined" startIcon={<ContentCopyIcon />} onClick={onCopy} disabled={!details.cedula}>
-                            Copiar Datos para Admin
-                        </ButtonCustom>
-                    </Grid>
+                    {!isSeller && (
+                        <Grid size={{ xs: 12 }}>
+                            <ButtonCustom fullWidth variant="outlined" startIcon={<ContentCopyIcon />} onClick={onCopy} disabled={!details.cedula}>
+                                Copiar Datos para Admin
+                            </ButtonCustom>
+                        </Grid>
+                    )}
                 </Grid>
             </Box>
         );
@@ -807,11 +811,13 @@ const StructuredDetailForm = ({ method, details, onChange, onCopy, banks, disabl
                             {banks.map((b: any) => <MenuItem key={b.id} value={b.id}>{b.name}</MenuItem>)}
                         </SelectCustom>
                     </Grid>
-                    <Grid size={{ xs: 12 }}>
-                        <ButtonCustom fullWidth variant="outlined" startIcon={<ContentCopyIcon />} onClick={onCopy} disabled={!details.account_number}>
-                            Copiar Datos para Admin
-                        </ButtonCustom>
-                    </Grid>
+                    {!isSeller && (
+                        <Grid size={{ xs: 12 }}>
+                            <ButtonCustom fullWidth variant="outlined" startIcon={<ContentCopyIcon />} onClick={onCopy} disabled={!details.account_number}>
+                                Copiar Datos para Admin
+                            </ButtonCustom>
+                        </Grid>
+                    )}
                 </Grid>
             </Box>
         );
@@ -827,9 +833,11 @@ const StructuredDetailForm = ({ method, details, onChange, onCopy, banks, disabl
                     <TextField fullWidth size="small" label="Correo Electrónico" placeholder="usuario@ejemplo.com"
                         value={details.email || ""} onChange={(e) => onChange('email', e.target.value)}
                         disabled={disabled} />
-                    <IconButton onClick={onCopy} disabled={!details.email} sx={{ bgcolor: blue[50] }}>
-                        <ContentCopyIcon color="primary" />
-                    </IconButton>
+                    {!isSeller && (
+                        <IconButton onClick={onCopy} disabled={!details.email} sx={{ bgcolor: blue[50] }}>
+                            <ContentCopyIcon color="primary" />
+                        </IconButton>
+                    )}
                 </Stack>
             </Box>
         );
