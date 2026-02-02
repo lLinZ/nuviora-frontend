@@ -44,6 +44,7 @@ export const PhoneActionMenu: React.FC<PhoneActionMenuProps> = ({ phone, sx }) =
                 onClick={handleClick}
                 sx={{
                     cursor: 'pointer',
+                    color: 'primary.main',
                     '&:hover': {
                         color: 'primary.main',
                         textDecoration: 'underline'
