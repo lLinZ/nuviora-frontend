@@ -63,6 +63,7 @@ export const UsersDataTable: FC<Props> = ({ data, setData }) => {
                             <TableCell sx={{ whiteSpace: 'nowrap', textAlign: 'center' }}>Email</TableCell>
                             <TableCell sx={{ whiteSpace: 'nowrap', textAlign: 'center' }}>Direccion</TableCell>
                             <TableCell sx={{ whiteSpace: 'nowrap', textAlign: 'center' }}>Costo Delivery</TableCell>
+                            <TableCell sx={{ whiteSpace: 'nowrap', textAlign: 'center' }}>Vista Lite</TableCell>
                             <TableCell sx={{ whiteSpace: 'nowrap', textAlign: 'center' }}>Acciones</TableCell>
                         </TableRow>
                     </TableHead>

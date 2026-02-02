@@ -40,7 +40,7 @@ export const OrderUpdatesList: React.FC<OrderUpdatesListProps> = ({ updates }) =
         }}>
             <Box sx={{
                 position: 'absolute',
-                left: { xs: 20, sm: 28 },
+                left: { xs: 15, sm: 19 }, // (Avatar Width / 2) - (Line Width / 2)
                 top: 20,
                 bottom: 80,
                 width: 2,
@@ -97,14 +97,16 @@ export const OrderUpdatesList: React.FC<OrderUpdatesListProps> = ({ updates }) =
                                     }
                                 }}
                             >
-                                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+                                <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, justifyContent: 'space-between', alignItems: { xs: 'flex-start', sm: 'center' }, mb: 1 }}>
                                     <TypographyCustom variant="subtitle2" fontWeight="bold" sx={{ color: isDark ? lighten(userColor, 0.3) : darken(userColor, 0.2) }}>
-                                        {u.user?.names} {u.user?.surnames}
-                                        <TypographyCustom component="span" variant="caption" sx={{ ml: 1, opacity: 0.6, fontWeight: 'normal' }}>
-                                            • {u.user?.role?.description}
-                                        </TypographyCustom>
+                                        {u.user?.names} {u.user?.surnames !== '-' ? u.user?.surnames : ''}
+                                        {u.user?.role?.description && (
+                                            <TypographyCustom component="span" variant="caption" sx={{ ml: 1, opacity: 0.6, fontWeight: 'normal' }}>
+                                                • {u.user?.role?.description}
+                                            </TypographyCustom>
+                                        )}
                                     </TypographyCustom>
-                                    <TypographyCustom variant="caption" sx={{ opacity: 0.5 }}>
+                                    <TypographyCustom variant="caption" sx={{ opacity: 0.5, mt: { xs: 0.5, sm: 0 } }}>
                                         {formattedDate}
                                     </TypographyCustom>
                                 </Box>

@@ -1,4 +1,4 @@
-import { TableRow, TableCell, IconButton, SelectChangeEvent, Box, Stack } from "@mui/material";
+import { TableRow, TableCell, IconButton, SelectChangeEvent, Box, Stack, Switch } from "@mui/material";
 import moment from "moment";
 import { ChangeEvent, ReactNode, useState } from "react";
 import EditRounded from "@mui/icons-material/EditRounded";
@@ -28,6 +28,7 @@ export const TableData = ({ data }: DataProps) => {
         role: data.role,
         status: data.status,
         delivery_cost: data.delivery_cost ?? 0,
+        is_lite_view: Boolean(data.is_lite_view),
     }
     const [info, setInfo] = useState<UserType>(data);
     const [values, setValues] = useState<InitialValues>(initialValues);
@@ -51,7 +52,11 @@ export const TableData = ({ data }: DataProps) => {
         const url = `/user/${data.id}`;
         const body = new URLSearchParams();
         for (const [key, value] of Object.entries(values)) {
-            body.append(key, String(value));
+            if (key === 'is_lite_view') {
+                body.append(key, value ? '1' : '0');
+            } else {
+                body.append(key, String(value));
+            }
         }
         const { status, response, err }: IResponse = await request(url, 'PUT', body);
         switch (status) {
@@ -117,6 +122,12 @@ export const TableData = ({ data }: DataProps) => {
                         )}
                     </TableCell>
                     <TableCell sx={{ whiteSpace: 'nowrap', textAlign: 'center' }}>
+                        <Switch
+                            checked={Boolean(values.is_lite_view)}
+                            onChange={(e) => setValues({ ...values, is_lite_view: e.target.checked })}
+                        />
+                    </TableCell>
+                    <TableCell sx={{ whiteSpace: 'nowrap', textAlign: 'center' }}>
                         <Stack direction="column" spacing={1} alignItems="center">
                             <Box display="flex" gap={1}>
                                 <IconButton onClick={onSubmit} color="success">
@@ -162,6 +173,9 @@ export const TableData = ({ data }: DataProps) => {
                         <TableCell sx={{ whiteSpace: 'nowrap', textAlign: 'center' }}>{info.email}</TableCell>
                         <TableCell sx={{ whiteSpace: 'nowrap', textAlign: 'center' }}>{info.address}</TableCell>
                         <TableCell sx={{ whiteSpace: 'nowrap', textAlign: 'center' }}>{info.delivery_cost || 0}</TableCell>
+                        <TableCell sx={{ whiteSpace: 'nowrap', textAlign: 'center' }}>
+                            <Switch checked={Boolean(info.is_lite_view)} disabled />
+                        </TableCell>
                         <TableCell sx={{ whiteSpace: 'nowrap', textAlign: 'center' }}>
                             <IconButton onClick={toggleEdit}>
                                 <EditRounded />

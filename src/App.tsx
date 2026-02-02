@@ -34,6 +34,7 @@ import { Cities } from './pages/Cities';
 import { CompanyAccounts } from './pages/admin/CompanyAccounts';
 import { Banks } from './pages/admin/Banks';
 import { PendingVueltos } from './pages/admin/PendingVueltos';
+import { SalesLite } from './pages/lite/SalesLite';
 
 const useGetTheme = () => {
   const user = useUserStore((state) => state.user);
@@ -90,6 +91,9 @@ function App() {
           <Route path="/admin/company-accounts" element={<CompanyAccounts />} />
           <Route path="/admin/banks" element={<Banks />} />
           <Route path="/admin/pending-vueltos" element={<PendingVueltos />} />
+
+          {/* VISTA LITE DE VENTAS */}
+          <Route path="/ordenes" element={<SalesLite />} />
         </Routes>
       </BrowserRouter>
     </ThemeProvider>

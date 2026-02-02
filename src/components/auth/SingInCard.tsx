@@ -31,7 +31,12 @@ export const SignInCard = () => {
             resetForm()
             toast.success(result.message)
             setTimeout(() => {
-                window.location.href = '/dashboard'
+                const currentUser = useUserStore.getState().user;
+                if (currentUser.is_lite_view) {
+                    window.location.href = '/ordenes';
+                } else {
+                    window.location.href = '/dashboard';
+                }
             }, 2000)
         } else {
             toast.error(result.message);

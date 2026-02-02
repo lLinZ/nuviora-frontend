@@ -44,9 +44,11 @@ export const OrderUpdateInput: React.FC<OrderUpdateInputProps> = ({ orderId }) =
             if (status) {
                 const data = await response.json();
 
+                const newUpdatesList = [...(selectedOrder?.updates ?? selectedOrder?.order_updates ?? []), data.update];
                 updateOrderInColumns({
                     ...selectedOrder,
-                    updates: [...(selectedOrder?.updates ?? []), data.update],
+                    updates: newUpdatesList,
+                    order_updates: newUpdatesList
                 });
 
                 setNewUpdate("");

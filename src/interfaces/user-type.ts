@@ -10,4 +10,5 @@ export interface UserType {
     created_at: string;
     updated_at: string;
     delivery_cost?: string | number;
+    is_lite_view?: boolean;
 }

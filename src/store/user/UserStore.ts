@@ -17,6 +17,7 @@ export interface IUser {
     status?: IStatus;
     lighten: string;
     darken: string;
+    is_lite_view?: boolean;
 }
 export interface IRole {
     id: number;
