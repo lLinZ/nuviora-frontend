@@ -133,7 +133,7 @@ export const OrderItem: FC<OrderItemProps> = ({ order }) => {
             }
         }
 
-        if (status === "Asignar a agencia" && !order.agency) {
+        if (status === "Asignar a agencia" && (!order.agency || !order.agency.id)) {
             // ... (keeping existing agency logic)
             const body = new URLSearchParams();
             body.append("status", status);
@@ -193,6 +193,14 @@ export const OrderItem: FC<OrderItemProps> = ({ order }) => {
                 setPendingStatus(null);
             } else {
                 const errorData = await response.json();
+
+                // 🔹 Fallback: Si el backend pide asignar agencia manualmente (aunque el front pensara que ya tenía)
+                if (errorData.require_manual_agency) {
+                    toast.info(errorData.message);
+                    setOpenAssignAgency(true);
+                    return;
+                }
+
                 toast.error(errorData.message || "No se pudo actualizar el estado ❌");
             }
         } catch {
