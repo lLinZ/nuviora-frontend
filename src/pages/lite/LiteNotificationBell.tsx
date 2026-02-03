@@ -21,6 +21,7 @@ import { LiteOrderDialog } from "./LiteOrderDialog";
 import NotificationsActiveRoundedIcon from "@mui/icons-material/NotificationsActiveRounded";
 import ScheduleRoundedIcon from "@mui/icons-material/ScheduleRounded";
 import WarningRoundedIcon from "@mui/icons-material/WarningRounded";
+import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
 
 export const LiteNotificationBell = () => {
     const { notifications, dismissNotification, clearAll } = useNotificationStore();
@@ -139,6 +140,16 @@ export const LiteNotificationBell = () => {
                                         {formatDistanceToNow(new Date(notif.createdAt), { locale: es, addSuffix: true })}
                                     </Typography>
                                 </Box>
+                                <IconButton
+                                    size="small"
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        dismissNotification(notif.orderId);
+                                    }}
+                                    sx={{ opacity: 0.5, '&:hover': { opacity: 1 } }}
+                                >
+                                    <CloseRoundedIcon sx={{ fontSize: 16 }} />
+                                </IconButton>
                             </MenuItem>
                         ))
                     )}

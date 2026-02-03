@@ -27,6 +27,7 @@ import { AssignAgencyDialog } from "./AssignAgencyDialog";
 import { NoveltyDialog } from "./NoveltyDialog";
 import { MarkDeliveredDialog } from "./MarkDeliveredDialog";
 import { PhoneActionMenu } from "./PhoneActionMenu";
+import { OrderTimer } from "./OrderTimer";
 
 interface OrderItemProps {
     order: any;
@@ -246,19 +247,29 @@ export const OrderItem: FC<OrderItemProps> = ({ order }) => {
                         ? `1px solid ${darken(user.color, 0.6)}`
                         : "1px solid #f0f0f0",
                 borderRadius: 5,
-                minWidth: "250px",
+                width: "250px",
+                maxWidth: "250px",
                 display: "flex",
                 flexFlow: "column wrap",
             }}
         >
             <Box sx={{ display: "flex", justifyContent: "space-between", mb: 1 }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <TypographyCustom variant="subtitle1" fontWeight={"bold"}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, overflow: 'hidden', flex: 1 }}>
+                    <TypographyCustom
+                        variant="subtitle1"
+                        fontWeight={"bold"}
+                        sx={{
+                            whiteSpace: 'nowrap',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            maxWidth: '160px'
+                        }}
+                    >
                         Orden {order.name}
                     </TypographyCustom>
                     {order.has_stock_warning && (
                         <Tooltip title="Stock insuficiente en almacén">
-                            <WarningAmberRounded sx={{ color: red[500], fontSize: '1.2rem' }} />
+                            <WarningAmberRounded sx={{ color: red[500], fontSize: '1.2rem', flexShrink: 0 }} />
                         </Tooltip>
                     )}
                 </Box>
@@ -325,10 +336,17 @@ export const OrderItem: FC<OrderItemProps> = ({ order }) => {
                 <Box sx={{ display: "flex", justifyContent: "space-between", mt: 2 }}>
                     <Chip
                         label={order.status.description}
+                        size="small"
                         sx={{
                             backgroundColor: statusColors[order.status.description] || grey[400],
                             color: "#fff",
                             fontWeight: "bold",
+                            maxWidth: 140,
+                            '& .MuiChip-label': {
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                                whiteSpace: 'nowrap'
+                            }
                         }}
                     />
                     {['Admin', 'Gerente', 'Master'].includes(user.role?.description || '') ? (
@@ -378,6 +396,16 @@ export const OrderItem: FC<OrderItemProps> = ({ order }) => {
                             }} />
                             R: {new Date(order.reminder_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                         </TypographyCustom>
+                    </Box>
+                )}
+
+                {order.received_at && (
+                    <Box sx={{ mt: 1 }}>
+                        <OrderTimer
+                            receivedAt={order.received_at}
+                            deliveredAt={order.status.description === 'Entregado' ? (order.processed_at || order.updated_at) : null}
+                            status={order.status.description}
+                        />
                     </Box>
                 )}
 

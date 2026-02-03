@@ -6,6 +6,8 @@ import { TypographyCustom } from "../../custom";
 
 export const NavBar = () => {
     const user = useUserStore((state) => state.user);
+    if (user.is_lite_view) return null;
+
     return (
         <AppBar elevation={0} sx={{ background: lighten(user.color, 0.8), borderBottom: '1px solid rgba(0,0,0,0.1)' }}>
             <Toolbar>

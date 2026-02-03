@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useUserStore } from "../../store/user/UserStore";
 import { Menu, MenuItem, ListItemIcon, ListItemText, Typography } from '@mui/material';
 import { Phone as PhoneIcon, WhatsApp as WhatsAppIcon } from '@mui/icons-material';
 
@@ -8,10 +9,13 @@ interface PhoneActionMenuProps {
 }
 
 export const PhoneActionMenu: React.FC<PhoneActionMenuProps> = ({ phone, sx }) => {
+    const user = useUserStore((state) => state.user);
+    const isRestricted = user?.role?.description === 'Agencia' || user?.is_lite_view;
     const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
     const open = Boolean(anchorEl);
 
     const handleClick = (event: React.MouseEvent<HTMLElement>) => {
+        if (isRestricted) return;
         event.stopPropagation();
         setAnchorEl(event.currentTarget);
     };
@@ -42,7 +46,11 @@ export const PhoneActionMenu: React.FC<PhoneActionMenuProps> = ({ phone, sx }) =
                 variant="subtitle2"
                 color="text.secondary"
                 onClick={handleClick}
-                sx={{
+                sx={isRestricted ? {
+                    cursor: 'default',
+                    color: 'text.secondary',
+                    ...sx
+                } : {
                     cursor: 'pointer',
                     color: 'primary.main',
                     '&:hover': {

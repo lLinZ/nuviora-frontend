@@ -18,8 +18,8 @@ export const Layout: FC<Props> = ({ children, container = true }) => {
     const user = useUserStore((state) => state.user);
     return (
         <Box sx={{ display: 'flex', flexDirection: 'row', minHeight: '100vh', justifyContent: 'space-between' }}>
-            <NotificationMonitor />
-            <BroadcastMonitor />
+            {!user.is_lite_view && <NotificationMonitor />}
+            {!user.is_lite_view && <BroadcastMonitor />}
             <SideBar />
             {!container ? (
                 <Box sx={{

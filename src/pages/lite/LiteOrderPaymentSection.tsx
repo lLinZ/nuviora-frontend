@@ -101,7 +101,14 @@ export const LiteOrderPaymentSection: React.FC<OrderPaymentSectionProps> = ({ or
     const handleSave = async () => {
         const payments = rows
             .filter(r => r.method && r.amount)
-            .map(r => ({ method: r.method, amount: r.amount }));
+            .map(r => {
+                const isVes = ["BOLIVARES_EFECTIVO", "PAGOMOVIL", "TRANSFERENCIA_BANCARIA_BOLIVARES"].includes(r.method);
+                return {
+                    method: r.method,
+                    amount: r.amount,
+                    rate: isVes ? (Number(order.binance_rate) || 0) : undefined
+                };
+            });
 
         if (payments.length === 0) return;
 
@@ -110,6 +117,9 @@ export const LiteOrderPaymentSection: React.FC<OrderPaymentSectionProps> = ({ or
             payments.forEach((payment, index) => {
                 body.append(`payments[${index}][method]`, payment.method);
                 body.append(`payments[${index}][amount]`, payment.amount.toString());
+                if (payment.rate) {
+                    body.append(`payments[${index}][rate]`, payment.rate.toString());
+                }
             });
 
             const { status, response }: IResponse = await request(`/orders/${order.id}/payment`, "PUT", body);
@@ -167,46 +177,59 @@ export const LiteOrderPaymentSection: React.FC<OrderPaymentSectionProps> = ({ or
 
             {/* List of Payments - Minimalist Table-like rows */}
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-                {rows.map((row, index) => (
-                    <Grid container spacing={1} key={index} alignItems="center">
-                        <Grid size={{ xs: 7 }}>
-                            <SelectCustom
-                                fullWidth
-                                size="small"
-                                value={row.method}
-                                onChange={(e) => handleRowChange(index, "method", e.target.value as string)}
-                                displayEmpty
-                                variant="standard"
-                                sx={{ '& .MuiSelect-select': { py: 0.5, fontSize: '0.9rem' } }}
-                            >
-                                <MenuItem value="" disabled>Método...</MenuItem>
-                                {PAYMENT_OPTIONS.map(opt => (
-                                    <MenuItem key={opt.value} value={opt.value}>{opt.label}</MenuItem>
-                                ))}
-                            </SelectCustom>
-                        </Grid>
-                        <Grid size={{ xs: 4 }}>
-                            <TextField
-                                fullWidth
-                                size="small"
-                                placeholder="0.00"
-                                value={row.amount}
-                                onChange={(e) => handleRowChange(index, "amount", e.target.value)}
-                                type="number"
-                                variant="standard"
-                                InputProps={{
-                                    startAdornment: <InputAdornment position="start"><Typography variant="caption">$</Typography></InputAdornment>,
-                                    sx: { fontSize: '0.9rem' }
-                                }}
-                            />
-                        </Grid>
-                        <Grid size={{ xs: 1 }}>
-                            <IconButton size="small" onClick={() => handleRemoveRow(index)} sx={{ p: 0.5, color: 'text.disabled' }}>
-                                <DeleteOutlineIcon fontSize="small" />
-                            </IconButton>
-                        </Grid>
-                    </Grid>
-                ))}
+                {rows.map((row, index) => {
+                    const isVes = ["BOLIVARES_EFECTIVO", "PAGOMOVIL", "TRANSFERENCIA_BANCARIA_BOLIVARES"].includes(row.method);
+                    const rate = Number(order.binance_rate) || 0;
+                    const amountBs = (Number(row.amount) * rate);
+
+                    return (
+                        <Box key={index}>
+                            <Grid container spacing={1} alignItems="center">
+                                <Grid size={{ xs: 7 }}>
+                                    <SelectCustom
+                                        fullWidth
+                                        size="small"
+                                        value={row.method}
+                                        onChange={(e) => handleRowChange(index, "method", e.target.value as string)}
+                                        displayEmpty
+                                        variant="standard"
+                                        sx={{ '& .MuiSelect-select': { py: 0.5, fontSize: '0.9rem' } }}
+                                    >
+                                        <MenuItem value="" disabled>Método...</MenuItem>
+                                        {PAYMENT_OPTIONS.map(opt => (
+                                            <MenuItem key={opt.value} value={opt.value}>{opt.label}</MenuItem>
+                                        ))}
+                                    </SelectCustom>
+                                </Grid>
+                                <Grid size={{ xs: 4 }}>
+                                    <TextField
+                                        fullWidth
+                                        size="small"
+                                        placeholder="0.00"
+                                        value={row.amount}
+                                        onChange={(e) => handleRowChange(index, "amount", e.target.value)}
+                                        type="number"
+                                        variant="standard"
+                                        InputProps={{
+                                            startAdornment: <InputAdornment position="start"><Typography variant="caption">$</Typography></InputAdornment>,
+                                            sx: { fontSize: '0.9rem' }
+                                        }}
+                                    />
+                                </Grid>
+                                <Grid size={{ xs: 1 }}>
+                                    <IconButton size="small" onClick={() => handleRemoveRow(index)} sx={{ p: 0.5, color: 'text.disabled' }}>
+                                        <DeleteOutlineIcon fontSize="small" />
+                                    </IconButton>
+                                </Grid>
+                            </Grid>
+                            {isVes && rate > 0 && !isNaN(amountBs) && amountBs > 0 && (
+                                <Typography variant="caption" sx={{ display: 'block', mt: 0.5, ml: 1, color: 'info.main', fontWeight: 'bold' }}>
+                                    = Bs {amountBs.toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} (Tasa: {rate})
+                                </Typography>
+                            )}
+                        </Box>
+                    );
+                })}
             </Box>
 
             {/* Action Buttons Row */}

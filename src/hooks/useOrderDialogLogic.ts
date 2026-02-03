@@ -171,8 +171,11 @@ export const useOrderDialogLogic = (
                 return;
             }
             if (!selectedOrder.payments || selectedOrder.payments.length === 0) {
-                toast.error("Se requieren métodos de pago registrados 💳");
-                return;
+                // Skip payment validation for return orders
+                if (!selectedOrder.is_return) {
+                    toast.error("Se requieren métodos de pago registrados 💳");
+                    return;
+                }
             }
             // Check coverage/change
             const totalPaid = selectedOrder.payments.reduce((acc: number, p: any) => acc + Number(p.amount), 0);
@@ -201,7 +204,8 @@ export const useOrderDialogLogic = (
 
 
         // Validar que existe comprobante de pago si se intenta cambiar a Entregado
-        if (status === "Entregado") {
+        // Skip for return/exchange orders - they don't require payment receipts
+        if (status === "Entregado" && !selectedOrder.is_return && !selectedOrder.is_exchange) {
             if (!selectedOrder.payment_receipt) {
                 toast.error("No se puede marcar como entregado sin un comprobante de pago ❌");
                 return;
@@ -261,7 +265,10 @@ export const useOrderDialogLogic = (
             const body = new URLSearchParams();
             body.append("product_id", String(productId));
             body.append("quantity", String(quantity));
-            body.append("price", String(price));
+            // Don't send price for return/exchange orders - backend will set it to 0
+            if (!selectedOrder.is_return && !selectedOrder.is_exchange) {
+                body.append("price", String(price));
+            }
 
             const { status, response }: IResponse = await request(
                 `/orders/${selectedOrder.id}/upsell`,
@@ -272,10 +279,10 @@ export const useOrderDialogLogic = (
             if (status) {
                 const data = await response.json();
                 updateOrderInColumns(data.order);
-                toast.success("Upsell agregado correctamente ✅");
+                toast.success(data.message || ((selectedOrder.is_return || selectedOrder.is_exchange) ? "Producto agregado ✅" : "Upsell agregado correctamente ✅"));
                 return true;
             } else {
-                toast.error("Error al agregar upsell ❌");
+                toast.error("Error al agregar producto ❌");
                 return false;
             }
         } catch {

@@ -44,6 +44,9 @@ export const OrderPaymentSection: React.FC<OrderPaymentSectionProps> = ({ order,
         payments.forEach((payment, index) => {
             body.append(`payments[${index}][method]`, payment.method);
             body.append(`payments[${index}][amount]`, payment.amount.toString());
+            if (payment.rate) {
+                body.append(`payments[${index}][rate]`, payment.rate.toString());
+            }
         });
 
         try {
@@ -245,11 +248,27 @@ export const OrderPaymentSection: React.FC<OrderPaymentSectionProps> = ({ order,
                                     <Typography variant="body2" fontWeight="bold">
                                         {p.method.replace(/_/g, " ")}
                                     </Typography>
-                                    {(p.usd_rate || p.rate) && (
-                                        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', fontSize: '0.7rem' }}>
-                                            Tasa: {p.usd_rate || p.rate}
-                                        </Typography>
-                                    )}
+                                    {(() => {
+                                        const isVes = ["BOLIVARES_EFECTIVO", "PAGOMOVIL", "TRANSFERENCIA_BANCARIA_BOLIVARES"].includes(p.method);
+                                        // Para Bs, priorizamos 'rate' (que guardamos como binance) o el binance_rate actual de la orden
+                                        // Para otros, usamos usd_rate (BCV/Euro)
+                                        const displayRate = isVes ? (p.rate || Number(order.binance_rate)) : (p.usd_rate || p.rate);
+
+                                        if (!displayRate) return null;
+
+                                        return (
+                                            <>
+                                                <Typography variant="caption" color="text.secondary" sx={{ display: 'block', fontSize: '0.7rem' }}>
+                                                    Tasa: {displayRate}
+                                                </Typography>
+                                                {isVes && (
+                                                    <Typography variant="caption" sx={{ display: 'block', fontSize: '0.75rem', fontWeight: 'bold', color: 'info.main' }}>
+                                                        = Bs. {(Number(p.amount) * Number(displayRate)).toLocaleString('es-VE', { minimumFractionDigits: 2 })}
+                                                    </Typography>
+                                                )}
+                                            </>
+                                        );
+                                    })()}
                                 </Box>
                                 <Typography variant="body2" fontWeight="black" color="success.main">
                                     {Number(p.amount).toLocaleString('en-US', { style: 'currency', currency: 'USD' })}
@@ -275,6 +294,7 @@ export const OrderPaymentSection: React.FC<OrderPaymentSectionProps> = ({ order,
                         onChange={onPaymentsChange}
                         initialValue={initialPayments}
                         totalPrice={Number(order.current_total_price)}
+                        binanceRate={Number(order.binance_rate) || 0}
                     />
                 </>
             )}

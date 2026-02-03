@@ -17,7 +17,9 @@ import {
     Collapse,
     DialogTitle,
     TextField,
-    Chip
+    Chip,
+    Alert,
+    AlertTitle
 } from "@mui/material";
 import { statusColors } from "../../components/orders/OrderItem";
 import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
@@ -39,8 +41,12 @@ import {
     ExpandMoreRounded,
     ExpandLessRounded,
     AddShoppingCartRounded,
-    WhatsApp
+    WhatsApp,
+    ReplayRounded,
+    EventRepeatRounded
 } from "@mui/icons-material";
+import { request } from "../../common/request";
+import { toast } from "react-toastify";
 
 // Import other mandatory dialogs for logic to work
 import { CancelOrderDialog } from "../../components/orders/CancelOrderDialog";
@@ -60,9 +66,10 @@ interface LiteOrderDialogProps {
     id?: number;
     open: boolean;
     setOpen: React.Dispatch<React.SetStateAction<boolean>>;
+    onClose?: () => void;
 }
 
-export const LiteOrderDialog: FC<LiteOrderDialogProps> = ({ id, open, setOpen }) => {
+export const LiteOrderDialog: FC<LiteOrderDialogProps> = ({ id, open, setOpen, onClose }) => {
     const theme = useTheme();
     const isDark = theme.palette.mode === "dark";
 
@@ -79,7 +86,7 @@ export const LiteOrderDialog: FC<LiteOrderDialogProps> = ({ id, open, setOpen })
         openReject, setOpenReject,
         loadingReview,
         newLocation,
-        handleClose,
+        handleClose: internalHandleClose,
         sendLocation,
         approveCancellation,
         rejectCancellation,
@@ -109,6 +116,11 @@ export const LiteOrderDialog: FC<LiteOrderDialogProps> = ({ id, open, setOpen })
         refreshOrder
     } = useOrderDialogLogic(id, open, setOpen);
 
+    const handleCloseWrapper = () => {
+        if (internalHandleClose) internalHandleClose();
+        if (onClose) onClose();
+    };
+
     // Local state for Upsells and other dialogs managed locally
     const [openReminder, setOpenReminder] = useState(false);
     const [openSearch, setOpenSearch] = useState(false);
@@ -126,6 +138,9 @@ export const LiteOrderDialog: FC<LiteOrderDialogProps> = ({ id, open, setOpen })
     const [showUpdates, setShowUpdates] = useState(false);
 
     const [stagedPayments, setStagedPayments] = useState<any[]>([]);
+    const [confirmReturnOpen, setConfirmReturnOpen] = useState(false);
+    const [confirmType, setConfirmType] = useState<'devolucion' | 'cambio'>('devolucion');
+    const [creatingReturn, setCreatingReturn] = useState(false);
 
     useEffect(() => {
         if (order?.payments) {
@@ -136,10 +151,32 @@ export const LiteOrderDialog: FC<LiteOrderDialogProps> = ({ id, open, setOpen })
     if (!order) return null;
     const binanceRate = Number(order?.binance_rate || 0);
 
+    const handleCreateReturn = async () => {
+        setCreatingReturn(true);
+        try {
+            const body = new URLSearchParams();
+            body.append('type', confirmType);
+            const { status, response } = await request(`/orders/${order.id}/create-return`, 'POST', body);
+            const data = await response.json();
+            if (status === 200 && data.status) {
+                const label = confirmType === 'cambio' ? 'cambio' : 'devolución';
+                toast.success(`✅ Orden de ${label} creada: #` + data.order?.name);
+                setConfirmReturnOpen(false);
+            } else {
+                toast.error(data.message || `Error al crear ${confirmType}`);
+            }
+        } catch (error) {
+            console.error(error);
+            toast.error('Error de conexión');
+        } finally {
+            setCreatingReturn(false);
+        }
+    };
+
     return (
         <Dialog
             fullScreen
-            onClose={handleClose}
+            onClose={handleCloseWrapper}
             open={open}
             PaperProps={{
                 sx: {
@@ -148,11 +185,10 @@ export const LiteOrderDialog: FC<LiteOrderDialogProps> = ({ id, open, setOpen })
             }}
         >
             {/* 1. LITE HEADER */}
-            {/* 1. LITE HEADER */}
             <AppBar position="sticky" elevation={0} sx={{ bgcolor: 'background.paper', color: 'text.primary', borderBottom: '1px solid', borderColor: 'divider' }}>
                 <Toolbar sx={{ justifyContent: 'space-between' }}>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                        <IconButton onClick={handleClose} edge="start">
+                        <IconButton onClick={handleCloseWrapper} edge="start">
                             <CloseRoundedIcon />
                         </IconButton>
                         <Box>
@@ -163,19 +199,34 @@ export const LiteOrderDialog: FC<LiteOrderDialogProps> = ({ id, open, setOpen })
                                 {order.client?.first_name} {order.client?.last_name}
                             </Typography>
                         </Box>
-                        {order.client?.phone && (
-                            <IconButton
-                                color="success"
-                                size="small"
-                                sx={{ bgcolor: '#e8f5e9' }}
-                                onClick={() => window.open(`https://wa.me/${order.client?.phone}`, '_blank')}
-                            >
-                                <WhatsApp />
-                            </IconButton>
-                        )}
+
                     </Box>
 
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                        {/* GENERATE RETURN/EXCHANGE BUTTONS - Only for delivered orders */}
+                        {!(order.is_return || order.is_exchange) && order.status?.description === 'Entregado' && (
+                            <Box sx={{ display: 'flex', gap: 1 }}>
+                                <Button
+                                    size="small"
+                                    variant="outlined"
+                                    startIcon={<ReplayRounded />}
+                                    onClick={() => { setConfirmType('devolucion'); setConfirmReturnOpen(true); }}
+                                    sx={{ borderRadius: 3, textTransform: 'none', display: { xs: 'none', sm: 'inline-flex' } }}
+                                >
+                                    Devolución
+                                </Button>
+                                <Button
+                                    size="small"
+                                    variant="outlined"
+                                    startIcon={<EventRepeatRounded />}
+                                    onClick={() => { setConfirmType('cambio'); setConfirmReturnOpen(true); }}
+                                    sx={{ borderRadius: 3, textTransform: 'none', display: { xs: 'none', sm: 'inline-flex' } }}
+                                >
+                                    Cambio
+                                </Button>
+                            </Box>
+                        )}
+
                         {/* THE BIG STATUS BUTTON */}
                         <DenseMenu
                             data={order}
@@ -203,6 +254,46 @@ export const LiteOrderDialog: FC<LiteOrderDialogProps> = ({ id, open, setOpen })
 
             {/* 2. CONTENT - Single Column / Simple Grid */}
             <DialogContent sx={{ p: { xs: 1, md: 3 }, pb: 15 }}>
+                {(Boolean(order.is_return) || Boolean(order.is_exchange)) && (
+                    <Alert severity="warning" variant="outlined" sx={{ mb: 2, borderRadius: 2, maxWidth: '1000px', margin: '0 auto 16px auto' }}>
+                        <AlertTitle fontWeight="black">
+                            {Boolean(order.is_exchange) ? 'ORDEN DE CAMBIO' : 'ORDEN DE DEVOLUCIÓN'}
+                        </AlertTitle>
+                        Esta es una orden de {Boolean(order.is_exchange) ? 'cambio' : 'devolución'}. El total es $0 y no requiere registro de pagos.
+                    </Alert>
+                )}
+
+                {order.status?.description === 'Novedades' && (
+                    <Alert severity="error" variant="filled" sx={{ mb: 2, borderRadius: 2, maxWidth: '1000px', margin: '0 auto 16px auto' }}>
+                        <AlertTitle>Novedad Reportada</AlertTitle>
+                        <Typography variant="subtitle2" fontWeight="bold">
+                            {order.novedad_type}
+                        </Typography>
+                        <Typography variant="body2">
+                            {order.novedad_description}
+                        </Typography>
+                    </Alert>
+                )}
+
+                {/* 🔄 RETURN ORDER INDICATOR */}
+                {Boolean(order.is_return) && order.parent_order && (
+                    <Alert severity="info" variant="filled" sx={{ mb: 2, borderRadius: 2, maxWidth: '1000px', margin: '0 auto 16px auto' }}>
+                        <AlertTitle sx={{ fontWeight: 'bold' }}>🔄 Orden de Devolución</AlertTitle>
+                        <Typography variant="body2">
+                            Esta es una orden de devolución creada desde la orden <strong>{order.parent_order.name}</strong>
+                        </Typography>
+                    </Alert>
+                )}
+
+                {/* ✅ HAS RETURNS CREATED */}
+                {order.return_orders && order.return_orders.length > 0 && (
+                    <Alert severity="warning" variant="filled" sx={{ mb: 2, borderRadius: 2, maxWidth: '1000px', margin: '0 auto 16px auto' }}>
+                        <AlertTitle sx={{ fontWeight: 'bold' }}>📦 Devolución Generada</AlertTitle>
+                        <Typography variant="body2">
+                            Se {order.return_orders.length === 1 ? 'ha' : 'han'} creado {order.return_orders.length} {order.return_orders.length === 1 ? 'orden' : 'órdenes'} de devolución: {order.return_orders.map((r: any) => r.name).join(', ')}
+                        </Typography>
+                    </Alert>
+                )}
                 <Grid container spacing={2} sx={{ maxWidth: '1000px', margin: 'auto' }}>
 
                     {/* LEFT: PRODUCTS & INFO */}
@@ -232,19 +323,35 @@ export const LiteOrderDialog: FC<LiteOrderDialogProps> = ({ id, open, setOpen })
                             </Box>
 
                             <Collapse in={showProducts}>
-                                <OrderProductsList products={(order.products || []).filter((p: any) => !p.is_upsell)} currency={order.currency} />
+                                {/* For return/exchange orders, show products with delete option */}
+                                {(Boolean(order.is_return) || Boolean(order.is_exchange)) ? (
+                                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                                        {(order.products || []).map((p: any) => (
+                                            <OrderProductItem
+                                                key={p.id}
+                                                product={p}
+                                                currency={order.currency}
+                                                onDelete={() => { if (confirm(`¿Eliminar este producto del ${order.is_exchange ? 'cambio' : 'devolución'}?`)) removeUpsell(p.id); }}
+                                            />
+                                        ))}
+                                    </Box>
+                                ) : (
+                                    <OrderProductsList products={(order.products || []).filter((p: any) => !p.is_upsell)} currency={order.currency} />
+                                )}
 
                                 <Box sx={{ mt: 2, display: 'flex', justifyContent: 'center' }}>
-                                    <Button
-                                        size="small"
-                                        onClick={() => setOpenSearch(true)}
-                                    >
-                                        Agregar Producto (Upsell)
-                                    </Button>
+                                    {user.role?.description !== 'Agencia' && (
+                                        <Button
+                                            size="small"
+                                            onClick={() => setOpenSearch(true)}
+                                        >
+                                            {(Boolean(order.is_return) || Boolean(order.is_exchange)) ? 'Agregar Producto' : 'Agregar Producto (Upsell)'}
+                                        </Button>
+                                    )}
                                 </Box>
 
-                                {/* Upsells render */}
-                                {(order.products || []).filter((p: any) => p.is_upsell).length > 0 && (
+                                {/* Upsells render - hide for return/exchange orders since all products are deletable */}
+                                {!(order.is_return || order.is_exchange) && (order.products || []).filter((p: any) => p.is_upsell).length > 0 && (
                                     <Box sx={{ mt: 2 }}>
                                         <Typography variant="caption" fontWeight="bold" color="text.secondary">ADICIONALES</Typography>
                                         {(order.products || []).filter((p: any) => p.is_upsell).map((p: any) => (
@@ -276,36 +383,41 @@ export const LiteOrderDialog: FC<LiteOrderDialogProps> = ({ id, open, setOpen })
 
                     {/* RIGHT: PAGOS & VUELTOS (The Meat) */}
                     <Grid size={{ xs: 12, md: 6 }}>
-                        {/* Pagos */}
-                        {/* Pagos */}
-                        <Paper elevation={0} sx={{ p: 2, mb: 2, borderRadius: 3 }}>
-                            <Box
-                                onClick={() => setShowPayments(!showPayments)}
-                                sx={{ display: 'flex', justifyContent: 'space-between', cursor: 'pointer', mb: 1 }}
-                            >
-                                <Typography variant="subtitle1" fontWeight="bold">Pagos Registrados</Typography>
-                                {showPayments ? <ExpandLessRounded /> : <ExpandMoreRounded />}
-                            </Box>
-                            <Collapse in={showPayments}>
-                                <LiteOrderPaymentSection
+                        {/* Hide payment sections for return/exchange orders */}
+                        {(Boolean(order.is_return) || Boolean(order.is_exchange)) ? (
+                            <Paper elevation={0} sx={{ p: 3, borderRadius: 3, textAlign: 'center' }}>
+                                <Typography variant="h6" color="text.secondary" sx={{ mb: 1 }}>
+                                    {Boolean(order.is_exchange) ? '🔄 Orden de Cambio' : '🔄 Orden de Devolución'}
+                                </Typography>
+                                <Typography variant="body2" color="text.secondary">
+                                    Las órdenes de {Boolean(order.is_exchange) ? 'cambio' : 'devolución'} no requieren registro de pagos.<br />
+                                    El cliente no paga - Total: <strong>$0.00</strong>
+                                </Typography>
+                            </Paper>
+                        ) : (
+                            <>
+                                {/* Pagos */}
+                                <Paper elevation={0} sx={{ p: 2, mb: 2, borderRadius: 3 }}>
+                                    <LiteOrderPaymentSection
+                                        order={order}
+                                        onPaymentsChange={setStagedPayments}
+                                        onUpdate={refreshOrder}
+                                    />
+                                </Paper>
+
+                                {/* Vueltos */}
+                                <LiteOrderChangeSection
                                     order={order}
-                                    onPaymentsChange={setStagedPayments}
                                     onUpdate={refreshOrder}
+                                    payments={stagedPayments}
                                 />
-                            </Collapse>
-                        </Paper>
 
-                        {/* Vueltos (Ya optimizado para lite) */}
-                        <LiteOrderChangeSection
-                            order={order}
-                            onUpdate={refreshOrder}
-                            payments={stagedPayments}
-                        />
-
-                        {/* Cuentas Bancarias (Referencia rápida) */}
-                        <Box sx={{ mt: 2 }}>
-                            <OrderCompanyAccounts />
-                        </Box>
+                                {/* Cuentas Bancarias */}
+                                <Box sx={{ mt: 2 }}>
+                                    <OrderCompanyAccounts />
+                                </Box>
+                            </>
+                        )}
 
                         {/* Historial / Notas */}
                         <Paper elevation={0} sx={{ p: 2, mt: 2, borderRadius: 3 }}>
@@ -375,6 +487,28 @@ export const LiteOrderDialog: FC<LiteOrderDialogProps> = ({ id, open, setOpen })
                 </DialogActions>
             </Dialog>
 
-        </Dialog>
+            {/* CONFIRM RETURN/EXCHANGE DIALOG */}
+            <Dialog open={confirmReturnOpen} onClose={() => setConfirmReturnOpen(false)}>
+                <DialogTitle>Generar Orden de {confirmType === 'cambio' ? 'Cambio' : 'Devolución'}</DialogTitle>
+                <DialogContent>
+                    <Typography variant="body1" sx={{ mb: 2 }}>
+                        Esto creará una nueva orden marcada como <strong>{confirmType === 'cambio' ? 'CAMBIO' : 'DEVOLUCIÓN'}</strong> basada en la orden #{order.name}.
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                        • El cliente no paga (Total: $0)<br />
+                        • Se asignará automáticamente a la agencia de la ciudad<br />
+                        • Los productos se copiarán de la orden original<br />
+                        • No generará comisión para la vendedora
+                    </Typography>
+                </DialogContent>
+                <DialogActions>
+                    <Button onClick={() => setConfirmReturnOpen(false)} disabled={creatingReturn}>Cancelar</Button>
+                    <ButtonCustom onClick={handleCreateReturn} disabled={creatingReturn}>
+                        {creatingReturn ? 'Creando...' : (confirmType === 'cambio' ? 'Crear Cambio' : 'Crear Devolución')}
+                    </ButtonCustom>
+                </DialogActions>
+            </Dialog>
+
+        </Dialog >
     );
 };

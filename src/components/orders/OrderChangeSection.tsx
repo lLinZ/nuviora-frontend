@@ -102,18 +102,35 @@ export const OrderChangeSection: React.FC<OrderChangeSectionProps> = ({ order, o
                     if (data.bcv_eur?.value) {
                         const rate = Number(data.bcv_eur.value);
                         setEuroRate(rate);
-                        setForm(prev => ({ ...prev, change_rate: rate }));
+                        setForm(prev => {
+                            // Only update form if it doesn't have a rate yet
+                            if (!Number(prev.change_rate)) {
+                                return { ...prev, change_rate: rate };
+                            }
+                            return prev;
+                        });
                     }
+                } else {
+                    console.error("Currency fetch failed status:", status);
                 }
             } catch (error) {
                 console.error("Error fetching rates:", error);
             }
         };
-        // Solo buscamos la tasa nueva si no hay una tasa ya guardada en la orden o si la guardada es 0
-        if (!Number(order.change_rate)) {
+
+        // Initialize from order if available
+        if (Number(order.change_rate)) {
+            setEuroRate(Number(order.change_rate));
+        } else if (Number(order.eur_rate)) {
+            // New fallback from controller injection
+            const rate = Number(order.eur_rate);
+            setEuroRate(rate);
+            setForm(prev => ({ ...prev, change_rate: rate }));
+        } else {
+            // Otherwise fetch
             fetchRates();
         }
-    }, [order.change_rate]);
+    }, [order.change_rate, order.eur_rate]);
 
     useEffect(() => {
         if (payments && payments.length > 0) {

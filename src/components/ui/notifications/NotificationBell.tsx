@@ -10,9 +10,11 @@ import {
     Avatar,
     Tooltip,
     Button,
-    alpha
+    alpha,
+    useTheme
 } from "@mui/material";
 import NotificationsRoundedIcon from "@mui/icons-material/NotificationsRounded";
+import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
 import { useNotificationStore } from "../../../store/notifications/NotificationStore";
 import { formatDistanceToNow } from "date-fns";
 import { es } from "date-fns/locale";
@@ -22,6 +24,7 @@ import ScheduleRoundedIcon from "@mui/icons-material/ScheduleRounded";
 import WarningRoundedIcon from "@mui/icons-material/WarningRounded";
 
 export const NotificationBell = () => {
+    const theme = useTheme();
     const { notifications, dismissNotification, clearAll } = useNotificationStore();
     const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
     const [selectedOrderId, setSelectedOrderId] = useState<number | null>(null);
@@ -79,14 +82,23 @@ export const NotificationBell = () => {
                         borderRadius: 4,
                         mt: 1,
                         boxShadow: '0 8px 32px rgba(0,0,0,0.2)',
-                        overflow: 'hidden'
+                        overflow: 'hidden',
+                        bgcolor: 'background.paper'
                     }
                 }}
+                transformOrigin={{ horizontal: 'right', vertical: 'top' }}
+                anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
             >
-                <Box sx={{ p: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <Typography variant="h6" fontWeight="bold">Pendientes</Typography>
+                <Box sx={{ p: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center', bgcolor: 'background.default' }}>
+                    <Typography variant="subtitle1" fontWeight="bold">Notificaciones</Typography>
                     {notifications.length > 0 && (
-                        <Button size="small" onClick={clearAll} sx={{ textTransform: 'none' }}>Limpiar mejor</Button>
+                        <Typography
+                            variant="caption"
+                            onClick={clearAll}
+                            sx={{ cursor: 'pointer', color: 'primary.main', fontWeight: 'bold' }}
+                        >
+                            Limpiar todo
+                        </Typography>
                     )}
                 </Box>
                 <Divider />
@@ -94,8 +106,8 @@ export const NotificationBell = () => {
                 <Box sx={{ overflowY: 'auto', maxHeight: 400 }}>
                     {notifications.length === 0 ? (
                         <Box sx={{ p: 4, textAlign: 'center', opacity: 0.5 }}>
-                            <NotificationsRoundedIcon sx={{ fontSize: 40, mb: 1 }} />
-                            <Typography variant="body2">No tienes notificaciones pendientes</Typography>
+                            <NotificationsRoundedIcon sx={{ fontSize: 40, mb: 1, color: 'text.disabled' }} />
+                            <Typography variant="body2" color="text.secondary">Sin notificaciones nuevas</Typography>
                         </Box>
                     ) : (
                         notifications.map((notif) => (
@@ -105,14 +117,15 @@ export const NotificationBell = () => {
                                 sx={{
                                     py: 1.5,
                                     px: 2,
-                                    borderBottom: '1px solid rgba(0,0,0,0.05)',
+                                    borderBottom: '1px solid',
+                                    borderColor: 'divider',
                                     display: 'flex',
                                     gap: 2,
                                     whiteSpace: 'normal',
-                                    '&:hover': { bgcolor: alpha('#000', 0.02) }
+                                    '&:hover': { bgcolor: 'action.hover' }
                                 }}
                             >
-                                <Avatar sx={{ bgcolor: alpha('#eee', 1), width: 40, height: 40 }}>
+                                <Avatar sx={{ bgcolor: alpha(theme.palette.text.secondary, 0.1), width: 40, height: 40 }}>
                                     {getIcon(notif.type)}
                                 </Avatar>
                                 <Box sx={{ flex: 1 }}>
@@ -120,7 +133,7 @@ export const NotificationBell = () => {
                                         {notif.message}
                                     </Typography>
                                     <Typography variant="caption" color="text.secondary">
-                                        Hace {formatDistanceToNow(notif.createdAt, { locale: es })}
+                                        {formatDistanceToNow(new Date(notif.createdAt), { locale: es, addSuffix: true })}
                                     </Typography>
                                 </Box>
                                 <IconButton
@@ -129,8 +142,9 @@ export const NotificationBell = () => {
                                         e.stopPropagation();
                                         dismissNotification(notif.orderId);
                                     }}
+                                    sx={{ opacity: 0.5, '&:hover': { opacity: 1 } }}
                                 >
-                                    <NotificationsRoundedIcon sx={{ fontSize: 16, opacity: 0.3 }} />
+                                    <CloseRoundedIcon sx={{ fontSize: 18 }} />
                                 </IconButton>
                             </MenuItem>
                         ))

@@ -4,11 +4,17 @@ import { toast } from "react-toastify";
 
 interface LiteNotificationMonitorProps {
     orders: any[];
+    onOpenOrder?: (id: number) => void;
 }
 
-export const LiteNotificationMonitor: React.FC<LiteNotificationMonitorProps> = ({ orders }) => {
-    const { addNotification, dismissedOrderIds, notifications } = useNotificationStore();
+export const LiteNotificationMonitor: React.FC<LiteNotificationMonitorProps> = ({ orders, onOpenOrder }) => {
+    const { addNotification, dismissedOrderIds, notifications, dismissNotification } = useNotificationStore();
     const toastedRef = useRef<Set<number>>(new Set());
+    const openRef = useRef(onOpenOrder);
+
+    useEffect(() => {
+        openRef.current = onOpenOrder;
+    }, [onOpenOrder]);
 
     useEffect(() => {
         if (!orders || orders.length === 0) return;
@@ -47,9 +53,16 @@ export const LiteNotificationMonitor: React.FC<LiteNotificationMonitorProps> = (
                                 newFound = true;
 
                                 if (!toastedRef.current.has(order.id)) {
-                                    toast.warning(`⏰ ${label}: Orden #${order.name}`, {
-                                        autoClose: 6000,
-                                        position: "top-right"
+                                    const toastId = toast.warning(`⏰ ${label}: Orden #${order.name}`, {
+                                        autoClose: false,
+                                        position: "top-right",
+                                        onClick: () => {
+                                            if (openRef.current) {
+                                                dismissNotification(order.id);
+                                                openRef.current(order.id);
+                                                toast.dismiss(toastId);
+                                            }
+                                        }
                                     });
                                     toastedRef.current.add(order.id);
                                 }
@@ -74,12 +87,10 @@ export const LiteNotificationMonitor: React.FC<LiteNotificationMonitorProps> = (
         };
 
         checkReminders();
-        // No interval needed here strictly if we assume orders update triggers effect, 
-        // but interval helps if time passes while orders don't change.
         const interval = setInterval(checkReminders, 30000);
         return () => clearInterval(interval);
 
-    }, [orders, dismissedOrderIds, addNotification, notifications]);
+    }, [orders, dismissedOrderIds, addNotification, notifications, dismissNotification]);
 
     return null;
 };

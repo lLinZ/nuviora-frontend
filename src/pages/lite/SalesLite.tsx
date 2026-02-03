@@ -39,6 +39,8 @@ import { LiteNotificationMonitor } from './LiteNotificationMonitor';
 import { LiteBroadcastMonitor } from './LiteBroadcastMonitor';
 import { LiteSettingsMenu } from './LiteSettingsMenu';
 import { fmtMoney } from '../../lib/money';
+import { BankAccountsDialog } from '../../components/orders/BankAccountsDialog';
+import { AccountBalanceRounded } from '@mui/icons-material';
 
 // Componente simple de Tabla Lite
 const LiteOrderTable = ({ statusTitle, searchTerm, onRefresh }: any) => {
@@ -51,7 +53,7 @@ const LiteOrderTable = ({ statusTitle, searchTerm, onRefresh }: any) => {
     const [openDialog, setOpenDialog] = useState(false);
 
     // Fetch data logic
-    const fetchOrders = async (reset = false) => {
+    const fetchOrders = useCallback(async (reset = false) => {
         if (loading) return;
         setLoading(true);
         try {
@@ -80,7 +82,7 @@ const LiteOrderTable = ({ statusTitle, searchTerm, onRefresh }: any) => {
         } finally {
             setLoading(false);
         }
-    };
+    }, [loading, page, statusTitle, searchTerm]);
 
     // Efecto para cargar al cambiar status o búsqueda
     useEffect(() => {
@@ -92,18 +94,22 @@ const LiteOrderTable = ({ statusTitle, searchTerm, onRefresh }: any) => {
         if (onRefresh) onRefresh.current = () => fetchOrders(true);
     }, [onRefresh, statusTitle]);
 
+
+
     const handleOpenOrder = (order: any) => {
-        // AQUÍ es donde eventualmente abriremos el "LiteDialog"
-        // Por ahora abrimos el OrderDialog normal pero podríamos simplificarlo
         setSelectedOrder(order);
         setOpenDialog(true);
     };
 
+    const handleOpenOrderById = useCallback((id: number) => {
+        setSelectedOrder({ id });
+        setOpenDialog(true);
+    }, []);
+
     return (
         <React.Fragment>
-            <LiteNotificationMonitor orders={orders} />
-            <LiteBroadcastMonitor onOrderUpdate={() => fetchOrders()} />
-            <LiteBroadcastMonitor onOrderUpdate={() => fetchOrders()} />
+            <LiteNotificationMonitor orders={orders} onOpenOrder={handleOpenOrderById} />
+            <LiteBroadcastMonitor onOrderUpdate={fetchOrders} onOpenOrder={handleOpenOrderById} />
             <TableContainer component={Paper} elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2, maxHeight: '70vh', bgcolor: 'background.paper' }}>
                 <Table stickyHeader size="small">
                     <TableHead>
@@ -157,15 +163,6 @@ const LiteOrderTable = ({ statusTitle, searchTerm, onRefresh }: any) => {
                                 </TableCell>
                                 <TableCell align="right">
                                     <Box display="flex" justifyContent="flex-end" gap={1}>
-                                        {order.client?.phone && (
-                                            <IconButton
-                                                size="small"
-                                                color="success"
-                                                onClick={() => window.open(`https://wa.me/${order.client?.phone}`, '_blank')}
-                                            >
-                                                <WhatsApp fontSize="small" />
-                                            </IconButton>
-                                        )}
                                         <Button
                                             variant="contained"
                                             size="small"
@@ -209,6 +206,12 @@ const LiteOrderTable = ({ statusTitle, searchTerm, onRefresh }: any) => {
                     open={openDialog}
                     setOpen={setOpenDialog}
                     id={selectedOrder.id}
+                    onClose={() => {
+                        // Forzamos actualización al cerrar
+                        fetchOrders(true);
+                        // También podríamos disparar actualización de contadores mediante prop si lo pasamos
+                        if (onRefresh && onRefresh.current) onRefresh.current();
+                    }}
                 />
             )}
         </React.Fragment>
@@ -226,6 +229,8 @@ export const SalesLite = () => {
     const [loadingCommissions, setLoadingCommissions] = useState(false);
     const [counts, setCounts] = useState<Record<string, number>>({});
     const refreshRef = useRef<any>(null);
+    const [openBankDialog, setOpenBankDialog] = useState(false);
+    const [showTestPanel, setShowTestPanel] = useState(false);
 
     useEffect(() => {
         if (!user.id) {
@@ -235,6 +240,23 @@ export const SalesLite = () => {
             fetchCounts();
         }
     }, [user.id, validateToken]);
+
+    // Polling unificado: cada 45s refresca ordenes, contadores y comisiones
+    useEffect(() => {
+        if (!user.id) return;
+
+        const interval = setInterval(() => {
+            // 1. Refrescar Ordenes (si la tab está montada y ref asignada)
+            if (refreshRef.current) {
+                refreshRef.current();
+            }
+            // 2. Refrescar Contadores y Comisiones
+            fetchCounts();
+            fetchCommissions();
+        }, 45000);
+
+        return () => clearInterval(interval);
+    }, [user.id]);
 
     const fetchCounts = async () => {
         try {
@@ -271,15 +293,35 @@ export const SalesLite = () => {
         }
     };
 
+    const triggerTestNoti = async (type: string) => {
+        try {
+            const body = new URLSearchParams();
+            body.append('type', type);
+            const { status, response } = await request('/test/notifications', 'POST', body);
+            if (status === 200) {
+                toast.success(`Disparada: ${type}`);
+            } else {
+                const data = await response.json();
+                toast.error(data.message || "Error al disparar notificación");
+            }
+        } catch (e) {
+            console.error(e);
+            toast.error("Error de conexión");
+        }
+    };
+
     // Definimos las Tabs disponibles para la vendedora Lite (Ajustado a requerimiento)
     const TABS = [
         { label: "Asignado a Mí", status: "Asignado a vendedor" },
+        { label: "Para Más Tarde", status: "Programado para mas tarde" },
+        { label: "Reprogramado Hoy", status: "Reprogramado para hoy" },
         { label: "Novedades", status: "Novedades" },
         { label: "Llamado 1", status: "Llamado 1" },
         { label: "Llamado 2", status: "Llamado 2" },
         { label: "Llamado 3", status: "Llamado 3" },
         { label: "Esperando Ubicación", status: "Esperando Ubicacion" },
-        { label: "Listo para Agencia", status: "Asignar a agencia" }
+        { label: "Listo para Agencia", status: "Asignar a agencia" },
+        { label: "Entregadas", status: "Entregado" }
     ];
 
     const getCurrentStatus = () => TABS[currentTab].status;
@@ -322,8 +364,37 @@ export const SalesLite = () => {
 
                     {/* 3. Acciones (Notificaciones + Logout) */}
                     <Box sx={{ display: 'flex', gap: 0.5, alignItems: 'center' }}>
+                        <IconButton
+                            size="small"
+                            onClick={() => setOpenBankDialog(true)}
+                            sx={{
+                                bgcolor: alpha(theme.palette.info.main, 0.1),
+                                color: theme.palette.info.main,
+                                display: { xs: 'flex', md: 'none' } // Solo icon en movil
+                            }}
+                        >
+                            <AccountBalanceRounded fontSize="small" />
+                        </IconButton>
+                        <Button
+                            startIcon={<AccountBalanceRounded />}
+                            size="small"
+                            onClick={() => setOpenBankDialog(true)}
+                            sx={{
+                                display: { xs: 'none', md: 'flex' },
+                                borderRadius: 4,
+                                textTransform: 'none',
+                                bgcolor: alpha(theme.palette.info.main, 0.1),
+                                color: theme.palette.info.main
+                            }}
+                        >
+                            Cuentas
+                        </Button>
+
                         <LiteSettingsMenu />
                         <LiteNotificationBell />
+                        <IconButton size="small" onClick={() => setShowTestPanel(!showTestPanel)} sx={{ color: 'warning.main', bgcolor: alpha(theme.palette.warning.main, 0.1) }}>
+                            <NotificationsRounded fontSize="small" />
+                        </IconButton>
                         <IconButton size="small" onClick={handleLogout} sx={{ color: theme.palette.error.main, bgcolor: alpha(theme.palette.error.main, 0.1), '&:hover': { bgcolor: alpha(theme.palette.error.main, 0.2) } }}>
                             <LogoutRounded fontSize="small" />
                         </IconButton>
@@ -356,6 +427,20 @@ export const SalesLite = () => {
                         <RefreshRounded />
                     </IconButton>
                 </Box>
+
+                {/* TEST NOTIFICATION PANEL */}
+                <Collapse in={showTestPanel}>
+                    <Paper sx={{ p: 2, mb: 3, borderRadius: 3, border: '1px dashed orange', bgcolor: alpha(orange[500], 0.05) }}>
+                        <Typography variant="subtitle2" fontWeight="bold" sx={{ mb: 1, color: orange[800] }}>🛠 PANEL DE PRUEBAS - NOTIFICACIONES</Typography>
+                        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                            <Button size="small" variant="outlined" color="primary" onClick={() => triggerTestNoti('assigned')}>Test Asignación</Button>
+                            <Button size="small" variant="outlined" color="error" onClick={() => triggerTestNoti('novelty')}>Test Novedad</Button>
+                            <Button size="small" variant="outlined" color="success" onClick={() => triggerTestNoti('resolved')}>Test Resuelta</Button>
+                            <Button size="small" variant="outlined" color="info" onClick={() => triggerTestNoti('scheduled')}>Test Posponer</Button>
+                            <Button size="small" variant="outlined" color="warning" onClick={() => triggerTestNoti('waiting')}>Test Espera</Button>
+                        </Box>
+                    </Paper>
+                </Collapse>
 
                 {/* Tabs de Navegación */}
                 <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 2, bgcolor: 'background.paper', borderRadius: 2, px: 2 }}>
@@ -393,16 +478,17 @@ export const SalesLite = () => {
                 </Box>
 
                 {/* Contenido de la Tabla */}
-                <Box>
-                    <LiteOrderTable
-                        statusTitle={getCurrentStatus()}
-                        searchTerm={searchTerm}
-                        onRefresh={refreshRef}
-                    />
-                </Box>
-                {/* Spacer para scroll final */}
-                <Box sx={{ height: 50 }} />
+                {/* Contenido de la Tabla */}
+                <LiteOrderTable
+                    statusTitle={getCurrentStatus()}
+                    searchTerm={searchTerm}
+                    onRefresh={refreshRef}
+                />
             </Box>
+
+            {/* Dialogo de Cuentas */}
+            <BankAccountsDialog open={openBankDialog} onClose={() => setOpenBankDialog(false)} />
+
             <ToastContainer
                 stacked
                 position="top-right"
@@ -414,7 +500,7 @@ export const SalesLite = () => {
                 pauseOnFocusLoss
                 draggable
                 pauseOnHover
-                theme={user.theme}
+                theme={user.theme || 'dark'}
                 transition={Bounce}
             />
         </Box>

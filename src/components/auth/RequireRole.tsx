@@ -1,6 +1,7 @@
 import React from "react";
 import { useValidateSession } from "../../hooks/useValidateSession";
 import { Loading } from "../ui/content/Loading";
+import { Forbidden } from "./Forbidden";
 
 export const RequireRole = ({
     allowedRoles,
@@ -14,7 +15,7 @@ export const RequireRole = ({
     const { loadingSession, isValid, user, hasRole } = useValidateSession(allowedRoles);
 
     if (loadingSession || !isValid || !user?.token) return <Loading />;
-    if (!hasRole) return <>{fallback ?? <div style={{ padding: 24 }}>403 — No autorizado</div>}</>;
+    if (!hasRole) return <>{fallback ?? <Forbidden />}</>;
 
     return <>{children}</>;
 };

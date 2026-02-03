@@ -838,7 +838,8 @@ export const Dashboard = () => {
                 return (
                     <Grid container spacing={3}>
                         {/* 📊 AGENCY PRIMARY METRICS */}
-                        <Grid size={{ xs: 12, md: 4 }}>
+                        {/* 📊 AGENCY PRIMARY METRICS */}
+                        {/* <Grid size={{ xs: 12, md: 4 }}>
                             <Paper elevation={0} sx={{
                                 p: 3, borderRadius: 5,
                                 background: `linear-gradient(135deg, ${user.color} 0%, ${darken(user.color, 0.3)} 100%)`,
@@ -856,7 +857,7 @@ export const Dashboard = () => {
                                 </Box>
                                 <AttachMoneyRounded sx={{ position: 'absolute', right: -20, bottom: -20, fontSize: 180, opacity: 0.1, transform: 'rotate(-15deg)' }} />
                             </Paper>
-                        </Grid>
+                        </Grid> */}
 
                         <Grid size={{ xs: 12, md: 8 }}>
                             <Grid container spacing={2}>

@@ -4,8 +4,8 @@ import { useNotificationStore, AppNotification } from "../../../store/notificati
 import { toast } from "react-toastify";
 
 export const NotificationMonitor = () => {
-    const { columns } = useOrdersStore();
-    const { addNotification, dismissedOrderIds, notifications } = useNotificationStore();
+    const { columns, setSelectedOrder } = useOrdersStore();
+    const { addNotification, dismissedOrderIds, notifications, dismissNotification } = useNotificationStore();
     const toastedRef = useRef<Set<number>>(new Set());
 
     useEffect(() => {
@@ -47,9 +47,14 @@ export const NotificationMonitor = () => {
 
                                 // Mostrar toast solo una vez por sesión para este pedido
                                 if (!toastedRef.current.has(order.id)) {
-                                    toast.warning(`⏰ ${label}: Orden #${order.name}`, {
-                                        autoClose: 6000,
-                                        position: "top-right"
+                                    const toastId = toast.warning(`⏰ ${label}: Orden #${order.name}`, {
+                                        autoClose: false, // Persistente
+                                        position: "top-right",
+                                        onClick: () => {
+                                            dismissNotification(order.id);
+                                            setSelectedOrder({ id: order.id });
+                                            toast.dismiss(toastId);
+                                        }
                                     });
                                     toastedRef.current.add(order.id);
                                 }
@@ -76,7 +81,7 @@ export const NotificationMonitor = () => {
         const interval = setInterval(checkReminders, 20000); // Revisar cada 20s
         checkReminders();
         return () => clearInterval(interval);
-    }, [columns, dismissedOrderIds, addNotification, notifications]);
+    }, [columns, dismissedOrderIds, addNotification, notifications, dismissNotification, setSelectedOrder]);
 
     return null;
 };

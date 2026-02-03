@@ -95,7 +95,7 @@ export const OrderProductItem: React.FC<OrderProductItemProps> = ({ product, cur
                     {fmtMoney(subtotal, currency)}
                 </Typography>
                 {onDelete && (
-                    <Tooltip title="Eliminar Upsell">
+                    <Tooltip title="Eliminar Producto">
                         <IconButton size="small" color="error" onClick={onDelete} sx={{ '&:hover': { bgcolor: 'error.lighter' } }}>
                             <DeleteOutlineRoundedIcon fontSize="small" />
                         </IconButton>

@@ -2,6 +2,8 @@ import { create } from "zustand";
 import Echo from 'laravel-echo';
 import Pusher from 'pusher-js';
 import { axios } from "../../lib/axios";
+import { useUserStore } from "../user/UserStore";
+import { getCookieValue } from "../../lib/functions";
 
 window.Pusher = Pusher
 
@@ -20,10 +22,16 @@ export const useSocketStore = create<State>((set) => ({
                     return {
                         authorize: (socketId: any, callback: any) => {
                             // console.log({ socketId })
+                            const token = useUserStore.getState().user.token ?? getCookieValue('token');
+
                             axios
-                                .post('/api/broadcasting/auth', {
+                                .post('/broadcasting/auth', {
                                     socket_id: socketId,
                                     channel_name: channel.name,
+                                }, {
+                                    headers: {
+                                        'Authorization': `Bearer ${token}`
+                                    }
                                 })
                                 .then((response: any) => {
                                     callback(false, response.data)

@@ -129,7 +129,7 @@ export default function DenseMenu({
     useEffect(() => {
         if (!user?.role?.description || ['Admin', 'Gerente', 'Master'].includes(user.role.description)) return;
 
-        const roleKey = `flow_rules_v2_${user.role.description}`;
+        const roleKey = `flow_rules_v3_${user.role.description}`;
         const cached = sessionStorage.getItem(roleKey);
 
         if (cached) {
@@ -219,10 +219,19 @@ export default function DenseMenu({
                         }
 
                         if (!isDisabled && isSeller && !SELLER_PUBLIC_STATUSES.includes(status.description)) {
-                            if (!hasPayments || !hasChangeInfo) {
-                                isDisabled = true;
-                                tooltipTitle = "Debe registrar pagos y vuelto antes de cambiar a este estado";
+                            // Skip payment validation for return/exchange orders
+                            if (!data.is_return && !data.is_exchange) {
+                                if (!hasPayments || !hasChangeInfo) {
+                                    isDisabled = true;
+                                    tooltipTitle = "Debe registrar pagos y vuelto antes de cambiar a este estado";
+                                }
                             }
+                        }
+
+                        // OCULTAR OPCIONES NO DISPONIBLES (Petición usuario)
+                        // Si está deshabilitado y NO es el status actual, no lo mostramos.
+                        if (isDisabled && status.description !== data.status?.description) {
+                            return null;
                         }
 
                         const menuItem = (

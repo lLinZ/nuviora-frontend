@@ -219,6 +219,8 @@ export const SideBar = () => {
         if (result) return (window.location.href = "/");
     };
 
+    if (user.is_lite_view) return null;
+
     return (
         <>
             <Box

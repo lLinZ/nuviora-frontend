@@ -145,6 +145,12 @@ export const LiteSettingsMenu = () => {
                             </IconButton>
                         ))}
                     </Box>
+
+                    <Divider sx={{ my: 2 }} />
+
+                    <MenuItem onClick={() => window.location.href = '/profile'} sx={{ borderRadius: 2 }}>
+                        <Typography variant="body2" fontWeight="medium">Ver mi Perfil</Typography>
+                    </MenuItem>
                 </Box>
             </Menu>
         </>

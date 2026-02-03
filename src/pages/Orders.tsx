@@ -14,6 +14,8 @@ import { ProductSearchDialog } from "../components/products/ProductsSearchDialog
 import { SearchRounded, FilterListRounded, FilterListOffRounded } from "@mui/icons-material";
 import { TextField, MenuItem, Select, FormControl, InputLabel, Button, Grid, IconButton, Tooltip, Chip } from "@mui/material";
 import { OrderDialog } from "../components/orders/OrderDialog";
+import { BankAccountsDialog } from "../components/orders/BankAccountsDialog";
+import { AccountBalanceRounded } from "@mui/icons-material";
 
 
 export const Orders = () => {
@@ -30,6 +32,7 @@ export const Orders = () => {
         date_to: ''
     });
     const [visibleColumns, setVisibleColumns] = useState<string[] | null>(null);
+    const [openBankDialog, setOpenBankDialog] = useState(false);
 
 
     const handlePickProduct = (product: any) => {
@@ -89,11 +92,19 @@ export const Orders = () => {
         const resetFilters = {
             city_id: '',
             agency_id: '',
+            date_from: new Date().toISOString().slice(0, 10), // Reset to today by default for Admin convenience? Or clear? Let's clear.
+            date_to: new Date().toISOString().slice(0, 10)
+        };
+        // Actually, user requested a filter so let's default to empty (All time) or Today?
+        // Usually admin wants to see EVERYTHING unless filtered.
+        const emptyFilters = {
+            city_id: '',
+            agency_id: '',
             date_from: '',
             date_to: ''
         };
-        setFilters(resetFilters);
-        useOrdersStore.getState().setFilters(resetFilters);
+        setFilters(emptyFilters);
+        useOrdersStore.getState().setFilters(emptyFilters);
         setSearchTerm("");
         toast.info("Filtros limpiados ✨");
     };
@@ -168,6 +179,43 @@ export const Orders = () => {
                         {/* Remove manual filter button as it updates automatically via store */}
                     </Box>
                 )}
+                {['Admin', 'Gerente'].includes(user.role?.description || '') && (
+                    <Box display="flex" gap={1} alignItems="center">
+                        <TextField
+                            label="Desde"
+                            type="date"
+                            size="small"
+                            InputLabelProps={{ shrink: true }}
+                            value={filters.date_from}
+                            onChange={(e) => {
+                                const newVal = { ...filters, date_from: e.target.value };
+                                setFilters(newVal);
+                                useOrdersStore.getState().setFilters(newVal);
+                            }}
+                        />
+                        <TextField
+                            label="Hasta"
+                            type="date"
+                            size="small"
+                            InputLabelProps={{ shrink: true }}
+                            value={filters.date_to}
+                            onChange={(e) => {
+                                const newVal = { ...filters, date_to: e.target.value };
+                                setFilters(newVal);
+                                useOrdersStore.getState().setFilters(newVal);
+                            }}
+                        />
+                    </Box>
+                )}
+
+                <Tooltip title="Cuentas Bancarias">
+                    <IconButton
+                        onClick={() => setOpenBankDialog(true)}
+                        sx={{ bgcolor: 'background.paper', border: '1px solid', borderColor: 'divider' }}
+                    >
+                        <AccountBalanceRounded color="primary" />
+                    </IconButton>
+                </Tooltip>
             </Box>
 
             <Fab sx={{ position: 'fixed', right: 24, bottom: 24 }} onClick={() => setOpenSearch(true)}>
@@ -268,7 +316,7 @@ export const Orders = () => {
                     </Box>
                 </Box>
             </Box>
-
+            <BankAccountsDialog open={openBankDialog} onClose={() => setOpenBankDialog(false)} />
         </Layout>
     );
 };

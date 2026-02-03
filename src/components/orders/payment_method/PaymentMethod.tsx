@@ -50,6 +50,7 @@ export type PaymentMethodType =
 export interface PaymentMethod {
     method: PaymentMethodType;
     amount: number;
+    rate?: number;
 }
 
 interface PaymentMethodsSelectorProps {
@@ -57,6 +58,7 @@ interface PaymentMethodsSelectorProps {
     onChange?: (value: PaymentMethod[]) => void;
     onSave?: (value: PaymentMethod[]) => void;
     totalPrice?: number;
+    binanceRate?: number;
 }
 
 interface PaymentRowState {
@@ -81,6 +83,7 @@ const PaymentMethodsSelector: React.FC<PaymentMethodsSelectorProps> = ({
     onChange,
     onSave,
     totalPrice = 0,
+    binanceRate,
 }) => {
     const [rows, setRows] = useState<PaymentRowState[]>(() => {
         if (initialValue && initialValue.length > 0) {
@@ -134,10 +137,16 @@ const PaymentMethodsSelector: React.FC<PaymentMethodsSelectorProps> = ({
     const serialize = (state: PaymentRowState[]): PaymentMethod[] => {
         return state
             .filter((row) => row.method !== "" && row.amount.trim() !== "")
-            .map((row) => ({
-                method: row.method as PaymentMethodType,
-                amount: Number(row.amount),
-            }));
+            .map((row) => {
+                const isVes = ["BOLIVARES_EFECTIVO", "PAGOMOVIL", "TRANSFERENCIA_BANCARIA_BOLIVARES"].includes(row.method);
+                const currentRate = (binanceRate || rates.binance_usd);
+
+                return {
+                    method: row.method as PaymentMethodType,
+                    amount: Number(row.amount),
+                    rate: isVes ? currentRate : undefined
+                };
+            });
     };
 
     const isRowValid = (row: PaymentRowState): boolean => {
@@ -366,7 +375,7 @@ const PaymentMethodsSelector: React.FC<PaymentMethodsSelectorProps> = ({
                                     />
                                 </Grid>
                                 <Grid size={{ xs: 12, sm: 4 }} sx={{ display: 'flex', alignItems: 'center', pt: 1 }}>
-                                    {rates.binance_usd > 0 && amountNumber > 0 && (
+                                    {["BOLIVARES_EFECTIVO", "PAGOMOVIL", "TRANSFERENCIA_BANCARIA_BOLIVARES"].includes(row.method) && (binanceRate || rates.binance_usd) > 0 && amountNumber > 0 && (
                                         <Box sx={{
                                             p: 1,
                                             borderRadius: 2,
@@ -376,10 +385,10 @@ const PaymentMethodsSelector: React.FC<PaymentMethodsSelectorProps> = ({
                                             width: '100%'
                                         }}>
                                             <Typography variant="caption" color="text.secondary" display="block" sx={{ fontSize: '0.65rem', textTransform: 'uppercase', fontWeight: 'bold' }}>
-                                                Ref. Binance
+                                                Ref. Binance (Tasa: {(binanceRate || rates.binance_usd).toFixed(2)})
                                             </Typography>
                                             <Typography variant="body2" fontWeight="bold" color={green[700]}>
-                                                Bs. {(amountNumber * rates.binance_usd).toLocaleString('es-VE', { minimumFractionDigits: 2 })}
+                                                Bs. {(amountNumber * (binanceRate || rates.binance_usd)).toLocaleString('es-VE', { minimumFractionDigits: 2 })}
                                             </Typography>
                                         </Box>
                                     )}

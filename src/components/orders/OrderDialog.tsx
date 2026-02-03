@@ -1,4 +1,4 @@
-import { AppBar, Box, Dialog, DialogActions, Divider, IconButton, Toolbar, Typography, useTheme, DialogContent, Tab, Tabs, Grid, Paper, Tooltip, Zoom, Fab, Menu, MenuItem, ListItemIcon, ListItemText, DialogTitle, TextField, Button } from "@mui/material";
+import { AppBar, Box, Dialog, DialogActions, Divider, IconButton, Toolbar, Typography, useTheme, DialogContent, Tab, Tabs, Grid, Paper, Tooltip, Zoom, Fab, Menu, MenuItem, ListItemIcon, ListItemText, DialogTitle, TextField, Button, Alert, AlertTitle } from "@mui/material";
 import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
 import React, { FC, useState, useEffect } from "react";
 import { darken, lighten } from "@mui/material/styles";
@@ -14,6 +14,7 @@ import { AssignAgentDialog } from "./AssignAgentDialog";
 import { AssignAgencyDialog } from "./AssignAgencyDialog";
 import { OrderPaymentSection } from "./OrderPaymentSection";
 import { OrderChangeSection } from "./OrderChangeSection";
+import { OrderTimer } from "./OrderTimer";
 import { OrderUpdatesList } from "./OrderUpdatesList";
 import { OrderUpdateInput } from "./OrderUpdateInput";
 import { OrderActivityList } from "./OrderActivityList";
@@ -39,8 +40,10 @@ import {
     ApartmentRounded,
     CheckCircleRounded,
     RuleRounded,
-    Inventory2Outlined as Inventory2OutlinedIcon
+    Inventory2Outlined as Inventory2OutlinedIcon,
+    ReplayRounded
 } from "@mui/icons-material";
+import { request } from "../../common/request";
 import { MarkDeliveredDialog } from "./MarkDeliveredDialog";
 import { ReportNovedadDialog } from "./ReportNovedadDialog";
 import { ResolveNovedadDialog } from "./ResolveNovedadDialog";
@@ -112,6 +115,9 @@ export const OrderDialog: FC<OrderDialogProps> = ({ id, open, setOpen }) => {
     const [upsellQty, setUpsellQty] = useState(1);
     const [upsellPrice, setUpsellPrice] = useState(0);
     const [stagedPayments, setStagedPayments] = useState<any[]>([]);
+    const [confirmReturnOpen, setConfirmReturnOpen] = useState(false);
+    const [confirmType, setConfirmType] = useState<'devolucion' | 'cambio'>('devolucion');
+    const [creatingReturn, setCreatingReturn] = useState(false);
 
     useEffect(() => {
         if (order?.payments) {
@@ -128,9 +134,43 @@ export const OrderDialog: FC<OrderDialogProps> = ({ id, open, setOpen }) => {
             ? (user.role?.description === 'Vendedor' ? 'Asignada a Agencia' : order.agency.names)
             : 'No asignada';
 
-        const message = `🚀 *ORDEN #${order.name}*\n📍 *Ubicación:* ${order.location || 'No asignada'}\n🏢 *Agencia:* ${agencyDisplay}\n👤 *Cliente:* ${order.client?.first_name} ${order.client?.last_name}\n📞 *Teléfono:* ${order.client?.phone}\n📦 *Productos:*\n${productsList}\n💳 *Métodos de Pago:*\n${order.payments && order.payments.length > 0 ? order.payments.map((p: any) => `• ${p.method}: $${Number(p.amount).toFixed(2)}`).join('\n') : "Pendiente"}\n💰 *Total:* ${fmtMoney(Number(order.current_total_price), order.currency)}`;
+        const totalPaid = order.payments?.reduce((acc: number, p: any) => acc + Number(p.amount), 0) || 0;
+        const total = Number(order.current_total_price) || 0;
+        const difference = totalPaid - total;
+
+        let paymentInfo = `💳 *Métodos de Pago:*\n${order.payments && order.payments.length > 0 ? order.payments.map((p: any) => `• ${p.method}: $${Number(p.amount).toFixed(2)}`).join('\n') : "Pendiente"}`;
+
+        if (difference > 0.01) {
+            paymentInfo += `\n💵 *Vuelto a entregar:* $${difference.toFixed(2)}`;
+        }
+
+        const message = `🚀 *ORDEN #${order.name}*\n📍 *Ubicación:* ${order.location || 'No asignada'}\n🏢 *Agencia:* ${agencyDisplay}\n👤 *Cliente:* ${order.client?.first_name} ${order.client?.last_name}\n📞 *Teléfono:* ${order.client?.phone}\n📦 *Productos:*\n${productsList}\n${paymentInfo}\n💰 *Total:* ${fmtMoney(Number(order.current_total_price), order.currency)}`;
         navigator.clipboard.writeText(message);
         toast.info('📋 Información copiada');
+    };
+
+    const handleCreateReturn = async () => {
+        if (!order) return;
+        setCreatingReturn(true);
+        try {
+            const body = new URLSearchParams();
+            body.append('type', confirmType);
+            const { status, response } = await request(`/orders/${order.id}/create-return`, 'POST', body);
+            const data = await response.json();
+            if (status === 200 && data.status) {
+                const label = confirmType === 'cambio' ? 'cambio' : 'devolución';
+                toast.success(`✅ Orden de ${label} creada: #` + data.order?.name);
+                setConfirmReturnOpen(false);
+                // Optionally refresh or navigate
+            } else {
+                toast.error(data.message || 'Error al crear devolución');
+            }
+        } catch (error) {
+            console.error(error);
+            toast.error('Error de conexión');
+        } finally {
+            setCreatingReturn(false);
+        }
     };
 
     if (!order) return null;
@@ -200,6 +240,21 @@ export const OrderDialog: FC<OrderDialogProps> = ({ id, open, setOpen }) => {
                                             <Typography variant="body1" fontWeight="bold" sx={{ color: 'white' }}>
                                                 {order.shop.name}
                                             </Typography>
+                                        </Box>
+                                    </>
+                                )}
+                                {order.received_at && (
+                                    <>
+                                        <Divider orientation="vertical" flexItem sx={{ bgcolor: 'rgba(255,255,255,0.2)', mx: 1, display: { xs: 'none', md: 'block' } }} />
+                                        <Box>
+                                            <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.7)', display: 'block', lineHeight: 1 }}>Timer Entrega</Typography>
+                                            <Box sx={{ mt: 0.5, bgcolor: 'rgba(255,255,255,0.1)', px: 1, py: 0.2, borderRadius: 1 }}>
+                                                <OrderTimer
+                                                    receivedAt={order.received_at}
+                                                    deliveredAt={order.status.description === 'Entregado' ? (order.processed_at || order.updated_at) : null}
+                                                    status={order.status.description}
+                                                />
+                                            </Box>
                                         </Box>
                                     </>
                                 )}
@@ -321,7 +376,46 @@ export const OrderDialog: FC<OrderDialogProps> = ({ id, open, setOpen }) => {
                             </Paper>
                         )}
 
+                        {(Boolean(order.is_return) || Boolean(order.is_exchange)) && (
+                            <Alert severity="warning" variant="outlined" sx={{ mb: 3, borderRadius: 3 }}>
+                                <AlertTitle fontWeight="black" sx={{ fontSize: '1.1rem' }}>
+                                    {Boolean(order.is_exchange) ? 'ORDEN DE CAMBIO' : 'ORDEN DE DEVOLUCIÓN'}
+                                </AlertTitle>
+                                Esta es una orden de {Boolean(order.is_exchange) ? 'cambio' : 'devolución'}. El total es $0 y no requiere registro de pagos.
+                            </Alert>
+                        )}
+
                         {/* ⚠️ NOVEDADES ALERT */}
+                        {order.status?.description === 'Novedades' && (
+                            <Alert severity="error" variant="filled" sx={{ mb: 3, borderRadius: 3 }}>
+                                <AlertTitle sx={{ fontWeight: 'bold' }}>Novedad Reportada</AlertTitle>
+                                <Typography variant="subtitle2" fontWeight="bold" sx={{ mb: 0.5 }}>
+                                    {order.novedad_type}
+                                </Typography>
+                                <Typography variant="body2">
+                                    {order.novedad_description}
+                                </Typography>
+                            </Alert>
+                        )}
+
+                        {order.status?.description === 'Novedad Solucionada' && (
+                            <Alert severity="success" variant="filled" sx={{ mb: 3, borderRadius: 3 }}>
+                                <AlertTitle sx={{ fontWeight: 'bold' }}>Novedad Solucionada</AlertTitle>
+                                <Typography variant="body2" fontWeight="bold">
+                                    {order.novedad_resolution || "No se especificó resolución."}
+                                </Typography>
+                            </Alert>
+                        )}
+
+                        {/* ✅ HAS RETURNS CREATED */}
+                        {order.return_orders && order.return_orders.length > 0 && (
+                            <Alert severity="warning" variant="filled" sx={{ mb: 3, borderRadius: 3 }}>
+                                <AlertTitle sx={{ fontWeight: 'bold' }}>📦 Devolución Generada</AlertTitle>
+                                <Typography variant="body2">
+                                    Se {order.return_orders.length === 1 ? 'ha' : 'han'} creado {order.return_orders.length} {order.return_orders.length === 1 ? 'orden' : 'órdenes'} de devolución desde esta orden: {order.return_orders.map((r: any) => r.name).join(', ')}
+                                </Typography>
+                            </Alert>
+                        )}
 
                         {/* ⚠️ POSTPONEMENT WARNING */}
                         {order.postponements && order.postponements.length > 0 && (
@@ -364,14 +458,32 @@ export const OrderDialog: FC<OrderDialogProps> = ({ id, open, setOpen }) => {
                                     <Paper elevation={0} sx={{ p: 3, borderRadius: 4, bgcolor: 'background.paper', mb: 3, boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}>
                                         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
                                             <Typography variant="h6" fontWeight="bold">Productos</Typography>
-                                            <ButtonCustom size="small" variant="outlined" onClick={() => setOpenSearch(true)}>+ Upsell</ButtonCustom>
+                                            {user.role?.description !== 'Agencia' && (
+                                                <ButtonCustom size="small" variant="outlined" onClick={() => setOpenSearch(true)}>
+                                                    {(Boolean(order.is_return) || Boolean(order.is_exchange)) ? '+ Agregar' : '+ Upsell'}
+                                                </ButtonCustom>
+                                            )}
                                         </Box>
 
                                         <Box sx={{ mb: 2 }}>
-                                            <OrderProductsList products={(order.products || []).filter((p: any) => !p.is_upsell)} currency={order.currency} />
+                                            {/* For return/exchange orders, show products with delete option */}
+                                            {(Boolean(order.is_return) || Boolean(order.is_exchange)) ? (
+                                                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                                                    {(order.products || []).map((p: any) => (
+                                                        <OrderProductItem
+                                                            key={p.id}
+                                                            product={p}
+                                                            currency={order.currency}
+                                                            onDelete={() => { if (confirm(`¿Eliminar este producto del ${order.is_exchange ? 'cambio' : 'devolución'}?`)) removeUpsell(p.id); }}
+                                                        />
+                                                    ))}
+                                                </Box>
+                                            ) : (
+                                                <OrderProductsList products={(order.products || []).filter((p: any) => !p.is_upsell)} currency={order.currency} />
+                                            )}
                                         </Box>
 
-                                        {(order.products || []).filter((p: any) => p.is_upsell).length > 0 && (
+                                        {!(order.is_return || order.is_exchange) && (order.products || []).filter((p: any) => p.is_upsell).length > 0 && (
                                             <>
                                                 <Divider sx={{ my: 2, borderStyle: 'dashed' }} />
                                                 <Typography variant="caption" fontWeight="bold" color="text.secondary" sx={{ display: 'block', mb: 1 }}>VENTAS ADICIONALES (UPSELL)</Typography>
@@ -392,6 +504,13 @@ export const OrderDialog: FC<OrderDialogProps> = ({ id, open, setOpen }) => {
                                             <Typography variant="h5" fontWeight="black" color="primary">
                                                 TOTAL: {fmtMoney(Number(order.current_total_price) || 0, order.currency)}
                                             </Typography>
+                                            {(Boolean(order.is_return) || Boolean(order.is_exchange)) && (
+                                                <Box sx={{ textAlign: 'center', py: 4 }}>
+                                                    <Typography variant="h6" color="text.secondary">
+                                                        Las órdenes de {Boolean(order.is_exchange) ? 'cambio' : 'devolución'} no requieren registro de pagos.
+                                                    </Typography>
+                                                </Box>
+                                            )}
                                             {order.ves_price !== undefined && user.role?.description !== 'Agencia' && (
                                                 <Typography variant="subtitle2" color="text.secondary">
                                                     Monto en Bs: {fmtMoney(order.ves_price, 'VES')}
@@ -404,27 +523,42 @@ export const OrderDialog: FC<OrderDialogProps> = ({ id, open, setOpen }) => {
                         )}
 
                         {activeTab === 1 && (
-                            <Grid container spacing={3}>
-                                <Grid size={{ xs: 12, md: 6 }}>
-                                    <Paper elevation={0} sx={{ p: 3, borderRadius: 4, bgcolor: 'background.paper', mb: 3, boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}>
-                                        <OrderPaymentSection
-                                            order={order}
-                                            onPaymentsChange={setStagedPayments}
-                                            onUpdate={refreshOrder}
-                                        />
+                            <>
+                                {/* Hide payment sections for return orders */}
+                                {Boolean(order.is_return) ? (
+                                    <Paper elevation={0} sx={{ p: 4, borderRadius: 4, bgcolor: 'background.paper', textAlign: 'center' }}>
+                                        <Typography variant="h6" color="text.secondary" sx={{ mb: 1 }}>
+                                            🔄 Orden de Devolución
+                                        </Typography>
+                                        <Typography variant="body2" color="text.secondary">
+                                            Las órdenes de devolución no requieren pagos ni generan comisiones.<br />
+                                            El cliente no paga - Total: <strong>$0.00</strong>
+                                        </Typography>
                                     </Paper>
-                                </Grid>
-                                <Grid size={{ xs: 12, md: 6 }}>
-                                    <OrderChangeSection
-                                        order={order}
-                                        onUpdate={refreshOrder}
-                                        payments={stagedPayments}
-                                    />
-                                </Grid>
-                                <Grid size={{ xs: 12 }}>
-                                    <OrderCompanyAccounts />
-                                </Grid>
-                            </Grid>
+                                ) : (
+                                    <Grid container spacing={3}>
+                                        <Grid size={{ xs: 12, md: 6 }}>
+                                            <Paper elevation={0} sx={{ p: 3, borderRadius: 4, bgcolor: 'background.paper', mb: 3, boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}>
+                                                <OrderPaymentSection
+                                                    order={order}
+                                                    onPaymentsChange={setStagedPayments}
+                                                    onUpdate={refreshOrder}
+                                                />
+                                            </Paper>
+                                        </Grid>
+                                        <Grid size={{ xs: 12, md: 6 }}>
+                                            <OrderChangeSection
+                                                order={order}
+                                                onUpdate={refreshOrder}
+                                                payments={stagedPayments}
+                                            />
+                                        </Grid>
+                                        <Grid size={{ xs: 12 }}>
+                                            <OrderCompanyAccounts />
+                                        </Grid>
+                                    </Grid>
+                                )}
+                            </>
                         )}
 
                         {activeTab === 2 && (
@@ -495,6 +629,19 @@ export const OrderDialog: FC<OrderDialogProps> = ({ id, open, setOpen }) => {
                         <ListItemText>Postponer Orden</ListItemText>
                     </MenuItem>
 
+                    {!(order.is_return || order.is_exchange) && order.status?.description === 'Entregado' && (
+                        <>
+                            <MenuItem onClick={() => { handleMenuClose(); setConfirmType('devolucion'); setConfirmReturnOpen(true); }}>
+                                <ListItemIcon><ReplayRounded fontSize="small" /></ListItemIcon>
+                                <ListItemText>Generar Devolución</ListItemText>
+                            </MenuItem>
+                            <MenuItem onClick={() => { handleMenuClose(); setConfirmType('cambio'); setConfirmReturnOpen(true); }}>
+                                <ListItemIcon><EventRepeatRounded fontSize="small" /></ListItemIcon>
+                                <ListItemText>Generar Cambio</ListItemText>
+                            </MenuItem>
+                        </>
+                    )}
+
                     {['Admin', 'Gerente'].includes(user.role?.description || '') && (
                         <>
                             <Divider />
@@ -525,6 +672,28 @@ export const OrderDialog: FC<OrderDialogProps> = ({ id, open, setOpen }) => {
                 <AssignAgencyDialog open={openAssignAgency} onClose={() => setOpenAssignAgency(false)} orderId={order.id} />
                 <AssignDelivererDialog open={openAssignDeliverer} onClose={() => setOpenAssignDeliverer(false)} orderId={order.id} />
                 <LogisticsDialog open={openLogistics} onClose={() => setOpenLogistics(false)} order={order} />
+
+                {/* CONFIRM RETURN/EXCHANGE DIALOG */}
+                <Dialog open={confirmReturnOpen} onClose={() => setConfirmReturnOpen(false)}>
+                    <DialogTitle>Generar Orden de {confirmType === 'cambio' ? 'Cambio' : 'Devolución'}</DialogTitle>
+                    <DialogContent>
+                        <Typography variant="body1" sx={{ mb: 2 }}>
+                            Esto creará una nueva orden marcada como <strong>{confirmType === 'cambio' ? 'CAMBIO' : 'DEVOLUCIÓN'}</strong> basada en la orden #{order.name}.
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary">
+                            • El cliente no paga (Total: $0)<br />
+                            • Se asignará automáticamente a la agencia de la ciudad<br />
+                            • Los productos se copiarán de la orden original<br />
+                            • No generará comisión para la vendedora
+                        </Typography>
+                    </DialogContent>
+                    <DialogActions>
+                        <Button onClick={() => setConfirmReturnOpen(false)} disabled={creatingReturn}>Cancelar</Button>
+                        <ButtonCustom onClick={handleCreateReturn} disabled={creatingReturn}>
+                            {creatingReturn ? 'Creando...' : (confirmType === 'cambio' ? 'Crear Cambio' : 'Crear Devolución')}
+                        </ButtonCustom>
+                    </DialogActions>
+                </Dialog>
                 <ProductSearchDialog open={openSearch} onClose={() => setOpenSearch(false)} onPick={(product) => { setUpsellCandidate(product); setUpsellPrice(Number(product.price)); setUpsellQty(1); setOpenSearch(false); setShowUpsellConfirm(true); }} />
                 <Dialog open={showUpsellConfirm} onClose={() => setShowUpsellConfirm(false)}>
                     <DialogTitle>Confirmar Upsell</DialogTitle>
