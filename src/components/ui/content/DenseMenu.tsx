@@ -255,12 +255,12 @@ export default function DenseMenu({
                                     }}
                                 >
                                     {status.description === data.status?.description ? (
-                                        <>
+                                        <Box sx={{ display: 'flex', alignItems: 'center' }}>
                                             <ListItemIcon>
                                                 <Check sx={{ color: status.color }} />
                                             </ListItemIcon>
                                             {status.description}
-                                        </>
+                                        </Box>
                                     ) : (
                                         <ListItemText inset>
                                             {status.description}

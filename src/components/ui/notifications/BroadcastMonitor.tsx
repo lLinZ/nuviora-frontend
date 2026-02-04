@@ -126,5 +126,29 @@ export const BroadcastMonitor = () => {
         };
     }, [echo, user?.id, updateOrderInColumns, addNotification, dismissNotification, setSelectedOrder]);
 
+    // 🆕 LISTENER GLOBAL DE ORDENES (KANBAN)
+    useEffect(() => {
+        if (!echo || !user?.id) return;
+
+        const channelName = 'orders';
+        console.log("📡 Connecting to global channel:", channelName);
+
+        const channel = echo.private(channelName);
+
+        channel.listen('OrderUpdated', (e: any) => {
+            console.log("♻️ Order Updated Event:", e);
+            if (e.order) {
+                // Actualizamos la orden en el store/kanban directamente
+                updateOrderInColumns(e.order);
+                console.log(`✅ Order #${e.order.id} updated via WebSocket`);
+            }
+        });
+
+        return () => {
+            channel.stopListening('OrderUpdated');
+            echo.leave(channelName);
+        };
+    }, [echo, user?.id, updateOrderInColumns]);
+
     return null;
 };

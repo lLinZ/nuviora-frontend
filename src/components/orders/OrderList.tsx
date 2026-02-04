@@ -88,7 +88,8 @@ export const OrderList: FC<OrderListProps> = ({ title }) => {
         return () => clearTimeout(timer);
     }, [filters, searchTerm, fetchColumnData]); // Si cambian filtros o buscado, recargar columna completa
 
-    // --- Polling Logic ---
+    // --- Polling Logic --- 🔇 DISABLED: Using WebSocket Instead
+    /*
     const POLLING_COLS = [
         'Nuevo',
         'Novedades',
@@ -126,9 +127,10 @@ export const OrderList: FC<OrderListProps> = ({ title }) => {
 
         return () => clearInterval(timer);
     }, [enablePolling, fetchColumnData]);
+    */
+    const enablePolling = false; // Forced to false - using WebSocket
 
     const handleManualRefresh = () => {
-        setCountdown(30);
         fetchColumnData(1);
     };
 
@@ -188,11 +190,6 @@ export const OrderList: FC<OrderListProps> = ({ title }) => {
 
                 {/* Controls */}
                 <Box display="flex" alignItems="center" gap={1}>
-                    {enablePolling && (
-                        <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.70rem', minWidth: '20px', textAlign: 'center' }}>
-                            {countdown}s
-                        </Typography>
-                    )}
                     <Typography
                         variant="caption"
                         onClick={handleManualRefresh}

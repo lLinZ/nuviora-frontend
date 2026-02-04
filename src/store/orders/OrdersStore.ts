@@ -121,13 +121,17 @@ export const useOrdersStore = create<OrdersState>((set, get) => ({
             });
 
             // 2. Si se movió (se quitó de la vieja), hay que intentar ponerla en la nueva
-            if (moved && newStatus) {
+            // O SI ES NUEVA EN EL BOARD (no estaba en ningún lado antes, ej: asignación inicial)
+            if ((moved || !updated) && newStatus) {
                 // Si la columna destino existe en memoria, la agregamos
                 if (newCols[newStatus]) {
                     // Insertar al principio para feedback inmediato
                     const targetItems = [order, ...newCols[newStatus].items];
                     // Validar unicidad por si acaso (aunque acabamos de limpiar)
                     const uniqueItems = Array.from(new Map(targetItems.map(item => [item.id, item])).values());
+
+                    // Ordenar por updated_at descendente para mantener consistencia
+                    uniqueItems.sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime());
 
                     newCols[newStatus] = {
                         ...newCols[newStatus],
