@@ -26,34 +26,35 @@ interface BankAccountsDialogProps {
     onClose: () => void;
 }
 
-interface Bank {
+interface CompanyAccount {
     id: number;
     name: string;
-    code: string; // Will store the account number/details
-    active: boolean;
+    icon: string;
+    details: { label: string; value: string }[];
+    is_active: boolean;
 }
 
 export const BankAccountsDialog: React.FC<BankAccountsDialogProps> = ({ open, onClose }) => {
     const theme = useTheme();
-    const [banks, setBanks] = useState<Bank[]>([]);
+    const [accounts, setAccounts] = useState<CompanyAccount[]>([]);
     const [loading, setLoading] = useState(false);
 
     useEffect(() => {
         if (open) {
-            fetchBanks();
+            fetchAccounts();
         }
     }, [open]);
 
-    const fetchBanks = async () => {
+    const fetchAccounts = async () => {
         setLoading(true);
         try {
-            const { status, response } = await request('/banks', 'GET');
+            const { status, response } = await request('/company-accounts', 'GET');
             if (status === 200) {
                 const data = await response.json();
-                setBanks(data);
+                setAccounts(data.filter((d: any) => d.is_active));
             }
         } catch (e) {
-            console.error("Error fetching banks", e);
+            console.error("Error fetching accounts", e);
             toast.error("Error al cargar cuentas bancarias");
         } finally {
             setLoading(false);
@@ -101,13 +102,13 @@ export const BankAccountsDialog: React.FC<BankAccountsDialogProps> = ({ open, on
             <DialogContent sx={{ p: 2 }}>
                 {loading ? (
                     <Typography align="center" sx={{ py: 4, color: 'text.secondary' }}>Cargando...</Typography>
-                ) : banks.length === 0 ? (
+                ) : accounts.length === 0 ? (
                     <Typography align="center" sx={{ py: 4, color: 'text.secondary' }}>No hay cuentas registradas</Typography>
                 ) : (
                     <List sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                        {banks.map((bank) => (
+                        {accounts.map((acc, idx) => (
                             <Paper
-                                key={bank.id}
+                                key={idx}
                                 elevation={0}
                                 sx={{
                                     border: '1px solid',
@@ -118,41 +119,34 @@ export const BankAccountsDialog: React.FC<BankAccountsDialogProps> = ({ open, on
                                     '&:hover': {
                                         borderColor: theme.palette.primary.main,
                                         bgcolor: alpha(theme.palette.primary.main, 0.02)
-                                    }
+                                    },
+                                    p: 2
                                 }}
                             >
-                                <ListItem alignItems="flex-start">
-                                    <ListItemText
-                                        primary={
-                                            <Typography variant="subtitle1" fontWeight="bold" color="primary">
-                                                {bank.name}
-                                            </Typography>
-                                        }
-                                        secondary={
-                                            <Box sx={{ mt: 1 }}>
-                                                <Typography variant="body2" fontFamily="monospace" sx={{ fontSize: '1.1rem', letterSpacing: 0.5, fontWeight: 'medium' }}>
-                                                    {bank.code || 'Sin número de cuenta'}
+                                <Typography variant="subtitle1" fontWeight="bold" color="primary" sx={{ mb: 1.5, display: 'flex', alignItems: 'center', gap: 1 }}>
+                                    {acc.name}
+                                </Typography>
+                                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+                                    {acc.details?.map((detail, j) => (
+                                        <Box key={j} sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', bgcolor: 'background.default', p: 1, borderRadius: 1 }}>
+                                            <Box>
+                                                <Typography variant="caption" color="text.secondary" sx={{ display: 'block', lineHeight: 1, mb: 0.5 }}>
+                                                    {detail.label}
                                                 </Typography>
-                                                <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
-                                                    Click en el botón para copiar
+                                                <Typography variant="body2" fontWeight="medium" fontFamily="monospace">
+                                                    {detail.value}
                                                 </Typography>
                                             </Box>
-                                        }
-                                    />
-                                    <ListItemSecondaryAction sx={{ top: '50%', transform: 'translateY(-50%)', right: 16 }}>
-                                        <IconButton
-                                            edge="end"
-                                            onClick={() => handleCopy(bank.code, bank.name)}
-                                            sx={{
-                                                bgcolor: alpha(theme.palette.primary.main, 0.1),
-                                                color: theme.palette.primary.main,
-                                                '&:hover': { bgcolor: theme.palette.primary.main, color: 'white' }
-                                            }}
-                                        >
-                                            <ContentCopyRounded />
-                                        </IconButton>
-                                    </ListItemSecondaryAction>
-                                </ListItem>
+                                            <IconButton
+                                                size="small"
+                                                onClick={() => handleCopy(detail.value, detail.label)}
+                                                sx={{ color: 'action.active' }}
+                                            >
+                                                <ContentCopyRounded fontSize="small" />
+                                            </IconButton>
+                                        </Box>
+                                    ))}
+                                </Box>
                             </Paper>
                         ))}
                     </List>

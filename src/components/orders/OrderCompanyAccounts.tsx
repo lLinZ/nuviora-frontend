@@ -80,7 +80,7 @@ export const OrderCompanyAccounts: React.FC = () => {
     return (
         <Paper elevation={0} sx={{ p: 3, borderRadius: 4, bgcolor: 'background.paper', mb: 3, border: '1px solid', borderColor: 'divider' }}>
             <Typography variant="h6" fontWeight="bold" sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
-                <PaymentRounded color="primary" /> Datos de Pago (Empresa)
+                <PaymentRounded color="primary" /> Cuentas Bancarias
             </Typography>
             <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 3 }}>
                 Proporciona estos datos al cliente para recibir el pago. Haz clic en el icono para copiar cada dato.

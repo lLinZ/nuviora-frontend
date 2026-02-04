@@ -18,10 +18,20 @@ export const OrderTimer: FC<OrderTimerProps> = ({ receivedAt, deliveredAt, statu
         if (!receivedAt) return;
 
         const timer = setInterval(() => {
-            const start = new Date(receivedAt).getTime();
+            // Fix Timezone: assume server string 'YYYY-MM-DD HH:MM:SS' is UTC if no TZ info
+            let startT = new Date(receivedAt).getTime();
+            // Simple heuristic: if simple SQL string, treat as UTC
+            if (receivedAt.length === 19 && !receivedAt.includes('T')) {
+                startT = new Date(receivedAt + 'Z').getTime(); // Force UTC check
+                // Fallback: if that makes it waaaay in past/future, might be local. 
+                // But typically fixes "future" dates issue.
+            } else {
+                startT = new Date(receivedAt).getTime();
+            }
+
             const now = deliveredAt ? new Date(deliveredAt).getTime() : new Date().getTime();
 
-            const diffInSeconds = Math.floor((now - start) / 1000);
+            const diffInSeconds = Math.floor((now - startT) / 1000);
             const fortyFiveMinutesInSeconds = 45 * 60;
 
             const remaining = fortyFiveMinutesInSeconds - diffInSeconds;
@@ -42,7 +52,7 @@ export const OrderTimer: FC<OrderTimerProps> = ({ receivedAt, deliveredAt, statu
         const absSeconds = Math.abs(seconds);
         const mins = Math.floor(absSeconds / 60);
         const secs = absSeconds % 60;
-        return `${seconds < 0 ? '-' : ''}${mins}:${secs.toString().padStart(2, '0')}`;
+        return `${mins}:${secs.toString().padStart(2, '0')}`;
     };
 
     const getColor = () => {
@@ -57,7 +67,7 @@ export const OrderTimer: FC<OrderTimerProps> = ({ receivedAt, deliveredAt, statu
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                 <TimerRounded sx={{ fontSize: '1rem', color: getColor() }} />
                 <TypographyCustom variant="caption" sx={{ color: getColor(), fontWeight: 'bold' }}>
-                    {timeLeft !== null ? formatTime(timeLeft) : '--:--'}
+                    {timeLeft !== null ? (isOverdue ? `-${formatTime(timeLeft)}` : formatTime(timeLeft)) : '--:--'}
                 </TypographyCustom>
             </Box>
         </Tooltip>
