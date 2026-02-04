@@ -73,7 +73,7 @@ export const NotificationMonitor = () => {
             });
 
             if (newFound) {
-                const audio = new Audio('/notification.mp3');
+                const audio = new Audio('/notification_sound.mp3');
                 audio.play().catch(e => console.log('Audio feedback blocked by browser until user interaction.'));
             }
         };

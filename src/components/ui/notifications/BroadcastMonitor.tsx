@@ -38,7 +38,7 @@ export const BroadcastMonitor = () => {
             console.log("🔔 Broadcast received:", notification);
 
             // 1. Play Sound
-            const soundFile = notification.sound ? `/${notification.sound}.mp3` : '/notification.mp3';
+            const soundFile = notification.sound ? `/${notification.sound}.mp3` : '/notification_sound.mp3';
             const audio = new Audio(soundFile);
             audio.play().catch(e => console.log('Audio autoplay blocked', e));
 
