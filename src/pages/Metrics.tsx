@@ -239,6 +239,7 @@ export const Metrics = () => {
                                             <TableCell align="right">Ingresos</TableCell>
                                             <TableCell align="right">Costos</TableCell>
                                             <TableCell align="right">Ad Spend</TableCell>
+                                            <TableCell align="right">Comisiones</TableCell>
                                             <TableCell align="right">Ganancia Neta</TableCell>
                                         </TableRow>
                                     </TableHead>
@@ -247,8 +248,9 @@ export const Metrics = () => {
                                             <TableRow key={d.date}>
                                                 <TableCell>{d.date}</TableCell>
                                                 <TableCell align="right">{fmtMoney(d.revenue, 'USD')}</TableCell>
-                                                <TableCell align="right" color="error">{fmtMoney(d.cost, 'USD')}</TableCell>
-                                                <TableCell align="right" color="error">{fmtMoney(d.ad_spend, 'USD')}</TableCell>
+                                                <TableCell align="right" sx={{ color: 'error.main' }}>-{fmtMoney(d.cost, 'USD')}</TableCell>
+                                                <TableCell align="right" sx={{ color: 'error.main' }}>-{fmtMoney(d.ad_spend, 'USD')}</TableCell>
+                                                <TableCell align="right" sx={{ color: 'error.main' }}>-{fmtMoney(d.commissions || 0, 'USD')}</TableCell>
                                                 <TableCell align="right" sx={{ fontWeight: 'bold', color: d.net_profit >= 0 ? 'success.main' : 'error.main' }}>
                                                     {fmtMoney(d.net_profit, 'USD')}
                                                 </TableCell>

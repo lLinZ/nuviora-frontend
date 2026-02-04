@@ -123,5 +123,31 @@ export const LiteBroadcastMonitor = ({ onOrderUpdate, onOpenOrder }: { onOrderUp
         };
     }, [echo, user?.id]);
 
+    // 🆕 LISTENER GLOBAL DE ORDENES (KANBAN) - Para actualizaciones en tiempo real
+    useEffect(() => {
+        if (!echo || !user?.id) return;
+
+        const channelName = 'orders';
+        console.log("📡 [LITE] Connecting to global channel:", channelName);
+
+        const channel = echo.private(channelName);
+
+        channel.listen('OrderUpdated', (e: any) => {
+            console.log("♻️ [LITE] Order Updated Event:", e);
+            if (e.order) {
+                // Refrescar la lista completa en Lite
+                if (updateRef.current) {
+                    updateRef.current(true); // Reset para traer data fresca
+                }
+                console.log(`✅ [LITE] Order #${e.order.id} updated via WebSocket`);
+            }
+        });
+
+        return () => {
+            channel.stopListening('OrderUpdated');
+            echo.leave(channelName);
+        };
+    }, [echo, user?.id]);
+
     return null;
 };

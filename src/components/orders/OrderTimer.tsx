@@ -32,9 +32,12 @@ export const OrderTimer: FC<OrderTimerProps> = ({ receivedAt, deliveredAt, statu
             }
 
             const diffInSeconds = Math.floor((now - startT) / 1000);
-            const fortyFiveMinutesInSeconds = 45 * 60;
 
-            const remaining = fortyFiveMinutesInSeconds - diffInSeconds;
+            const isNovedad = status === 'Novedades';
+            const limitMinutes = isNovedad ? 10 : 45;
+            const limitSeconds = limitMinutes * 60;
+
+            const remaining = limitSeconds - diffInSeconds;
             setTimeLeft(remaining);
             setIsOverdue(remaining <= 0);
 
@@ -62,8 +65,12 @@ export const OrderTimer: FC<OrderTimerProps> = ({ receivedAt, deliveredAt, statu
         return 'info.main';
     };
 
+    const isNovedad = status === 'Novedades';
+    const limitMinutes = isNovedad ? 10 : 45;
+    const label = isNovedad ? "Tiempo de novedad" : "Tiempo para entrega";
+
     return (
-        <Tooltip title={isOverdue ? "Tiempo excedido (Límite 45 min)" : "Tiempo para entrega (45 min)"}>
+        <Tooltip title={isOverdue ? `Tiempo excedido (Límite ${limitMinutes} min)` : `${label} (${limitMinutes} min)`}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                 <TimerRounded sx={{ fontSize: '1rem', color: getColor() }} />
                 <TypographyCustom variant="caption" sx={{ color: getColor(), fontWeight: 'bold' }}>

@@ -29,20 +29,13 @@ export default function DenseMenu({
     const [loading, setLoading] = useState(false);
 
     const fetchStatuses = async () => {
-        if (statuses.length > 0) return;
         setLoading(true);
         try {
-            const { status, response } = await request('/statuses', 'GET');
+            // Usar el nuevo endpoint que valida todo en el backend
+            const { status, response } = await request(`/orders/${data.id}/available-statuses`, 'GET');
             if (status === 200) {
-                const data = await response.json();
-                // Mapear los status de la API al formato que necesitamos
-                const mappedStatuses = data.map((s: any) => ({
-                    id: s.id,
-                    description: s.description,
-                    color: getColorForStatus(s.description),
-                    roles: getRolesForStatus(s.description)
-                }));
-                setStatuses(mappedStatuses);
+                const result = await response.json();
+                setStatuses(result.statuses || []);
             }
         } catch (error) {
             console.error('Error fetching statuses:', error);
@@ -106,56 +99,6 @@ export default function DenseMenu({
         return roleMap[statusName] || ['Admin'];
     };
 
-    // Statuses that Sellers can ALWAYS access without payment info
-    const SELLER_PUBLIC_STATUSES = [
-        'Llamado 1', 'Llamado 2', 'Llamado 3',
-        'Programado para otro dia', 'Programado para mas tarde',
-        'Cancelado', 'Novedad Solucionada', 'Esperando Ubicacion', 'Confirmado'
-    ];
-
-    const isSeller = user?.role?.description === 'Vendedor';
-    const totalPaid = data.payments?.reduce((acc: number, p: any) => acc + Number(p.amount), 0) || 0;
-    const currentTotal = Number(data.current_total_price || 0);
-    const changeAmount = totalPaid - currentTotal;
-
-    // Valid only if:
-    // 1. Payment is exact (change = 0)
-    // 2. OR There is a surplus (change > 0) AND we know who covers it
-    // 3. (If change < 0, there is a debt, so it stays invalid for logistics)
-    const hasChangeInfo = (Math.abs(changeAmount) < 0.01) || (changeAmount > 0 && !!data.change_covered_by);
-    const hasPayments = totalPaid > 0;
-
-    // Estado para reglas de flujo dinámicas
-    const [transitions, setTransitions] = useState<Record<string, string[]> | null>(null);
-
-    // Cargar reglas del backend al montar
-    useEffect(() => {
-        if (!user?.role?.description || ['Admin', 'Gerente', 'Master'].includes(user.role.description)) return;
-
-        const roleKey = `flow_rules_v3_${user.role.description}`;
-        const cached = sessionStorage.getItem(roleKey);
-
-        if (cached) {
-            try {
-                setTransitions(JSON.parse(cached));
-            } catch (e) {
-                console.error("Error parsing flow rules", e);
-            }
-        } else {
-            request('/config/flow', 'GET').then(async ({ status, response }) => {
-                if (status === 200) {
-                    try {
-                        const data = await response.json();
-                        if (data && data.transitions) {
-                            sessionStorage.setItem(roleKey, JSON.stringify(data.transitions));
-                            setTransitions(data.transitions);
-                        }
-                    } catch (e) { }
-                }
-            }).catch(() => { });
-        }
-    }, [user?.role?.description]);
-
     return (
         <>
             {icon ? (
@@ -193,54 +136,10 @@ export default function DenseMenu({
                         </Box>
                     ) : (
                         statuses.map((status) => {
-                            const isAllowedByRole = user && status.roles.includes(user.role?.description ?? '');
-                            if (!isAllowedByRole) return null;
-
-                            // Validaciones EXTRA (Condiciones de negocio: Stock, Pagos, etc)
-                            let isDisabled = false;
-                            let tooltipTitle = "";
-
-                            // 🛡️ REGLA MAESTRA DE FLUJO (Dynamic Flow)
-                            if (transitions) {
-                                const currentStatus = data.status?.description;
-                                // Si no hay transiciones definidas para el status actual, bloqueamos todo
-                                // (a menos que sea el mismo status, para mostrar check)
-                                const allowedNext = transitions[currentStatus] || [];
-
-                                // Permitimos ver el status actual (para el check) y los permitidos
-                                if (status.description !== currentStatus && !allowedNext.includes(status.description)) {
-                                    isDisabled = true;
-                                    tooltipTitle = `No puedes pasar de '${currentStatus}' a '${status.description}' según el flujo establecido.`;
-                                }
-                            }
-
-                            // 🔒 Stock Lock: Block Entregado and En ruta if stock is insufficient
-                            if (data.has_stock_warning && (status.description === 'Entregado' || status.description === 'En ruta')) {
-                                isDisabled = true;
-                                tooltipTitle = "No hay suficiente stock en el almacén para procesar esta orden 📦❌";
-                            }
-
-                            // 🔒 Agencia Novedades Lock (Legacy override if needed)
-                            if (data.status?.description === 'Novedades' && user?.role?.description === 'Agencia') {
-                                // Dejamos pasar si está en la lista de transiciones, pero si quieres bloquear adicionalmente:
-                                // isDisabled = true; 
-                            }
-
-                            if (!isDisabled && isSeller && !SELLER_PUBLIC_STATUSES.includes(status.description)) {
-                                // Skip payment validation for return/exchange orders
-                                if (!data.is_return && !data.is_exchange) {
-                                    if (!hasPayments || !hasChangeInfo) {
-                                        isDisabled = true;
-                                        tooltipTitle = "Debe registrar pagos y vuelto antes de cambiar a este estado";
-                                    }
-                                }
-                            }
-
-                            // OCULTAR OPCIONES NO DISPONIBLES (Petición usuario)
-                            // Si está deshabilitado y NO es el status actual, no lo mostramos.
-                            if (isDisabled && status.description !== data.status?.description) {
-                                return null;
-                            }
+                            // El backend ya filtró las opciones disponibles
+                            // Solo mostramos lo que nos devolvió
+                            const isDisabled = false; // Ya no hay validación en el frontend
+                            const tooltipTitle = ""; // Ya no hay tooltip de deshabilitado
 
                             const menuItem = (
                                 <MenuItem

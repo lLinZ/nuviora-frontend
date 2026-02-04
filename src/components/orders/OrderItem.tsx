@@ -25,6 +25,7 @@ import { AssignDelivererDialog } from "./AssignDelivererDialog";
 import { PostponeOrderDialog } from "./PostponeOrderDialog";
 import { AssignAgencyDialog } from "./AssignAgencyDialog";
 import { NoveltyDialog } from "./NoveltyDialog";
+import { ResolveNovedadDialog } from "./ResolveNovedadDialog";
 import { MarkDeliveredDialog } from "./MarkDeliveredDialog";
 import { PhoneActionMenu } from "./PhoneActionMenu";
 import { OrderTimer } from "./OrderTimer";
@@ -82,6 +83,7 @@ export const OrderItem: FC<OrderItemProps> = ({ order }) => {
     const [openPostpone, setOpenPostpone] = useState(false);
     const [openAssignAgency, setOpenAssignAgency] = useState(false);
     const [openNovelty, setOpenNovelty] = useState(false);
+    const [openResolveNovedad, setOpenResolveNovedad] = useState(false);
     const [openMarkDelivered, setOpenMarkDelivered] = useState(false);
     const [pendingStatus, setPendingStatus] = useState<{ description: string } | null>(null);
     const [targetStatus, setTargetStatus] = useState<string>("");
@@ -164,6 +166,43 @@ export const OrderItem: FC<OrderItemProps> = ({ order }) => {
             }
         }
 
+        // Intercept Novedad Solucionada
+        if (status.trim() === "Novedad Solucionada" && !extraData) {
+            // Validations
+            if (!order.location) {
+                toast.error("Se requiere una ubicación para marcar como solucionada 📍");
+                return;
+            }
+            if (!order.payments || order.payments.length === 0) {
+                // Skip payment validation for return orders
+                if (!order.is_return) {
+                    toast.error("Se requieren métodos de pago registrados 💳");
+                    return;
+                }
+            }
+            // Check coverage/change
+            const totalPaid = (order.payments || []).reduce((acc: number, p: any) => acc + Number(p.amount), 0);
+            const total = Number(order.current_total_price);
+
+            // Allow a small margin of error for float comparisons
+            if (totalPaid < total - 0.01) {
+                toast.error(`El monto pagado ($${totalPaid.toFixed(2)}) es menor al total ($${total.toFixed(2)}). Debe cubrirse el total.`);
+                return;
+            }
+
+            // Validate excess payment (change)
+            if (totalPaid > total + 0.01) {
+                if (!order.change_covered_by) {
+                    toast.error("El monto pagado excede el total. Debe registrar quién cubre el vuelto (Agencia/Empresa) 💸");
+                    return;
+                }
+            }
+
+            setPendingStatus({ description: status });
+            setOpenResolveNovedad(true);
+            return;
+        }
+
         if (status === "Novedades") {
             setTargetStatus(status);
             setOpenNovelty(true);
@@ -231,6 +270,13 @@ export const OrderItem: FC<OrderItemProps> = ({ order }) => {
             }
         } catch {
             toast.error("Error en el servidor 🚨");
+        }
+    };
+
+    const handleResolveNovedadConfirm = (resolution: string) => {
+        if (pendingStatus) {
+            changeStatus(pendingStatus.description, { novedad_resolution: resolution });
+            setOpenResolveNovedad(false);
         }
     };
 
@@ -402,7 +448,7 @@ export const OrderItem: FC<OrderItemProps> = ({ order }) => {
                 {order.received_at && (
                     <Box sx={{ mt: 1 }}>
                         <OrderTimer
-                            receivedAt={order.received_at}
+                            receivedAt={order.status.description === 'Novedades' ? order.updated_at : order.received_at}
                             deliveredAt={order.status.description === 'Entregado' ? (order.processed_at || order.updated_at) : null}
                             status={order.status.description}
                         />
@@ -463,6 +509,11 @@ export const OrderItem: FC<OrderItemProps> = ({ order }) => {
                 open={openNovelty}
                 onClose={() => setOpenNovelty(false)}
                 onSubmit={handleNoveltySubmit}
+            />
+            <ResolveNovedadDialog
+                open={openResolveNovedad}
+                onClose={() => setOpenResolveNovedad(false)}
+                onConfirm={handleResolveNovedadConfirm}
             />
             {openPostpone && (
                 <PostponeOrderDialog

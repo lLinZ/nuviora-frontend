@@ -148,11 +148,75 @@ export const OrderDialog: FC<OrderDialogProps> = ({ id, open, setOpen }) => {
             return `• ${p.method}: $${Number(p.amount).toFixed(2)}`;
         }).join('\n') : "Pendiente"}`;
 
+        // Reemplazo completo de líneas 151-195 en OrderDialog.tsx
+
+        // 💵 Vuelto: Mostrar cada parte en su moneda correcta según método
         if (difference > 0.01) {
-            paymentInfo += `\n💵 *Vuelto a entregar:* $${difference.toFixed(2)}`;
+            const bcvEurRate = Number(order.change_rate || 0);
+
+            // Helper: determinar si un método es en Bolívares
+            const isMethodVes = (method: string) =>
+                ["PAGOMOVIL", "BOLIVARES_PAGOMOVIL", "BOLIVARES_EFECTIVO", "BOLIVARES_TRANSFERENCIA", "TRANSFERENCIA_BANCARIA_BOLIVARES"].includes(method);
+
+            if (order.change_covered_by === 'partial') {
+                // Distribución mixta: cada parte en su moneda
+                const companyUSD = Number(order.change_amount_company || 0);
+                const agencyUSD = Number(order.change_amount_agency || 0);
+
+                const companyMethod = order.change_method_company || '';
+                const agencyMethod = order.change_method_agency || '';
+
+                console.log('🔍 DEBUG VUELTO:', {
+                    companyMethod,
+                    agencyMethod,
+                    companyUSD,
+                    agencyUSD,
+                    bcvEurRate
+                });
+
+                const companyInVes = isMethodVes(companyMethod);
+                const agencyInVes = isMethodVes(agencyMethod);
+
+                paymentInfo += `\n💵 *Vuelto a entregar:*`;
+
+                if (companyInVes) {
+                    const companyBs = companyUSD * bcvEurRate;
+                    paymentInfo += `\n   • Empresa: ${fmtMoney(companyBs, 'VES')}`;
+                } else {
+                    paymentInfo += `\n   • Empresa: $${companyUSD.toFixed(2)}`;
+                }
+
+                if (agencyInVes) {
+                    const agencyBs = agencyUSD * bcvEurRate;
+                    paymentInfo += `\n   • Agencia: ${fmtMoney(agencyBs, 'VES')}`;
+                } else {
+                    paymentInfo += `\n   • Agencia: $${agencyUSD.toFixed(2)}`;
+                }
+            } else if (order.change_covered_by === 'agency') {
+                const method = order.change_method_agency || '';
+                if (isMethodVes(method)) {
+                    const changeInBs = difference * bcvEurRate;
+                    paymentInfo += `\n💵 *Vuelto a entregar (Bs):* ${fmtMoney(changeInBs, 'VES')}`;
+                    paymentInfo += `\n   • Agencia: ${fmtMoney(changeInBs, 'VES')}`;
+                } else {
+                    paymentInfo += `\n💵 *Vuelto a entregar (USD):* $${difference.toFixed(2)}`;
+                    paymentInfo += `\n   • Agencia: $${difference.toFixed(2)}`;
+                }
+            } else if (order.change_covered_by === 'company') {
+                const method = order.change_method_company || '';
+                if (isMethodVes(method)) {
+                    const changeInBs = difference * bcvEurRate;
+                    paymentInfo += `\n💵 *Vuelto a entregar (Bs):* ${fmtMoney(changeInBs, 'VES')}`;
+                    paymentInfo += `\n   • Empresa: ${fmtMoney(changeInBs, 'VES')}`;
+                } else {
+                    paymentInfo += `\n💵 *Vuelto a entregar (USD):* $${difference.toFixed(2)}`;
+                    paymentInfo += `\n   • Empresa: $${difference.toFixed(2)}`;
+                }
+            }
         }
 
-        const message = `🚀 *ORDEN #${order.name}*\n📍 *Ubicación:* ${order.location || 'No asignada'}\n🏢 *Agencia:* ${agencyDisplay}\n👤 *Cliente:* ${order.client?.first_name} ${order.client?.last_name}\n📞 *Teléfono:* ${order.client?.phone}\n📦 *Productos:*\n${productsList}\n${paymentInfo}\n💰 *Total:* ${fmtMoney(Number(order.current_total_price), order.currency)}`;
+
+        const message = `🚀 *ORDEN #${order.name}*\n📍 *Ubicación:* ${order.location || 'No asignada'}\n🏢 *Agencia:* ${agencyDisplay}\n👤 *Cliente:* ${order.client?.first_name} ${order.client?.last_name}\n📞 *Teléfono:* ${order.client?.phone}\n📦 *Productos:*\n${productsList}\n${paymentInfo}`;
         navigator.clipboard.writeText(message);
         toast.info('📋 Información copiada');
     };
@@ -258,7 +322,7 @@ export const OrderDialog: FC<OrderDialogProps> = ({ id, open, setOpen }) => {
                                             <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.7)', display: 'block', lineHeight: 1 }}>Timer Entrega</Typography>
                                             <Box sx={{ mt: 0.5, bgcolor: 'rgba(255,255,255,0.1)', px: 1, py: 0.2, borderRadius: 1 }}>
                                                 <OrderTimer
-                                                    receivedAt={order.received_at}
+                                                    receivedAt={order.status?.description === 'Novedades' ? order.updated_at : order.received_at}
                                                     deliveredAt={order.status?.description === 'Entregado' ? (order.processed_at || order.updated_at) : null}
                                                     status={order.status?.description || ''}
                                                 />
