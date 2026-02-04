@@ -32,6 +32,7 @@ import { OrderProductsList } from "../../components/orders/OrderProductsList";
 import { OrderUpdateInput } from "../../components/orders/OrderUpdateInput"; // Chat input
 import { OrderUpdatesList } from "../../components/orders/OrderUpdatesList";
 import { OrderProductItem } from "../../components/orders/OrderProductItem";
+import { OrderTimer } from "../../components/orders/OrderTimer";
 import MessageRoundedIcon from '@mui/icons-material/MessageRounded';
 import { ButtonCustom } from "../../components/custom";
 import { ProductSearchDialog } from "../../components/products/ProductsSearchDialog";
@@ -198,6 +199,15 @@ export const LiteOrderDialog: FC<LiteOrderDialogProps> = ({ id, open, setOpen, o
                             <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
                                 {order.client?.first_name} {order.client?.last_name}
                             </Typography>
+                            {order.received_at && (
+                                <Box sx={{ mt: 0.5 }}>
+                                    <OrderTimer
+                                        receivedAt={order.status?.description === 'Novedades' ? order.updated_at : order.received_at}
+                                        deliveredAt={order.status?.description === 'Entregado' ? (order.processed_at || order.updated_at) : null}
+                                        status={order.status?.description || ''}
+                                    />
+                                </Box>
+                            )}
                         </Box>
 
                     </Box>
