@@ -1,5 +1,5 @@
 import { MoreHorizRounded, Check } from "@mui/icons-material";
-import { IconButton, Menu, MenuList, Divider, Chip, MenuItem, ListItemIcon, ListItemText, Box, Tooltip } from "@mui/material";
+import { IconButton, Menu, MenuList, Divider, Chip, MenuItem, ListItemIcon, ListItemText, Box, Tooltip, CircularProgress } from "@mui/material";
 import { purple, blue, green, red, yellow, grey } from "@mui/material/colors";
 import { useState, useEffect } from "react";
 import { useUserStore } from "../../../store/user/UserStore";
@@ -19,9 +19,6 @@ export default function DenseMenu({
     const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
     const open = Boolean(anchorEl);
 
-    const handleClick = (event: React.MouseEvent<HTMLButtonElement>) => {
-        setAnchorEl(event.currentTarget);
-    };
     const handleClose = () => {
         setAnchorEl(null);
     };
@@ -29,29 +26,35 @@ export default function DenseMenu({
 
     // Estado para los status obtenidos de la API
     const [statuses, setStatuses] = useState<{ id: number, description: string, color: string, roles: string[] }[]>([]);
+    const [loading, setLoading] = useState(false);
 
-    // Obtener statuses de la API
-    useEffect(() => {
-        const fetchStatuses = async () => {
-            try {
-                const { status, response } = await request('/statuses', 'GET');
-                if (status === 200) {
-                    const data = await response.json();
-                    // Mapear los status de la API al formato que necesitamos
-                    const mappedStatuses = data.map((s: any) => ({
-                        id: s.id,
-                        description: s.description,
-                        color: getColorForStatus(s.description),
-                        roles: getRolesForStatus(s.description)
-                    }));
-                    setStatuses(mappedStatuses);
-                }
-            } catch (error) {
-                console.error('Error fetching statuses:', error);
+    const fetchStatuses = async () => {
+        if (statuses.length > 0) return;
+        setLoading(true);
+        try {
+            const { status, response } = await request('/statuses', 'GET');
+            if (status === 200) {
+                const data = await response.json();
+                // Mapear los status de la API al formato que necesitamos
+                const mappedStatuses = data.map((s: any) => ({
+                    id: s.id,
+                    description: s.description,
+                    color: getColorForStatus(s.description),
+                    roles: getRolesForStatus(s.description)
+                }));
+                setStatuses(mappedStatuses);
             }
-        };
+        } catch (error) {
+            console.error('Error fetching statuses:', error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleClick = (event: React.MouseEvent<HTMLButtonElement>) => {
+        setAnchorEl(event.currentTarget);
         fetchStatuses();
-    }, []);
+    };
 
     // Función para asignar colores según el status
     const getColorForStatus = (statusName: string) => {
@@ -184,89 +187,95 @@ export default function DenseMenu({
                     <Divider textAlign="left">
                         <Chip label="Status" size="small" />
                     </Divider>
-                    {statuses.map((status) => {
-                        const isAllowedByRole = user && status.roles.includes(user.role?.description ?? '');
-                        if (!isAllowedByRole) return null;
+                    {loading ? (
+                        <Box sx={{ display: 'flex', justifyContent: 'center', p: 2 }}>
+                            <CircularProgress size={24} />
+                        </Box>
+                    ) : (
+                        statuses.map((status) => {
+                            const isAllowedByRole = user && status.roles.includes(user.role?.description ?? '');
+                            if (!isAllowedByRole) return null;
 
-                        // Validaciones EXTRA (Condiciones de negocio: Stock, Pagos, etc)
-                        let isDisabled = false;
-                        let tooltipTitle = "";
+                            // Validaciones EXTRA (Condiciones de negocio: Stock, Pagos, etc)
+                            let isDisabled = false;
+                            let tooltipTitle = "";
 
-                        // 🛡️ REGLA MAESTRA DE FLUJO (Dynamic Flow)
-                        if (transitions) {
-                            const currentStatus = data.status?.description;
-                            // Si no hay transiciones definidas para el status actual, bloqueamos todo
-                            // (a menos que sea el mismo status, para mostrar check)
-                            const allowedNext = transitions[currentStatus] || [];
+                            // 🛡️ REGLA MAESTRA DE FLUJO (Dynamic Flow)
+                            if (transitions) {
+                                const currentStatus = data.status?.description;
+                                // Si no hay transiciones definidas para el status actual, bloqueamos todo
+                                // (a menos que sea el mismo status, para mostrar check)
+                                const allowedNext = transitions[currentStatus] || [];
 
-                            // Permitimos ver el status actual (para el check) y los permitidos
-                            if (status.description !== currentStatus && !allowedNext.includes(status.description)) {
-                                isDisabled = true;
-                                tooltipTitle = `No puedes pasar de '${currentStatus}' a '${status.description}' según el flujo establecido.`;
-                            }
-                        }
-
-                        // 🔒 Stock Lock: Block Entregado and En ruta if stock is insufficient
-                        if (data.has_stock_warning && (status.description === 'Entregado' || status.description === 'En ruta')) {
-                            isDisabled = true;
-                            tooltipTitle = "No hay suficiente stock en el almacén para procesar esta orden 📦❌";
-                        }
-
-                        // 🔒 Agencia Novedades Lock (Legacy override if needed)
-                        if (data.status?.description === 'Novedades' && user?.role?.description === 'Agencia') {
-                            // Dejamos pasar si está en la lista de transiciones, pero si quieres bloquear adicionalmente:
-                            // isDisabled = true; 
-                        }
-
-                        if (!isDisabled && isSeller && !SELLER_PUBLIC_STATUSES.includes(status.description)) {
-                            // Skip payment validation for return/exchange orders
-                            if (!data.is_return && !data.is_exchange) {
-                                if (!hasPayments || !hasChangeInfo) {
+                                // Permitimos ver el status actual (para el check) y los permitidos
+                                if (status.description !== currentStatus && !allowedNext.includes(status.description)) {
                                     isDisabled = true;
-                                    tooltipTitle = "Debe registrar pagos y vuelto antes de cambiar a este estado";
+                                    tooltipTitle = `No puedes pasar de '${currentStatus}' a '${status.description}' según el flujo establecido.`;
                                 }
                             }
-                        }
 
-                        // OCULTAR OPCIONES NO DISPONIBLES (Petición usuario)
-                        // Si está deshabilitado y NO es el status actual, no lo mostramos.
-                        if (isDisabled && status.description !== data.status?.description) {
-                            return null;
-                        }
+                            // 🔒 Stock Lock: Block Entregado and En ruta if stock is insufficient
+                            if (data.has_stock_warning && (status.description === 'Entregado' || status.description === 'En ruta')) {
+                                isDisabled = true;
+                                tooltipTitle = "No hay suficiente stock en el almacén para procesar esta orden 📦❌";
+                            }
 
-                        const menuItem = (
-                            <MenuItem
-                                key={status.id}
-                                disabled={isDisabled}
-                                sx={isDisabled ? { opacity: 0.5, color: 'text.disabled' } : {}}
-                                onClick={() => {
-                                    if (!isDisabled) {
-                                        changeStatus(status.description);
-                                        handleClose();
+                            // 🔒 Agencia Novedades Lock (Legacy override if needed)
+                            if (data.status?.description === 'Novedades' && user?.role?.description === 'Agencia') {
+                                // Dejamos pasar si está en la lista de transiciones, pero si quieres bloquear adicionalmente:
+                                // isDisabled = true; 
+                            }
+
+                            if (!isDisabled && isSeller && !SELLER_PUBLIC_STATUSES.includes(status.description)) {
+                                // Skip payment validation for return/exchange orders
+                                if (!data.is_return && !data.is_exchange) {
+                                    if (!hasPayments || !hasChangeInfo) {
+                                        isDisabled = true;
+                                        tooltipTitle = "Debe registrar pagos y vuelto antes de cambiar a este estado";
                                     }
-                                }}
-                            >
-                                {status.description === data.status?.description ? (
-                                    <>
-                                        <ListItemIcon>
-                                            <Check sx={{ color: status.color }} />
-                                        </ListItemIcon>
-                                        {status.description}
-                                    </>
-                                ) : (
-                                    <ListItemText inset>
-                                        {status.description}
-                                    </ListItemText>
-                                )}
-                            </MenuItem>
-                        );
+                                }
+                            }
 
-                        return isDisabled ? (
-                            <Tooltip key={status.id} title={tooltipTitle} placement="left" arrow>
-                                <span>{menuItem}</span>
-                            </Tooltip>
-                        ) : menuItem;
-                    })}
+                            // OCULTAR OPCIONES NO DISPONIBLES (Petición usuario)
+                            // Si está deshabilitado y NO es el status actual, no lo mostramos.
+                            if (isDisabled && status.description !== data.status?.description) {
+                                return null;
+                            }
+
+                            const menuItem = (
+                                <MenuItem
+                                    key={status.id}
+                                    disabled={isDisabled}
+                                    sx={isDisabled ? { opacity: 0.5, color: 'text.disabled' } : {}}
+                                    onClick={() => {
+                                        if (!isDisabled) {
+                                            changeStatus(status.description);
+                                            handleClose();
+                                        }
+                                    }}
+                                >
+                                    {status.description === data.status?.description ? (
+                                        <>
+                                            <ListItemIcon>
+                                                <Check sx={{ color: status.color }} />
+                                            </ListItemIcon>
+                                            {status.description}
+                                        </>
+                                    ) : (
+                                        <ListItemText inset>
+                                            {status.description}
+                                        </ListItemText>
+                                    )}
+                                </MenuItem>
+                            );
+
+                            return isDisabled ? (
+                                <Tooltip key={status.id} title={tooltipTitle} placement="left" arrow>
+                                    <span>{menuItem}</span>
+                                </Tooltip>
+                            ) : menuItem;
+                        })
+                    )}
                 </MenuList>
             </Menu>
         </>

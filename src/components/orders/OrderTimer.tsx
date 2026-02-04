@@ -18,18 +18,18 @@ export const OrderTimer: FC<OrderTimerProps> = ({ receivedAt, deliveredAt, statu
         if (!receivedAt) return;
 
         const timer = setInterval(() => {
-            // Fix Timezone: assume server string 'YYYY-MM-DD HH:MM:SS' is UTC if no TZ info
-            let startT = new Date(receivedAt).getTime();
-            // Simple heuristic: if simple SQL string, treat as UTC
-            if (receivedAt.length === 19 && !receivedAt.includes('T')) {
-                startT = new Date(receivedAt + 'Z').getTime(); // Force UTC check
-                // Fallback: if that makes it waaaay in past/future, might be local. 
-                // But typically fixes "future" dates issue.
-            } else {
-                startT = new Date(receivedAt).getTime();
-            }
+            // Backend configured as 'America/Caracas'.
+            // We interpret the string as LOCAL time (assuming user is in Venezuela).
+            // We replace space with T for standard ISO local format.
+            const startStr = receivedAt.replace(' ', 'T');
+            const startT = new Date(startStr).getTime();
 
-            const now = deliveredAt ? new Date(deliveredAt).getTime() : new Date().getTime();
+            let now = new Date().getTime();
+            if (deliveredAt) {
+                // If delivered, we use that timestamp (also Local/Backend time)
+                const endStr = deliveredAt.replace(' ', 'T');
+                now = new Date(endStr).getTime();
+            }
 
             const diffInSeconds = Math.floor((now - startT) / 1000);
             const fortyFiveMinutesInSeconds = 45 * 60;

@@ -138,7 +138,15 @@ export const OrderDialog: FC<OrderDialogProps> = ({ id, open, setOpen }) => {
         const total = Number(order.current_total_price) || 0;
         const difference = totalPaid - total;
 
-        let paymentInfo = `💳 *Métodos de Pago:*\n${order.payments && order.payments.length > 0 ? order.payments.map((p: any) => `• ${p.method}: $${Number(p.amount).toFixed(2)}`).join('\n') : "Pendiente"}`;
+        let paymentInfo = `💳 *Métodos de Pago:*\n${order.payments && order.payments.length > 0 ? order.payments.map((p: any) => {
+            const isVes = ["PAGOMOVIL", "BOLIVARES_EFECTIVO", "TRANSFERENCIA_BANCARIA_BOLIVARES"].includes(p.method);
+            if (isVes) {
+                const rate = Number(p.rate || order.binance_rate || 0);
+                const amountBs = Number(p.amount) * rate;
+                return `• ${p.method}: ${fmtMoney(amountBs, 'VES')}`;
+            }
+            return `• ${p.method}: $${Number(p.amount).toFixed(2)}`;
+        }).join('\n') : "Pendiente"}`;
 
         if (difference > 0.01) {
             paymentInfo += `\n💵 *Vuelto a entregar:* $${difference.toFixed(2)}`;
@@ -251,8 +259,8 @@ export const OrderDialog: FC<OrderDialogProps> = ({ id, open, setOpen }) => {
                                             <Box sx={{ mt: 0.5, bgcolor: 'rgba(255,255,255,0.1)', px: 1, py: 0.2, borderRadius: 1 }}>
                                                 <OrderTimer
                                                     receivedAt={order.received_at}
-                                                    deliveredAt={order.status.description === 'Entregado' ? (order.processed_at || order.updated_at) : null}
-                                                    status={order.status.description}
+                                                    deliveredAt={order.status?.description === 'Entregado' ? (order.processed_at || order.updated_at) : null}
+                                                    status={order.status?.description || ''}
                                                 />
                                             </Box>
                                         </Box>
@@ -289,7 +297,7 @@ export const OrderDialog: FC<OrderDialogProps> = ({ id, open, setOpen }) => {
                                             display: 'flex', alignItems: 'center', gap: 1
                                         }}>
                                             <Typography variant="subtitle2" fontWeight="bold" sx={{ fontSize: { xs: '0.8rem', sm: '0.875rem' } }}>
-                                                {order.status.description}
+                                                {order.status?.description || 'Desconocido'}
                                             </Typography>
                                             <MoreVertRounded sx={{ fontSize: '1rem', opacity: 0.7 }} />
                                         </Paper>
