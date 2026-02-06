@@ -101,7 +101,9 @@ export const OrderDialog: FC<OrderDialogProps> = ({ id, open, setOpen }) => {
         openResolveNovedad, setOpenResolveNovedad,
         pendingStatus,
         targetStatus,
-        refreshOrder
+        pendingExtraData,
+        fetchOrder,
+        refreshOrder,
     } = useOrderDialogLogic(id, open, setOpen);
 
     const [openReminder, setOpenReminder] = useState(false);
@@ -736,7 +738,7 @@ export const OrderDialog: FC<OrderDialogProps> = ({ id, open, setOpen }) => {
                 <ReviewDeliveryDialog open={openApproveRejection} onClose={() => setOpenApproveRejection(false)} title="Aprobar Rechazo" confirmText="Confirmar Rechazo" onConfirm={approveRejection} loading={loadingReview} />
                 <ReviewDeliveryDialog open={openRejectRejection} onClose={() => setOpenRejectRejection(false)} title="Denegar Solicitud de Rechazo" confirmText="Denegar (Mantener Orden)" onConfirm={rejectRejection} loading={loadingReview} />
                 <CancelOrderDialog open={openCancel} onClose={() => setOpenCancel(false)} orderId={id} onCancelled={(cancellation: any) => { updateOrder({ ...order, cancellations: [...(order.cancellations ?? []), cancellation], status: { description: "Pendiente Cancelación" } }); }} />
-                <PostponeOrderDialog open={openPostpone} onClose={() => setOpenPostpone(false)} orderId={id} targetStatus={targetStatus} />
+                <PostponeOrderDialog open={openPostpone} onClose={() => setOpenPostpone(false)} orderId={id} targetStatus={targetStatus} extraData={pendingExtraData} />
                 <MarkDeliveredDialog open={openMarkDelivered} onClose={() => setOpenMarkDelivered(false)} order={order} binanceRate={binanceRate} onConfirm={(data) => { if (pendingStatus) changeStatus(pendingStatus.description, data); }} />
                 <ReportNovedadDialog open={openReportNovedad} onClose={() => setOpenReportNovedad(false)} onConfirm={(data) => { if (pendingStatus) changeStatus(pendingStatus.description, { novedad_type: data.type, novedad_description: data.description }); }} />
                 <ResolveNovedadDialog open={openResolveNovedad} onClose={() => setOpenResolveNovedad(false)} onConfirm={(resolution) => { if (pendingStatus) changeStatus(pendingStatus.description, { novedad_resolution: resolution }); }} />

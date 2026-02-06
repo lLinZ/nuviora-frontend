@@ -191,19 +191,26 @@ export const OrderChangeSection: React.FC<OrderChangeSectionProps> = ({ order, o
         let text = "";
         const details = form.change_payment_details as any;
 
+        // Calcular monto en Bs
+        const amountUSD = Number(form.change_amount) || 0;
+        const rate = Number(form.change_rate) || Number(euroRate) || 0;
+        const amountBs = (amountUSD * rate).toFixed(2).replace('.', ',');
+
         if (form.change_method_company === 'BOLIVARES_PAGOMOVIL') {
-            const bank = banks.find(b => b.id === details.bank_id)?.name || "N/A";
-            text = `PAGO MÓVIL\nCédula: ${details.cedula}\nBanco: ${bank}\nTeléfono: ${details.phone_prefix}${details.phone_number}`;
+            const bank = banks.find(b => b.id === details.bank_id);
+            const phone = `${details.phone_prefix || ''}${details.phone_number || ''}`;
+            // FORMATO: CODIGO_BANCO CEDULA TELEFONO MONTO
+            text = `${bank?.code || ''} ${details.cedula} ${phone} ${amountBs}`;
         } else if (form.change_method_company === 'BOLIVARES_TRANSFERENCIA') {
             const bank = banks.find(b => b.id === details.bank_id)?.name || "N/A";
-            text = `TRANSFERENCIA BANCARIA\nCuenta: ${details.account_number}\nCédula: ${details.cedula}\nBanco: ${bank}`;
+            text = `TRANSFERENCIA BANCARIA\nCuenta: ${details.account_number}\nCédula: ${details.cedula}\nBanco: ${bank}\nMonto: Bs. ${amountBs}`;
         } else if (['ZELLE_DOLARES', 'BINANCE_DOLARES', 'PAYPAL_DOLARES', 'ZINLI_DOLARES'].includes(form.change_method_company)) {
-            text = `${form.change_method_company.split('_')[0]}: ${details.email}`;
+            text = `${form.change_method_company.split('_')[0]}: ${details.email}\nMonto: $${amountUSD.toFixed(2)}`;
         }
 
-        if (text) {
+        if (text.trim()) {
             navigator.clipboard.writeText(text);
-            toast.info("Datos copiados al portapapeles 📋");
+            toast.info("Datos copiados (incluye monto) 📋");
         }
     };
 
@@ -681,7 +688,10 @@ export const OrderChangeSection: React.FC<OrderChangeSectionProps> = ({ order, o
                                         <ButtonCustom
                                             variant="outlined"
                                             startIcon={<VisibilityIcon />}
-                                            onClick={() => window.open(`${import.meta.env.VITE_API_URL || 'http://localhost:8000/api'}/orders/${order.id}/change-receipt`, '_blank')}
+                                            onClick={() => {
+                                                const url = `${import.meta.env.VITE_BACKEND_API_URL || import.meta.env.VITE_API_URL || 'http://localhost:8000/api'}/orders/${order.id}/change-receipt`;
+                                                window.open(url, '_blank');
+                                            }}
                                             sx={{ borderColor: green[500], color: green[700] }}
                                         >
                                             Ver Comprobante
@@ -690,10 +700,8 @@ export const OrderChangeSection: React.FC<OrderChangeSectionProps> = ({ order, o
                                             variant="outlined"
                                             startIcon={<DownloadIcon />}
                                             onClick={() => {
-                                                const link = document.createElement('a');
-                                                link.href = `${import.meta.env.VITE_API_URL || 'http://localhost:8000/api'}/orders/${order.id}/change-receipt`;
-                                                link.download = `Vuelto_Orden_${order.name}.jpg`;
-                                                link.click();
+                                                const url = `${import.meta.env.VITE_BACKEND_API_URL || import.meta.env.VITE_API_URL || 'http://localhost:8000/api'}/orders/${order.id}/change-receipt?download=1`;
+                                                window.open(url, '_self');
                                             }}
                                             sx={{ borderColor: green[500], color: green[700] }}
                                         >

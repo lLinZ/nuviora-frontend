@@ -15,9 +15,10 @@ interface Props {
     onClose: () => void;
     orderId?: number;
     targetStatus?: string;
+    extraData?: any;
 }
 
-export const PostponeOrderDialog: FC<Props> = ({ open, onClose, orderId, targetStatus }) => {
+export const PostponeOrderDialog: FC<Props> = ({ open, onClose, orderId, targetStatus, extraData }) => {
     const { updateOrderInColumns } = useOrdersStore();
     const [scheduledFor, setScheduledFor] = useState<string>("");
     const [reason, setReason] = useState<string>("");
@@ -57,6 +58,12 @@ export const PostponeOrderDialog: FC<Props> = ({ open, onClose, orderId, targetS
         const body = new URLSearchParams();
         body.append("scheduled_for", finalScheduled);
         if (reason.trim()) body.append("reason", reason.trim());
+
+        if (extraData) {
+            Object.keys(extraData).forEach(key => {
+                body.append(key, String(extraData[key]));
+            });
+        }
 
         try {
             const { status, response }: IResponse = await request(

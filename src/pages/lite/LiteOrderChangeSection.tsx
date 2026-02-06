@@ -359,6 +359,42 @@ export const LiteOrderChangeSection: React.FC<OrderChangeSectionProps> = ({ orde
                     )}
                 </Grid>
 
+                {/* COMPROBANTE DE VUELTO (Si existe) */}
+                {order.change_receipt && (
+                    <Grid size={{ xs: 12 }}>
+                        <Paper variant="outlined" sx={{
+                            p: 2,
+                            mt: 1,
+                            bgcolor: alpha(green[500], 0.05),
+                            borderColor: alpha(green[500], 0.3),
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            borderRadius: 2
+                        }}>
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                <Typography variant="h5">✅</Typography>
+                                <Box>
+                                    <Typography variant="subtitle2" color="success.main" fontWeight="bold">Comprobante Disponible</Typography>
+                                    <Typography variant="caption" color="text.secondary">Vuelto pagado por administración</Typography>
+                                </Box>
+                            </Box>
+                            <ButtonCustom
+                                size="small"
+                                variant="contained"
+                                color="success"
+                                onClick={() => {
+                                    const baseUrl = import.meta.env.VITE_BACKEND_API_URL || import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
+                                    window.open(`${baseUrl}/orders/${order.id}/change-receipt`, '_blank');
+                                }}
+                                sx={{ borderRadius: 2, textTransform: 'none', boxShadow: 'none' }}
+                            >
+                                Ver Recibo
+                            </ButtonCustom>
+                        </Paper>
+                    </Grid>
+                )}
+
                 {/* SAVE BUTTON */}
                 <Grid size={{ xs: 12 }}>
                     <ButtonCustom

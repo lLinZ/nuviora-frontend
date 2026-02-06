@@ -126,32 +126,14 @@ export const OrderPaymentSection: React.FC<OrderPaymentSectionProps> = ({ order,
         return null;
     };
 
-    const handleDownload = async () => {
+    const handleDownload = () => {
         const url = getReceiptUrl();
         if (!url) return;
 
-        try {
-            // Fetch image (endpoint is public, no auth needed)
-            const response = await fetch(url);
-
-            if (!response.ok) {
-                throw new Error('Error al descargar');
-            }
-
-            const blob = await response.blob();
-            const downloadUrl = window.URL.createObjectURL(blob);
-            const link = document.createElement('a');
-            link.href = downloadUrl;
-            link.download = `comprobante-orden-${order.name}.png`;
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            window.URL.revokeObjectURL(downloadUrl);
-            toast.success('Comprobante descargado');
-        } catch (error) {
-            console.error(error);
-            toast.error('Error al descargar el comprobante');
-        }
+        // Append download parameter to trigger Content-Disposition: attachment in backend
+        const downloadUrl = url.includes('?') ? `${url}&download=1` : `${url}?download=1`;
+        window.open(downloadUrl, '_self');
+        toast.success('Iniciando descarga...');
     };
 
     const handleZoomIn = () => {

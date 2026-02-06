@@ -34,7 +34,17 @@ export const OrderTimer: FC<OrderTimerProps> = ({ receivedAt, deliveredAt, statu
             const diffInSeconds = Math.floor((now - startT) / 1000);
 
             const isNovedad = status === 'Novedades';
-            const limitMinutes = isNovedad ? 10 : 45;
+            const isEsperandoUbicacion = status === 'Esperando Ubicacion';
+
+            let limitMinutes = 45;
+            if (isNovedad) limitMinutes = 10;
+            // if (isEsperandoUbicacion) limitMinutes = 45; // Default is 45, so redundant but keeps logic clear if 45 is default.
+            // actually, 'En ruta' is also 45. Waiting is 45. Default is 45.
+            // Only Novedad is 10.
+
+            // To be explicit based on user feedback:
+            if (isEsperandoUbicacion) limitMinutes = 30;
+
             const limitSeconds = limitMinutes * 60;
 
             const remaining = limitSeconds - diffInSeconds;
@@ -66,8 +76,14 @@ export const OrderTimer: FC<OrderTimerProps> = ({ receivedAt, deliveredAt, statu
     };
 
     const isNovedad = status === 'Novedades';
-    const limitMinutes = isNovedad ? 10 : 45;
-    const label = isNovedad ? "Tiempo de novedad" : "Tiempo para entrega";
+    const isEsperandoUbicacion = status === 'Esperando Ubicacion';
+
+    let limitMinutes = 45;
+    if (isNovedad) limitMinutes = 10;
+    if (isEsperandoUbicacion) limitMinutes = 30;
+
+    const label = isNovedad ? "Tiempo de novedad" : (isEsperandoUbicacion ? "Tiempo de espera" : "Tiempo para entrega");
+    const limitSeconds = limitMinutes * 60;
 
     return (
         <Tooltip title={isOverdue ? `Tiempo excedido (Límite ${limitMinutes} min)` : `${label} (${limitMinutes} min)`}>

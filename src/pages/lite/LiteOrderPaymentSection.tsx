@@ -258,7 +258,10 @@ export const LiteOrderPaymentSection: React.FC<OrderPaymentSectionProps> = ({ or
                         </IconButton>
                     </label>
                     {order.payment_receipt && (
-                        <IconButton size="small" color="primary" onClick={() => window.open(`${import.meta.env.VITE_API_URL || 'http://localhost:8000/api'}/orders/${order.id}/payment-receipt`, '_blank')}>
+                        <IconButton size="small" color="primary" onClick={() => {
+                            const url = `${import.meta.env.VITE_BACKEND_API_URL || import.meta.env.VITE_API_URL || 'http://localhost:8000/api'}/orders/${order.id}/payment-receipt`;
+                            window.open(url, '_blank');
+                        }}>
                             <VisibilityIcon fontSize="small" />
                         </IconButton>
                     )}

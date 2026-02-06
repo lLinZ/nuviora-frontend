@@ -31,6 +31,7 @@ export const useOrderDialogLogic = (
     const [openResolveNovedad, setOpenResolveNovedad] = useState(false);
     const [pendingStatus, setPendingStatus] = useState<{ description: string } | null>(null);
     const [targetStatus, setTargetStatus] = useState<string | undefined>(undefined);
+    const [pendingExtraData, setPendingExtraData] = useState<any>(null);
 
     const [loadingReview, setLoadingReview] = useState(false);
     const [openAssignDeliverer, setOpenAssignDeliverer] = useState(false);
@@ -150,10 +151,20 @@ export const useOrderDialogLogic = (
     const changeStatus = async (status: string, extraData: any = null) => {
         if (!selectedOrder) return;
 
-        // 🔒 Strict rule: If currently "Novedades", ONLY can go to "Novedad Solucionada"
-        if (selectedOrder.status.description === "Novedades" && status !== "Novedad Solucionada") {
-            toast.error("Una orden en Novedades solo puede pasar a Novedad Solucionada ⚠️");
-            return;
+        // 🔒 Strict rule: If currently "Novedades", ONLY can go to "Novedad Solucionada" or Postponed statuses
+        if (selectedOrder.status.description === "Novedades") {
+            const isPostponing = (status === "Programado para otro dia" || status === "Programado para mas tarde");
+
+            if (isPostponing) {
+                if (!extraData?.novedad_resolution) {
+                    setPendingStatus({ description: status });
+                    setOpenResolveNovedad(true);
+                    return;
+                }
+            } else if (status !== "Novedad Solucionada") {
+                toast.error("Una orden en Novedades solo puede pasar a Novedad Solucionada o Programarse ⚠️");
+                return;
+            }
         }
 
         // Intercept Novedades
@@ -220,6 +231,7 @@ export const useOrderDialogLogic = (
         // Intercept postponing
         if (status === "Programado para otro dia" || status === "Programado para mas tarde") {
             setTargetStatus(status);
+            setPendingExtraData(extraData);
             setOpenPostpone(true);
             return;
         }
@@ -569,6 +581,7 @@ export const useOrderDialogLogic = (
         openResolveNovedad, setOpenResolveNovedad,
         pendingStatus,
         targetStatus,
+        pendingExtraData,
         fetchOrder,
         refreshOrder: fetchOrder,
     };
