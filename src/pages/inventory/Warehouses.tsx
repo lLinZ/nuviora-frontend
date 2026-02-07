@@ -148,10 +148,15 @@ export const Warehouses: React.FC<Props> = ({ isEmbedded }) => {
                                 variant={filterType === 'DELIVERER' ? 'filled' : 'outlined'}
                                 icon={<WarehouseIcon />}
                             />
-                            <ButtonCustom variant='contained' startIcon={<AddIcon />} onClick={() => {
-                                setSelectedWarehouse(undefined);
-                                setCreateDialogOpen(true);
-                            }} sx={{ ml: 1 }}>
+                            <ButtonCustom
+                                variant='contained'
+                                startIcon={<AddIcon />}
+                                onClick={() => {
+                                    setSelectedWarehouse(undefined);
+                                    setCreateDialogOpen(true);
+                                }}
+                                sx={{ ml: 1, display: user.role?.description === 'Agencia' ? 'none' : 'inline-flex' }}
+                            >
                                 Nuevo
                             </ButtonCustom>
                         </Box>
@@ -179,12 +184,14 @@ export const Warehouses: React.FC<Props> = ({ isEmbedded }) => {
                                             {warehouse.code}
                                         </Typography>
                                     </Box>
-                                    <IconButton size="small" onClick={() => {
-                                        setSelectedWarehouse(warehouse);
-                                        setCreateDialogOpen(true);
-                                    }}>
-                                        <EditIcon fontSize="small" />
-                                    </IconButton>
+                                    {user.role?.description !== 'Agencia' && (
+                                        <IconButton size="small" onClick={() => {
+                                            setSelectedWarehouse(warehouse);
+                                            setCreateDialogOpen(true);
+                                        }}>
+                                            <EditIcon fontSize="small" />
+                                        </IconButton>
+                                    )}
                                 </Box>
 
                                 <Box sx={{ display: 'flex', gap: 2, mb: 2, bgcolor: 'action.hover', p: 1.5, borderRadius: 2 }}>
