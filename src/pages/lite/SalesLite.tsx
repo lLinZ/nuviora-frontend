@@ -320,13 +320,13 @@ export const SalesLite = () => {
 
     // Definimos las Tabs disponibles para la vendedora Lite (Ajustado a requerimiento)
     const TABS = [
+        { label: "Reprogramado Hoy", status: "Reprogramado para hoy" },
         { label: "Asignado a Mí", status: "Asignado a vendedor" },
         { label: "Llamado 1", status: "Llamado 1" },
         { label: "Llamado 2", status: "Llamado 2" },
         { label: "Llamado 3", status: "Llamado 3" },
         { label: "Esperando Ubicación", status: "Esperando Ubicacion" },
         { label: "Listo para Agencia", status: "Asignar a agencia" },
-        { label: "Reprogramado Hoy", status: "Reprogramado para hoy" },
         { label: "Para Más Tarde", status: "Programado para mas tarde" },
         { label: "Programado otro día", status: "Programado para otro dia" },
         { label: "Novedades", status: "Novedades" },
