@@ -21,14 +21,26 @@ import { LiteOrderDialog } from "./LiteOrderDialog";
 import NotificationsActiveRoundedIcon from "@mui/icons-material/NotificationsActiveRounded";
 import ScheduleRoundedIcon from "@mui/icons-material/ScheduleRounded";
 import WarningRoundedIcon from "@mui/icons-material/WarningRounded";
+import CheckCircleRoundedIcon from "@mui/icons-material/CheckCircleRounded";
+import AssignmentIndRoundedIcon from "@mui/icons-material/AssignmentIndRounded";
+import TimerRoundedIcon from "@mui/icons-material/TimerRounded";
 import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
 
 export const LiteNotificationBell = () => {
-    const { notifications, dismissNotification, clearAll } = useNotificationStore();
+    const { notifications, dismissNotification, clearAll, openDialogOrderId, setOpenDialogOrderId } = useNotificationStore();
     const theme = useTheme();
     const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
     const [selectedOrderId, setSelectedOrderId] = useState<number | null>(null);
     const [openDialog, setOpenDialog] = useState(false);
+
+    // 🔔 Listen for global dialog triggers (e.g. from Toasts)
+    React.useEffect(() => {
+        if (openDialogOrderId) {
+            setSelectedOrderId(openDialogOrderId);
+            setOpenDialog(true);
+            setOpenDialogOrderId(null); // Consume the event
+        }
+    }, [openDialogOrderId, setOpenDialogOrderId]);
 
     const handleOpenMenu = (event: React.MouseEvent<HTMLElement>) => {
         setAnchorEl(event.currentTarget);
@@ -50,6 +62,9 @@ export const LiteNotificationBell = () => {
             case 'reminder': return <NotificationsActiveRoundedIcon sx={{ color: 'warning.main' }} />;
             case 'scheduled': return <ScheduleRoundedIcon sx={{ color: 'info.main' }} />;
             case 'novedad': return <WarningRoundedIcon sx={{ color: 'error.main' }} />;
+            case 'novelty_resolved': return <CheckCircleRoundedIcon sx={{ color: 'success.main' }} />;
+            case 'assigned': return <AssignmentIndRoundedIcon sx={{ color: 'primary.main' }} />;
+            case 'waiting_location': return <TimerRoundedIcon sx={{ color: 'warning.dark' }} />;
             default: return <NotificationsRoundedIcon />;
         }
     };

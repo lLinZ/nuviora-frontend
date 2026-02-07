@@ -41,6 +41,7 @@ import { LiteSettingsMenu } from './LiteSettingsMenu';
 import { fmtMoney } from '../../lib/money';
 import { BankAccountsDialog } from '../../components/orders/BankAccountsDialog';
 import { AccountBalanceRounded } from '@mui/icons-material';
+import { OrderTimer } from '../../components/orders/OrderTimer';
 
 // Componente simple de Tabla Lite
 const LiteOrderTable = ({ statusTitle, searchTerm, onRefresh }: any) => {
@@ -160,6 +161,13 @@ const LiteOrderTable = ({ statusTitle, searchTerm, onRefresh }: any) => {
                                             ⚠️ {order.novedad_type}
                                         </Typography>
                                     )}
+                                    <Box sx={{ mt: 0.5 }}>
+                                        <OrderTimer
+                                            receivedAt={order.status?.description === 'Novedades' ? order.updated_at : order.received_at}
+                                            deliveredAt={order.status?.description === 'Entregado' ? (order.processed_at || order.updated_at) : null}
+                                            status={order.status?.description || ''}
+                                        />
+                                    </Box>
                                 </TableCell>
                                 <TableCell align="right">
                                     <Box display="flex" justifyContent="flex-end" gap={1}>
@@ -322,6 +330,7 @@ export const SalesLite = () => {
         { label: "Para Más Tarde", status: "Programado para mas tarde" },
         { label: "Programado otro día", status: "Programado para otro dia" },
         { label: "Novedades", status: "Novedades" },
+        { label: "Novedad Solucionada", status: "Novedad Solucionada" },
         { label: "Entregadas", status: "Entregado" },
         { label: "Canceladas", status: "Cancelado" }
     ];

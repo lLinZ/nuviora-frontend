@@ -52,7 +52,8 @@ export const NotificationMonitor = () => {
                                         position: "top-right",
                                         onClick: () => {
                                             dismissNotification(order.id);
-                                            setSelectedOrder({ id: order.id });
+                                            // Trigger global dialog opening
+                                            useNotificationStore.getState().setOpenDialogOrderId(order.id);
                                             toast.dismiss(toastId);
                                         }
                                     });

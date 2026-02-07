@@ -23,6 +23,10 @@ interface OrderPaymentSectionProps {
 export const OrderPaymentSection: React.FC<OrderPaymentSectionProps> = ({ order, onPaymentsChange, onUpdate }) => {
     const user = useUserStore((state) => state.user);
     const [uploading, setUploading] = useState(false);
+
+    const isDelivered = order.status?.description === 'Entregado';
+    const isAdmin = user.role?.description === 'Admin';
+    const canEdit = !isDelivered || isAdmin;
     const [receiptPreview, setReceiptPreview] = useState<string | null>(null);
     const [viewerOpen, setViewerOpen] = useState(false);
     const [zoomLevel, setZoomLevel] = useState(1);
@@ -56,12 +60,13 @@ export const OrderPaymentSection: React.FC<OrderPaymentSectionProps> = ({ order,
                 body
             );
 
-            if (status) {
+            if (status === 200) {
                 const data = await response.json();
                 toast.success(data.message || "Pagos actualizados correctamente");
                 if (onUpdate) onUpdate();
             } else {
-                toast.error("Error al guardar los pagos");
+                const errorData = await response.json().catch(() => ({ message: "Error al guardar los pagos" }));
+                toast.error(errorData.message || "Error al guardar los pagos");
             }
         } catch (error) {
             console.error(error);
@@ -265,7 +270,7 @@ export const OrderPaymentSection: React.FC<OrderPaymentSectionProps> = ({ order,
                 )}
             </Box>
 
-            {!['Repartidor', 'Agencia'].includes(user.role?.description || '') && (
+            {!['Repartidor', 'Agencia'].includes(user.role?.description || '') && canEdit && (
                 <>
                     <Typography variant="subtitle2" sx={{ mt: 1, mb: 0.5 }}>
                         Editar / Agregar Pagos:
@@ -339,7 +344,7 @@ export const OrderPaymentSection: React.FC<OrderPaymentSectionProps> = ({ order,
                 <ButtonCustom
                     component="label"
                     startIcon={uploading ? <CircularProgress size={20} /> : <CloudUploadIcon />}
-                    disabled={uploading}
+                    disabled={uploading || !canEdit}
                     nofull
                     sx={{ mt: 2 }}
                 >

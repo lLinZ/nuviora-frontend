@@ -68,14 +68,26 @@ export const LiteBroadcastMonitor = ({ onOrderUpdate, onOpenOrder }: { onOrderUp
                     Icon = <TimerRounded />;
                     bgColor = '#ed6c02'; // Warning orange
                     break;
+                case 'assigned':
+                    Icon = <AssignmentIndRounded />;
+                    bgColor = user?.color || '#0073ff';
+                    break;
             }
 
             // 3. Add to store (for the bell)
+            // Map incoming types to store types. We'll use the incoming type directly if it matches, or map it.
+            let storeType: AppNotification['type'] = 'reminder';
+            if (notification.type === 'novelty') storeType = 'novedad';
+            else if (notification.type === 'novelty_resolved') storeType = 'novelty_resolved';
+            else if (notification.type === 'assigned') storeType = 'assigned';
+            else if (notification.type === 'waiting_location') storeType = 'waiting_location';
+            else if (notification.type === 'scheduled') storeType = 'scheduled';
+
             const newNotif: AppNotification = {
                 id: Date.now() + (notification.order_id || 0),
                 orderId: notification.order_id || 0,
-                orderName: notification.order_name || 'Nueva', // We might not have the name, fallback to id or 'Nueva'
-                type: notification.type === 'novelty' ? 'novedad' : (notification.type === 'scheduled' ? 'scheduled' : 'reminder'),
+                orderName: notification.order_name || 'Nueva',
+                type: storeType,
                 message: notification.message,
                 time: new Date().toISOString(),
                 createdAt: Date.now()

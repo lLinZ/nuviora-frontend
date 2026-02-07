@@ -93,7 +93,9 @@ export const OrderHeader: React.FC<OrderHeaderProps> = ({
                         <Box>
                             <Typography variant="caption" color="text.secondary" display="block">Vendedor Asignado</Typography>
                             <Typography variant="body1" fontWeight="bold">
-                                {order.agent?.names || 'Pendiente de asignar'}
+                                {user.role?.description === 'Agencia'
+                                    ? '---'
+                                    : (order.agent?.names || 'Pendiente de asignar')}
                             </Typography>
                         </Box>
                     </Box>

@@ -5,7 +5,7 @@ export interface AppNotification {
     id: number;
     orderId: number;
     orderName: string;
-    type: 'reminder' | 'scheduled' | 'novedad';
+    type: 'reminder' | 'scheduled' | 'novedad' | 'novelty_resolved' | 'assigned' | 'waiting_location';
     message: string;
     time: string;
     createdAt: number;
@@ -14,8 +14,10 @@ export interface AppNotification {
 interface NotificationState {
     notifications: AppNotification[];
     dismissedOrderIds: Record<number, number>; // orderId -> timestamp of last dismissal
+    openDialogOrderId: number | null; // GLOBAL STATE FOR DIALOG
     addNotification: (notification: AppNotification) => void;
     dismissNotification: (orderId: number) => void;
+    setOpenDialogOrderId: (id: number | null) => void;
     clearAll: () => void;
 }
 
@@ -24,6 +26,8 @@ export const useNotificationStore = create<NotificationState>()(
         (set) => ({
             notifications: [],
             dismissedOrderIds: {},
+            openDialogOrderId: null,
+            setOpenDialogOrderId: (id) => set({ openDialogOrderId: id }),
             addNotification: (notification) => set((state) => {
                 // Avoid duplicates for same order/type if recently notified
                 const exists = state.notifications.find(

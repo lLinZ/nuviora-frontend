@@ -25,10 +25,19 @@ import WarningRoundedIcon from "@mui/icons-material/WarningRounded";
 
 export const NotificationBell = () => {
     const theme = useTheme();
-    const { notifications, dismissNotification, clearAll } = useNotificationStore();
+    const { notifications, dismissNotification, clearAll, openDialogOrderId, setOpenDialogOrderId } = useNotificationStore();
     const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
     const [selectedOrderId, setSelectedOrderId] = useState<number | null>(null);
     const [openDialog, setOpenDialog] = useState(false);
+
+    // 🔔 Listen for global dialog triggers (e.g. from Toasts)
+    React.useEffect(() => {
+        if (openDialogOrderId) {
+            setSelectedOrderId(openDialogOrderId);
+            setOpenDialog(true);
+            setOpenDialogOrderId(null); // Consume the event
+        }
+    }, [openDialogOrderId, setOpenDialogOrderId]);
 
     const handleOpenMenu = (event: React.MouseEvent<HTMLElement>) => {
         setAnchorEl(event.currentTarget);

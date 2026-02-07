@@ -78,6 +78,34 @@ export const LiteNotificationMonitor: React.FC<LiteNotificationMonitorProps> = (
                 if (order.scheduled_for && order.status && (order.status.description === 'Programado para mas tarde' || order.status.description === 'Reprogramado para hoy')) {
                     processAlert(order.scheduled_for, "scheduled", "Contacto/Entrega");
                 }
+
+                // New Time-based Alerts mirroring OrderTimer
+                if (order.status?.description === 'Novedades' && order.updated_at) {
+                    // 10 minutes limit for Novedades
+                    const time = new Date(order.updated_at);
+                    const diff = now.getTime() - time.getTime();
+                    if (diff > 10 * 60 * 1000) {
+                        // We trick processAlert by passing a past time that triggers 'diff >= 0' logic immediately
+                        // actually processAlert expects 'timeStr' as the TARGET time.
+                        // For deadlines, target = start + limit.
+                        const deadline = new Date(time.getTime() + 10 * 60 * 1000);
+                        processAlert(deadline.toISOString(), "novedad", "Límite Novedad Excedido");
+                    }
+                }
+
+                if (order.status?.description === 'Esperando Ubicacion' && order.received_at) {
+                    // 30 minutes limit
+                    const time = new Date(order.received_at);
+                    const deadline = new Date(time.getTime() + 30 * 60 * 1000);
+                    processAlert(deadline.toISOString(), "waiting_location", "Tiempo de Espera Excedido");
+                }
+
+                if ((order.status?.description === 'En ruta' || order.status?.description === 'Asignar a agencia') && order.received_at) {
+                    // 45 minutes limit
+                    const time = new Date(order.received_at);
+                    const deadline = new Date(time.getTime() + 45 * 60 * 1000);
+                    processAlert(deadline.toISOString(), "reminder", "Tiempo de Entrega Excedido");
+                }
             });
 
             if (newFound) {

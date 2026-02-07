@@ -20,9 +20,9 @@ import { TypographyCustom } from '../custom';
 
 interface InventoryCardProps {
     productStock: IProductStock;
-    onTransfer: (product: IProductStock) => void;
-    onAdjust: (product: IProductStock) => void;
-    onEdit: (product: IProductStock) => void;
+    onTransfer?: (product: IProductStock) => void;
+    onAdjust?: (product: IProductStock) => void;
+    onEdit?: (product: IProductStock) => void;
     onViewHistory: (product: IProductStock) => void;
 }
 
@@ -97,21 +97,27 @@ export const InventoryCard: React.FC<InventoryCardProps> = ({
             <Divider />
 
             <Box sx={{ p: 1, display: 'flex', justifyContent: 'space-around' }}>
-                <Tooltip title="Transferir Stock">
-                    <IconButton size="small" color="primary" onClick={() => onTransfer(productStock)}>
-                        <TransferIcon />
-                    </IconButton>
-                </Tooltip>
-                <Tooltip title="Ajustar Stock (Cantidades)">
-                    <IconButton size="small" color="warning" onClick={() => onAdjust(productStock)}>
-                        <AdjustIcon />
-                    </IconButton>
-                </Tooltip>
-                <Tooltip title="Editar Producto (Costo, SKU...)">
-                    <IconButton size="small" color="info" onClick={() => onEdit(productStock)}>
-                        <EditIcon />
-                    </IconButton>
-                </Tooltip>
+                {onTransfer && (
+                    <Tooltip title="Transferir Stock">
+                        <IconButton size="small" color="primary" onClick={() => onTransfer(productStock)}>
+                            <TransferIcon />
+                        </IconButton>
+                    </Tooltip>
+                )}
+                {onAdjust && (
+                    <Tooltip title="Ajustar Stock (Cantidades)">
+                        <IconButton size="small" color="warning" onClick={() => onAdjust(productStock)}>
+                            <AdjustIcon />
+                        </IconButton>
+                    </Tooltip>
+                )}
+                {onEdit && (
+                    <Tooltip title="Editar Producto (Costo, SKU...)">
+                        <IconButton size="small" color="info" onClick={() => onEdit(productStock)}>
+                            <EditIcon />
+                        </IconButton>
+                    </Tooltip>
+                )}
                 <Tooltip title="Ver Historial">
                     <IconButton size="small" onClick={() => onViewHistory(productStock)}>
                         <HistoryIcon />

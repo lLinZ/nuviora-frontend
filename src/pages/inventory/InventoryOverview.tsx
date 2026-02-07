@@ -176,9 +176,9 @@ export const InventoryOverview: React.FC<Props> = ({ isEmbedded }) => {
                         <Grid size={{ xs: 12, sm: 6, md: 4, lg: 3 }} key={p.product_id}>
                             <InventoryCard
                                 productStock={p}
-                                onTransfer={(prod) => handleAction(prod, 'transfer')}
-                                onAdjust={(prod) => handleAction(prod, 'adjustment')}
-                                onEdit={(prod) => handleEdit(prod)}
+                                onTransfer={user.role?.description === 'Agencia' ? undefined : (prod) => handleAction(prod, 'transfer')}
+                                onAdjust={user.role?.description === 'Agencia' ? undefined : (prod) => handleAction(prod, 'adjustment')}
+                                onEdit={user.role?.description === 'Agencia' ? undefined : (prod) => handleEdit(prod)}
                                 onViewHistory={(prod) => prod.product && navigate(`/inventory/movements?product_id=${prod.product.id}`)}
                             />
                         </Grid>
