@@ -147,6 +147,19 @@ export const LiteBroadcastMonitor = ({ onOrderUpdate, onOpenOrder }: { onOrderUp
         channel.listen('OrderUpdated', (e: any) => {
             console.log("♻️ [LITE] Order Updated Event:", e);
             if (e.order) {
+                // 🛡️ SECURITY FILTER: Ignore orders that don't belong to us
+                const role = user.role?.description?.toLowerCase() || '';
+
+                if (role.includes('agencia')) {
+                    if (e.order.agency_id !== user.id) return;
+                }
+                if (role.includes('vendedor')) {
+                    if (e.order.agent_id !== user.id) return;
+                }
+                if (role.includes('repartidor')) {
+                    if (e.order.deliverer_id !== user.id) return;
+                }
+
                 // Refrescar la lista completa en Lite
                 if (updateRef.current) {
                     updateRef.current(true); // Reset para traer data fresca

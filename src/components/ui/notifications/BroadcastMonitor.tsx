@@ -138,6 +138,19 @@ export const BroadcastMonitor = () => {
         channel.listen('OrderUpdated', (e: any) => {
             console.log("♻️ Order Updated Event:", e);
             if (e.order) {
+                // 🛡️ SECURITY FILTER: Ignore orders that don't belong to us
+                const role = user.role?.description?.toLowerCase() || '';
+
+                if (role.includes('agencia')) {
+                    if (e.order.agency_id !== user.id) return;
+                }
+                if (role.includes('vendedor')) {
+                    if (e.order.agent_id !== user.id) return;
+                }
+                if (role.includes('repartidor')) {
+                    if (e.order.deliverer_id !== user.id) return;
+                }
+
                 // Actualizamos la orden en el store/kanban directamente
                 updateOrderInColumns(e.order);
                 console.log(`✅ Order #${e.order.id} updated via WebSocket`);
