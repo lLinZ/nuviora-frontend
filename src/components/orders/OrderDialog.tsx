@@ -553,7 +553,15 @@ export const OrderDialog: FC<OrderDialogProps> = ({ id, open, setOpen }) => {
                                                     ))}
                                                 </Box>
                                             ) : (
-                                                <OrderProductsList products={(order.products || []).filter((p: any) => !p.is_upsell)} currency={order.currency} />
+                                                <OrderProductsList
+                                                    products={(order.products || []).filter((p: any) => !p.is_upsell)}
+                                                    currency={order.currency}
+                                                    onDeleteItem={
+                                                        user.role?.description === 'Admin'
+                                                            ? (id) => { if (confirm("⚠️ ¿Estás seguro de eliminar este producto?\nEsto reducirá el total de la orden.")) removeUpsell(id); }
+                                                            : undefined
+                                                    }
+                                                />
                                             )}
                                         </Box>
 

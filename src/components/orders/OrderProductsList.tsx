@@ -6,14 +6,20 @@ import { OrderProductItem } from "./OrderProductItem";
 interface OrderProductsListProps {
     products: any[];
     currency: string;
+    onDeleteItem?: (id: number) => void;
 }
 
-export const OrderProductsList: React.FC<OrderProductsListProps> = ({ products, currency }) => {
+export const OrderProductsList: React.FC<OrderProductsListProps> = ({ products, currency, onDeleteItem }) => {
     return (
         <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
             {products?.length > 0 ? (
                 products.map((p: any) => (
-                    <OrderProductItem key={p.id} product={p} currency={currency} />
+                    <OrderProductItem
+                        key={p.id}
+                        product={p}
+                        currency={currency}
+                        onDelete={onDeleteItem ? () => onDeleteItem(p.id) : undefined}
+                    />
                 ))
             ) : (
                 <TypographyCustom variant="body2" color="text.secondary">
