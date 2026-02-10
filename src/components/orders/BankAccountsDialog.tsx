@@ -51,7 +51,12 @@ export const BankAccountsDialog: React.FC<BankAccountsDialogProps> = ({ open, on
             const { status, response } = await request('/company-accounts', 'GET');
             if (status === 200) {
                 const data = await response.json();
-                setAccounts(data.filter((d: any) => d.is_active));
+                // Parse details if string
+                const formatted = data.map((d: any) => ({
+                    ...d,
+                    details: typeof d.details === 'string' ? JSON.parse(d.details) : d.details
+                }));
+                setAccounts(formatted.filter((d: any) => d.is_active));
             }
         } catch (e) {
             console.error("Error fetching accounts", e);
@@ -59,6 +64,16 @@ export const BankAccountsDialog: React.FC<BankAccountsDialogProps> = ({ open, on
         } finally {
             setLoading(false);
         }
+    };
+
+    const handleCopyAll = (account: any) => {
+        if (!account.details) return;
+
+        // Just the values joined by space
+        const text = account.details.map((d: any) => `${d.value}`).join(' ');
+
+        navigator.clipboard.writeText(text);
+        toast.success(`Datos de ${account.name} copiados`);
     };
 
     const handleCopy = (text: string, label: string) => {
@@ -123,27 +138,29 @@ export const BankAccountsDialog: React.FC<BankAccountsDialogProps> = ({ open, on
                                     p: 2
                                 }}
                             >
-                                <Typography variant="subtitle1" fontWeight="bold" color="primary" sx={{ mb: 1.5, display: 'flex', alignItems: 'center', gap: 1 }}>
-                                    {acc.name}
-                                </Typography>
-                                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
-                                    {acc.details?.map((detail, j) => (
-                                        <Box key={j} sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', bgcolor: 'background.default', p: 1, borderRadius: 1 }}>
-                                            <Box>
-                                                <Typography variant="caption" color="text.secondary" sx={{ display: 'block', lineHeight: 1, mb: 0.5 }}>
-                                                    {detail.label}
-                                                </Typography>
-                                                <Typography variant="body2" fontWeight="medium" fontFamily="monospace">
-                                                    {detail.value}
-                                                </Typography>
-                                            </Box>
-                                            <IconButton
-                                                size="small"
-                                                onClick={() => handleCopy(detail.value, detail.label)}
-                                                sx={{ color: 'action.active' }}
-                                            >
-                                                <ContentCopyRounded fontSize="small" />
-                                            </IconButton>
+                                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                                    <Typography variant="h6" fontWeight="bold" color="primary" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                        {acc.name}
+                                    </Typography>
+                                    <Button
+                                        variant="outlined"
+                                        size="small"
+                                        startIcon={<ContentCopyRounded />}
+                                        onClick={() => handleCopyAll(acc)}
+                                        sx={{ borderRadius: 2, textTransform: 'none' }}
+                                    >
+                                        Copiar Datos
+                                    </Button>
+                                </Box>
+                                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, bgcolor: 'background.default', p: 1.5, borderRadius: 2 }}>
+                                    {acc.details?.map((detail: any, j: number) => (
+                                        <Box key={j} sx={{ display: 'flex', justifyContent: 'space-between', borderBottom: j < acc.details.length - 1 ? '1px dashed rgba(0,0,0,0.1)' : 'none', pb: 0.5, mb: 0.5 }}>
+                                            <Typography variant="body2" color="text.secondary" fontWeight="bold">
+                                                {detail.label}:
+                                            </Typography>
+                                            <Typography variant="body2" fontWeight="medium" fontFamily="monospace" sx={{ userSelect: 'all' }}>
+                                                {detail.value}
+                                            </Typography>
                                         </Box>
                                     ))}
                                 </Box>

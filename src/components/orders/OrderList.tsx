@@ -19,6 +19,8 @@ export const OrderList: FC<OrderListProps> = ({ title }) => {
     const column = useOrdersStore(useCallback((state) => state.columns[title], [title]));
     const filters = useOrdersStore((state) => state.filters);
     const searchTerm = useOrdersStore((state) => state.searchTerm);
+    const refreshSignal = useOrdersStore((state) => state.refreshSignal);
+
 
     // Acciones (son estables, no causan re-render)
     const setColumnsOrder = useOrdersStore((state) => state.setColumnsOrder);
@@ -86,7 +88,7 @@ export const OrderList: FC<OrderListProps> = ({ title }) => {
         }, 0);
 
         return () => clearTimeout(timer);
-    }, [filters, searchTerm, fetchColumnData]); // Si cambian filtros o buscado, recargar columna completa
+    }, [filters, searchTerm, fetchColumnData, refreshSignal]); // Si cambian filtros, busqueda o signal, recargar columna completa
 
     // --- Polling Logic --- 🔇 DISABLED: Using WebSocket Instead
     /*

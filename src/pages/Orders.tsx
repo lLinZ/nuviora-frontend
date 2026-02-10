@@ -14,13 +14,15 @@ import { ProductSearchDialog } from "../components/products/ProductsSearchDialog
 import { SearchRounded, FilterListRounded, FilterListOffRounded } from "@mui/icons-material";
 import { TextField, MenuItem, Select, FormControl, InputLabel, Button, Grid, IconButton, Tooltip, Chip } from "@mui/material";
 import { OrderDialog } from "../components/orders/OrderDialog";
+import { CreateOrderDialog } from "../components/orders/CreateOrderDialog";
 import { BankAccountsDialog } from "../components/orders/BankAccountsDialog";
-import { AccountBalanceRounded } from "@mui/icons-material";
+import { DailyRatesDialog } from "../components/orders/DailyRatesDialog";
+import { AccountBalanceRounded, AddCircleOutline, CurrencyExchange } from "@mui/icons-material";
 
 
 export const Orders = () => {
     const user = useUserStore((state) => state.user);
-    const { searchTerm, setSearchTerm } = useOrdersStore();
+    const { searchTerm, setSearchTerm, selectedOrder, setSelectedOrder } = useOrdersStore();
     const validateToken = useUserStore((state) => state.validateToken);
     const [openSearch, setOpenSearch] = useState(false);
     const [cities, setCities] = useState<any[]>([]);
@@ -33,6 +35,9 @@ export const Orders = () => {
     });
     const [visibleColumns, setVisibleColumns] = useState<string[] | null>(null);
     const [openBankDialog, setOpenBankDialog] = useState(false);
+    const [openRatesDialog, setOpenRatesDialog] = useState(false);
+    const [openCreateDialog, setOpenCreateDialog] = useState(false);
+
 
 
     const handlePickProduct = (product: any) => {
@@ -216,6 +221,24 @@ export const Orders = () => {
                         <AccountBalanceRounded color="primary" />
                     </IconButton>
                 </Tooltip>
+                <Tooltip title="Tasas del Día">
+                    <IconButton
+                        onClick={() => setOpenRatesDialog(true)}
+                        sx={{ bgcolor: 'background.paper', border: '1px solid', borderColor: 'divider' }}
+                    >
+                        <CurrencyExchange color="success" />
+                    </IconButton>
+                </Tooltip>
+                <Box sx={{ width: { xs: '100%', lg: '10%' } }}>
+
+                    <ButtonCustom
+                        variant="outlined"
+                        startIcon={<AddCircleOutline />}
+                        onClick={() => setOpenCreateDialog(true)}
+                    >
+                        Crear Orden
+                    </ButtonCustom>
+                </Box>
             </Box>
 
             <Fab sx={{ position: 'fixed', right: 24, bottom: 24 }} onClick={() => setOpenSearch(true)}>
@@ -317,6 +340,28 @@ export const Orders = () => {
                 </Box>
             </Box>
             <BankAccountsDialog open={openBankDialog} onClose={() => setOpenBankDialog(false)} />
+            <DailyRatesDialog open={openRatesDialog} onClose={() => setOpenRatesDialog(false)} />
+            <CreateOrderDialog
+                open={openCreateDialog}
+                onClose={() => setOpenCreateDialog(false)}
+                onSuccess={() => {
+                    // Force refresh of visible lists
+                    // Since lists refresh on interval or signal, we might need to trigger a global event 
+                    // or just let the auto-refresh handle it. For now, simple toast in dialog is enough.
+                    useOrdersStore.getState().setRefreshSignal(Date.now());
+                }}
+            />
+
+            {/* GLOBAL ORDER DIALOG (Triggered by Notifications/Search) */}
+            {selectedOrder && (
+                <OrderDialog
+                    open={!!selectedOrder}
+                    setOpen={(val) => {
+                        if (!val) setSelectedOrder(null);
+                    }}
+                    id={selectedOrder.id}
+                />
+            )}
         </Layout>
     );
 };

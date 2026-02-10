@@ -13,6 +13,7 @@ import {
 } from "@mui/icons-material";
 import { request } from "../../../common/request";
 import { IResponse } from "../../../interfaces/response-type";
+import { OrderDialog } from "../../orders/OrderDialog"; // Import OrderDialog if we need to mount it here? No, better mounted in Layout or Orders.tsx
 
 export const BroadcastMonitor = () => {
     const { echo, setSocket } = useSocketStore();
@@ -38,9 +39,15 @@ export const BroadcastMonitor = () => {
             console.log("🔔 Broadcast received:", notification);
 
             // 1. Play Sound
-            const soundFile = notification.sound ? `/${notification.sound}.mp3` : '/notification_sound.mp3';
-            const audio = new Audio(soundFile);
-            audio.play().catch(e => console.log('Audio autoplay blocked', e));
+            try {
+                const soundName = notification.sound || 'notification_sound';
+                const soundFile = `/${soundName}.mp3`;
+                console.log("🔊 Playing sound:", soundFile);
+                const audio = new Audio(soundFile);
+                await audio.play();
+            } catch (e) {
+                console.warn('Audio autoplay blocked or file not found', e);
+            }
 
             // 2. Select Icon and Color based on type
             let Icon = <AssignmentIndRounded />;
@@ -100,7 +107,25 @@ export const BroadcastMonitor = () => {
                 onClick: () => {
                     if (notification.order_id) {
                         dismissNotification(notification.order_id);
-                        setSelectedOrder({ id: notification.order_id });
+
+                        // Fetch fresh order data logic is already in "Refresh Specific Order Data" below?
+                        // No, we need to open the dialog. Fetching data updates the columns, but opening dialog requires data.
+                        // Ideally we fetch and then set selected order.
+
+                        const fetchAndOpen = async () => {
+                            try {
+                                const { status, response }: IResponse = await request(`/orders/${notification.order_id}`, 'GET');
+                                if (status === 200) {
+                                    const data = await response.json();
+                                    const fullOrder = data.order || data;
+                                    updateOrderInColumns(fullOrder);
+                                    setSelectedOrder(fullOrder); // Open the dialog
+                                }
+                            } catch (e) {
+                                console.error("Error opening order from notification", e);
+                            }
+                        };
+                        fetchAndOpen();
                         toast.dismiss(toastId);
                     }
                 }

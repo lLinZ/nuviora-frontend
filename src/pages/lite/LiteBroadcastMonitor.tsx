@@ -39,13 +39,19 @@ export const LiteBroadcastMonitor = ({ onOrderUpdate, onOpenOrder }: { onOrderUp
 
         const channel = echo.private(channelName);
 
-        channel.notification((notification: any) => {
+        channel.notification(async (notification: any) => {
             console.log("🔔 Broadcast received (Lite):", notification);
 
             // 1. Play Sound
-            const soundFile = notification.sound ? `/${notification.sound}.mp3` : '/notification_sound.mp3';
-            const audio = new Audio(soundFile);
-            audio.play().catch(e => console.log('Audio autoplay blocked', e));
+            try {
+                const soundName = notification.sound || 'notification_sound';
+                const soundFile = `/${soundName}.mp3`;
+                console.log("🔊 Playing sound (Lite):", soundFile);
+                const audio = new Audio(soundFile);
+                await audio.play();
+            } catch (e) {
+                console.warn('Audio autoplay blocked or file not found (Lite)', e);
+            }
 
             // 2. Select Icon and Color based on type
             let Icon = <AssignmentIndRounded />;
@@ -115,10 +121,16 @@ export const LiteBroadcastMonitor = ({ onOrderUpdate, onOpenOrder }: { onOrderUp
                 closeOnClick: false, // Handle manual click
                 position: "top-right",
                 onClick: () => {
-                    if (notification.order_id && openRef.current) {
-                        dismissNotification(notification.order_id);
-                        openRef.current(notification.order_id);
+                    const orderId = notification.order_id;
+                    if (orderId) {
+                        dismissNotification(orderId);
+
+                        // Clean existing toast
                         toast.dismiss(toastId);
+
+                        if (openRef.current) {
+                            openRef.current(orderId);
+                        }
                     }
                 }
             });

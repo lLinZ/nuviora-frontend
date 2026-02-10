@@ -23,6 +23,8 @@ interface OrdersState {
         date_from: string;
         date_to: string;
     };
+    refreshSignal: number;
+
 
     // Actions
     setFilters: (filters: Partial<OrdersState['filters']>) => void;
@@ -35,6 +37,7 @@ interface OrdersState {
     setSelectedOrder: (order: any | null) => void;
     setSelectedAgentId: (id: number | null) => void;
     setSearchTerm: (term: string) => void;
+    setRefreshSignal: (signal: number) => void;
 }
 
 export const useOrdersStore = create<OrdersState>((set, get) => ({
@@ -48,6 +51,8 @@ export const useOrdersStore = create<OrdersState>((set, get) => ({
         date_from: '',
         date_to: ''
     },
+    refreshSignal: 0,
+
 
     setFilters: (newFilters) => set((state) => ({ filters: { ...state.filters, ...newFilters } })),
 
@@ -178,4 +183,5 @@ export const useOrdersStore = create<OrdersState>((set, get) => ({
     setSelectedOrder: (order) => set({ selectedOrder: order }),
     setSelectedAgentId: (id) => set({ selectedAgentId: id }),
     setSearchTerm: (term) => set({ searchTerm: term }),
+    setRefreshSignal: (signal) => set({ refreshSignal: signal }),
 }));

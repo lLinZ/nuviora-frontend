@@ -19,7 +19,7 @@ import { useUserStore } from "../../store/user/UserStore";
 import { TypographyCustom } from "../custom";
 import DenseMenu from "../ui/content/DenseMenu";
 import { AssignAgentDialog } from "./AssignAgentDialog";
-import { OrderDialog } from "./OrderDialog";
+// import { OrderDialog } from "./OrderDialog"; // Removed to prevent duplicate dialogs
 import { purple, blue, green, red, yellow, grey, orange } from "@mui/material/colors";
 import { AssignDelivererDialog } from "./AssignDelivererDialog";
 import { PostponeOrderDialog } from "./PostponeOrderDialog";
@@ -77,7 +77,7 @@ export const OrderItem: FC<OrderItemProps> = ({ order }) => {
     const user = useUserStore((state) => state.user);
     const { updateOrderInColumns, setSelectedOrder } = useOrdersStore();
     const [openAssign, setOpenAssign] = useState(false);
-    const [open, setOpen] = useState<boolean>(false);
+    // const [open, setOpen] = useState<boolean>(false); // Removed local state
     const [productsOpen, setProductsOpen] = useState<boolean>(false);
     const [openAssignDeliverer, setOpenAssignDeliverer] = useState(false);
     const [openPostpone, setOpenPostpone] = useState(false);
@@ -95,7 +95,7 @@ export const OrderItem: FC<OrderItemProps> = ({ order }) => {
 
     const handleOpen = () => {
         setSelectedOrder(order);
-        setOpen(true);
+        // setOpen(true); // Removed
     };
     const getProducts = async () => {
         setOrderProductsEmpty(false);
@@ -540,7 +540,7 @@ export const OrderItem: FC<OrderItemProps> = ({ order }) => {
                     if (pendingStatus) changeStatus(pendingStatus.description, data);
                 }}
             />
-            <OrderDialog open={open} setOpen={setOpen} id={order.id} />
+            {/* <OrderDialog open={open} setOpen={setOpen} id={order.id} /> REMOVED */}
         </Box>
     );
 };

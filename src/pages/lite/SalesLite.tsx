@@ -40,7 +40,9 @@ import { LiteBroadcastMonitor } from './LiteBroadcastMonitor';
 import { LiteSettingsMenu } from './LiteSettingsMenu';
 import { fmtMoney } from '../../lib/money';
 import { BankAccountsDialog } from '../../components/orders/BankAccountsDialog';
-import { AccountBalanceRounded } from '@mui/icons-material';
+import { CreateOrderDialog } from '../../components/orders/CreateOrderDialog';
+import { DailyRatesDialog } from '../../components/orders/DailyRatesDialog';
+import { AccountBalanceRounded, AddCircleOutline, CurrencyExchange } from '@mui/icons-material';
 import { OrderTimer } from '../../components/orders/OrderTimer';
 
 // Componente simple de Tabla Lite
@@ -238,6 +240,8 @@ export const SalesLite = () => {
     const [counts, setCounts] = useState<Record<string, number>>({});
     const refreshRef = useRef<any>(null);
     const [openBankDialog, setOpenBankDialog] = useState(false);
+    const [openRatesDialog, setOpenRatesDialog] = useState(false);
+    const [openCreateDialog, setOpenCreateDialog] = useState(false);
     const [showTestPanel, setShowTestPanel] = useState(false);
 
     useEffect(() => {
@@ -401,6 +405,64 @@ export const SalesLite = () => {
                             Cuentas
                         </Button>
 
+                        {/* Botón Tasas - Móvil */}
+                        <IconButton
+                            size="small"
+                            onClick={() => setOpenRatesDialog(true)}
+                            sx={{
+                                bgcolor: alpha(theme.palette.success.main, 0.1),
+                                color: theme.palette.success.main,
+                                display: { xs: 'flex', md: 'none' }
+                            }}
+                        >
+                            <CurrencyExchange fontSize="small" />
+                        </IconButton>
+
+                        {/* Botón Tasas - Desktop */}
+                        <Button
+                            startIcon={<CurrencyExchange />}
+                            size="small"
+                            onClick={() => setOpenRatesDialog(true)}
+                            sx={{
+                                display: { xs: 'none', md: 'flex' },
+                                borderRadius: 4,
+                                textTransform: 'none',
+                                bgcolor: alpha(theme.palette.success.main, 0.1),
+                                color: theme.palette.success.main
+                            }}
+                        >
+                            Tasas
+                        </Button>
+
+                        {/* Botón Crear Orden - Móvil */}
+                        <IconButton
+                            size="small"
+                            onClick={() => setOpenCreateDialog(true)}
+                            sx={{
+                                bgcolor: alpha(theme.palette.primary.main, 0.1),
+                                color: theme.palette.primary.main,
+                                display: { xs: 'flex', md: 'none' }
+                            }}
+                        >
+                            <AddCircleOutline fontSize="small" />
+                        </IconButton>
+
+                        {/* Botón Crear Orden - Desktop */}
+                        <Button
+                            startIcon={<AddCircleOutline />}
+                            size="small"
+                            onClick={() => setOpenCreateDialog(true)}
+                            sx={{
+                                display: { xs: 'none', md: 'flex' },
+                                borderRadius: 4,
+                                textTransform: 'none',
+                                bgcolor: alpha(theme.palette.primary.main, 0.1),
+                                color: theme.palette.primary.main
+                            }}
+                        >
+                            Crear
+                        </Button>
+
                         <LiteSettingsMenu />
                         <LiteNotificationBell />
                         <IconButton size="small" onClick={() => setShowTestPanel(!showTestPanel)} sx={{ color: 'warning.main', bgcolor: alpha(theme.palette.warning.main, 0.1) }}>
@@ -497,8 +559,17 @@ export const SalesLite = () => {
                 />
             </Box>
 
-            {/* Dialogo de Cuentas */}
+            {/* Dialogo de Cuentas, Tasas, Crear Orden */}
             <BankAccountsDialog open={openBankDialog} onClose={() => setOpenBankDialog(false)} />
+            <DailyRatesDialog open={openRatesDialog} onClose={() => setOpenRatesDialog(false)} />
+            <CreateOrderDialog
+                open={openCreateDialog}
+                onClose={() => setOpenCreateDialog(false)}
+                onSuccess={() => {
+                    if (refreshRef.current) refreshRef.current();
+                    fetchCounts();
+                }}
+            />
 
             <ToastContainer
                 stacked

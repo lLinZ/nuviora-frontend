@@ -41,7 +41,8 @@ import {
     CheckCircleRounded,
     RuleRounded,
     Inventory2Outlined as Inventory2OutlinedIcon,
-    ReplayRounded
+    ReplayRounded,
+    CurrencyExchange
 } from "@mui/icons-material";
 import { request } from "../../common/request";
 import { MarkDeliveredDialog } from "./MarkDeliveredDialog";
@@ -50,6 +51,7 @@ import { ResolveNovedadDialog } from "./ResolveNovedadDialog";
 import { LogisticsDialog } from "./LogisticsDialog";
 import DenseMenu from "../ui/content/DenseMenu";
 import { toast } from "react-toastify";
+import { DailyRatesDialog } from "./DailyRatesDialog";
 
 interface OrderDialogProps {
     id?: number;
@@ -108,6 +110,7 @@ export const OrderDialog: FC<OrderDialogProps> = ({ id, open, setOpen }) => {
 
     const [openReminder, setOpenReminder] = useState(false);
     const [openSearch, setOpenSearch] = useState(false);
+    const [openRates, setOpenRates] = useState(false);
     const [openAssign, setOpenAssign] = useState(false);
     const [openAssignAgency, setOpenAssignAgency] = useState(false);
     const [openAssignDeliverer, setOpenAssignDeliverer] = useState(false);
@@ -376,6 +379,12 @@ export const OrderDialog: FC<OrderDialogProps> = ({ id, open, setOpen }) => {
                                 <Tooltip title="Copiar resumen">
                                     <IconButton onClick={copyGeneralInfo} sx={{ color: 'white', p: { xs: 1, sm: 1 } }}>
                                         <ContentCopyRounded sx={{ fontSize: { xs: '1.2rem', sm: '1.5rem' } }} />
+                                    </IconButton>
+                                </Tooltip>
+
+                                <Tooltip title="Tasas del día">
+                                    <IconButton onClick={() => setOpenRates(true)} sx={{ color: 'white', p: { xs: 1, sm: 1 } }}>
+                                        <CurrencyExchange sx={{ fontSize: { xs: '1.2rem', sm: '1.5rem' } }} />
                                     </IconButton>
                                 </Tooltip>
 
@@ -754,6 +763,7 @@ export const OrderDialog: FC<OrderDialogProps> = ({ id, open, setOpen }) => {
                 <AssignAgencyDialog open={openAssignAgency} onClose={() => setOpenAssignAgency(false)} orderId={order.id} />
                 <AssignDelivererDialog open={openAssignDeliverer} onClose={() => setOpenAssignDeliverer(false)} orderId={order.id} />
                 <LogisticsDialog open={openLogistics} onClose={() => setOpenLogistics(false)} order={order} />
+                <DailyRatesDialog open={openRates} onClose={() => setOpenRates(false)} />
 
                 {/* CONFIRM RETURN/EXCHANGE DIALOG */}
                 <Dialog open={confirmReturnOpen} onClose={() => setConfirmReturnOpen(false)}>

@@ -44,10 +44,12 @@ import {
     AddShoppingCartRounded,
     WhatsApp,
     ReplayRounded,
+    CurrencyExchange,
     EventRepeatRounded
 } from "@mui/icons-material";
 import { request } from "../../common/request";
 import { toast } from "react-toastify";
+import { DailyRatesDialog } from "../../components/orders/DailyRatesDialog";
 
 // Import other mandatory dialogs for logic to work
 import { CancelOrderDialog } from "../../components/orders/CancelOrderDialog";
@@ -125,6 +127,7 @@ export const LiteOrderDialog: FC<LiteOrderDialogProps> = ({ id, open, setOpen, o
     // Local state for Upsells and other dialogs managed locally
     const [openReminder, setOpenReminder] = useState(false);
     const [openSearch, setOpenSearch] = useState(false);
+    const [openRates, setOpenRates] = useState(false);
     const [openAssign, setOpenAssign] = useState(false);
     const [openAssignAgency, setOpenAssignAgency] = useState(false);
     const [openAssignDeliverer, setOpenAssignDeliverer] = useState(false);
@@ -213,6 +216,16 @@ export const LiteOrderDialog: FC<LiteOrderDialogProps> = ({ id, open, setOpen, o
                     </Box>
 
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                        {/* RATES BUTTON */}
+                        <IconButton
+                            onClick={() => setOpenRates(true)}
+                            color="success"
+                            size="small"
+                            sx={{ bgcolor: 'rgba(76, 175, 80, 0.1)' }}
+                        >
+                            <CurrencyExchange fontSize="small" />
+                        </IconButton>
+
                         {/* GENERATE RETURN/EXCHANGE BUTTONS - Only for delivered orders */}
                         {!(order.is_return || order.is_exchange) && order.status?.description === 'Entregado' && (
                             <Box sx={{ display: 'flex', gap: 1 }}>
@@ -481,6 +494,7 @@ export const LiteOrderDialog: FC<LiteOrderDialogProps> = ({ id, open, setOpen, o
             <AssignAgencyDialog open={openAssignAgency} onClose={() => setOpenAssignAgency(false)} orderId={order.id} />
             <AssignDelivererDialog open={openAssignDeliverer} onClose={() => setOpenAssignDeliverer(false)} orderId={order.id} />
             <LogisticsDialog open={openLogistics} onClose={() => setOpenLogistics(false)} order={order} />
+            <DailyRatesDialog open={openRates} onClose={() => setOpenRates(false)} />
 
             {/* Upsell Dialog */}
             <ProductSearchDialog open={openSearch} onClose={() => setOpenSearch(false)} onPick={(product) => { setUpsellCandidate(product); setUpsellPrice(Number(product.price)); setUpsellQty(1); setOpenSearch(false); setShowUpsellConfirm(true); }} />
