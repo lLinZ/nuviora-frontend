@@ -136,7 +136,7 @@ export const OrderDialog: FC<OrderDialogProps> = ({ id, open, setOpen }) => {
 
     const copyGeneralInfo = () => {
         if (!order) return;
-        const productsList = order.products?.map((p: any) => `• ${p.quantity}x ${p.title}`).join('\n') || 'Sin productos';
+        const productsList = order.products?.map((p: any) => `• ${p.quantity}x ${p.showable_name || p.title}`).join('\n') || 'Sin productos';
         const agencyDisplay = order.agency?.names
             ? (user.role?.description === 'Vendedor' ? 'Asignada a Agencia' : order.agency.names)
             : 'No asignada';
@@ -378,11 +378,13 @@ export const OrderDialog: FC<OrderDialogProps> = ({ id, open, setOpen }) => {
 
                             {/* BOTONES ACCION */}
                             <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 0.5, sm: 1 } }}>
-                                <Tooltip title="Copiar resumen">
-                                    <IconButton onClick={copyGeneralInfo} sx={{ color: 'white', p: { xs: 1, sm: 1 } }}>
-                                        <ContentCopyRounded sx={{ fontSize: { xs: '1.2rem', sm: '1.5rem' } }} />
-                                    </IconButton>
-                                </Tooltip>
+                                {['Admin', 'Gerente', 'Master', 'Agencia'].includes(user.role?.description || '') && (
+                                    <Tooltip title="Copiar resumen">
+                                        <IconButton onClick={copyGeneralInfo} sx={{ color: 'white', p: { xs: 1, sm: 1 } }}>
+                                            <ContentCopyRounded sx={{ fontSize: { xs: '1.2rem', sm: '1.5rem' } }} />
+                                        </IconButton>
+                                    </Tooltip>
+                                )}
 
                                 <Tooltip title="Tasas del día">
                                     <IconButton onClick={() => setOpenRates(true)} sx={{ color: 'white', p: { xs: 1, sm: 1 } }}>

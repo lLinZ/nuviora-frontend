@@ -1,4 +1,4 @@
-import { Toolbar, Box, Grid, Paper, Stack, Avatar, Divider, Tooltip, Chip, Checkbox } from "@mui/material";
+import { Toolbar, Box, Grid, Paper, Stack, Avatar, Divider, Tooltip, Chip, Checkbox, TextField } from "@mui/material";
 import {
     ShoppingCartRounded,
     AttachMoneyRounded,
@@ -12,10 +12,13 @@ import {
     StarRounded,
     CheckCircleRounded,
     HistoryRounded,
-    Inventory2Outlined as Inventory2OutlinedIcon
+    Inventory2Outlined as Inventory2OutlinedIcon,
+    FileDownloadRounded as FileDownloadRoundedIcon
 } from "@mui/icons-material";
 import Masonry from "@mui/lab/Masonry";
 import { useEffect, useState, FC } from "react";
+import * as XLSX from 'xlsx';
+import dayjs from "dayjs";
 import { darken, lighten } from "@mui/material/styles";
 import { Layout } from "../components/ui/Layout";
 import { useUserStore } from "../store/user/UserStore";
@@ -106,6 +109,10 @@ export const Dashboard = () => {
     const [pendingVueltos, setPendingVueltos] = useState<PendingVuelto[]>([]);
     const [loading, setLoading] = useState(true);
     const [autoAssigning, setAutoAssigning] = useState(false);
+    const [agencySettlement, setAgencySettlement] = useState<any[]>([]);
+    const [fromDate, setFromDate] = useState(dayjs().startOf('month').format("YYYY-MM-DD"));
+    const [toDate, setToDate] = useState(dayjs().format("YYYY-MM-DD"));
+    const [fetchingSettlement, setFetchingSettlement] = useState(false);
     const [selectedOrderId, setSelectedOrderId] = useState<number | null>(null);
     const [showOrderDialog, setShowOrderDialog] = useState(false);
 
@@ -131,6 +138,11 @@ export const Dashboard = () => {
                         setPendingVueltos(vJson.orders);
                     }
                 }
+            }
+
+            // Fetch agency settlement if agency
+            if (user.role?.description === 'Agencia') {
+                await fetchSettlement();
             }
 
         } catch (error) {
@@ -207,6 +219,46 @@ export const Dashboard = () => {
         } finally {
             setLoading(false);
         }
+    };
+
+    const fetchSettlement = async () => {
+        setFetchingSettlement(true);
+        try {
+            const { status, response } = await request(`/earnings/summary?from=${fromDate}&to=${toDate}`, 'GET');
+            if (status) {
+                const json = await response.json();
+                if (json.status) {
+                    setAgencySettlement(json.data.agency_settlement || []);
+                }
+            }
+        } catch (error) {
+            console.error(error);
+        } finally {
+            setFetchingSettlement(false);
+        }
+    };
+
+    const exportToExcel = (agency: any) => {
+        if (!agency) return;
+        const worksheetData = agency.order_details.map((d: any) => ({
+            "Orden": `#${d.order_name}`,
+            "Fecha": dayjs(d.updated_at).format('DD/MM/YYYY HH:mm'),
+            "Total Orden": d.total_price,
+            "Cobrado USD (Efec)": d.collected_usd,
+            "Cobrado VES (Efec)": d.collected_ves,
+            "Vuelto Agencia USD": d.change_usd,
+            "Vuelto Agencia VES": d.change_ves,
+            "Tasa Usada (Bs)": d.rate_ves ?? 0,
+            "Vuelto Empresa (Monto)": d.change_company,
+            "Vuelto Empresa (Método)": d.method_company,
+            "Saldo Final USD": d.net_usd,
+            "Saldo Final VES": d.net_ves,
+        }));
+
+        const ws = XLSX.utils.json_to_sheet(worksheetData);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Liquidación");
+        XLSX.writeFile(wb, `Liquidacion_${agency.agency_name.replace(/\s+/g, '_')}_${dayjs().format('YYYYMMDD')}.xlsx`);
     };
 
     const renderWidgetsByRole = () => {
@@ -581,7 +633,7 @@ export const Dashboard = () => {
                                 </Grid>
                             </Grid>
                         </Grid>
-                    </Grid>
+                    </Grid >
                 );
 
 
@@ -886,41 +938,6 @@ export const Dashboard = () => {
                             </Grid>
                         </Grid>
 
-                        {/* 🚚 PENDING ROUTE LIST */}
-                        <Grid size={{ xs: 12, md: 6 }}>
-                            <TypographyCustom variant="h6" fontWeight="bold" sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
-                                <LocationOnRounded color="warning" /> Órdenes por Enrutar
-                            </TypographyCustom>
-                            <Paper elevation={0} sx={{ p: 0, borderRadius: 4, bgcolor: 'background.paper', border: '1px solid', borderColor: 'divider', overflow: 'hidden' }}>
-                                <Stack divider={<Divider />}>
-                                    {stats.pending_route_orders?.map((o: any, i: number) => (
-                                        <Box
-                                            key={i}
-                                            onClick={() => handleOpenOrder(o.id)}
-                                            sx={{
-                                                p: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                                                cursor: 'pointer', '&:hover': { bgcolor: 'action.hover' },
-                                                transition: '0.2s'
-                                            }}
-                                        >
-                                            <Box>
-                                                <TypographyCustom variant="subtitle2" fontWeight="bold">#{o.name} - {o.client?.first_name} {o.client?.last_name}</TypographyCustom>
-                                                <TypographyCustom variant="caption" color="text.secondary">
-                                                    {o.status?.description} • {o.deliverer?.names || 'Repartidor sin asignar'}
-                                                </TypographyCustom>
-                                            </Box>
-                                            <Chip label="Ver detalle" size="small" variant="outlined" sx={{ cursor: 'pointer' }} />
-                                        </Box>
-                                    ))}
-                                    {(!stats.pending_route_orders || stats.pending_route_orders.length === 0) && (
-                                        <Box sx={{ p: 4, textAlign: 'center', opacity: 0.6 }}>
-                                            <TypographyCustom variant="body2">No hay órdenes pendientes de ruta ✨</TypographyCustom>
-                                        </Box>
-                                    )}
-                                </Stack>
-                            </Paper>
-                        </Grid>
-
                         {/* 🏢 AGENCY INFO */}
                         <Grid size={{ xs: 12, md: 6 }}>
                             <TypographyCustom variant="h6" fontWeight="bold" sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -945,6 +962,54 @@ export const Dashboard = () => {
                                         <TypographyCustom variant="caption" color="text.secondary">Volumen Ventas</TypographyCustom>
                                     </Box>
                                 </Stack>
+                                <Divider sx={{ my: 2 }} />
+                                <Stack spacing={2} sx={{ mb: 3 }}>
+                                    <TypographyCustom variant="subtitle2" fontWeight="bold">Periodo de Liquidación</TypographyCustom>
+                                    <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+                                        <TextField
+                                            label="Desde"
+                                            type="date"
+                                            size="small"
+                                            fullWidth
+                                            value={fromDate}
+                                            onChange={(e) => setFromDate(e.target.value)}
+                                            InputLabelProps={{ shrink: true }}
+                                        />
+                                        <TextField
+                                            label="Hasta"
+                                            type="date"
+                                            size="small"
+                                            fullWidth
+                                            value={toDate}
+                                            onChange={(e) => setToDate(e.target.value)}
+                                            InputLabelProps={{ shrink: true }}
+                                        />
+                                    </Stack>
+                                    <ButtonCustom
+                                        variant="outlined"
+                                        onClick={fetchSettlement}
+                                        loading={fetchingSettlement}
+                                    >
+                                        Actualizar Reporte
+                                    </ButtonCustom>
+                                </Stack>
+                                <Divider sx={{ my: 2 }} />
+                                <ButtonCustom
+                                    variant="contained"
+                                    fullWidth
+                                    startIcon={<FileDownloadRoundedIcon />}
+                                    disabled={agencySettlement.length === 0 || fetchingSettlement}
+                                    onClick={() => exportToExcel(agencySettlement[0])}
+                                    sx={{
+                                        borderRadius: 3,
+                                        py: 1.5,
+                                        fontWeight: 'bold',
+                                        textTransform: 'none',
+                                        boxShadow: 2
+                                    }}
+                                >
+                                    Descargar Liquidación (Excel)
+                                </ButtonCustom>
                             </Paper>
                         </Grid>
                     </Grid>

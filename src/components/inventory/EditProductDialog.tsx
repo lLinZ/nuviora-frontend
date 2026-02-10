@@ -32,6 +32,7 @@ export const EditProductDialog: React.FC<EditProductDialogProps> = ({
     const [loading, setLoading] = useState(false);
     const [formData, setFormData] = useState({
         title: '',
+        showable_name: '',
         sku: '',
         price: 0,
         cost_usd: 0
@@ -41,6 +42,7 @@ export const EditProductDialog: React.FC<EditProductDialogProps> = ({
         if (open && product) {
             setFormData({
                 title: product.title || '',
+                showable_name: product.showable_name || '',
                 sku: product.sku || '',
                 price: product.price || 0,
                 cost_usd: product.cost_usd || 0
@@ -100,11 +102,12 @@ export const EditProductDialog: React.FC<EditProductDialogProps> = ({
                         />
                         <TextField
                             fullWidth
-                            label="SKU"
-                            name="sku"
-                            value={formData.sku}
+                            label="Nombre para Mostrar (Temporal)"
+                            name="showable_name"
+                            value={formData.showable_name}
                             onChange={handleChange}
                             size="small"
+                            helperText="Este es el nombre que se verá en las órdenes y reportes."
                         />
                         <Grid container spacing={2}>
                             <Grid size={{ xs: 6 }}>

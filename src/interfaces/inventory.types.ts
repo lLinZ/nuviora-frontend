@@ -63,6 +63,7 @@ export interface IProduct {
     id: number;
     title: string;
     name?: string;
+    showable_name?: string;
     sku?: string;
     price?: number;
     cost?: number;

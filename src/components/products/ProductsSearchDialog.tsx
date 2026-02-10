@@ -84,11 +84,11 @@ export const ProductSearchDialog: FC<Props> = ({ open, onClose, onPick }) => {
                                 <ListItemButton onClick={() => { onPick?.(p); toast.success("Producto seleccionado ✅"); }}>
                                     <ListItemAvatar>
                                         <Avatar src={p.image || undefined} variant="rounded">
-                                            {!p.image && (p.name?.[0] ?? p.title?.[0] ?? "P")}
+                                            {!p.image && (p.showable_name?.[0] ?? p.name?.[0] ?? p.title?.[0] ?? "P")}
                                         </Avatar>
                                     </ListItemAvatar>
                                     <ListItemText
-                                        primary={p.name ?? p.title ?? "Producto"}
+                                        primary={p.showable_name ?? p.name ?? p.title ?? "Producto"}
                                         secondary={
                                             <>
                                                 {p.sku && <Chip size="small" label={`SKU: ${p.sku}`} sx={{ mr: 1 }} />}

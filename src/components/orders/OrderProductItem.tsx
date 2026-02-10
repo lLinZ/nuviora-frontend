@@ -38,7 +38,7 @@ export const OrderProductItem: React.FC<OrderProductItemProps> = ({ product, cur
         >
             <Avatar
                 src={product.image || undefined}
-                alt={product.title}
+                alt={product.showable_name || product.title}
                 variant="rounded"
                 sx={{
                     width: 50,
@@ -62,9 +62,9 @@ export const OrderProductItem: React.FC<OrderProductItemProps> = ({ product, cur
                         textOverflow: "ellipsis",
                         display: 'block'
                     }}
-                    title={product.title}
+                    title={product.showable_name || product.title}
                 >
-                    {product.title}
+                    {product.showable_name || product.title}
                 </TypographyCustom>
 
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 0.5 }}>

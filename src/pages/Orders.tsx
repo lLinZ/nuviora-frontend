@@ -334,7 +334,9 @@ export const Orders = () => {
                                 )}
 
                                 <OrderList title="Entregado" />
-                                <OrderList title="Cancelado" />
+                                {!['Agencia', 'Repartidor'].includes(user.role?.description || '') && (
+                                    <OrderList title="Cancelado" />
+                                )}
                             </>
                         )}
                     </Box>

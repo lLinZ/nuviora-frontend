@@ -163,6 +163,14 @@ const LiteOrderTable = ({ statusTitle, searchTerm, onRefresh }: any) => {
                                             ⚠️ {order.novedad_type}
                                         </Typography>
                                     )}
+                                    {order.scheduled_for && ['Programado para mas tarde', 'Reprogramado para hoy', 'Programado para otro dia', 'Reprogramado'].includes(order.status?.description) && (
+                                        <Typography variant="caption" display="block" color="warning.main" sx={{ mt: 0.5, fontWeight: 'bold' }}>
+                                            📅 {new Date(order.scheduled_for).toLocaleDateString() === new Date().toLocaleDateString()
+                                                ? `Hoy ${new Date(order.scheduled_for).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
+                                                : new Date(order.scheduled_for).toLocaleDateString([], { day: '2-digit', month: '2-digit' })
+                                            }
+                                        </Typography>
+                                    )}
                                     <Box sx={{ mt: 0.5 }}>
                                         <OrderTimer
                                             receivedAt={order.status?.description === 'Novedades' ? order.updated_at : order.received_at}

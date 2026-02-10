@@ -455,7 +455,7 @@ export const OrderItem: FC<OrderItemProps> = ({ order }) => {
                     </Box>
                 )}
 
-                {(order.status.description === 'Programado para mas tarde' || order.status.description === 'Reprogramado para hoy') && order.scheduled_for && (
+                {['Programado para mas tarde', 'Reprogramado para hoy', 'Programado para otro dia', 'Reprogramado'].includes(order.status.description) && order.scheduled_for && (
                     <Box sx={{ display: 'flex', alignItems: 'center', mt: 0.5, gap: 1 }}>
                         <TypographyCustom variant="caption" sx={{
                             color: new Date(order.scheduled_for) < new Date() ? 'error.main' : 'warning.main',
@@ -473,7 +473,10 @@ export const OrderItem: FC<OrderItemProps> = ({ order }) => {
                                     '100%': { transform: 'scale(1)', opacity: 1 },
                                 }
                             }} />
-                            Vence: {new Date(order.scheduled_for).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                            {new Date(order.scheduled_for).toLocaleDateString() === new Date().toLocaleDateString()
+                                ? `Hoy ${new Date(order.scheduled_for).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
+                                : new Date(order.scheduled_for).toLocaleString([], { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })
+                            }
                         </TypographyCustom>
                     </Box>
                 )}
@@ -496,7 +499,7 @@ export const OrderItem: FC<OrderItemProps> = ({ order }) => {
             <TypographyCustom sx={{ margin: 'auto', color: user.color, mt: 1 }} variant="subtitle1" onClick={() => getProducts()}>Ver productos</TypographyCustom>
 
             {orderProducts.length > 0 ? orderProducts.map((p: any) =>
-                <Tooltip title={p.title}>
+                <Tooltip title={p.showable_name || p.title}>
                     <TypographyCustom variant="subtitle2"
                         color="text.secondary"
                         sx={{
@@ -505,7 +508,7 @@ export const OrderItem: FC<OrderItemProps> = ({ order }) => {
                             overflow: "hidden",
                             textOverflow: "ellipsis",
                         }}>
-                        ({p.quantity}) {p.title}
+                        ({p.quantity}) {p.showable_name || p.title}
                     </TypographyCustom>
                 </Tooltip>
             ) : orderProductsEmpty ? 'No hay productos para mostrar' : ''}

@@ -45,7 +45,8 @@ import {
     WhatsApp,
     ReplayRounded,
     CurrencyExchange,
-    EventRepeatRounded
+    EventRepeatRounded,
+    ScheduleRounded
 } from "@mui/icons-material";
 import { request } from "../../common/request";
 import { toast } from "react-toastify";
@@ -283,6 +284,15 @@ export const LiteOrderDialog: FC<LiteOrderDialogProps> = ({ id, open, setOpen, o
                             {Boolean(order.is_exchange) ? 'ORDEN DE CAMBIO' : 'ORDEN DE DEVOLUCIÓN'}
                         </AlertTitle>
                         Esta es una orden de {Boolean(order.is_exchange) ? 'cambio' : 'devolución'}. El total es $0 y no requiere registro de pagos.
+                    </Alert>
+                )}
+
+                {order.scheduled_for && ['Programado para mas tarde', 'Reprogramado para hoy', 'Programado para otro dia', 'Reprogramado'].includes(order.status?.description) && (
+                    <Alert severity="info" variant="filled" icon={<ScheduleRounded />} sx={{ mb: 2, borderRadius: 2, maxWidth: '1000px', margin: '0 auto 16px auto', bgcolor: '#fbc02d', color: '#000' }}>
+                        <AlertTitle sx={{ fontWeight: 'bold' }}>📅 Entrega Programada</AlertTitle>
+                        Esta orden está programada para el: <strong>
+                            {new Date(order.scheduled_for).toLocaleString([], { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                        </strong>
                     </Alert>
                 )}
 
