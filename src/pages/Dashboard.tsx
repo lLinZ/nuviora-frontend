@@ -951,15 +951,15 @@ export const Dashboard = () => {
                                 <Stack direction="row" spacing={2} justifyContent="space-around">
                                     <Box textAlign="center">
                                         <TypographyCustom variant="h4" fontWeight="bold" color="primary.main">
-                                            {stats.orders_today?.delivered || 0}
+                                            {fetchingSettlement ? '...' : (agencySettlement[0]?.total_orders ?? 0)}
                                         </TypographyCustom>
-                                        <TypographyCustom variant="caption" color="text.secondary">Total Entregadas</TypographyCustom>
+                                        <TypographyCustom variant="caption" color="text.secondary">Total Entregadas (Periodo)</TypographyCustom>
                                     </Box>
                                     <Box textAlign="center">
                                         <TypographyCustom variant="h4" fontWeight="bold" color="success.main">
-                                            ${Number(stats.total_sales || 0).toFixed(0)}
+                                            {fetchingSettlement ? '...' : `$${Number(agencySettlement[0]?.total_net_usd || 0).toFixed(0)}`}
                                         </TypographyCustom>
-                                        <TypographyCustom variant="caption" color="text.secondary">Volumen Ventas</TypographyCustom>
+                                        <TypographyCustom variant="caption" color="text.secondary">Saldo Final USD</TypographyCustom>
                                     </Box>
                                 </Stack>
                                 <Divider sx={{ my: 2 }} />
