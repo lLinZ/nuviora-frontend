@@ -192,7 +192,9 @@ export const OrderChangeSection: React.FC<OrderChangeSectionProps> = ({ order, o
         const details = form.change_payment_details as any;
 
         // Calcular monto en Bs
-        const amountUSD = Number(form.change_amount) || 0;
+        const amountUSD = form.change_covered_by === 'partial'
+            ? (Number(form.change_amount_company) || 0)
+            : (Number(form.change_amount) || 0);
         const rate = Number(form.change_rate) || Number(euroRate) || 0;
         const amountBs = (amountUSD * rate).toFixed(2).replace('.', ',');
 

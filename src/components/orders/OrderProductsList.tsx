@@ -7,9 +7,10 @@ interface OrderProductsListProps {
     products: any[];
     currency: string;
     onDeleteItem?: (id: number) => void;
+    onEditQuantity?: (id: number, quantity: number) => void;
 }
 
-export const OrderProductsList: React.FC<OrderProductsListProps> = ({ products, currency, onDeleteItem }) => {
+export const OrderProductsList: React.FC<OrderProductsListProps> = ({ products, currency, onDeleteItem, onEditQuantity }) => {
     return (
         <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
             {products?.length > 0 ? (
@@ -19,6 +20,7 @@ export const OrderProductsList: React.FC<OrderProductsListProps> = ({ products, 
                         product={p}
                         currency={currency}
                         onDelete={onDeleteItem ? () => onDeleteItem(p.id) : undefined}
+                        onEditQuantity={onEditQuantity ? (qty) => onEditQuantity(p.id, qty) : undefined}
                     />
                 ))
             ) : (

@@ -4,14 +4,16 @@ import { TypographyCustom } from "../custom";
 import { fmtMoney } from "../../lib/money";
 import DeleteOutlineRoundedIcon from "@mui/icons-material/DeleteOutlineRounded";
 import Inventory2OutlinedIcon from '@mui/icons-material/Inventory2Outlined';
+import EditRoundedIcon from '@mui/icons-material/EditRounded';
 
 interface OrderProductItemProps {
     product: any;
     currency: string;
     onDelete?: () => void;
+    onEditQuantity?: (qty: number) => void;
 }
 
-export const OrderProductItem: React.FC<OrderProductItemProps> = ({ product, currency, onDelete }) => {
+export const OrderProductItem: React.FC<OrderProductItemProps> = ({ product, currency, onDelete, onEditQuantity }) => {
     const subtotal = (Number(product.price) || 0) * (Number(product.quantity) || 0);
 
     return (
@@ -66,13 +68,24 @@ export const OrderProductItem: React.FC<OrderProductItemProps> = ({ product, cur
                 </TypographyCustom>
 
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 0.5 }}>
-                    <Typography variant="caption" sx={{
-                        bgcolor: product.has_stock === false ? 'error.main' : 'action.hover',
-                        color: product.has_stock === false ? 'white' : 'text.primary',
-                        px: 0.8, py: 0.2, borderRadius: 1, fontWeight: 'bold'
-                    }}>
-                        Cant: {product.quantity}
-                    </Typography>
+                    <Tooltip title={onEditQuantity ? "Click para editar cantidad" : ""}>
+                        <Box
+                            onClick={() => onEditQuantity && onEditQuantity(Number(product.quantity))}
+                            sx={{
+                                display: 'flex', alignItems: 'center', gap: 0.5,
+                                bgcolor: product.has_stock === false ? 'error.main' : 'action.hover',
+                                color: product.has_stock === false ? 'white' : 'text.primary',
+                                px: 0.8, py: 0.2, borderRadius: 1, fontWeight: 'bold',
+                                cursor: onEditQuantity ? 'pointer' : 'default',
+                                '&:hover': onEditQuantity ? { bgcolor: 'action.selected' } : {}
+                            }}
+                        >
+                            <Typography variant="caption" fontWeight="bold" color="inherit">
+                                Cant: {product.quantity}
+                            </Typography>
+                            {onEditQuantity && <EditRoundedIcon sx={{ fontSize: 12, opacity: 0.7 }} />}
+                        </Box>
+                    </Tooltip>
                     {product.stock_available !== undefined && (
                         <Typography variant="caption" sx={{ color: product.has_stock === false ? 'error.main' : 'text.secondary', fontWeight: 'bold' }}>
                             (Disp: {product.stock_available})

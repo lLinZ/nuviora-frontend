@@ -271,12 +271,14 @@ export const useOrderDialogLogic = (
         }
     };
 
-    const addUpsell = async (productId: number, quantity: number, price: number) => {
+    const addUpsell = async (productId: number, quantity: number, price: number, is_upsell: boolean = true) => {
         if (!selectedOrder) return false;
         try {
             const body = new URLSearchParams();
             body.append("product_id", String(productId));
             body.append("quantity", String(quantity));
+            body.append("is_upsell", is_upsell ? "1" : "0");
+
             // Don't send price for return/exchange orders - backend will set it to 0
             if (!selectedOrder.is_return && !selectedOrder.is_exchange) {
                 body.append("price", String(price));
@@ -291,7 +293,7 @@ export const useOrderDialogLogic = (
             if (status) {
                 const data = await response.json();
                 updateOrderInColumns(data.order);
-                toast.success(data.message || ((selectedOrder.is_return || selectedOrder.is_exchange) ? "Producto agregado ✅" : "Upsell agregado correctamente ✅"));
+                toast.success(data.message || ((selectedOrder.is_return || selectedOrder.is_exchange) ? "Producto agregado ✅" : "Agregado correctamente ✅"));
                 return true;
             } else {
                 toast.error("Error al agregar producto ❌");
@@ -317,6 +319,29 @@ export const useOrderDialogLogic = (
                 toast.success("Upsell eliminado correctamente ✅");
             } else {
                 toast.error("Error al eliminar upsell ❌");
+            }
+        } catch {
+            toast.error("Error de servidor 🚨");
+        }
+    };
+    const updateProductQuantity = async (itemId: number, quantity: number) => {
+        if (!selectedOrder) return;
+        try {
+            const body = new URLSearchParams();
+            body.append("quantity", String(quantity));
+
+            const { status, response }: IResponse = await request(
+                `/orders/${selectedOrder.id}/upsell/${itemId}`,
+                "PUT",
+                body
+            );
+
+            if (status) {
+                const data = await response.json();
+                updateOrderInColumns(data.order);
+                toast.success("Cantidad actualizada ✅");
+            } else {
+                toast.error("Error al actualizar cantidad ❌");
             }
         } catch {
             toast.error("Error de servidor 🚨");
@@ -584,5 +609,6 @@ export const useOrderDialogLogic = (
         pendingExtraData,
         fetchOrder,
         refreshOrder: fetchOrder,
+        updateProductQuantity,
     };
 };

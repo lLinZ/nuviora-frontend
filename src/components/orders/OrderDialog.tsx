@@ -106,6 +106,7 @@ export const OrderDialog: FC<OrderDialogProps> = ({ id, open, setOpen }) => {
         pendingExtraData,
         fetchOrder,
         refreshOrder,
+        updateProductQuantity,
     } = useOrderDialogLogic(id, open, setOpen);
 
     const [openReminder, setOpenReminder] = useState(false);
@@ -123,6 +124,7 @@ export const OrderDialog: FC<OrderDialogProps> = ({ id, open, setOpen }) => {
     const [confirmReturnOpen, setConfirmReturnOpen] = useState(false);
     const [confirmType, setConfirmType] = useState<'devolucion' | 'cambio'>('devolucion');
     const [creatingReturn, setCreatingReturn] = useState(false);
+    const [isAddingRegular, setIsAddingRegular] = useState(false);
 
     useEffect(() => {
         if (order?.payments) {
@@ -542,9 +544,24 @@ export const OrderDialog: FC<OrderDialogProps> = ({ id, open, setOpen }) => {
                                         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
                                             <Typography variant="h6" fontWeight="bold">Productos</Typography>
                                             {user.role?.description !== 'Agencia' && (
-                                                <ButtonCustom size="small" variant="outlined" onClick={() => setOpenSearch(true)}>
-                                                    {(Boolean(order.is_return) || Boolean(order.is_exchange)) ? '+ Agregar' : '+ Upsell'}
-                                                </ButtonCustom>
+                                                <Box sx={{ display: 'flex', gap: 1 }}>
+                                                    {(Boolean(order.is_return) || Boolean(order.is_exchange)) ? (
+                                                        <ButtonCustom size="small" variant="outlined" onClick={() => { setIsAddingRegular(true); setOpenSearch(true); }}>
+                                                            + Agregar
+                                                        </ButtonCustom>
+                                                    ) : (
+                                                        <>
+                                                            <ButtonCustom size="small" variant="outlined" color="primary" onClick={() => { setIsAddingRegular(false); setOpenSearch(true); }}>
+                                                                + Upsell
+                                                            </ButtonCustom>
+                                                            {['Admin', 'Gerente', 'Master'].includes(user.role?.description || '') && (
+                                                                <ButtonCustom size="small" variant="outlined" color="info" onClick={() => { setIsAddingRegular(true); setOpenSearch(true); }}>
+                                                                    + Producto
+                                                                </ButtonCustom>
+                                                            )}
+                                                        </>
+                                                    )}
+                                                </Box>
                                             )}
                                         </Box>
 
@@ -568,6 +585,16 @@ export const OrderDialog: FC<OrderDialogProps> = ({ id, open, setOpen }) => {
                                                     onDeleteItem={
                                                         user.role?.description === 'Admin'
                                                             ? (id) => { if (confirm("⚠️ ¿Estás seguro de eliminar este producto?\nEsto reducirá el total de la orden.")) removeUpsell(id); }
+                                                            : undefined
+                                                    }
+                                                    onEditQuantity={
+                                                        user.role?.description === 'Admin'
+                                                            ? (id, qty) => {
+                                                                const newQty = prompt("Nueva cantidad:", String(qty));
+                                                                if (newQty && !isNaN(Number(newQty))) {
+                                                                    updateProductQuantity(id, Number(newQty));
+                                                                }
+                                                            }
                                                             : undefined
                                                     }
                                                 />
@@ -788,7 +815,7 @@ export const OrderDialog: FC<OrderDialogProps> = ({ id, open, setOpen }) => {
                 </Dialog>
                 <ProductSearchDialog open={openSearch} onClose={() => setOpenSearch(false)} onPick={(product) => { setUpsellCandidate(product); setUpsellPrice(Number(product.price)); setUpsellQty(1); setOpenSearch(false); setShowUpsellConfirm(true); }} />
                 <Dialog open={showUpsellConfirm} onClose={() => setShowUpsellConfirm(false)}>
-                    <DialogTitle>Confirmar Upsell</DialogTitle>
+                    <DialogTitle>{isAddingRegular ? 'Confirmar Agregar Producto' : 'Confirmar Upsell'}</DialogTitle>
                     <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1, minWidth: 300 }}>
                         <Typography variant="subtitle1" fontWeight="bold">{upsellCandidate?.name || upsellCandidate?.title}</Typography>
                         <TextField label="Cantidad" type="number" value={upsellQty} onChange={(e) => setUpsellQty(Number(e.target.value))} fullWidth />
@@ -796,7 +823,7 @@ export const OrderDialog: FC<OrderDialogProps> = ({ id, open, setOpen }) => {
                     </DialogContent>
                     <DialogActions>
                         <Button onClick={() => setShowUpsellConfirm(false)}>Cancelar</Button>
-                        <ButtonCustom onClick={() => { addUpsell(upsellCandidate.id, upsellQty, upsellPrice); setShowUpsellConfirm(false); }}>Agregar</ButtonCustom>
+                        <ButtonCustom onClick={() => { addUpsell(upsellCandidate.id, upsellQty, upsellPrice, !isAddingRegular); setShowUpsellConfirm(false); }}>Agregar</ButtonCustom>
                     </DialogActions>
                 </Dialog>
             </Dialog >
