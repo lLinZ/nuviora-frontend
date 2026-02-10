@@ -116,6 +116,23 @@ export const Dashboard = () => {
     const [selectedOrderId, setSelectedOrderId] = useState<number | null>(null);
     const [showOrderDialog, setShowOrderDialog] = useState(false);
 
+    const fetchSettlement = async () => {
+        setFetchingSettlement(true);
+        try {
+            const { status, response } = await request(`/earnings/summary?from=${fromDate}&to=${toDate}`, 'GET');
+            if (status) {
+                const json = await response.json();
+                if (json.status) {
+                    setAgencySettlement(json.data.agency_settlement || []);
+                }
+            }
+        } catch (error) {
+            console.error(error);
+        } finally {
+            setFetchingSettlement(false);
+        }
+    };
+
     const fetchData = async () => {
         if (!user.token) return;
         setLoading(true);
@@ -221,22 +238,6 @@ export const Dashboard = () => {
         }
     };
 
-    const fetchSettlement = async () => {
-        setFetchingSettlement(true);
-        try {
-            const { status, response } = await request(`/earnings/summary?from=${fromDate}&to=${toDate}`, 'GET');
-            if (status) {
-                const json = await response.json();
-                if (json.status) {
-                    setAgencySettlement(json.data.agency_settlement || []);
-                }
-            }
-        } catch (error) {
-            console.error(error);
-        } finally {
-            setFetchingSettlement(false);
-        }
-    };
 
     const exportToExcel = (agency: any) => {
         if (!agency) return;
