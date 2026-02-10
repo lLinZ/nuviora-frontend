@@ -13,6 +13,8 @@ import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import AddCircleOutlineIcon from "@mui/icons-material/AddCircleOutline";
 import CloudUploadIcon from "@mui/icons-material/CloudUpload";
 import VisibilityIcon from "@mui/icons-material/Visibility";
+import DeleteRounded from "@mui/icons-material/DeleteRounded";
+import { CardMedia } from "@mui/material";
 
 import { ButtonCustom, SelectCustom } from "../../components/custom";
 import { useUserStore } from "../../store/user/UserStore";
@@ -99,6 +101,7 @@ export const LiteOrderPaymentSection: React.FC<OrderPaymentSectionProps> = ({ or
     };
 
     const handleSave = async () => {
+        // ... (existing handleSave logic remains same)
         const payments = rows
             .filter(r => r.method && r.amount)
             .map(r => {
@@ -122,8 +125,8 @@ export const LiteOrderPaymentSection: React.FC<OrderPaymentSectionProps> = ({ or
                 }
             });
 
-            const { status, response }: IResponse = await request(`/orders/${order.id}/payment`, "PUT", body);
-            if (status) {
+            const { status } = await request(`/orders/${order.id}/payment`, "PUT", body);
+            if (status === 200) {
                 toast.success("Pagos guardados");
                 if (onUpdate) onUpdate();
             } else {
@@ -134,24 +137,60 @@ export const LiteOrderPaymentSection: React.FC<OrderPaymentSectionProps> = ({ or
         }
     };
 
+    const handleDeleteReceipt = async (receiptId: number | undefined) => {
+        if (!receiptId) return;
+        if (!window.confirm("¿Eliminar este comprobante?")) return;
+
+        try {
+            const { status } = await request(`/orders/${order.id}/payment-receipt/${receiptId}`, "DELETE");
+            if (status === 200) {
+                toast.success("Comprobante eliminado");
+                if (onUpdate) onUpdate();
+            } else {
+                toast.error("Error al eliminar");
+            }
+        } catch (e) {
+            console.error(e);
+        }
+    };
+
     const handleReceiptUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-        const file = event.target.files?.[0];
-        if (!file) return;
+        const files = event.target.files;
+        if (!files || files.length === 0) return;
         setUploading(true);
         try {
             const formData = new FormData();
-            formData.append('payment_receipt', file);
-            const { status, response } = await request(`/orders/${order.id}/payment-receipt`, "POST", formData, true);
+            for (let i = 0; i < files.length; i++) {
+                formData.append('payment_receipts[]', files[i]);
+            }
+            const { status } = await request(`/orders/${order.id}/payment-receipt`, "POST", formData, true);
             if (status === 200) {
-                toast.success('Comprobante subido');
+                toast.success('Comprobante(s) subido(s)');
                 if (onUpdate) onUpdate();
             } else {
                 toast.error('Error al subir');
             }
         } finally {
             setUploading(false);
+            event.target.value = '';
         }
     };
+
+    const getReceiptsList = () => {
+        let list: { id?: number, url: string }[] = [];
+        const apiUrl = import.meta.env.VITE_BACKEND_API_URL || 'http://localhost:8000/api';
+
+        if (Array.isArray(order.receipts_gallery) && order.receipts_gallery.length > 0) {
+            list = order.receipts_gallery.map((r: any) => ({ id: r.id, url: `${apiUrl}/orders/receipt/${r.id}` }));
+        } else if (Array.isArray(order.payment_receipts) && order.payment_receipts.length > 0) {
+            list = order.payment_receipts.map((r: any) => ({ id: r.id, url: `${apiUrl}/orders/receipt/${r.id}` }));
+        } else if (order.payment_receipt) {
+            list = [{ url: `${apiUrl}/orders/${order.id}/payment-receipt` }];
+        }
+        return list;
+    };
+
+    const receipts = getReceiptsList();
 
     const totalPaid = rows.reduce((acc, row) => acc + (Number(row.amount) || 0), 0);
     const totalOrder = Number(order.current_total_price) || 0;
@@ -233,46 +272,67 @@ export const LiteOrderPaymentSection: React.FC<OrderPaymentSectionProps> = ({ or
             </Box>
 
             {/* Action Buttons Row */}
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 2, alignItems: 'center' }}>
-                <Typography
-                    variant="caption"
-                    color="primary"
-                    sx={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 0.5, fontWeight: 'bold' }}
-                    onClick={handleAddRow}
-                >
-                    <AddCircleOutlineIcon fontSize="inherit" /> Agregar Otro
-                </Typography>
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 2 }}>
+                {receipts.length > 0 && (
+                    <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                        {receipts.map((r, i) => (
+                            <Box key={i} sx={{ position: 'relative', width: 60, height: 60 }}>
+                                <CardMedia
+                                    component="img"
+                                    image={r.url}
+                                    sx={{ width: 60, height: 60, borderRadius: 2, cursor: 'pointer', border: '1px solid #ddd' }}
+                                    onClick={() => window.open(r.url, '_blank')}
+                                />
+                                <IconButton
+                                    size="small"
+                                    onClick={() => handleDeleteReceipt(r.id)}
+                                    sx={{
+                                        position: 'absolute', top: -5, right: -5,
+                                        bgcolor: 'rgba(255,255,255,0.9)', p: 0.2,
+                                        color: red[500], boxShadow: 1,
+                                        '&:hover': { bgcolor: 'white' }
+                                    }}
+                                >
+                                    <DeleteRounded sx={{ fontSize: 14 }} />
+                                </IconButton>
+                            </Box>
+                        ))}
+                    </Box>
+                )}
 
-                <Box sx={{ display: 'flex', gap: 1 }}>
-                    {/* Comprobante Minimalista */}
-                    <input
-                        accept="image/*"
-                        style={{ display: 'none' }}
-                        id="lite-receipt-upload"
-                        type="file"
-                        onChange={handleReceiptUpload}
-                    />
-                    <label htmlFor="lite-receipt-upload">
-                        <IconButton component="span" size="small" disabled={uploading} color={order.payment_receipt ? "success" : "default"}>
-                            <CloudUploadIcon fontSize="small" />
-                        </IconButton>
-                    </label>
-                    {order.payment_receipt && (
-                        <IconButton size="small" color="primary" onClick={() => {
-                            const url = `${import.meta.env.VITE_BACKEND_API_URL || import.meta.env.VITE_API_URL || 'http://localhost:8000/api'}/orders/${order.id}/payment-receipt`;
-                            window.open(url, '_blank');
-                        }}>
-                            <VisibilityIcon fontSize="small" />
-                        </IconButton>
-                    )}
-
-                    <ButtonCustom
-                        onClick={handleSave}
-                        size="small"
-                        sx={{ borderRadius: 4, px: 3, minHeight: 30 }}
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <Typography
+                        variant="caption"
+                        color="primary"
+                        sx={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 0.5, fontWeight: 'bold' }}
+                        onClick={handleAddRow}
                     >
-                        Guardar
-                    </ButtonCustom>
+                        <AddCircleOutlineIcon fontSize="inherit" /> Agregar Otro
+                    </Typography>
+
+                    <Box sx={{ display: 'flex', gap: 1 }}>
+                        <input
+                            accept="image/*"
+                            style={{ display: 'none' }}
+                            id="lite-receipt-upload"
+                            type="file"
+                            multiple
+                            onChange={handleReceiptUpload}
+                        />
+                        <label htmlFor="lite-receipt-upload">
+                            <IconButton component="span" size="small" disabled={uploading} color={receipts.length > 0 ? "success" : "default"}>
+                                <CloudUploadIcon fontSize="small" />
+                            </IconButton>
+                        </label>
+
+                        <ButtonCustom
+                            onClick={handleSave}
+                            size="small"
+                            sx={{ borderRadius: 4, px: 3, minHeight: 30 }}
+                        >
+                            Guardar Pagos
+                        </ButtonCustom>
+                    </Box>
                 </Box>
             </Box>
         </Paper>
