@@ -8,7 +8,7 @@ import {
     useTheme,
 } from "@mui/material";
 import AddRoundedIcon from "@mui/icons-material/AddRounded";
-import { NotificationsActiveRounded, WarningAmberRounded } from "@mui/icons-material";
+import { NotificationsActiveRounded, WarningAmberRounded, HistoryRounded } from "@mui/icons-material";
 import React, { FC, useState } from "react";
 import { darken } from "@mui/material/styles";
 import { toast } from "react-toastify";
@@ -474,6 +474,21 @@ export const OrderItem: FC<OrderItemProps> = ({ order }) => {
                                 }
                             }} />
                             Vence: {new Date(order.scheduled_for).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        </TypographyCustom>
+                    </Box>
+                )}
+                {order.updates_count > 0 && (
+                    <Box sx={{ display: 'flex', alignItems: 'center', mt: 0.5, gap: 1 }}>
+                        <TypographyCustom variant="caption" sx={{
+                            color: 'text.secondary',
+                            fontWeight: 'bold',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 0.5,
+                            opacity: 0.8
+                        }}>
+                            <HistoryRounded sx={{ fontSize: '1rem' }} />
+                            {order.updates_count} act.
                         </TypographyCustom>
                     </Box>
                 )}

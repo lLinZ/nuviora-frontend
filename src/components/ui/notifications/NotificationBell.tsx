@@ -22,22 +22,21 @@ import { OrderDialog } from "../../orders/OrderDialog";
 import NotificationsActiveRoundedIcon from "@mui/icons-material/NotificationsActiveRounded";
 import ScheduleRoundedIcon from "@mui/icons-material/ScheduleRounded";
 import WarningRoundedIcon from "@mui/icons-material/WarningRounded";
+import { useOrdersStore } from "../../../store/orders/OrdersStore";
 
 export const NotificationBell = () => {
     const theme = useTheme();
     const { notifications, dismissNotification, clearAll, openDialogOrderId, setOpenDialogOrderId } = useNotificationStore();
     const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
-    const [selectedOrderId, setSelectedOrderId] = useState<number | null>(null);
-    const [openDialog, setOpenDialog] = useState(false);
+    const setSelectedOrder = useOrdersStore(s => s.setSelectedOrder);
 
     // 🔔 Listen for global dialog triggers (e.g. from Toasts)
     React.useEffect(() => {
         if (openDialogOrderId) {
-            setSelectedOrderId(openDialogOrderId);
-            setOpenDialog(true);
+            setSelectedOrder({ id: openDialogOrderId });
             setOpenDialogOrderId(null); // Consume the event
         }
-    }, [openDialogOrderId, setOpenDialogOrderId]);
+    }, [openDialogOrderId, setOpenDialogOrderId, setSelectedOrder]);
 
     const handleOpenMenu = (event: React.MouseEvent<HTMLElement>) => {
         setAnchorEl(event.currentTarget);
@@ -48,8 +47,7 @@ export const NotificationBell = () => {
     };
 
     const handleNotificationClick = (orderId: number) => {
-        setSelectedOrderId(orderId);
-        setOpenDialog(true);
+        setSelectedOrder({ id: orderId });
         dismissNotification(orderId);
         handleCloseMenu();
     };
@@ -160,14 +158,6 @@ export const NotificationBell = () => {
                     )}
                 </Box>
             </Menu>
-
-            {openDialog && selectedOrderId && (
-                <OrderDialog
-                    open={openDialog}
-                    setOpen={setOpenDialog}
-                    id={selectedOrderId}
-                />
-            )}
         </>
     );
 };

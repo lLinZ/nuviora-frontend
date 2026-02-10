@@ -229,16 +229,17 @@ export const Orders = () => {
                         <CurrencyExchange color="success" />
                     </IconButton>
                 </Tooltip>
-                <Box sx={{ width: { xs: '100%', lg: '10%' } }}>
-
-                    <ButtonCustom
-                        variant="outlined"
-                        startIcon={<AddCircleOutline />}
-                        onClick={() => setOpenCreateDialog(true)}
-                    >
-                        Crear Orden
-                    </ButtonCustom>
-                </Box>
+                {user.role?.description !== 'Agencia' && (
+                    <Box sx={{ width: { xs: '100%', lg: '10%' } }}>
+                        <ButtonCustom
+                            variant="outlined"
+                            startIcon={<AddCircleOutline />}
+                            onClick={() => setOpenCreateDialog(true)}
+                        >
+                            Crear Orden
+                        </ButtonCustom>
+                    </Box>
+                )}
             </Box>
 
             <Fab sx={{ position: 'fixed', right: 24, bottom: 24 }} onClick={() => setOpenSearch(true)}>

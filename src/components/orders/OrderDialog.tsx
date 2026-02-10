@@ -1,4 +1,4 @@
-import { AppBar, Box, Dialog, DialogActions, Divider, IconButton, Toolbar, Typography, useTheme, DialogContent, Tab, Tabs, Grid, Paper, Tooltip, Zoom, Fab, Menu, MenuItem, ListItemIcon, ListItemText, DialogTitle, TextField, Button, Alert, AlertTitle } from "@mui/material";
+import { AppBar, Box, Dialog, DialogActions, Divider, IconButton, Toolbar, Typography, useTheme, DialogContent, Tab, Tabs, Grid, Paper, Tooltip, Zoom, Fab, Menu, MenuItem, ListItemIcon, ListItemText, DialogTitle, TextField, Button, Alert, AlertTitle, Badge } from "@mui/material";
 import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
 import React, { FC, useState, useEffect } from "react";
 import { darken, lighten } from "@mui/material/styles";
@@ -427,7 +427,11 @@ export const OrderDialog: FC<OrderDialogProps> = ({ id, open, setOpen }) => {
                         >
                             <Tab label="Detalle" icon={<ShoppingCartRounded sx={{ fontSize: '1.2rem' }} />} iconPosition="start" />
                             <Tab label="Finanzas" icon={<ReceiptLongRounded sx={{ fontSize: '1.2rem' }} />} iconPosition="start" />
-                            <Tab label="Historial" icon={<HistoryRounded sx={{ fontSize: '1.2rem' }} />} iconPosition="start" />
+                            <Tab label={
+                                <Badge badgeContent={order.updates?.length || 0} color="error" max={99} sx={{ '& .MuiBadge-badge': { right: -10, top: 2 } }}>
+                                    Historial
+                                </Badge>
+                            } icon={<HistoryRounded sx={{ fontSize: '1.2rem' }} />} iconPosition="start" />
                             {['Admin', 'Gerente'].includes(user.role?.description || '') && (
                                 <Tab label="Acciones" icon={<RuleRounded sx={{ fontSize: '1.2rem' }} />} iconPosition="start" />
                             )}
