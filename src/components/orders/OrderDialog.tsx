@@ -42,7 +42,8 @@ import {
     RuleRounded,
     Inventory2Outlined as Inventory2OutlinedIcon,
     ReplayRounded,
-    CurrencyExchange
+    CurrencyExchange,
+    EditRounded
 } from "@mui/icons-material";
 import { request } from "../../common/request";
 import { MarkDeliveredDialog } from "./MarkDeliveredDialog";
@@ -107,6 +108,7 @@ export const OrderDialog: FC<OrderDialogProps> = ({ id, open, setOpen }) => {
         fetchOrder,
         refreshOrder,
         updateProductQuantity,
+        updateOrderTotal,
     } = useOrderDialogLogic(id, open, setOpen);
 
     const [openReminder, setOpenReminder] = useState(false);
@@ -594,11 +596,20 @@ export const OrderDialog: FC<OrderDialogProps> = ({ id, open, setOpen }) => {
                                                             : undefined
                                                     }
                                                     onEditQuantity={
-                                                        user.role?.description === 'Admin'
-                                                            ? (id, qty) => {
+                                                        ['Admin', 'Vendedor'].includes(user.role?.description || '')
+                                                            ? (id, qty, currentPrice) => {
+                                                                // 🔥 CLIENT REQUEST: Vendedoras pueden editar cantidad y precio
                                                                 const newQty = prompt("Nueva cantidad:", String(qty));
-                                                                if (newQty && !isNaN(Number(newQty))) {
-                                                                    updateProductQuantity(id, Number(newQty));
+                                                                if (newQty && !isNaN(Number(newQty)) && Number(newQty) > 0) {
+                                                                    const newPrice = prompt(`Nuevo precio unitario (actual: $${currentPrice}):`, String(currentPrice));
+                                                                    if (newPrice && !isNaN(Number(newPrice)) && Number(newPrice) >= 0) {
+                                                                        updateProductQuantity(id, Number(newQty), Number(newPrice));
+                                                                    } else if (newPrice === null) {
+                                                                        // Usuario canceló
+                                                                    } else {
+                                                                        // Solo actualizar cantidad
+                                                                        updateProductQuantity(id, Number(newQty));
+                                                                    }
                                                                 }
                                                             }
                                                             : undefined
@@ -624,10 +635,42 @@ export const OrderDialog: FC<OrderDialogProps> = ({ id, open, setOpen }) => {
                                             </>
                                         )}
 
+                                        {/* 🔥 CLIENT REQUEST: Advertencia si se modificaron productos originales */}
+                                        {order.has_modified_original_products && user.role?.description === 'Vendedor' && (
+                                            <Alert severity="warning" sx={{ mt: 2, borderRadius: 2 }}>
+                                                <AlertTitle fontWeight="bold">⚠️ Upsells Bloqueados</AlertTitle>
+                                                Has modificado productos originales. No puedes agregar upsells. Contacta al administrador.
+                                            </Alert>
+                                        )}
+
                                         <Box sx={{ mt: 3, p: 2, bgcolor: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)', borderRadius: 2, textAlign: 'right' }}>
-                                            <Typography variant="h5" fontWeight="black" color="primary">
-                                                TOTAL: {fmtMoney(Number(order.current_total_price) || 0, order.currency)}
-                                            </Typography>
+                                            {/* 🔥 CLIENT REQUEST: Admin can edit total manually */}
+                                            {user.role?.description === 'Admin' ? (
+                                                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 1 }}>
+                                                    <Typography variant="h5" fontWeight="black" color="primary">
+                                                        TOTAL: {fmtMoney(Number(order.current_total_price) || 0, order.currency)}
+                                                    </Typography>
+                                                    <Tooltip title="Editar total manualmente (solo Admin)">
+                                                        <IconButton
+                                                            size="small"
+                                                            color="primary"
+                                                            onClick={() => {
+                                                                const newTotal = prompt("Nuevo total de la orden:", String(order.current_total_price));
+                                                                if (newTotal && !isNaN(Number(newTotal)) && Number(newTotal) >= 0) {
+                                                                    updateOrderTotal(Number(newTotal));
+                                                                }
+                                                            }}
+                                                            sx={{ ml: 1 }}
+                                                        >
+                                                            <EditRounded fontSize="small" />
+                                                        </IconButton>
+                                                    </Tooltip>
+                                                </Box>
+                                            ) : (
+                                                <Typography variant="h5" fontWeight="black" color="primary">
+                                                    TOTAL: {fmtMoney(Number(order.current_total_price) || 0, order.currency)}
+                                                </Typography>
+                                            )}
                                             {(Boolean(order.is_return) || Boolean(order.is_exchange)) && (
                                                 <Box sx={{ textAlign: 'center', py: 4 }}>
                                                     <Typography variant="h6" color="text.secondary">

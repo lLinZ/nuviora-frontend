@@ -296,7 +296,9 @@ export const useOrderDialogLogic = (
                 toast.success(data.message || ((selectedOrder.is_return || selectedOrder.is_exchange) ? "Producto agregado ✅" : "Agregado correctamente ✅"));
                 return true;
             } else {
-                toast.error("Error al agregar producto ❌");
+                // 🔥 CLIENT REQUEST: Mostrar mensaje específico si se bloqueó por modificación de productos originales
+                const errorData = await response.json();
+                toast.error(errorData.message || "Error al agregar producto ❌");
                 return false;
             }
         } catch {
@@ -324,11 +326,12 @@ export const useOrderDialogLogic = (
             toast.error("Error de servidor 🚨");
         }
     };
-    const updateProductQuantity = async (itemId: number, quantity: number) => {
+    const updateProductQuantity = async (itemId: number, quantity?: number, price?: number) => {
         if (!selectedOrder) return;
         try {
             const body = new URLSearchParams();
-            body.append("quantity", String(quantity));
+            if (quantity !== undefined) body.append("quantity", String(quantity));
+            if (price !== undefined) body.append("price", String(price));
 
             const { status, response }: IResponse = await request(
                 `/orders/${selectedOrder.id}/upsell/${itemId}`,
@@ -339,9 +342,9 @@ export const useOrderDialogLogic = (
             if (status) {
                 const data = await response.json();
                 updateOrderInColumns(data.order);
-                toast.success("Cantidad actualizada ✅");
+                toast.success("Producto actualizado ✅");
             } else {
-                toast.error("Error al actualizar cantidad ❌");
+                toast.error("Error al actualizar producto ❌");
             }
         } catch {
             toast.error("Error de servidor 🚨");
@@ -567,6 +570,31 @@ export const useOrderDialogLogic = (
         }
     };
 
+    // 🔥 CLIENT REQUEST: Admin can manually edit order total
+    const updateOrderTotal = async (newTotal: number) => {
+        if (!selectedOrder) return;
+        try {
+            const body = new URLSearchParams();
+            body.append('total', String(newTotal));
+
+            const { status, response }: IResponse = await request(
+                `/orders/${selectedOrder.id}/total`,
+                "PUT",
+                body
+            );
+            if (status) {
+                const data = await response.json();
+                updateOrderInColumns(data.order);
+                toast.success('Total actualizado correctamente ✅');
+            } else {
+                const errorData = await response.json();
+                toast.error(errorData.message || 'Error al actualizar total');
+            }
+        } catch {
+            toast.error('Error de conexión');
+        }
+    };
+
     return {
         selectedOrder,
         user,
@@ -610,5 +638,6 @@ export const useOrderDialogLogic = (
         fetchOrder,
         refreshOrder: fetchOrder,
         updateProductQuantity,
+        updateOrderTotal,
     };
 };

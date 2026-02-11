@@ -49,6 +49,7 @@ export const OrderList: FC<OrderListProps> = ({ title }) => {
             // Filtros Globales
             if (filters.city_id) params.append('city_id', filters.city_id);
             if (filters.agency_id) params.append('agency_id', filters.agency_id);
+            if (filters.seller_id) params.append('seller_id', filters.seller_id);
             if (filters.date_from) params.append('date_from', filters.date_from);
             if (filters.date_to) params.append('date_to', filters.date_to);
 

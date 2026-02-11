@@ -7,7 +7,7 @@ interface OrderProductsListProps {
     products: any[];
     currency: string;
     onDeleteItem?: (id: number) => void;
-    onEditQuantity?: (id: number, quantity: number) => void;
+    onEditQuantity?: (id: number, quantity: number, price: number) => void; // 🔥 Added price parameter
 }
 
 export const OrderProductsList: React.FC<OrderProductsListProps> = ({ products, currency, onDeleteItem, onEditQuantity }) => {
@@ -20,7 +20,7 @@ export const OrderProductsList: React.FC<OrderProductsListProps> = ({ products, 
                         product={p}
                         currency={currency}
                         onDelete={onDeleteItem ? () => onDeleteItem(p.id) : undefined}
-                        onEditQuantity={onEditQuantity ? (qty) => onEditQuantity(p.id, qty) : undefined}
+                        onEditQuantity={onEditQuantity ? (qty) => onEditQuantity(p.id, qty, p.price) : undefined}
                     />
                 ))
             ) : (
