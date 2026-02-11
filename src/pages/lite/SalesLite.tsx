@@ -334,6 +334,7 @@ export const SalesLite = () => {
     const TABS = [
         { label: "Reprogramado Hoy", status: "Reprogramado para hoy" },
         { label: "Asignado a Mí", status: "Asignado a vendedor" },
+        { label: "Con Comprobante", status: "Con Comprobante" },
         { label: "Llamado 1", status: "Llamado 1" },
         { label: "Llamado 2", status: "Llamado 2" },
         { label: "Llamado 3", status: "Llamado 3" },
