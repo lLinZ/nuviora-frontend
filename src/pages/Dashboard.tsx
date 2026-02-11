@@ -30,6 +30,7 @@ import { useValidateSession } from "../hooks/useValidateSession";
 import { request } from "../common/request";
 import { IResponse } from "../interfaces/response-type";
 import { OrderDialog } from "../components/orders/OrderDialog";
+import { PaymentMethodsReport } from "../components/reports/PaymentMethodsReport";
 
 interface DashboardStats {
     total_sales?: number;
