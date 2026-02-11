@@ -27,9 +27,11 @@ export const Orders = () => {
     const [openSearch, setOpenSearch] = useState(false);
     const [cities, setCities] = useState<any[]>([]);
     const [agencies, setAgencies] = useState<any[]>([]);
+    const [sellers, setSellers] = useState<any[]>([]);
     const [filters, setFilters] = useState({
         city_id: '',
         agency_id: '',
+        seller_id: '',
         date_from: '',
         date_to: ''
     });
@@ -47,14 +49,19 @@ export const Orders = () => {
 
     const fetchFiltersData = async () => {
         try {
-            const [citiesRes, agenciesRes] = await Promise.all([
+            const [citiesRes, agenciesRes, sellersRes] = await Promise.all([
                 request("/cities", "GET"),
-                request("/users/role/Agencia", "GET")
+                request("/users/role/Agencia", "GET"),
+                request("/users/role/Vendedor", "GET")
             ]);
             if (citiesRes.status) setCities(await citiesRes.response.json());
             if (agenciesRes.status) {
                 const data = await agenciesRes.response.json();
                 setAgencies(data.data);
+            }
+            if (sellersRes.status) {
+                const data = await sellersRes.response.json();
+                setSellers(data.data);
             }
         } catch (e) {
             console.error("Error fetching filters data", e);
@@ -94,17 +101,10 @@ export const Orders = () => {
     }, []);
 
     const handleClearFilters = () => {
-        const resetFilters = {
-            city_id: '',
-            agency_id: '',
-            date_from: new Date().toISOString().slice(0, 10), // Reset to today by default for Admin convenience? Or clear? Let's clear.
-            date_to: new Date().toISOString().slice(0, 10)
-        };
-        // Actually, user requested a filter so let's default to empty (All time) or Today?
-        // Usually admin wants to see EVERYTHING unless filtered.
         const emptyFilters = {
             city_id: '',
             agency_id: '',
+            seller_id: '',
             date_from: '',
             date_to: ''
         };
@@ -174,6 +174,21 @@ export const Orders = () => {
                             >
                                 <MenuItem value="">Todas</MenuItem>
                                 {agencies.map(a => <MenuItem key={a.id} value={a.id}>{a.names}</MenuItem>)}
+                            </Select>
+                        </FormControl>
+                        <FormControl size="small" sx={{ minWidth: 140 }}>
+                            <InputLabel>Vendedora</InputLabel>
+                            <Select
+                                value={filters.seller_id}
+                                label="Vendedora"
+                                onChange={(e) => {
+                                    const newVal = { ...filters, seller_id: e.target.value };
+                                    setFilters(newVal);
+                                    useOrdersStore.getState().setFilters(newVal);
+                                }}
+                            >
+                                <MenuItem value="">Todas</MenuItem>
+                                {sellers.map(s => <MenuItem key={s.id} value={s.id}>{s.names}</MenuItem>)}
                             </Select>
                         </FormControl>
                         <Tooltip title="Limpiar Filtros">

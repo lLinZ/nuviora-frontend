@@ -20,6 +20,7 @@ interface OrdersState {
     filters: {
         city_id: string;
         agency_id: string;
+        seller_id: string;
         date_from: string;
         date_to: string;
     };
@@ -48,6 +49,7 @@ export const useOrdersStore = create<OrdersState>((set, get) => ({
     filters: {
         city_id: '',
         agency_id: '',
+        seller_id: '',
         date_from: '',
         date_to: ''
     },
