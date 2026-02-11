@@ -437,7 +437,7 @@ export const BusinessMetrics: React.FC = () => {
                 <ChartContainer title="👩‍💼 Rendimiento de Vendedoras" sectionId="sectionC">
                     <Grid container spacing={3}>
                         {data?.sectionC?.vendedoras?.map((v: any) => (
-                            <Grid item xs={12} md={6} lg={4} key={v.id}>
+                            <Grid size={{ xs: 12, md: 6, lg: 4 }} key={v.id}>
                                 <Paper variant="outlined" sx={{ p: 3, borderRadius: 4, bgcolor: isDark ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.01)' }}>
                                     <Typography variant="h6" fontWeight="bold" mb={2}>{v.name}</Typography>
                                     <Grid container spacing={2}>
@@ -445,7 +445,7 @@ export const BusinessMetrics: React.FC = () => {
                                             <Typography variant="caption" color="text.secondary">Asignados</Typography>
                                             <Typography variant="h5" fontWeight="bold">{v.stats.assigned}</Typography>
                                         </Grid>
-                                        <Grid item xs={6}>
+                                        <Grid size={{ xs: 6 }}>
                                             <Typography variant="caption" color="text.secondary">Tasa Entrega</Typography>
                                             <Typography variant="h5" fontWeight="bold" color={green[500]}>{v.stats.delivery_rate}%</Typography>
                                         </Grid>
