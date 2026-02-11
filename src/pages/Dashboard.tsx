@@ -635,6 +635,11 @@ export const Dashboard = () => {
                                 </Grid>
                             </Grid>
                         </Grid>
+
+                        {/* 💳 PAYMENT METHODS REPORT */}
+                        <Grid size={{ xs: 12 }}>
+                            <PaymentMethodsReport />
+                        </Grid>
                     </Grid >
                 );
 
