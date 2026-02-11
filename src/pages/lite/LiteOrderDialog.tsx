@@ -117,7 +117,9 @@ export const LiteOrderDialog: FC<LiteOrderDialogProps> = ({ id, open, setOpen, o
         openResolveNovedad, setOpenResolveNovedad,
         pendingStatus,
         targetStatus,
-        refreshOrder
+        refreshOrder,
+        updateProductQuantity,
+        updateOrderTotal,
     } = useOrderDialogLogic(id, open, setOpen);
 
     const handleCloseWrapper = () => {
@@ -369,7 +371,37 @@ export const LiteOrderDialog: FC<LiteOrderDialogProps> = ({ id, open, setOpen, o
                                         ))}
                                     </Box>
                                 ) : (
-                                    <OrderProductsList products={(order.products || []).filter((p: any) => !p.is_upsell)} currency={order.currency} />
+                                    <OrderProductsList
+                                        products={(order.products || []).filter((p: any) => !p.is_upsell)}
+                                        currency={order.currency}
+                                        onEditQuantity={
+                                            user.role?.description === 'Vendedor'
+                                                ? (id, qty, currentPrice) => {
+                                                    // 🔥 CLIENT REQUEST: Vendedoras pueden editar cantidad y precio en Lite
+                                                    const newQty = prompt("Nueva cantidad:", String(qty));
+                                                    if (newQty && !isNaN(Number(newQty)) && Number(newQty) > 0) {
+                                                        const newPrice = prompt(`Nuevo precio unitario (actual: $${currentPrice}):`, String(currentPrice));
+                                                        if (newPrice && !isNaN(Number(newPrice)) && Number(newPrice) >= 0) {
+                                                            updateProductQuantity(id, Number(newQty), Number(newPrice));
+                                                        } else if (newPrice === null) {
+                                                            // Usuario canceló
+                                                        } else {
+                                                            // Solo actualizar cantidad
+                                                            updateProductQuantity(id, Number(newQty));
+                                                        }
+                                                    }
+                                                }
+                                                : undefined
+                                        }
+                                    />
+                                )}
+
+                                {/* 🔥 CLIENT REQUEST: Advertencia si se bloquearon upsells */}
+                                {order.has_modified_original_products && user.role?.description === 'Vendedor' && (
+                                    <Alert severity="warning" sx={{ mt: 2, borderRadius: 2 }}>
+                                        <AlertTitle fontWeight="bold">⚠️ Upsells Bloqueados</AlertTitle>
+                                        Has modificado productos originales. No puedes agregar upsells. Contacta al administrador.
+                                    </Alert>
                                 )}
 
                                 <Box sx={{ mt: 2, display: 'flex', justifyContent: 'center' }}>
