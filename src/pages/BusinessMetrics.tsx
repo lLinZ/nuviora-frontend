@@ -27,6 +27,13 @@ import {
     TableRow,
     Chip,
     Toolbar,
+    Dialog,
+    DialogTitle,
+    DialogContent,
+    DialogActions,
+    List,
+    ListItem,
+    ListItemText,
 } from '@mui/material';
 import {
     BarChart,
@@ -79,6 +86,17 @@ export const BusinessMetrics: React.FC = () => {
         sectionD: true,
         sectionE: true,
     });
+
+    // Dialog State
+    const [openDialog, setOpenDialog] = useState(false);
+    const [selectedOrders, setSelectedOrders] = useState<any[]>([]);
+    const [dialogTitle, setDialogTitle] = useState('');
+
+    const handleOpenDialog = (title: string, orders: any[]) => {
+        setDialogTitle(title);
+        setSelectedOrders(orders || []);
+        setOpenDialog(true);
+    };
 
     const toggleSection = (section: string) => {
         setExpandedSections(prev => ({ ...prev, [section]: !prev[section] }));
@@ -322,7 +340,17 @@ export const BusinessMetrics: React.FC = () => {
                                             {data?.sectionA?.tracking?.map((row: any) => (
                                                 <TableRow key={row.name}>
                                                     <TableCell>{row.name}</TableCell>
-                                                    <TableCell align="center">{row.count}</TableCell>
+                                                    <TableCell align="center">
+                                                        <Button
+                                                            variant="text"
+                                                            color="primary"
+                                                            size="small"
+                                                            onClick={() => handleOpenDialog(row.name, row.orders)}
+                                                            sx={{ fontWeight: 'bold' }}
+                                                        >
+                                                            {row.count}
+                                                        </Button>
+                                                    </TableCell>
                                                     <TableCell align="center">
                                                         <Box display="flex" alignItems="center" px={4}>
                                                             <LinearProgress variant="determinate" value={row.percentage} sx={{ flex: 1, height: 8, borderRadius: 4, mr: 2 }} />
@@ -341,6 +369,36 @@ export const BusinessMetrics: React.FC = () => {
                         </Grid>
                     </Grid>
                 </ChartContainer>
+
+                {/* Dialog para ver detalles de órdenes */}
+                <Dialog open={openDialog} onClose={() => setOpenDialog(false)} maxWidth="sm" fullWidth>
+                    <DialogTitle>{dialogTitle}</DialogTitle>
+                    <DialogContent dividers>
+                        {selectedOrders && selectedOrders.length > 0 ? (
+                            <List>
+                                {selectedOrders.map((order: any) => (
+                                    <React.Fragment key={order.id}>
+                                        <ListItem alignItems="flex-start">
+                                            <ListItemText
+                                                primary={<Typography fontWeight="bold">#{order.number} - {order.client}</Typography>}
+                                                secondary={`ID: ${order.id}`}
+                                            />
+                                            <Button size="small" variant="outlined" onClick={() => window.open(`/dashboard/orders?search=${order.number}`, '_blank')}>
+                                                Ver
+                                            </Button>
+                                        </ListItem>
+                                        <Divider component="li" />
+                                    </React.Fragment>
+                                ))}
+                            </List>
+                        ) : (
+                            <Typography color="text.secondary" align="center">No hay órdenes para mostrar.</Typography>
+                        )}
+                    </DialogContent>
+                    <DialogActions>
+                        <Button onClick={() => setOpenDialog(false)}>Cerrar</Button>
+                    </DialogActions>
+                </Dialog>
 
                 {/* SECCIÓN B: RESULTADO DE PROGRAMADO PARA HOY */}
                 <ChartContainer title="📅 Resultado de 'Programado para Hoy'" sectionId="sectionB">
