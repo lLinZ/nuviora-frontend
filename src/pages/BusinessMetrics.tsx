@@ -383,7 +383,7 @@ export const BusinessMetrics: React.FC = () => {
                                                 primary={<Typography fontWeight="bold">{order.display_number} - {order.client}</Typography>}
                                                 secondary={`ID: ${order.id}`}
                                             />
-                                            <Button size="small" variant="outlined" onClick={() => window.open(`/dashboard/orders?search=${order.number}`, '_blank')}>
+                                            <Button size="small" variant="outlined" onClick={() => window.open(`/orders?search=${order.number}`, '_blank')}>
                                                 Ver
                                             </Button>
                                         </ListItem>
