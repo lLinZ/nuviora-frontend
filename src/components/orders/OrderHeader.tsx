@@ -100,6 +100,20 @@ export const OrderHeader: React.FC<OrderHeaderProps> = ({
                         </Box>
                     </Box>
 
+                    {['Admin', 'Gerente', 'Master'].includes(user.role?.description || '') && order.shop && (
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                            <Paper elevation={0} sx={{ p: 1, bgcolor: 'warning.light', color: 'white', borderRadius: 2 }}>
+                                <StorefrontIcon fontSize="small" />
+                            </Paper>
+                            <Box>
+                                <Typography variant="caption" color="text.secondary" display="block">Tienda de Origen</Typography>
+                                <Typography variant="body1" fontWeight="bold" color="primary.main">
+                                    {order.shop.name}
+                                </Typography>
+                            </Box>
+                        </Box>
+                    )}
+
                     <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                             <Paper elevation={0} sx={{ p: 1, bgcolor: 'info.main', color: 'white', borderRadius: 2 }}>
