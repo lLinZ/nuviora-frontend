@@ -21,7 +21,8 @@ import {
     Pagination,
     CircularProgress,
     Tooltip,
-    IconButton
+    IconButton,
+    LinearProgress
 } from '@mui/material';
 import {
     RefreshRounded,
@@ -112,22 +113,30 @@ export const OrderTrackingReport: React.FC = () => {
         }
     };
 
+    // 1. Carga inicial (Solo al montar)
     useEffect(() => {
         fetchFilters();
         fetchLogs(1);
+    }, []);
 
-        // Real-time updates
-        if (echo) {
-            const channel = echo.private('orders');
-            channel.listen('OrderUpdated', () => {
-                console.log("Order updated via WebSocket, refreshing tracking logs...");
-                fetchLogs(page);
-            });
-            return () => {
-                channel.stopListening('OrderUpdated');
-            };
-        }
-    }, [echo, page]);
+    // 2. Escucha de Sockets (Refresca con filtros actuales)
+    useEffect(() => {
+        if (!echo) return;
+
+        const channel = echo.private('orders');
+
+        // Función de refresco que captura el estado actual gracias a las dependencias
+        const handleOrderUpdate = () => {
+            console.log("Order updated via WebSocket, refreshing tracking logs...");
+            fetchLogs(page);
+        };
+
+        channel.listen('OrderUpdated', handleOrderUpdate);
+
+        return () => {
+            channel.stopListening('OrderUpdated');
+        };
+    }, [echo, page, startDate, endDate, agentId, statusId]);
 
     const handleSearch = () => {
         setPage(1);
@@ -230,36 +239,51 @@ export const OrderTrackingReport: React.FC = () => {
                         <Grid size={{ xs: 12, md: 6 }}>
                             <Paper sx={{ p: 2, borderRadius: 4, height: '100%', bgcolor: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }}>
                                 <Typography variant="subtitle2" color="primary" fontWeight="bold" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                    <HistoryRounded fontSize="small" /> Movimientos por Estado
+                                    <HistoryRounded fontSize="small" /> Distribución por Estado
                                 </Typography>
-                                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mt: 1 }}>
+                                <Stack spacing={1.5} mt={2}>
                                     {stats.by_status.map((s: any, i: number) => (
-                                        <Paper key={i} sx={{ px: 1.5, py: 0.5, borderRadius: 2, display: 'flex', alignItems: 'center', gap: 1, bgcolor: 'background.paper' }}>
-                                            <Typography variant="caption" fontWeight="bold">{s.status}:</Typography>
-                                            <Chip size="small" label={s.total} color="primary" sx={{ height: 20, fontWeight: 'bold' }} />
-                                        </Paper>
+                                        <Box key={i}>
+                                            <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
+                                                <Typography variant="caption" fontWeight="bold">{s.status}</Typography>
+                                                <Typography variant="caption" fontWeight="bold" color="primary">{s.total}</Typography>
+                                            </Box>
+                                            <LinearProgress
+                                                variant="determinate"
+                                                value={(s.total / stats.total_movements) * 100}
+                                                sx={{ height: 6, borderRadius: 3, bgcolor: 'rgba(255,255,255,0.05)', '& .MuiLinearProgress-bar': { borderRadius: 3 } }}
+                                            />
+                                        </Box>
                                     ))}
-                                </Box>
+                                </Stack>
                             </Paper>
                         </Grid>
                         <Grid size={{ xs: 12, md: 6 }}>
                             <Paper sx={{ p: 2, borderRadius: 4, height: '100%', bgcolor: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }}>
                                 <Typography variant="subtitle2" color="secondary" fontWeight="bold" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                    <AssignmentIndRounded fontSize="small" /> Movimientos por Vendedora
+                                    <AssignmentIndRounded fontSize="small" /> Actividad por Vendedora
                                 </Typography>
-                                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mt: 1 }}>
+                                <Stack spacing={1.5} mt={2}>
                                     {stats.by_seller.map((s: any, i: number) => (
-                                        <Paper key={i} sx={{ px: 1.5, py: 1, borderRadius: 2, display: 'flex', flexDirection: 'column', gap: 0.5, bgcolor: 'background.paper', minWidth: 120 }}>
-                                            <Typography variant="caption" fontWeight="bold" color="text.secondary">{s.seller}</Typography>
-                                            <Stack direction="row" spacing={1} alignItems="center">
-                                                <Chip size="small" label={s.total} variant="outlined" sx={{ height: 20, fontWeight: 'bold' }} />
-                                                <Typography variant="caption" color="success.main" fontWeight="bold">
-                                                    {s.delivery_rate} <span style={{ fontSize: '8px', opacity: 0.7 }}>ENT</span>
-                                                </Typography>
-                                            </Stack>
-                                        </Paper>
+                                        <Box key={i}>
+                                            <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
+                                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                                    <Typography variant="caption" fontWeight="bold">{s.seller}</Typography>
+                                                    <Typography variant="caption" color="success.main" sx={{ fontSize: '10px' }}>
+                                                        {s.delivery_rate} ENT | {s.unique_orders} OUP
+                                                    </Typography>
+                                                </Box>
+                                                <Typography variant="caption" fontWeight="bold" color="secondary">{s.total}</Typography>
+                                            </Box>
+                                            <LinearProgress
+                                                variant="determinate"
+                                                value={(s.total / stats.total_movements) * 100}
+                                                color="secondary"
+                                                sx={{ height: 6, borderRadius: 3, bgcolor: 'rgba(255,255,255,0.05)', '& .MuiLinearProgress-bar': { borderRadius: 3 } }}
+                                            />
+                                        </Box>
                                     ))}
-                                </Box>
+                                </Stack>
                             </Paper>
                         </Grid>
 
