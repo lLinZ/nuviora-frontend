@@ -10,6 +10,7 @@ import {
     ScheduleRounded,
     TimerRounded
 } from "@mui/icons-material";
+import { request } from "../../common/request";
 
 export const LiteBroadcastMonitor = ({ onOrderUpdate, onOpenOrder }: { onOrderUpdate: (reset?: boolean) => void, onOpenOrder?: (id: number) => void }) => {
     const { echo, setSocket } = useSocketStore();
@@ -45,15 +46,10 @@ export const LiteBroadcastMonitor = ({ onOrderUpdate, onOpenOrder }: { onOrderUp
             // 🛡️ SECURITY: Validate order ownership BEFORE doing anything
             if (notification.order_id) {
                 try {
-                    const response = await fetch(`/api/orders/${notification.order_id}`, {
-                        headers: {
-                            'Authorization': `Bearer ${localStorage.getItem('token')}`,
-                            'Accept': 'application/json'
-                        }
-                    });
+                    const { status, response: rawResponse } = await request(`/orders/${notification.order_id}`, 'GET');
 
-                    if (response.ok) {
-                        const data = await response.json();
+                    if (status === 200) {
+                        const data = await rawResponse.json();
                         const order = data.order || data;
 
                         // Check if this order belongs to the current user
