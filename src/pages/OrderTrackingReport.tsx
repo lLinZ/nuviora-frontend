@@ -143,6 +143,32 @@ export const OrderTrackingReport: React.FC = () => {
         fetchLogs(1);
     };
 
+    const statusFlowOrder = [
+        'Asignado a vendedor',
+        'Llamado 1',
+        'Llamado 2',
+        'Llamado 3',
+        'Esperando Ubicacion',
+        'Programado para mas tarde',
+        'Programado para otro dia',
+        'Asignar a agencia',
+        'Asignado a repartidor',
+        'Novedades',
+        'Novedad Solucionada',
+        'En ruta',
+        'Cancelado',
+        'Entregado'
+    ];
+
+    const sortedStatusStats = [...(stats.by_status || [])].sort((a, b) => {
+        const indexA = statusFlowOrder.indexOf(a.status);
+        const indexB = statusFlowOrder.indexOf(b.status);
+        if (indexA === -1 && indexB === -1) return 0;
+        if (indexA === -1) return 1;
+        if (indexB === -1) return -1;
+        return indexA - indexB;
+    });
+
     const handlePageChange = (_: any, value: number) => {
         setPage(value);
         fetchLogs(value);
@@ -239,10 +265,10 @@ export const OrderTrackingReport: React.FC = () => {
                         <Grid size={{ xs: 12, md: 6 }}>
                             <Paper sx={{ p: 2, borderRadius: 4, height: '100%', bgcolor: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }}>
                                 <Typography variant="subtitle2" color="primary" fontWeight="bold" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                    <HistoryRounded fontSize="small" /> Distribución por Estado
+                                    <HistoryRounded fontSize="small" /> Distribución por Estado (Flujo)
                                 </Typography>
                                 <Stack spacing={1.5} mt={2}>
-                                    {stats.by_status.map((s: any, i: number) => (
+                                    {sortedStatusStats.map((s: any, i: number) => (
                                         <Box key={i}>
                                             <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
                                                 <Typography variant="caption" fontWeight="bold">{s.status}</Typography>
@@ -261,7 +287,7 @@ export const OrderTrackingReport: React.FC = () => {
                         <Grid size={{ xs: 12, md: 6 }}>
                             <Paper sx={{ p: 2, borderRadius: 4, height: '100%', bgcolor: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }}>
                                 <Typography variant="subtitle2" color="secondary" fontWeight="bold" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                    <AssignmentIndRounded fontSize="small" /> Actividad por Vendedora
+                                    <AssignmentIndRounded fontSize="small" /> Rendimiento por Vendedora (ENT%)
                                 </Typography>
                                 <Stack spacing={1.5} mt={2}>
                                     {stats.by_seller.map((s: any, i: number) => (
@@ -269,17 +295,23 @@ export const OrderTrackingReport: React.FC = () => {
                                             <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
                                                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                                                     <Typography variant="caption" fontWeight="bold">{s.seller}</Typography>
-                                                    <Typography variant="caption" color="success.main" sx={{ fontSize: '10px' }}>
+                                                    <Typography variant="caption" color="success.main" sx={{ fontSize: '10px', fontWeight: 'bold' }}>
                                                         {s.delivery_rate} ENT | {s.unique_orders} OUP
                                                     </Typography>
                                                 </Box>
-                                                <Typography variant="caption" fontWeight="bold" color="secondary">{s.total}</Typography>
+                                                <Typography variant="caption" fontWeight="bold" color="secondary" title="Acciones Totales">{s.total} Mov.</Typography>
                                             </Box>
                                             <LinearProgress
                                                 variant="determinate"
-                                                value={(s.total / stats.total_movements) * 100}
-                                                color="secondary"
-                                                sx={{ height: 6, borderRadius: 3, bgcolor: 'rgba(255,255,255,0.05)', '& .MuiLinearProgress-bar': { borderRadius: 3 } }}
+                                                value={s.delivery_rate_numeric || 0}
+                                                color="success"
+                                                sx={{
+                                                    height: 8,
+                                                    borderRadius: 4,
+                                                    bgcolor: 'rgba(255,255,255,0.05)',
+                                                    border: '1px solid rgba(255,255,255,0.1)',
+                                                    '& .MuiLinearProgress-bar': { borderRadius: 4 }
+                                                }}
                                             />
                                         </Box>
                                     ))}
