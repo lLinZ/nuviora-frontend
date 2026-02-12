@@ -564,11 +564,8 @@ export const BusinessMetrics: React.FC = () => {
 
             <OrderDialog
                 open={showOrderDetails}
-                onClose={() => {
-                    setShowOrderDetails(false);
-                    setSelectedOrderId(null);
-                }}
-                orderId={selectedOrderId}
+                setOpen={setShowOrderDetails}
+                id={selectedOrderId || undefined}
             />
         </Layout>
     );
