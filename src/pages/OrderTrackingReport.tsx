@@ -48,6 +48,11 @@ export const OrderTrackingReport: React.FC = () => {
     const [page, setPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
     const [loading, setLoading] = useState(false);
+    const [stats, setStats] = useState<any>({
+        by_status: [],
+        by_seller: [],
+        total_movements: 0
+    });
 
     // Filter Options
     const [agents, setAgents] = useState<any[]>([]);
@@ -88,6 +93,7 @@ export const OrderTrackingReport: React.FC = () => {
                 if (json.data) {
                     setLogs(json.data.data || []);
                     setTotalPages(json.data.last_page || 1);
+                    setStats(json.stats || { by_status: [], by_seller: [], total_movements: 0 });
                 }
             } else {
                 console.error("Non-200 status fetching logs:", status);
@@ -199,6 +205,41 @@ export const OrderTrackingReport: React.FC = () => {
                         </Grid>
                     </Grid>
                 </Paper>
+
+                {stats.total_movements > 0 && (
+                    <Grid container spacing={2} sx={{ mb: 3 }}>
+                        <Grid size={{ xs: 12, md: 6 }}>
+                            <Paper sx={{ p: 2, borderRadius: 4, height: '100%', bgcolor: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }}>
+                                <Typography variant="subtitle2" color="primary" fontWeight="bold" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                    <HistoryRounded fontSize="small" /> Movimientos por Estado
+                                </Typography>
+                                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mt: 1 }}>
+                                    {stats.by_status.map((s: any, i: number) => (
+                                        <Paper key={i} sx={{ px: 1.5, py: 0.5, borderRadius: 2, display: 'flex', alignItems: 'center', gap: 1, bgcolor: 'background.paper' }}>
+                                            <Typography variant="caption" fontWeight="bold">{s.status}:</Typography>
+                                            <Chip size="small" label={s.total} color="primary" sx={{ height: 20, fontWeight: 'bold' }} />
+                                        </Paper>
+                                    ))}
+                                </Box>
+                            </Paper>
+                        </Grid>
+                        <Grid size={{ xs: 12, md: 6 }}>
+                            <Paper sx={{ p: 2, borderRadius: 4, height: '100%', bgcolor: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }}>
+                                <Typography variant="subtitle2" color="secondary" fontWeight="bold" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                    <AssignmentIndRounded fontSize="small" /> Movimientos por Vendedora
+                                </Typography>
+                                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mt: 1 }}>
+                                    {stats.by_seller.map((s: any, i: number) => (
+                                        <Paper key={i} sx={{ px: 1.5, py: 0.5, borderRadius: 2, display: 'flex', alignItems: 'center', gap: 1, bgcolor: 'background.paper' }}>
+                                            <Typography variant="caption" fontWeight="bold">{s.seller}:</Typography>
+                                            <Chip size="small" label={s.total} variant="outlined" sx={{ height: 20, fontWeight: 'bold' }} />
+                                        </Paper>
+                                    ))}
+                                </Box>
+                            </Paper>
+                        </Grid>
+                    </Grid>
+                )}
 
                 <TableContainer component={Paper} sx={{ borderRadius: 4, overflow: 'hidden' }}>
                     {loading && <Box sx={{ width: '100%', position: 'absolute' }}><CircularProgress size={24} sx={{ m: 2 }} /></Box>}
