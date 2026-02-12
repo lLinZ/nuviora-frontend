@@ -380,7 +380,7 @@ export const BusinessMetrics: React.FC = () => {
                                     <React.Fragment key={order.id}>
                                         <ListItem alignItems="flex-start">
                                             <ListItemText
-                                                primary={<Typography fontWeight="bold">#{order.number} - {order.client}</Typography>}
+                                                primary={<Typography fontWeight="bold">{order.display_number} - {order.client}</Typography>}
                                                 secondary={`ID: ${order.id}`}
                                             />
                                             <Button size="small" variant="outlined" onClick={() => window.open(`/dashboard/orders?search=${order.number}`, '_blank')}>
