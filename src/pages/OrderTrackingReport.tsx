@@ -35,6 +35,7 @@ import { request } from '../common/request';
 import { IResponse } from '../interfaces/response-type';
 import { Layout } from '../components/ui/Layout';
 import { OrderDialog } from '../components/orders/OrderDialog';
+import { useSocketStore } from '../store/sockets/SocketStore';
 
 export const OrderTrackingReport: React.FC = () => {
     // Filters
@@ -51,8 +52,14 @@ export const OrderTrackingReport: React.FC = () => {
     const [stats, setStats] = useState<any>({
         by_status: [],
         by_seller: [],
-        total_movements: 0
+        total_movements: 0,
+        total_orders: 0,
+        agency_rate: '0%',
+        novelty_stats: { total: 0, resolved: 0, rate: '0%' }
     });
+
+    // Sockets
+    const echo = useSocketStore((s) => s.echo);
 
     // Filter Options
     const [agents, setAgents] = useState<any[]>([]);
@@ -108,7 +115,19 @@ export const OrderTrackingReport: React.FC = () => {
     useEffect(() => {
         fetchFilters();
         fetchLogs(1);
-    }, []);
+
+        // Real-time updates
+        if (echo) {
+            const channel = echo.private('orders');
+            channel.listen('OrderUpdated', () => {
+                console.log("Order updated via WebSocket, refreshing tracking logs...");
+                fetchLogs(page);
+            });
+            return () => {
+                channel.stopListening('OrderUpdated');
+            };
+        }
+    }, [echo, page]);
 
     const handleSearch = () => {
         setPage(1);
@@ -230,12 +249,58 @@ export const OrderTrackingReport: React.FC = () => {
                                 </Typography>
                                 <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mt: 1 }}>
                                     {stats.by_seller.map((s: any, i: number) => (
-                                        <Paper key={i} sx={{ px: 1.5, py: 0.5, borderRadius: 2, display: 'flex', alignItems: 'center', gap: 1, bgcolor: 'background.paper' }}>
-                                            <Typography variant="caption" fontWeight="bold">{s.seller}:</Typography>
-                                            <Chip size="small" label={s.total} variant="outlined" sx={{ height: 20, fontWeight: 'bold' }} />
+                                        <Paper key={i} sx={{ px: 1.5, py: 1, borderRadius: 2, display: 'flex', flexDirection: 'column', gap: 0.5, bgcolor: 'background.paper', minWidth: 120 }}>
+                                            <Typography variant="caption" fontWeight="bold" color="text.secondary">{s.seller}</Typography>
+                                            <Stack direction="row" spacing={1} alignItems="center">
+                                                <Chip size="small" label={s.total} variant="outlined" sx={{ height: 20, fontWeight: 'bold' }} />
+                                                <Typography variant="caption" color="success.main" fontWeight="bold">
+                                                    {s.delivery_rate} <span style={{ fontSize: '8px', opacity: 0.7 }}>ENT</span>
+                                                </Typography>
+                                            </Stack>
                                         </Paper>
                                     ))}
                                 </Box>
+                            </Paper>
+                        </Grid>
+
+                        <Grid size={{ xs: 12, md: 4 }}>
+                            <Paper sx={{ p: 2, borderRadius: 4, height: '100%', bgcolor: 'rgba(25, 118, 210, 0.08)', border: '1px solid rgba(25, 118, 210, 0.2)' }}>
+                                <Typography variant="subtitle2" color="info.main" fontWeight="bold" gutterBottom>
+                                    🚀 Eficiencia Operativa
+                                </Typography>
+                                <Stack spacing={2} mt={1}>
+                                    <Box>
+                                        <Typography variant="caption" display="block" color="text.secondary">Tasa de Asignación a Agencia</Typography>
+                                        <Typography variant="h6" fontWeight="extrabold">{stats.agency_rate}</Typography>
+                                    </Box>
+                                    <Box>
+                                        <Typography variant="caption" display="block" color="text.secondary">Resolución de Novedades</Typography>
+                                        <Stack direction="row" spacing={1} alignItems="baseline">
+                                            <Typography variant="h6" fontWeight="extrabold">{stats.novelty_stats.rate}</Typography>
+                                            <Typography variant="caption" color="text.secondary">
+                                                ({stats.novelty_stats.resolved}/{stats.novelty_stats.total})
+                                            </Typography>
+                                        </Stack>
+                                    </Box>
+                                </Stack>
+                            </Paper>
+                        </Grid>
+                        <Grid size={{ xs: 12, md: 8 }}>
+                            <Paper sx={{ p: 2, borderRadius: 4, height: '100%', bgcolor: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }}>
+                                <Typography variant="subtitle2" color="primary" fontWeight="bold" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                    <HistoryRounded fontSize="small" /> Movimientos por Estado
+                                </Typography>
+                                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mt: 1 }}>
+                                    {stats.by_status.map((s: any, i: number) => (
+                                        <Paper key={i} sx={{ px: 1.5, py: 0.5, borderRadius: 2, display: 'flex', alignItems: 'center', gap: 1, bgcolor: 'background.paper' }}>
+                                            <Typography variant="caption" fontWeight="bold">{s.status}:</Typography>
+                                            <Chip size="small" label={s.total} color="primary" sx={{ height: 20, fontWeight: 'bold' }} />
+                                        </Paper>
+                                    ))}
+                                </Box>
+                                <Typography variant="caption" sx={{ mt: 2, display: 'block', opacity: 0.6 }}>
+                                    Total de órdenes únicas procesadas: <b>{stats.total_orders}</b> | Movimientos totales: <b>{stats.total_movements}</b>
+                                </Typography>
                             </Paper>
                         </Grid>
                     </Grid>
