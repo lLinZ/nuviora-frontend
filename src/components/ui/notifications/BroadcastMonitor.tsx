@@ -190,7 +190,17 @@ export const BroadcastMonitor = () => {
     useEffect(() => {
         if (!echo || !user?.id) return;
 
-        const channelName = 'orders';
+        const role = user.role?.description?.toLowerCase() || '';
+        let channelName = 'orders';
+
+        if (role.includes('agencia')) {
+            channelName = `orders.agency.${user.id}`;
+        } else if (role.includes('vendedor')) {
+            channelName = `orders.agent.${user.id}`;
+        } else if (role.includes('repartidor')) {
+            channelName = `orders.deliverer.${user.id}`;
+        }
+
         console.log("📡 Connecting to global channel:", channelName);
 
         const channel = echo.private(channelName);
@@ -198,19 +208,6 @@ export const BroadcastMonitor = () => {
         channel.listen('OrderUpdated', (e: any) => {
             console.log("♻️ Order Updated Event:", e);
             if (e.order) {
-                // 🛡️ SECURITY FILTER: Ignore orders that don't belong to us
-                const role = user.role?.description?.toLowerCase() || '';
-
-                if (role.includes('agencia')) {
-                    if (e.order.agency_id !== user.id) return;
-                }
-                if (role.includes('vendedor')) {
-                    if (e.order.agent_id !== user.id) return;
-                }
-                if (role.includes('repartidor')) {
-                    if (e.order.deliverer_id !== user.id) return;
-                }
-
                 // Actualizamos la orden en el store/kanban directamente
                 updateOrderInColumns(e.order);
                 console.log(`✅ Order #${e.order.id} updated via WebSocket`);

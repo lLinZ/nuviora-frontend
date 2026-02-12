@@ -260,7 +260,8 @@ export const Dashboard = () => {
         const ws = XLSX.utils.json_to_sheet(worksheetData);
         const wb = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(wb, ws, "Liquidación");
-        XLSX.writeFile(wb, `Liquidacion_${agency.agency_name.replace(/\s+/g, '_')}_${dayjs().format('YYYYMMDD')}.xlsx`);
+        const fileName = `Liquidacion_${agency.agency_name?.replace(/\s+/g, '_') || 'Agencia'}_${fromDate}_al_${toDate}.xlsx`;
+        XLSX.writeFile(wb, fileName);
     };
 
     const renderWidgetsByRole = () => {
@@ -967,6 +968,12 @@ export const Dashboard = () => {
                                             {fetchingSettlement ? '...' : `$${Number(agencySettlement[0]?.total_net_usd || 0).toFixed(0)}`}
                                         </TypographyCustom>
                                         <TypographyCustom variant="caption" color="text.secondary">Saldo Final USD</TypographyCustom>
+                                    </Box>
+                                    <Box textAlign="center">
+                                        <TypographyCustom variant="h4" fontWeight="bold" color="secondary.main">
+                                            {fetchingSettlement ? '...' : `${Number(agencySettlement[0]?.total_net_ves || 0).toLocaleString()} Bs`}
+                                        </TypographyCustom>
+                                        <TypographyCustom variant="caption" color="text.secondary">Saldo Final Bs</TypographyCustom>
                                     </Box>
                                 </Stack>
                                 <Divider sx={{ my: 2 }} />

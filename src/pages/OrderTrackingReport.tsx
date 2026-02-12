@@ -37,6 +37,7 @@ import { IResponse } from '../interfaces/response-type';
 import { Layout } from '../components/ui/Layout';
 import { OrderDialog } from '../components/orders/OrderDialog';
 import { useSocketStore } from '../store/sockets/SocketStore';
+import { useUserStore } from '../store/user/UserStore';
 
 export const OrderTrackingReport: React.FC = () => {
     // Filters
@@ -61,6 +62,7 @@ export const OrderTrackingReport: React.FC = () => {
 
     // Sockets
     const echo = useSocketStore((s) => s.echo);
+    const user = useUserStore((s) => s.user);
 
     // Filter Options
     const [agents, setAgents] = useState<any[]>([]);
@@ -121,9 +123,20 @@ export const OrderTrackingReport: React.FC = () => {
 
     // 2. Escucha de Sockets (Refresca con filtros actuales)
     useEffect(() => {
-        if (!echo) return;
+        if (!echo || !user?.id) return;
 
-        const channel = echo.private('orders');
+        const role = user.role?.description?.toLowerCase() || '';
+        let channelName = 'orders';
+
+        if (role.includes('agencia')) {
+            channelName = `orders.agency.${user.id}`;
+        } else if (role.includes('vendedor')) {
+            channelName = `orders.agent.${user.id}`;
+        } else if (role.includes('repartidor')) {
+            channelName = `orders.deliverer.${user.id}`;
+        }
+
+        const channel = echo.private(channelName);
 
         // Función de refresco que captura el estado actual gracias a las dependencias
         const handleOrderUpdate = () => {
@@ -136,7 +149,7 @@ export const OrderTrackingReport: React.FC = () => {
         return () => {
             channel.stopListening('OrderUpdated');
         };
-    }, [echo, page, startDate, endDate, agentId, statusId]);
+    }, [echo, user?.id, page, startDate, endDate, agentId, statusId]);
 
     const handleSearch = () => {
         setPage(1);

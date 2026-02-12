@@ -187,7 +187,17 @@ export const LiteBroadcastMonitor = ({ onOrderUpdate, onOpenOrder }: { onOrderUp
     useEffect(() => {
         if (!echo || !user?.id) return;
 
-        const channelName = 'orders';
+        const role = user.role?.description?.toLowerCase() || '';
+        let channelName = 'orders';
+
+        if (role.includes('agencia')) {
+            channelName = `orders.agency.${user.id}`;
+        } else if (role.includes('vendedor')) {
+            channelName = `orders.agent.${user.id}`;
+        } else if (role.includes('repartidor')) {
+            channelName = `orders.deliverer.${user.id}`;
+        }
+
         console.log("📡 [LITE] Connecting to global channel:", channelName);
 
         const channel = echo.private(channelName);
@@ -195,19 +205,6 @@ export const LiteBroadcastMonitor = ({ onOrderUpdate, onOpenOrder }: { onOrderUp
         channel.listen('OrderUpdated', (e: any) => {
             console.log("♻️ [LITE] Order Updated Event:", e);
             if (e.order) {
-                // 🛡️ SECURITY FILTER: Ignore orders that don't belong to us
-                const role = user.role?.description?.toLowerCase() || '';
-
-                if (role.includes('agencia')) {
-                    if (e.order.agency_id !== user.id) return;
-                }
-                if (role.includes('vendedor')) {
-                    if (e.order.agent_id !== user.id) return;
-                }
-                if (role.includes('repartidor')) {
-                    if (e.order.deliverer_id !== user.id) return;
-                }
-
                 // Refrescar la lista completa en Lite
                 if (updateRef.current) {
                     updateRef.current(true); // Reset para traer data fresca
