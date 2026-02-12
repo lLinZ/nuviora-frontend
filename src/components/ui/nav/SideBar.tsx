@@ -202,6 +202,12 @@ export const SideBar = () => {
                 link: "/business-metrics",
                 roles: ["Admin"],
             },
+            {
+                text: "Tracking de Órdenes",
+                icon: <HistoryRounded />,
+                link: "/tracking-report",
+                roles: ["Admin", "Gerente"],
+            },
         ],
         []
     );
