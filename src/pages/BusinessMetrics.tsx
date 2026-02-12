@@ -58,6 +58,7 @@ import { request } from '../common/request';
 import { IResponse } from '../interfaces/response-type';
 import { useUserStore } from '../store/user/UserStore';
 import { Navigate, useNavigate } from 'react-router-dom';
+import { OrderDialog } from '../components/orders/OrderDialog';
 import { blue, green, orange, red, grey } from '@mui/material/colors';
 import { lighten } from '@mui/material/styles';
 import { Layout } from '../components/ui/Layout';
@@ -91,11 +92,18 @@ export const BusinessMetrics: React.FC = () => {
     const [openDialog, setOpenDialog] = useState(false);
     const [selectedOrders, setSelectedOrders] = useState<any[]>([]);
     const [dialogTitle, setDialogTitle] = useState('');
+    const [showOrderDetails, setShowOrderDetails] = useState(false);
+    const [selectedOrderId, setSelectedOrderId] = useState<number | null>(null);
 
     const handleOpenDialog = (title: string, orders: any[]) => {
         setDialogTitle(title);
         setSelectedOrders(orders || []);
         setOpenDialog(true);
+    };
+
+    const handleOpenOrderDetails = (id: number) => {
+        setSelectedOrderId(id);
+        setShowOrderDetails(true);
     };
 
     const toggleSection = (section: string) => {
@@ -383,7 +391,7 @@ export const BusinessMetrics: React.FC = () => {
                                                 primary={<Typography fontWeight="bold">{order.display_number} - {order.client}</Typography>}
                                                 secondary={`ID: ${order.id}`}
                                             />
-                                            <Button size="small" variant="outlined" onClick={() => window.open(`/orders?search=${order.number}`, '_blank')}>
+                                            <Button size="small" variant="outlined" onClick={() => handleOpenOrderDetails(order.id)}>
                                                 Ver
                                             </Button>
                                         </ListItem>
@@ -553,6 +561,15 @@ export const BusinessMetrics: React.FC = () => {
                     </Grid>
                 </ChartContainer>
             </Box>
+
+            <OrderDialog
+                open={showOrderDetails}
+                onClose={() => {
+                    setShowOrderDetails(false);
+                    setSelectedOrderId(null);
+                }}
+                orderId={selectedOrderId}
+            />
         </Layout>
     );
 };
