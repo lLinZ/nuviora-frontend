@@ -60,10 +60,12 @@ export const OrderTrackingReport: React.FC = () => {
     const fetchFilters = async () => {
         try {
             const { status, response }: IResponse = await request('/reports/tracking-comprehensive/filters', 'GET');
-            if (status) {
+            if (status === 200) {
                 const json = await response.json();
-                setAgents(json.agents);
-                setStatuses(json.statuses);
+                setAgents(json.agents || []);
+                setStatuses(json.statuses || []);
+            } else {
+                console.error("Non-200 status fetching filters:", status);
             }
         } catch (error) {
             console.error("Error fetching filters", error);
@@ -81,10 +83,14 @@ export const OrderTrackingReport: React.FC = () => {
                 page: p.toString()
             });
             const { status, response }: IResponse = await request(`/reports/tracking-comprehensive?${query.toString()}`, 'GET');
-            if (status) {
+            if (status === 200) {
                 const json = await response.json();
-                setLogs(json.data.data);
-                setTotalPages(json.data.last_page);
+                if (json.data) {
+                    setLogs(json.data.data || []);
+                    setTotalPages(json.data.last_page || 1);
+                }
+            } else {
+                console.error("Non-200 status fetching logs:", status);
             }
         } catch (error) {
             console.error("Error fetching logs", error);
@@ -157,7 +163,7 @@ export const OrderTrackingReport: React.FC = () => {
                                     onChange={(e) => setAgentId(e.target.value)}
                                 >
                                     <MenuItem value="">Todas</MenuItem>
-                                    {agents.map((a) => (
+                                    {agents?.map((a) => (
                                         <MenuItem key={a.id} value={a.id}>{a.name}</MenuItem>
                                     ))}
                                 </Select>
@@ -172,7 +178,7 @@ export const OrderTrackingReport: React.FC = () => {
                                     onChange={(e) => setStatusId(e.target.value)}
                                 >
                                     <MenuItem value="">Todos</MenuItem>
-                                    {statuses.map((s) => (
+                                    {statuses?.map((s) => (
                                         <MenuItem key={s.id} value={s.id}>{s.description}</MenuItem>
                                     ))}
                                 </Select>
