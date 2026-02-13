@@ -182,8 +182,9 @@ export const useOrderDialogLogic = (
                 return;
             }
             if (!selectedOrder.payments || selectedOrder.payments.length === 0) {
-                // Skip payment validation for return orders
-                if (!selectedOrder.is_return) {
+                // Skip payment validation for return, exchange or $0 orders
+                const total = Number(selectedOrder.current_total_price);
+                if (!selectedOrder.is_return && !selectedOrder.is_exchange && total > 0) {
                     toast.error("Se requieren métodos de pago registrados 💳");
                     return;
                 }
