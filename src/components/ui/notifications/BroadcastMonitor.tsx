@@ -38,41 +38,6 @@ export const BroadcastMonitor = () => {
         channel.notification(async (notification: any) => {
             console.log("🔔 Broadcast received:", notification);
 
-            // 🛡️ SECURITY: Validate order ownership BEFORE doing anything
-            if (notification.order_id) {
-                try {
-                    const { status, response: rawResponse } = await request(`/orders/${notification.order_id}`, 'GET');
-
-                    if (status === 200) {
-                        const data = await rawResponse.json();
-                        const order = data.order || data;
-
-                        // Check if this order belongs to the current user
-                        const role = user.role?.description?.toLowerCase() || '';
-                        let isMyOrder = false;
-
-                        if (role.includes('vendedor')) {
-                            isMyOrder = order.agent_id === user.id;
-                        } else if (role.includes('agencia')) {
-                            isMyOrder = order.agency_id === user.id;
-                        } else if (role.includes('repartidor')) {
-                            isMyOrder = order.deliverer_id === user.id;
-                        } else {
-                            // Admin/Gerente can see all
-                            isMyOrder = true;
-                        }
-
-                        if (!isMyOrder) {
-                            console.warn(`⚠️ [SECURITY] Ignoring notification for order #${notification.order_id} - not assigned to current user`);
-                            return; // STOP PROCESSING
-                        }
-                    }
-                } catch (e) {
-                    console.error('Error validating order ownership:', e);
-                    return; // If we can't validate, don't show it
-                }
-            }
-
             // 1. Play Sound
             try {
                 const soundName = notification.sound || 'notification_sound';
