@@ -361,7 +361,7 @@ export const OrderTrackingReport: React.FC = () => {
                                     <HistoryRounded fontSize="small" /> Movimientos por Estado
                                 </Typography>
                                 <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mt: 1 }}>
-                                    {stats.by_status.map((s: any, i: number) => (
+                                    {sortedStatusStats.map((s: any, i: number) => (
                                         <Paper key={i} sx={{ px: 1.5, py: 0.5, borderRadius: 2, display: 'flex', alignItems: 'center', gap: 1, bgcolor: 'background.paper' }}>
                                             <Typography variant="caption" fontWeight="bold">{s.status}:</Typography>
                                             <Chip size="small" label={s.total} color="primary" sx={{ height: 20, fontWeight: 'bold' }} />
