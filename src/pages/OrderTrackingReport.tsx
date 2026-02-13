@@ -157,6 +157,7 @@ export const OrderTrackingReport: React.FC = () => {
     };
 
     const statusFlowOrder = [
+        'Reprogramado para hoy',
         'Asignado a vendedor',
         'Llamado 1',
         'Llamado 2',
