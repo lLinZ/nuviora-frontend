@@ -22,7 +22,9 @@ import {
     CircularProgress,
     Tooltip,
     IconButton,
-    LinearProgress
+    LinearProgress,
+    alpha,
+    useTheme
 } from '@mui/material';
 import {
     RefreshRounded,
@@ -40,6 +42,7 @@ import { useSocketStore } from '../store/sockets/SocketStore';
 import { useUserStore } from '../store/user/UserStore';
 
 export const OrderTrackingReport: React.FC = () => {
+    const theme = useTheme();
     // Filters
     const [startDate, setStartDate] = useState(dayjs().format('YYYY-MM-DD'));
     const [endDate, setEndDate] = useState(dayjs().format('YYYY-MM-DD'));
@@ -361,15 +364,40 @@ export const OrderTrackingReport: React.FC = () => {
                                     <HistoryRounded fontSize="small" /> Movimientos por Estado
                                 </Typography>
                                 <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mt: 1 }}>
-                                    {sortedStatusStats.map((s: any, i: number) => (
-                                        <Paper key={i} sx={{ px: 1.5, py: 0.5, borderRadius: 2, display: 'flex', alignItems: 'center', gap: 1, bgcolor: 'background.paper' }}>
-                                            <Typography variant="caption" fontWeight="bold">{s.status}:</Typography>
-                                            <Chip size="small" label={s.total} color="primary" sx={{ height: 20, fontWeight: 'bold' }} />
-                                        </Paper>
-                                    ))}
+                                    {(() => {
+                                        const assignedToSeller = stats.by_status.find((s: any) => s.status === 'Asignado a vendedor');
+                                        const baseTotal = assignedToSeller ? assignedToSeller.total : 0;
+
+                                        return sortedStatusStats.map((s: any, i: number) => {
+                                            const percentage = baseTotal > 0 ? ((s.total / baseTotal) * 100).toFixed(1) : null;
+                                            const isBaseStatus = s.status === 'Asignado a vendedor';
+
+                                            return (
+                                                <Paper key={i} sx={{
+                                                    px: 1.5, py: 0.5,
+                                                    borderRadius: 2,
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    gap: 1,
+                                                    bgcolor: isBaseStatus ? alpha(theme.palette.primary.main, 0.1) : 'background.paper',
+                                                    border: isBaseStatus ? `1px solid ${alpha(theme.palette.primary.main, 0.3)}` : 'none'
+                                                }}>
+                                                    <Typography variant="caption" fontWeight="bold">{s.status}:</Typography>
+                                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                                                        <Chip size="small" label={s.total} color="primary" sx={{ height: 20, fontWeight: 'bold' }} />
+                                                        {percentage && !isBaseStatus && (
+                                                            <Typography variant="caption" sx={{ fontWeight: 'black', color: 'success.main', fontSize: '0.65rem' }}>
+                                                                {percentage}%
+                                                            </Typography>
+                                                        )}
+                                                    </Box>
+                                                </Paper>
+                                            );
+                                        });
+                                    })()}
                                 </Box>
                                 <Typography variant="caption" sx={{ mt: 2, display: 'block', opacity: 0.6 }}>
-                                    Total de órdenes únicas procesadas: <b>{stats.total_orders}</b> | Movimientos totales: <b>{stats.total_movements}</b>
+                                    Total de órdenes únicas procesadas: <b>{stats.total_orders}</b> | Movimientos totales: <b>{stats.total_movements}</b> | <i>Base conversión (Asig. Vendedor): <b>{stats.by_status.find((s: any) => s.status === 'Asignado a vendedor')?.total || 0}</b></i>
                                 </Typography>
                             </Paper>
                         </Grid>

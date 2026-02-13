@@ -7,6 +7,7 @@ interface ColumnState {
     page: number;
     hasMore: boolean;
     isLoading: boolean;
+    total: number;
 }
 
 interface OrdersState {
@@ -29,7 +30,7 @@ interface OrdersState {
 
     // Actions
     setFilters: (filters: Partial<OrdersState['filters']>) => void;
-    setColumnsOrder: (status: string, orders: any[], isAppend?: boolean, hasMore?: boolean) => void;
+    setColumnsOrder: (status: string, orders: any[], isAppend?: boolean, hasMore?: boolean, total?: number) => void;
     setColumnLoading: (status: string, loading: boolean) => void;
 
     updateOrderInColumns: (order: any) => void; // Para realtime updates o ediciones
@@ -58,9 +59,9 @@ export const useOrdersStore = create<OrdersState>((set, get) => ({
 
     setFilters: (newFilters) => set((state) => ({ filters: { ...state.filters, ...newFilters } })),
 
-    setColumnsOrder: (status, orders, isAppend = false, hasMore = true) =>
+    setColumnsOrder: (status, orders, isAppend = false, hasMore = true, total = 0) =>
         set((state) => {
-            const currentCol = state.columns[status] || { id: status, items: [], page: 1, hasMore: true, isLoading: false };
+            const currentCol = state.columns[status] || { id: status, items: [], page: 1, hasMore: true, isLoading: false, total: 0 };
 
             // Deduplicación simple
             const existingIds = new Set(isAppend ? currentCol.items.map(o => o.id) : []);
@@ -78,7 +79,8 @@ export const useOrdersStore = create<OrdersState>((set, get) => ({
                         items: nextItems,
                         page: isAppend ? currentCol.page + 1 : 1, // Si es replace, reset page to 1? Ojo aqui
                         hasMore: hasMore,
-                        isLoading: false
+                        isLoading: false,
+                        total: total || (isAppend ? currentCol.total : orders.length)
                     }
                 }
             };
@@ -86,7 +88,7 @@ export const useOrdersStore = create<OrdersState>((set, get) => ({
 
     setColumnLoading: (status, loading) =>
         set((state) => {
-            const currentCol = state.columns[status] || { id: status, items: [], page: 1, hasMore: true, isLoading: false };
+            const currentCol = state.columns[status] || { id: status, items: [], page: 1, hasMore: true, isLoading: false, total: 0 };
             return {
                 columns: {
                     ...state.columns,
@@ -172,12 +174,17 @@ export const useOrdersStore = create<OrdersState>((set, get) => ({
             // 2. Add to destination (al principio o ordenado por fecha)
             if (!newCols[toStatus]) {
                 // Si la columna destino no está inicializada aún en el store
-                newCols[toStatus] = { id: toStatus, items: [], page: 1, hasMore: true, isLoading: false };
+                newCols[toStatus] = { id: toStatus, items: [], page: 1, hasMore: true, isLoading: false, total: 0 };
             }
 
             // Asumimos que queremos verlo arriba de todo por ahora para feedback inmediato
             const targetItems = [orderData, ...newCols[toStatus].items];
-            newCols[toStatus] = { ...newCols[toStatus], items: targetItems };
+            newCols[toStatus] = { ...newCols[toStatus], items: targetItems, total: newCols[toStatus].total + 1 };
+
+            // Si venía de otra columna, bajar el anterior
+            if (fromStatus && newCols[fromStatus]) {
+                newCols[fromStatus] = { ...newCols[fromStatus], total: Math.max(0, newCols[fromStatus].total - 1) };
+            }
 
             return { columns: newCols };
         }),

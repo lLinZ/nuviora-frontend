@@ -63,8 +63,8 @@ export const OrderList: FC<OrderListProps> = ({ title }) => {
             if (status) {
                 const data = await response.json();
                 const isAppend = pageToLoad > 1;
-                // Actualizar store
-                setColumnsOrder(title, data.data, isAppend, data.meta.last_page > pageToLoad);
+                // Actualizar store con total desde meta
+                setColumnsOrder(title, data.data, isAppend, data.meta.last_page > pageToLoad, data.meta.total);
             } else {
                 // toast.error(`Error cargando ${title}`); 
                 // Silencioso mejor, para no spammear 10 toasts
@@ -177,7 +177,7 @@ export const OrderList: FC<OrderListProps> = ({ title }) => {
                         {title}
                     </Typography>
                     <Badge
-                        badgeContent={items.length}
+                        badgeContent={column?.total || 0}
                         max={999}
                         sx={{
                             "& .MuiBadge-badge": {

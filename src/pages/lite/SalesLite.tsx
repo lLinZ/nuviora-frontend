@@ -46,7 +46,7 @@ import { AccountBalanceRounded, AddCircleOutline, CurrencyExchange } from '@mui/
 import { OrderTimer } from '../../components/orders/OrderTimer';
 
 // Componente simple de Tabla Lite
-const LiteOrderTable = ({ statusTitle, searchTerm, onRefresh }: any) => {
+const LiteOrderTable = ({ statusTitle, searchTerm, onRefresh, onDataUpdate }: any) => {
     const user = useUserStore((state) => state.user);
     const [orders, setOrders] = useState<any[]>([]);
     const [loading, setLoading] = useState(false);
@@ -112,7 +112,13 @@ const LiteOrderTable = ({ statusTitle, searchTerm, onRefresh }: any) => {
     return (
         <React.Fragment>
             <LiteNotificationMonitor orders={orders} onOpenOrder={handleOpenOrderById} />
-            <LiteBroadcastMonitor onOrderUpdate={fetchOrders} onOpenOrder={handleOpenOrderById} />
+            <LiteBroadcastMonitor
+                onOrderUpdate={(reset) => {
+                    fetchOrders(reset);
+                    if (onDataUpdate) onDataUpdate();
+                }}
+                onOpenOrder={handleOpenOrderById}
+            />
             <TableContainer component={Paper} elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2, maxHeight: '70vh', bgcolor: 'background.paper' }}>
                 <Table stickyHeader size="small">
                     <TableHead>
@@ -229,6 +235,7 @@ const LiteOrderTable = ({ statusTitle, searchTerm, onRefresh }: any) => {
                         fetchOrders(true);
                         // También podríamos disparar actualización de contadores mediante prop si lo pasamos
                         if (onRefresh && onRefresh.current) onRefresh.current();
+                        if (onDataUpdate) onDataUpdate();
                     }}
                 />
             )}
@@ -565,6 +572,7 @@ export const SalesLite = () => {
                     statusTitle={getCurrentStatus()}
                     searchTerm={searchTerm}
                     onRefresh={refreshRef}
+                    onDataUpdate={fetchCounts}
                 />
             </Box>
 
