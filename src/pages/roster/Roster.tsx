@@ -104,7 +104,9 @@ export const Roster: React.FC = () => {
     const openDay = async () => {
         if (!selectedShopId) return;
         try {
-            const { status, response }: IResponse = await request(`/business/open?shop_id=${selectedShopId}`, "POST");
+            const { status, response }: IResponse = await request(`/business/open?shop_id=${selectedShopId}`, "POST", {
+                assign_backlog: true // ✅ Auto-asignar backlog al abrir la jornada
+            } as any);
             if (status) {
                 const data = await response.json();
                 toast.success(data.message || "Jornada abierta ✅");
@@ -162,7 +164,9 @@ export const Roster: React.FC = () => {
     const assignBacklog = async () => {
         setAssigning(true);
         try {
-            const { status, response }: IResponse = await request("/orders/assign-backlog", "POST");
+            const { status, response }: IResponse = await request("/orders/assign-backlog", "POST", {
+                shop_id: selectedShopId || undefined // ✅ Filtrar por tienda seleccionada
+            } as any);
             if (status) {
                 const data = await response.json();
                 toast.success(data.message ?? "Backlog asignado ✅");

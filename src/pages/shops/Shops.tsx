@@ -199,7 +199,7 @@ export const Shops = () => {
             // Notar que el backend ahora también puede recibir shop_id para asignar backlog,
             // pero openDay llama a /business/open
             const { status, response }: IResponse = await request(`/business/open?shop_id=${editingShop.id}`, "POST", {
-                assign_backlog: false // Lo manejamos manual o automatico? En UI pusimos boton separado
+                assign_backlog: true // ✅ Auto-asignar backlog al abrir la jornada
             } as any);
             if (status) {
                 toast.success("Jornada ABIERTA");

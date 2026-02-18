@@ -68,8 +68,9 @@ export const StockMovementDialog: React.FC<StockMovementDialogProps> = ({
             );
             if (status === 200) {
                 const data = await response.json();
-                // Assuming the endpoint returns inventory list or specific item
-                const stock = data.data?.find((i: any) => i.product_id === product?.id)?.quantity || 0;
+                // Backend devuelve { inventory: [...], current_stock: number }
+                // current_stock ya viene filtrado por product_id desde el backend
+                const stock = data.current_stock ?? 0;
                 setAvailableStock(stock);
             }
         } catch (error) {
