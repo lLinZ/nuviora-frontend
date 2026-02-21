@@ -99,10 +99,10 @@ export const OrderUpdatesList: React.FC<OrderUpdatesListProps> = ({ updates }) =
                             >
                                 <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, justifyContent: 'space-between', alignItems: { xs: 'flex-start', sm: 'center' }, mb: 1 }}>
                                     <TypographyCustom variant="subtitle2" fontWeight="bold" sx={{ color: isDark ? lighten(userColor, 0.3) : darken(userColor, 0.2) }}>
-                                        {u.user?.names} {u.user?.surnames !== '-' ? u.user?.surnames : ''}
-                                        {u.user?.role?.description && (
-                                            <TypographyCustom component="span" variant="caption" sx={{ ml: 1, opacity: 0.6, fontWeight: 'normal' }}>
-                                                • {u.user?.role?.description}
+                                        {u.user?.role?.description ?? 'Sistema'}
+                                        {u.user?.names && (
+                                            <TypographyCustom component="span" variant="caption" sx={{ ml: 1, opacity: 0.55, fontWeight: 'normal' }}>
+                                                • {u.user.names}
                                             </TypographyCustom>
                                         )}
                                     </TypographyCustom>

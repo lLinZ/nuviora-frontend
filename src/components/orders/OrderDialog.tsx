@@ -445,7 +445,7 @@ export const OrderDialog: FC<OrderDialogProps> = ({ id, open, setOpen }) => {
 
                 {/* 📋 CONTENT AREA (Massive pb to ensure space for the large absolute comment bar at bottom) */}
                 <DialogContent sx={{ p: { xs: 1, sm: 3 }, pb: 45 }}>
-                    <Box sx={{ maxWidth: '1200px', margin: 'auto' }}>
+                    <Box sx={{ maxWidth: '100%', margin: 'auto' }}>
 
                         {/* ⚠️ STOCK WARNING ALERT */}
                         {order.has_stock_warning && (
@@ -556,7 +556,7 @@ export const OrderDialog: FC<OrderDialogProps> = ({ id, open, setOpen }) => {
 
                         {activeTab === 0 && (
                             <Grid container spacing={3}>
-                                <Grid size={{ xs: 12, md: 7 }}>
+                                <Grid size={{ xs: 12, sm: 6, md: 6, lg: 5 }}>
                                     <Paper elevation={0} sx={{ p: 3, borderRadius: 4, bgcolor: 'background.paper', mb: 3, boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}>
                                         <Typography variant="h6" fontWeight="bold" sx={{ mb: 3 }}>Información de la Orden</Typography>
                                         <OrderHeader
@@ -569,7 +569,8 @@ export const OrderDialog: FC<OrderDialogProps> = ({ id, open, setOpen }) => {
                                         />
                                     </Paper>
                                 </Grid>
-                                <Grid size={{ xs: 12, md: 5 }}>
+
+                                <Grid size={{ xs: 12, sm: 6, md: 6, lg: 4 }}>
                                     <Paper elevation={0} sx={{ p: 3, borderRadius: 4, bgcolor: 'background.paper', mb: 3, boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}>
                                         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
                                             <Typography variant="h6" fontWeight="bold">Productos</Typography>
@@ -706,6 +707,13 @@ export const OrderDialog: FC<OrderDialogProps> = ({ id, open, setOpen }) => {
                                                 </Typography>
                                             )}
                                         </Box>
+                                    </Paper>
+                                </Grid>
+                                <Grid size={{ xs: 12, sm: 12, md: 12, lg: 3 }}>
+                                    <Paper elevation={0} sx={{ p: 3, borderRadius: 4, bgcolor: 'background.paper', mb: 3, boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}>
+                                        <Typography variant="h6" fontWeight="bold" sx={{ mb: 3 }}>IMPORTANTE</Typography>
+
+                                        <OrderUpdatesList updates={order.updates} />
                                     </Paper>
                                 </Grid>
                             </Grid>

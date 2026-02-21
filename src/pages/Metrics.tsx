@@ -9,11 +9,12 @@ import {
     Box, Card, CardContent, Grid, Typography, Divider,
     Table, TableBody, TableCell, TableContainer, TableHead,
     TableRow, Paper, TextField, Button, MenuItem,
-    Dialog, DialogTitle, DialogContent, DialogActions
+    Dialog, DialogTitle, DialogContent, DialogActions,
+    Collapse, IconButton, Chip
 } from "@mui/material";
 import { fmtMoney } from "../lib/money";
 import { toast } from "react-toastify";
-import { Add as AddIcon, TrendingUp, Close as CloseIcon, LocalShipping as ShippedIcon, ShoppingCartCheckout } from "@mui/icons-material";
+import { Add as AddIcon, TrendingUp, Close as CloseIcon, LocalShipping as ShippedIcon, ShoppingCartCheckout, CheckCircleOutline as EffectivenessIcon, KeyboardArrowDown, KeyboardArrowUp } from "@mui/icons-material";
 
 export const Metrics = () => {
     const { loadingSession, isValid, user } = useValidateSession();
@@ -31,6 +32,9 @@ export const Metrics = () => {
         city_id: '',
         agency_id: ''
     });
+    const [expandedSeller, setExpandedSeller] = useState<number | null>(null);
+    const [expandedWorkload, setExpandedWorkload] = useState<number | null>(null);
+    const [expandedAgency, setExpandedAgency] = useState<number | null>(null);
 
     const fetchMetrics = async () => {
         // Validation: Ensure year is reasonable to avoid server crashes
@@ -136,6 +140,7 @@ export const Metrics = () => {
             </Box>
 
             <Grid container spacing={3} mb={4}>
+                <SummaryCard title="Efectividad Global" value={`${summary.global_effectiveness ?? 0}%`} sub={`${summary.global_delivered_orders ?? 0} de ${summary.global_total_orders ?? 0} órdenes entregadas`} icon={<EffectivenessIcon color="success" />} />
                 <SummaryCard title="Valor Promedio Orden" value={fmtMoney(summary.avg_order_value, 'USD')} icon={<TrendingUp color="primary" />} />
                 <SummaryCard title="Upsells Realizados" value={summary.upsells_count} icon={<ShoppingCartCheckout color="success" />} />
                 <SummaryCard title="Cancelaciones" value={summary.cancellations_count} icon={<CloseIcon color="error" />} />
@@ -173,52 +178,225 @@ export const Metrics = () => {
                     </Card>
                 </Grid>
 
-                <Grid size={{ xs: 12, lg: 4 }}>
-                    <Card elevation={3} sx={{ borderRadius: 4 }}>
-                        <CardContent>
-                            <Typography variant="h6" gutterBottom>Efectividad de Vendedoras</Typography>
-                            <TableContainer component={Paper} elevation={0}>
-                                <Table size="small">
-                                    <TableHead>
-                                        <TableRow>
-                                            <TableCell>Vendedora</TableCell>
-                                            <TableCell align="right">Cierre</TableCell>
-                                            <TableCell align="right">Entrega</TableCell>
-                                        </TableRow>
-                                    </TableHead>
-                                    <TableBody>
-                                        {metrics?.sellers?.map((s: any) => (
-                                            <TableRow key={s.id}>
-                                                <TableCell>{s.names || s.name}</TableCell>
-                                                <TableCell align="right">{s.closure_rate}%</TableCell>
-                                                <TableCell align="right">{s.delivery_rate}%</TableCell>
+                <Grid size={{ xs: 12, lg: 8 }}>
+                    <Box display="flex" flexDirection="column" gap={3}>
+                        <Card elevation={3} sx={{ borderRadius: 4 }}>
+                            <CardContent>
+                                <Typography variant="h6" gutterBottom>Efectividad Ventas (Nuevas Asignaciones)</Typography>
+                                <Typography variant="caption" color="text.secondary" sx={{ mb: 1, display: 'block' }}>
+                                    Basado en <b>fecha de creación</b> de la orden. Atribución a la primera vendedora.
+                                </Typography>
+                                <TableContainer component={Paper} elevation={0}>
+                                    <Table size="small">
+                                        <TableHead>
+                                            <TableRow>
+                                                <TableCell sx={{ width: 32 }} />
+                                                <TableCell>Vendedora</TableCell>
+                                                <TableCell align="right">Total</TableCell>
+                                                <TableCell align="right">Entregadas</TableCell>
+                                                <TableCell align="right" sx={{ color: 'secondary.main', whiteSpace: 'nowrap' }}>Pasadas ✦</TableCell>
+                                                <TableCell align="right">Efec.</TableCell>
                                             </TableRow>
-                                        ))}
-                                    </TableBody>
-                                </Table>
-                            </TableContainer>
-                        </CardContent>
-                    </Card>
+                                        </TableHead>
+                                        <TableBody>
+                                            {metrics?.sellers?.map((s: any) => (
+                                                <React.Fragment key={s.id}>
+                                                    <TableRow
+                                                        hover
+                                                        sx={{ cursor: 'pointer' }}
+                                                        onClick={() => setExpandedSeller(expandedSeller === s.id ? null : s.id)}
+                                                    >
+                                                        <TableCell sx={{ py: 0.5 }}>
+                                                            <IconButton size="small">
+                                                                {expandedSeller === s.id ? <KeyboardArrowUp fontSize="small" /> : <KeyboardArrowDown fontSize="small" />}
+                                                            </IconButton>
+                                                        </TableCell>
+                                                        <TableCell sx={{ fontWeight: 'bold' }}>{s.names || s.name}</TableCell>
+                                                        <TableCell align="right">{s.total_assigned}</TableCell>
+                                                        <TableCell align="right">{s.success_delivered}</TableCell>
+                                                        <TableCell align="right" sx={{ color: s.delivered_by_other > 0 ? 'secondary.main' : 'text.disabled', fontWeight: s.delivered_by_other > 0 ? 'bold' : 'normal' }}>
+                                                            {s.delivered_by_other > 0 ? `-${s.delivered_by_other}` : '—'}
+                                                        </TableCell>
+                                                        <TableCell align="right" sx={{ fontWeight: 'bold', color: s.delivery_rate >= 70 ? 'success.main' : s.delivery_rate >= 40 ? 'warning.main' : 'error.main' }}>
+                                                            {s.delivery_rate}%
+                                                        </TableCell>
+                                                    </TableRow>
+                                                    <TableRow>
+                                                        <TableCell colSpan={6} sx={{ py: 0, border: 0 }}>
+                                                            <Collapse in={expandedSeller === s.id} timeout="auto" unmountOnExit>
+                                                                <Box sx={{ px: 4, py: 1.5, bgcolor: 'action.hover', borderRadius: 1, mb: 0.5 }}>
+                                                                    <Typography variant="caption" color="text.secondary" fontWeight="bold" sx={{ mb: 1, display: 'block' }}>
+                                                                        Desglose de estados finales ({s.total_assigned} asignadas originalmente)
+                                                                    </Typography>
+                                                                    <Box display="flex" flexWrap="wrap" gap={0.8}>
+                                                                        {s.status_breakdown?.map((b: any) => (
+                                                                            <Chip
+                                                                                key={b.status}
+                                                                                size="small"
+                                                                                label={`${b.status}: ${b.count}`}
+                                                                                color={b.status === 'Entregado' ? 'success' : b.status === 'Cancelado' ? 'error' : b.status === 'Rechazado' ? 'warning' : 'default'}
+                                                                                variant={b.status === 'Entregado' || b.status === 'Cancelado' || b.status === 'Rechazado' ? 'filled' : 'outlined'}
+                                                                            />
+                                                                        ))}
+                                                                    </Box>
+                                                                    {s.delivered_by_other > 0 && (
+                                                                        <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block', fontStyle: 'italic' }}>
+                                                                            ✦ Pasadas = se le asignó primero a ella pero otra vendedora cerró la venta.
+                                                                        </Typography>
+                                                                    )}
+                                                                </Box>
+                                                            </Collapse>
+                                                        </TableCell>
+                                                    </TableRow>
+                                                </React.Fragment>
+                                            ))}
+                                        </TableBody>
+                                    </Table>
+                                </TableContainer>
+                            </CardContent>
+                        </Card>
+
+                        <Card elevation={3} sx={{ borderRadius: 4, border: '1px solid', borderColor: 'divider' }}>
+                            <CardContent>
+                                <Typography variant="h6" gutterBottom color="primary">Volumen de Trabajo y Actividad (Reporte para Vendedoras)</Typography>
+                                <Typography variant="caption" color="text.secondary" sx={{ mb: 1, display: 'block' }}>
+                                    Filtrado por <b>fecha de actividad</b> (historial de logs). Muestra todo lo trabajado en el rango seleccionado.
+                                </Typography>
+                                <TableContainer component={Paper} elevation={0}>
+                                    <Table size="small">
+                                        <TableHead>
+                                            <TableRow>
+                                                <TableCell sx={{ width: 32 }} />
+                                                <TableCell>Vendedora</TableCell>
+                                                <TableCell align="right">Órdenes Tocadas</TableCell>
+                                                <TableCell align="right">Entregadas</TableCell>
+                                                <TableCell align="right" sx={{ color: 'info.main' }}>Rescatadas ★</TableCell>
+                                                <TableCell align="right">Efec.</TableCell>
+                                            </TableRow>
+                                        </TableHead>
+                                        <TableBody>
+                                            {metrics?.workload?.map((w: any) => (
+                                                <React.Fragment key={w.id}>
+                                                    <TableRow
+                                                        hover
+                                                        sx={{ cursor: 'pointer' }}
+                                                        onClick={() => setExpandedWorkload(expandedWorkload === w.id ? null : w.id)}
+                                                    >
+                                                        <TableCell sx={{ py: 0.5 }}>
+                                                            <IconButton size="small" color="primary">
+                                                                {expandedWorkload === w.id ? <KeyboardArrowUp fontSize="small" /> : <KeyboardArrowDown fontSize="small" />}
+                                                            </IconButton>
+                                                        </TableCell>
+                                                        <TableCell sx={{ fontWeight: 'bold' }}>{w.names || w.name}</TableCell>
+                                                        <TableCell align="right" sx={{ fontWeight: 'bold' }}>{w.total_assigned}</TableCell>
+                                                        <TableCell align="right">{w.success_delivered}</TableCell>
+                                                        <TableCell align="right" sx={{ color: w.rescued_from_other > 0 ? 'info.main' : 'text.disabled', fontWeight: w.rescued_from_other > 0 ? 'bold' : 'normal' }}>
+                                                            {w.rescued_from_other > 0 ? `+${w.rescued_from_other}` : '—'}
+                                                        </TableCell>
+                                                        <TableCell align="right" sx={{ fontWeight: 'bold' }}>
+                                                            {w.delivery_rate}%
+                                                        </TableCell>
+                                                    </TableRow>
+                                                    <TableRow>
+                                                        <TableCell colSpan={6} sx={{ py: 0, border: 0 }}>
+                                                            <Collapse in={expandedWorkload === w.id} timeout="auto" unmountOnExit>
+                                                                <Box sx={{ px: 4, py: 1.5, bgcolor: 'action.hover', borderRadius: 1, mb: 0.5 }}>
+                                                                    <Typography variant="caption" color="text.secondary" fontWeight="bold" sx={{ mb: 1, display: 'block' }}>
+                                                                        Desglose de actividad real ({w.total_assigned} órdenes procesadas en este rango)
+                                                                    </Typography>
+                                                                    <Box display="flex" flexWrap="wrap" gap={0.8}>
+                                                                        {w.status_breakdown?.map((b: any) => (
+                                                                            <Chip
+                                                                                key={b.status}
+                                                                                size="small"
+                                                                                label={`${b.status}: ${b.count}`}
+                                                                                color={b.status === 'Entregado' ? 'success' : b.status === 'Cancelado' ? 'error' : b.status === 'Rechazado' ? 'warning' : 'default'}
+                                                                                variant={b.status === 'Entregado' || b.status === 'Cancelado' || b.status === 'Rechazado' ? 'filled' : 'outlined'}
+                                                                            />
+                                                                        ))}
+                                                                    </Box>
+                                                                    <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block', fontStyle: 'italic' }}>
+                                                                        ★ "Rescatadas" = órdenes que eran originalmente de otra persona y tú entregaste.
+                                                                    </Typography>
+                                                                </Box>
+                                                            </Collapse>
+                                                        </TableCell>
+                                                    </TableRow>
+                                                </React.Fragment>
+                                            ))}
+                                        </TableBody>
+                                    </Table>
+                                </TableContainer>
+                            </CardContent>
+                        </Card>
+                    </Box>
                 </Grid>
 
                 <Grid size={{ xs: 12, lg: 4 }}>
                     <Card elevation={3} sx={{ borderRadius: 4 }}>
                         <CardContent>
                             <Typography variant="h6" gutterBottom>Efectividad de Agencias</Typography>
+                            <Typography variant="caption" color="text.secondary" sx={{ mb: 1, display: 'block' }}>
+                                Haz clic en una fila para ver el desglose
+                            </Typography>
                             <TableContainer component={Paper} elevation={0}>
                                 <Table size="small">
                                     <TableHead>
                                         <TableRow>
+                                            <TableCell sx={{ width: 32 }} />
                                             <TableCell>Agencia</TableCell>
-                                            <TableCell align="right">Entrega</TableCell>
+                                            <TableCell align="right">Total</TableCell>
+                                            <TableCell align="right">Entregadas</TableCell>
+                                            <TableCell align="right">Efec.</TableCell>
                                         </TableRow>
                                     </TableHead>
                                     <TableBody>
                                         {metrics?.agencies?.map((a: any) => (
-                                            <TableRow key={a.id}>
-                                                <TableCell>{a.names || a.name}</TableCell>
-                                                <TableCell align="right">{a.delivery_rate}%</TableCell>
-                                            </TableRow>
+                                            <React.Fragment key={a.id}>
+                                                <TableRow
+                                                    hover
+                                                    sx={{ cursor: 'pointer' }}
+                                                    onClick={() => setExpandedAgency(expandedAgency === a.id ? null : a.id)}
+                                                >
+                                                    <TableCell sx={{ py: 0.5 }}>
+                                                        <IconButton size="small">
+                                                            {expandedAgency === a.id ? <KeyboardArrowUp fontSize="small" /> : <KeyboardArrowDown fontSize="small" />}
+                                                        </IconButton>
+                                                    </TableCell>
+                                                    <TableCell sx={{ fontWeight: 'bold' }}>{a.names || a.name}</TableCell>
+                                                    <TableCell align="right">{a.total_assigned}</TableCell>
+                                                    <TableCell align="right">{a.success_delivered}</TableCell>
+                                                    <TableCell align="right" sx={{ fontWeight: 'bold', color: a.delivery_rate >= 70 ? 'success.main' : a.delivery_rate >= 40 ? 'warning.main' : 'error.main' }}>
+                                                        {a.delivery_rate}%
+                                                    </TableCell>
+                                                </TableRow>
+                                                <TableRow>
+                                                    <TableCell colSpan={5} sx={{ py: 0, border: 0 }}>
+                                                        <Collapse in={expandedAgency === a.id} timeout="auto" unmountOnExit>
+                                                            <Box sx={{ px: 4, py: 1.5, bgcolor: 'action.hover', borderRadius: 1, mb: 0.5 }}>
+                                                                <Typography variant="caption" color="text.secondary" fontWeight="bold" sx={{ mb: 1, display: 'block' }}>
+                                                                    Desglose de estados finales ({a.total_assigned} órdenes únicas)
+                                                                </Typography>
+                                                                <Box display="flex" flexWrap="wrap" gap={0.8}>
+                                                                    {a.status_breakdown?.map((b: any) => (
+                                                                        <Chip
+                                                                            key={b.status}
+                                                                            size="small"
+                                                                            label={`${b.status}: ${b.count}`}
+                                                                            color={
+                                                                                b.status === 'Entregado' ? 'success' :
+                                                                                    b.status === 'Cancelado' ? 'error' :
+                                                                                        b.status === 'Rechazado' ? 'warning' : 'default'
+                                                                            }
+                                                                            variant={b.status === 'Entregado' || b.status === 'Cancelado' || b.status === 'Rechazado' ? 'filled' : 'outlined'}
+                                                                        />
+                                                                    ))}
+                                                                </Box>
+                                                            </Box>
+                                                        </Collapse>
+                                                    </TableCell>
+                                                </TableRow>
+                                            </React.Fragment>
                                         ))}
                                     </TableBody>
                                 </Table>
@@ -289,14 +467,15 @@ export const Metrics = () => {
     );
 };
 
-const SummaryCard = ({ title, value, icon }: any) => (
-    <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+const SummaryCard = ({ title, value, sub, icon }: any) => (
+    <Grid size={{ xs: 12, sm: 6, md: 2 }}>
         <Card elevation={3} sx={{ borderRadius: 4, height: '100%' }}>
             <CardContent>
-                <Box display="flex" justifyContent="space-between" alignItems="center">
+                <Box display="flex" justifyContent="space-between" alignItems="flex-start">
                     <Box>
                         <Typography variant="caption" color="text.secondary" fontWeight="bold">{title}</Typography>
                         <Typography variant="h5" fontWeight="bold">{value}</Typography>
+                        {sub && <Typography variant="caption" color="text.secondary">{sub}</Typography>}
                     </Box>
                     {icon}
                 </Box>
