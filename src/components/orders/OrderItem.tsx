@@ -8,7 +8,7 @@ import {
     useTheme,
 } from "@mui/material";
 import AddRoundedIcon from "@mui/icons-material/AddRounded";
-import { NotificationsActiveRounded, WarningAmberRounded, HistoryRounded } from "@mui/icons-material";
+import { NotificationsActiveRounded, WarningAmberRounded, HistoryRounded, ReplayRounded } from "@mui/icons-material";
 import React, { FC, useState } from "react";
 import { darken } from "@mui/material/styles";
 import { toast } from "react-toastify";
@@ -321,6 +321,36 @@ export const OrderItem: FC<OrderItemProps> = ({ order }) => {
                 </Box>
                 <DenseMenu data={order} changeStatus={changeStatus} />
             </Box>
+
+            {/* 🔁 INDICADOR: Orden atendida en día anterior */}
+            {(order.reset_count > 0) && (
+                <Tooltip title={`Esta orden ya fue atendida ${order.reset_count} vez${order.reset_count > 1 ? 'es' : ''} en días anteriores sin éxito`}>
+                    <Box sx={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 0.5,
+                        mb: 1,
+                        px: 1,
+                        py: 0.4,
+                        borderRadius: 2,
+                        bgcolor: 'rgba(230, 81, 0, 0.12)',
+                        border: '1px solid rgba(230, 81, 0, 0.3)',
+                    }}>
+                        <ReplayRounded sx={{
+                            fontSize: '0.85rem',
+                            color: orange[700],
+                            animation: 'spin-once 0.5s ease',
+                            '@keyframes spin-once': {
+                                '0%': { transform: 'rotate(0deg)' },
+                                '100%': { transform: 'rotate(360deg)' },
+                            }
+                        }} />
+                        <Box component="span" sx={{ fontSize: '0.7rem', fontWeight: 'bold', color: orange[700] }}>
+                            Día anterior ({order.reset_count}x)
+                        </Box>
+                    </Box>
+                </Tooltip>
+            )}
 
             <Box onClick={handleOpen} sx={{ cursor: "pointer" }}>
                 <TypographyCustom

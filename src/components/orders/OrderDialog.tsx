@@ -532,6 +532,28 @@ export const OrderDialog: FC<OrderDialogProps> = ({ id, open, setOpen }) => {
                             </Paper>
                         )}
 
+                        {/* 🔁 ORDEN ATENDIDA ANTERIORMENTE */}
+                        {order.reset_count > 0 && (
+                            <Paper elevation={0} sx={{
+                                p: 2, mb: 3,
+                                borderRadius: 3,
+                                bgcolor: 'rgba(230, 81, 0, 0.08)',
+                                border: '1px solid',
+                                borderColor: 'rgba(230, 81, 0, 0.4)',
+                                display: 'flex', gap: 2, alignItems: 'center'
+                            }}>
+                                <ReplayRounded sx={{ color: '#e65100', fontSize: '1.5rem', flexShrink: 0 }} />
+                                <Box>
+                                    <Typography variant="subtitle2" fontWeight="bold" sx={{ color: '#e65100' }}>
+                                        Atendida en día{order.reset_count > 1 ? 's' : ''} anterior{order.reset_count > 1 ? 'es' : ''} ({order.reset_count}x)
+                                    </Typography>
+                                    <Typography variant="body2" sx={{ opacity: 0.8 }}>
+                                        Esta orden fue reseteada a "Nuevo" al cerrar la tienda {order.reset_count} {order.reset_count === 1 ? 'vez' : 'veces'} porque no fue concretada. Si se cierra la tienda sin concretarla nuevamente, será cancelada automáticamente.
+                                    </Typography>
+                                </Box>
+                            </Paper>
+                        )}
+
                         {activeTab === 0 && (
                             <Grid container spacing={3}>
                                 <Grid size={{ xs: 12, md: 7 }}>

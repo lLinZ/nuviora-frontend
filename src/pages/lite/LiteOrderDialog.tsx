@@ -329,6 +329,23 @@ export const LiteOrderDialog: FC<LiteOrderDialogProps> = ({ id, open, setOpen, o
                         </Typography>
                     </Alert>
                 )}
+
+                {/* 🔁 ORDEN ATENDIDA ANTERIORMENTE */}
+                {order.reset_count > 0 && (
+                    <Alert
+                        severity="warning"
+                        variant="outlined"
+                        icon={<ReplayRounded />}
+                        sx={{ mb: 2, borderRadius: 2, maxWidth: '1000px', margin: '0 auto 16px auto', borderColor: '#e65100', color: '#e65100', '& .MuiAlert-icon': { color: '#e65100' } }}
+                    >
+                        <AlertTitle sx={{ fontWeight: 'bold', color: '#e65100' }}>
+                            Atendida en día{order.reset_count > 1 ? 's' : ''} anterior{order.reset_count > 1 ? 'es' : ''} ({order.reset_count}x)
+                        </AlertTitle>
+                        <Typography variant="body2">
+                            Esta orden no fue concretada en {order.reset_count} {order.reset_count === 1 ? 'día anterior' : 'días anteriores'}. Si la tienda cierra sin concretarla, será <strong>cancelada automáticamente</strong>.
+                        </Typography>
+                    </Alert>
+                )}
                 <Grid container spacing={2} sx={{ maxWidth: '1000px', margin: 'auto' }}>
 
                     {/* LEFT: PRODUCTS & INFO */}
