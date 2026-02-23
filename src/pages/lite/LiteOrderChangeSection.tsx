@@ -43,6 +43,8 @@ const AGENCY_CHANGE_METHOD_OPTIONS = [
     { value: "BOLIVARES_EFECTIVO", label: "Bolívares efectivo" },
 ];
 
+const PHONE_PREFIXES = ["0414", "0424", "0412", "0422", "0416", "0426"];
+
 export const LiteOrderChangeSection: React.FC<OrderChangeSectionProps> = ({ order, onUpdate, payments }) => {
     const user = useUserStore((state) => state.user);
     const theme = useTheme();
@@ -191,7 +193,7 @@ export const LiteOrderChangeSection: React.FC<OrderChangeSectionProps> = ({ orde
         const details = form.change_payment_details as any;
         if (!details) return false;
 
-        if (method === 'BOLIVARES_PAGOMOVIL') return !!(details.cedula && details.bank_id && details.phone_number);
+        if (method === 'BOLIVARES_PAGOMOVIL') return !!(details.cedula && details.bank_id && details.phone_number && details.phone_prefix);
         if (method === 'BOLIVARES_TRANSFERENCIA') return !!(details.account_number && details.cedula && details.bank_id);
         if (['ZELLE_DOLARES', 'BINANCE_DOLARES', 'PAYPAL_DOLARES', 'ZINLI_DOLARES'].includes(method)) return !!details.email;
         return true;
@@ -425,8 +427,13 @@ const SimpleDetailForm = ({ method, details, onChange, banks }: any) => {
                         {banks.map((b: any) => <MenuItem key={b.id} value={b.id}>{b.name}</MenuItem>)}
                     </SelectCustom>
                 </Grid>
-                <Grid size={{ xs: 12 }}>
-                    <TextField fullWidth size="small" label="Teléfono" value={details.phone_number || ""} onChange={(e) => onChange('phone_number', e.target.value)} />
+                <Grid size={{ xs: 5, sm: 4 }}>
+                    <SelectCustom fullWidth size="small" label="Prefijo" value={details.phone_prefix || ""} onChange={(e) => onChange('phone_prefix', e.target.value)}>
+                        {PHONE_PREFIXES.map(p => <MenuItem key={p} value={p}>{p}</MenuItem>)}
+                    </SelectCustom>
+                </Grid>
+                <Grid size={{ xs: 7, sm: 8 }}>
+                    <TextField fullWidth size="small" label="Teléfono" value={details.phone_number || ""} onChange={(e) => onChange('phone_number', e.target.value.replace(/\D/g, ""))} />
                 </Grid>
             </Grid>
         );

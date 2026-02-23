@@ -19,11 +19,27 @@ export const OrderUpdatesList: React.FC<OrderUpdatesListProps> = ({ updates }) =
     const currentUser = useUserStore(state => state.user);
     const [selectedImage, setSelectedImage] = useState<string | null>(null);
 
-    if (!updates || updates.length === 0) {
+    const manualUpdates = React.useMemo(() => {
+        if (!updates) return [];
+        return updates.filter((u: any) => {
+            // Filter out system patterns and automated messages
+            const systemEmojis = ["➕", "🗑️", "🛠️", "🚨", "✅", "⚠️", "🚛", "📦", "🔔", "📅", "🕒", "⏳"];
+            const isAutomated = u.message?.toUpperCase().includes("AUTOMÁTICO");
+            const startsWithEmoji = systemEmojis.some(emoji => u.message?.trim().startsWith(emoji));
+
+            // If it doesn't have a user, it's definitely from the system
+            if (!u.user) return false;
+
+            // If it's automated or starts with a system emoji, it's considered an action log, not a manual update
+            return !isAutomated && !startsWithEmoji;
+        });
+    }, [updates]);
+
+    if (!manualUpdates || manualUpdates.length === 0) {
         return (
             <Box sx={{ py: 10, textAlign: 'center', opacity: 0.5 }}>
-                <TypographyCustom variant="body1">No hay actualizaciones todavía.</TypographyCustom>
-                <TypographyCustom variant="caption">Las notas y cambios de la orden aparecerán aquí.</TypographyCustom>
+                <TypographyCustom variant="body1">No hay notas todavía.</TypographyCustom>
+                <TypographyCustom variant="caption">Las notas escritas por el equipo aparecerán aquí.</TypographyCustom>
             </Box>
         );
     }
@@ -48,7 +64,7 @@ export const OrderUpdatesList: React.FC<OrderUpdatesListProps> = ({ updates }) =
                 zIndex: 0
             }} />
 
-            {updates.map((u: any, index: number) => {
+            {manualUpdates.map((u: any, index: number) => {
                 const userColor = u.user?.color || theme.palette.primary.main;
                 const formattedDate = format(new Date(u.created_at), "d 'de' MMMM, h:mm a", { locale: es });
 
@@ -62,7 +78,7 @@ export const OrderUpdatesList: React.FC<OrderUpdatesListProps> = ({ updates }) =
                             position: 'relative',
                             zIndex: 1
                         }}>
-                            <Tooltip title={`${u.user?.names} (${u.user?.role?.description})`} arrow>
+                            <Tooltip title={`${u.user?.role?.description}`} arrow>
                                 <Avatar
                                     sx={{
                                         width: { xs: 32, sm: 40 },
@@ -75,7 +91,7 @@ export const OrderUpdatesList: React.FC<OrderUpdatesListProps> = ({ updates }) =
                                         flexShrink: 0
                                     }}
                                 >
-                                    {u.user?.names?.charAt(0) ?? "U"}
+                                    {u.user?.role?.description.charAt(0) ?? "U"}
                                 </Avatar>
                             </Tooltip>
 
@@ -100,11 +116,6 @@ export const OrderUpdatesList: React.FC<OrderUpdatesListProps> = ({ updates }) =
                                 <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, justifyContent: 'space-between', alignItems: { xs: 'flex-start', sm: 'center' }, mb: 1 }}>
                                     <TypographyCustom variant="subtitle2" fontWeight="bold" sx={{ color: isDark ? lighten(userColor, 0.3) : darken(userColor, 0.2) }}>
                                         {u.user?.role?.description ?? 'Sistema'}
-                                        {u.user?.names && (
-                                            <TypographyCustom component="span" variant="caption" sx={{ ml: 1, opacity: 0.55, fontWeight: 'normal' }}>
-                                                • {u.user.names}
-                                            </TypographyCustom>
-                                        )}
                                     </TypographyCustom>
                                     <TypographyCustom variant="caption" sx={{ opacity: 0.5, mt: { xs: 0.5, sm: 0 } }}>
                                         {formattedDate}
