@@ -11,30 +11,35 @@ import { OrderList } from "../components/orders/OrderList";
 import { toast } from "react-toastify";
 import { ButtonCustom } from "../components/custom";
 import { ProductSearchDialog } from "../components/products/ProductsSearchDialog";
-import { SearchRounded, FilterListRounded, FilterListOffRounded } from "@mui/icons-material";
-import { TextField, MenuItem, Select, FormControl, InputLabel, Button, Grid, IconButton, Tooltip, Chip } from "@mui/material";
+import { SearchRounded, FilterListOffRounded } from "@mui/icons-material";
+import { TextField, MenuItem, Select, FormControl, InputLabel, IconButton, Tooltip } from "@mui/material";
 import { OrderDialog } from "../components/orders/OrderDialog";
 import { CreateOrderDialog } from "../components/orders/CreateOrderDialog";
 import { BankAccountsDialog } from "../components/orders/BankAccountsDialog";
 import { DailyRatesDialog } from "../components/orders/DailyRatesDialog";
+import { AssignAgentDialog } from "../components/orders/AssignAgentDialog";
+import { AssignDelivererDialog } from "../components/orders/AssignDelivererDialog";
+import { PostponeOrderDialog } from "../components/orders/PostponeOrderDialog";
+import { AssignAgencyDialog } from "../components/orders/AssignAgencyDialog";
+import { NoveltyDialog } from "../components/orders/NoveltyDialog";
+import { ResolveNovedadDialog } from "../components/orders/ResolveNovedadDialog";
+import { MarkDeliveredDialog } from "../components/orders/MarkDeliveredDialog";
 import { AccountBalanceRounded, AddCircleOutline, CurrencyExchange } from "@mui/icons-material";
+import { usePermissions } from "../hooks/usePermissions";
+import { ORDER_STATUS } from "../constants/OrderStatus";
 
 
 export const Orders = () => {
-    const user = useUserStore((state) => state.user);
-    const { searchTerm, setSearchTerm, selectedOrder, setSelectedOrder } = useOrdersStore();
+    const { isAdmin, isSupervisor, canCreateOrders, userRole, isAgency, isDeliverer } = usePermissions();
+    const userStore = useUserStore();
+    const { searchTerm, setSearchTerm, selectedOrder, setSelectedOrder, filters, setFilters: setStoreFilters, activeModal, setActiveModal, setBulkColumns, changeStatus, registerNovelty } = useOrdersStore();
     const validateToken = useUserStore((state) => state.validateToken);
+
     const [openSearch, setOpenSearch] = useState(false);
     const [cities, setCities] = useState<any[]>([]);
     const [agencies, setAgencies] = useState<any[]>([]);
     const [sellers, setSellers] = useState<any[]>([]);
-    const [filters, setFilters] = useState({
-        city_id: '',
-        agency_id: '',
-        seller_id: '',
-        date_from: '',
-        date_to: ''
-    });
+
     const [visibleColumns, setVisibleColumns] = useState<string[] | null>(null);
     const [openBankDialog, setOpenBankDialog] = useState(false);
     const [openRatesDialog, setOpenRatesDialog] = useState(false);
@@ -72,16 +77,15 @@ export const Orders = () => {
     // Orders.tsx solo gestiona los filtros globales.
 
     useEffect(() => {
-        const init = async () => {
+        const validate = async () => {
             const result = await validateToken();
             if (!result.status) {
                 toast.error("Sesión expirada, inicia sesión nuevamente.");
                 return (window.location.href = "/");
             }
-            if (['Admin', 'Gerente'].includes(user.role?.description || '')) {
+            if (isSupervisor) {
                 fetchFiltersData();
             } else {
-                // Load dynamic columns for other roles
                 request('/config/flow', 'GET').then(async ({ status, response }) => {
                     if (status === 200) {
                         try {
@@ -97,8 +101,29 @@ export const Orders = () => {
             }
         };
 
-        init();
+        validate();
     }, []);
+
+    useEffect(() => {
+        const fetchKanbanData = async () => {
+            const params = new URLSearchParams();
+            if (filters.city_id) params.append('city_id', filters.city_id);
+            if (filters.agency_id) params.append('agency_id', filters.agency_id);
+            if (filters.seller_id) params.append('seller_id', filters.seller_id);
+            if (filters.date_from) params.append('date_from', filters.date_from);
+            if (filters.date_to) params.append('date_to', filters.date_to);
+            if (searchTerm) params.append('search', searchTerm);
+
+            const queryString = params.toString();
+            const { ok, response } = await request(`/kanban-data${queryString ? `?${queryString}` : ""}`, 'GET');
+            if (ok) {
+                const result = await response.json();
+                setBulkColumns(result.data);
+            }
+        };
+        fetchKanbanData();
+    }, [filters, searchTerm, setBulkColumns]);
+
 
     const handleClearFilters = () => {
         const emptyFilters = {
@@ -108,14 +133,13 @@ export const Orders = () => {
             date_from: '',
             date_to: ''
         };
-        setFilters(emptyFilters);
-        useOrdersStore.getState().setFilters(emptyFilters);
+        setStoreFilters(emptyFilters);
         setSearchTerm("");
         toast.info("Filtros limpiados ✨");
     };
 
 
-    if (!user.token) return <Loading />;
+    if (!userStore.user.token) return <Loading />;
 
     return (
         <Layout>
@@ -144,7 +168,7 @@ export const Orders = () => {
                         sx={{ maxWidth: 400, width: '100%', bgcolor: 'background.paper', borderRadius: 1 }}
                     />
                 </Box>
-                {['Admin'].includes(user.role?.description || '') && (
+                {isAdmin && (
                     <Box display="flex" gap={1} alignItems="center" flexWrap="wrap">
                         <FormControl size="small" sx={{ minWidth: 140 }}>
                             <InputLabel>Ciudad</InputLabel>
@@ -152,9 +176,7 @@ export const Orders = () => {
                                 value={filters.city_id}
                                 label="Ciudad"
                                 onChange={(e) => {
-                                    const newVal = { ...filters, city_id: e.target.value };
-                                    setFilters(newVal);
-                                    useOrdersStore.getState().setFilters(newVal);
+                                    setStoreFilters({ city_id: e.target.value });
                                 }}
                             >
                                 <MenuItem value="">Todas</MenuItem>
@@ -167,9 +189,7 @@ export const Orders = () => {
                                 value={filters.agency_id}
                                 label="Agencia"
                                 onChange={(e) => {
-                                    const newVal = { ...filters, agency_id: e.target.value };
-                                    setFilters(newVal);
-                                    useOrdersStore.getState().setFilters(newVal);
+                                    setStoreFilters({ agency_id: e.target.value });
                                 }}
                             >
                                 <MenuItem value="">Todas</MenuItem>
@@ -182,9 +202,7 @@ export const Orders = () => {
                                 value={filters.seller_id}
                                 label="Vendedora"
                                 onChange={(e) => {
-                                    const newVal = { ...filters, seller_id: e.target.value };
-                                    setFilters(newVal);
-                                    useOrdersStore.getState().setFilters(newVal);
+                                    setStoreFilters({ seller_id: e.target.value });
                                 }}
                             >
                                 <MenuItem value="">Todas</MenuItem>
@@ -199,7 +217,7 @@ export const Orders = () => {
                         {/* Remove manual filter button as it updates automatically via store */}
                     </Box>
                 )}
-                {['Admin', 'Gerente'].includes(user.role?.description || '') && (
+                {isSupervisor && (
                     <Box display="flex" gap={1} alignItems="center">
                         <TextField
                             label="Desde"
@@ -208,9 +226,7 @@ export const Orders = () => {
                             InputLabelProps={{ shrink: true }}
                             value={filters.date_from}
                             onChange={(e) => {
-                                const newVal = { ...filters, date_from: e.target.value };
-                                setFilters(newVal);
-                                useOrdersStore.getState().setFilters(newVal);
+                                setStoreFilters({ date_from: e.target.value });
                             }}
                         />
                         <TextField
@@ -220,9 +236,7 @@ export const Orders = () => {
                             InputLabelProps={{ shrink: true }}
                             value={filters.date_to}
                             onChange={(e) => {
-                                const newVal = { ...filters, date_to: e.target.value };
-                                setFilters(newVal);
-                                useOrdersStore.getState().setFilters(newVal);
+                                setStoreFilters({ date_to: e.target.value });
                             }}
                         />
                     </Box>
@@ -244,7 +258,7 @@ export const Orders = () => {
                         <CurrencyExchange color="success" />
                     </IconButton>
                 </Tooltip>
-                {user.role?.description !== 'Agencia' && (
+                {canCreateOrders && (
                     <Box sx={{ width: { xs: '100%', lg: '10%' } }}>
                         <ButtonCustom
                             variant="outlined"
@@ -286,11 +300,11 @@ export const Orders = () => {
                         },
                         "&::-webkit-scrollbar-track": {
                             borderRadius: "15px",
-                            backgroundColor: darken(user.color, 0.8),
+                            backgroundColor: darken(userStore.user.color, 0.8),
                         },
                         "&::-webkit-scrollbar-thumb": {
                             borderRadius: "15px",
-                            backgroundColor: lighten(user.color, 0.2),
+                            backgroundColor: lighten(userStore.user.color, 0.2),
                         },
                     }}
                 >
@@ -313,14 +327,14 @@ export const Orders = () => {
                                 <OrderList title="Novedades" />
                                 <OrderList title="Novedad Solucionada" />
 
-                                {['Admin', 'Gerente', 'Master'].includes(user.role?.description || '') && (
+                                {isSupervisor && (
                                     <>
                                         <OrderList title="Nuevo" />
                                         <OrderList title="Sin Stock" />
                                     </>
                                 )}
 
-                                {!['Agencia'].includes(user.role?.description || '') && (
+                                {!isAgency && (
                                     <>
                                         <OrderList title="Reprogramado para hoy" />
                                         <OrderList title="Asignado a vendedor" />
@@ -334,14 +348,14 @@ export const Orders = () => {
 
                                 <OrderList title="Asignar a agencia" />
 
-                                {['Admin', 'Gerente', 'Master', 'Agencia'].includes(user.role?.description || '') && (
+                                {(isSupervisor || isAgency) && (
                                     <>
                                         <OrderList title="Asignado a repartidor" />
                                         <OrderList title="En ruta" />
                                     </>
                                 )}
 
-                                {!['Agencia'].includes(user.role?.description || '') && (
+                                {!isAgency && (
                                     <>
                                         <OrderList title="Programado para mas tarde" />
                                         <OrderList title="Programado para otro dia" />
@@ -349,7 +363,7 @@ export const Orders = () => {
                                 )}
 
                                 <OrderList title="Entregado" />
-                                {!['Agencia', 'Repartidor'].includes(user.role?.description || '') && (
+                                {!(isAgency || isDeliverer) && (
                                     <OrderList title="Cancelado" />
                                 )}
                             </>
@@ -362,15 +376,7 @@ export const Orders = () => {
             <CreateOrderDialog
                 open={openCreateDialog}
                 onClose={() => setOpenCreateDialog(false)}
-                onSuccess={() => {
-                    // Force refresh of visible lists
-                    // Since lists refresh on interval or signal, we might need to trigger a global event 
-                    // or just let the auto-refresh handle it. For now, simple toast in dialog is enough.
-                    useOrdersStore.getState().setRefreshSignal(Date.now());
-                }}
             />
-
-            {/* GLOBAL ORDER DIALOG (Triggered by Notifications/Search) */}
             {selectedOrder && (
                 <OrderDialog
                     open={!!selectedOrder}
@@ -378,6 +384,69 @@ export const Orders = () => {
                         if (!val) setSelectedOrder(null);
                     }}
                     id={selectedOrder.id}
+                />
+            )}
+
+            {/* Centralized Modals */}
+            {activeModal.type === 'assign_agent' && activeModal.data && (
+                <AssignAgentDialog
+                    open={true}
+                    onClose={() => setActiveModal(null)}
+                    orderId={activeModal.data.id}
+                />
+            )}
+            {activeModal.type === 'assign_deliverer' && activeModal.data && (
+                <AssignDelivererDialog
+                    open={true}
+                    onClose={() => setActiveModal(null)}
+                    orderId={activeModal.data.id}
+                />
+            )}
+            {activeModal.type === 'postpone' && activeModal.data && (
+                <PostponeOrderDialog
+                    open={true}
+                    onClose={() => setActiveModal(null)}
+                    orderId={activeModal.data.id}
+                    targetStatus={activeModal.data.targetStatus}
+                />
+            )}
+            {activeModal.type === 'assign_agency' && activeModal.data && (
+                <AssignAgencyDialog
+                    open={true}
+                    onClose={() => setActiveModal(null)}
+                    orderId={activeModal.data.id}
+                />
+            )}
+            {activeModal.type === 'novelty' && activeModal.data && (
+                <NoveltyDialog
+                    open={true}
+                    onClose={() => setActiveModal(null)}
+                    onSubmit={(type, desc) => {
+                        registerNovelty(activeModal.data.id, type, desc);
+                        setActiveModal(null);
+                    }}
+                />
+            )}
+            {activeModal.type === 'resolve_novelty' && activeModal.data && (
+                <ResolveNovedadDialog
+                    open={true}
+                    onClose={() => setActiveModal(null)}
+                    onConfirm={(resolution) => {
+                        changeStatus(activeModal.data.id, activeModal.data.pendingStatus?.description, { novedad_resolution: resolution });
+                        setActiveModal(null);
+                    }}
+                />
+            )}
+            {activeModal.type === 'mark_delivered' && activeModal.data && (
+                <MarkDeliveredDialog
+                    open={true}
+                    onClose={() => setActiveModal(null)}
+                    order={activeModal.data}
+                    binanceRate={activeModal.data.binance_rate ?? 0}
+                    onConfirm={(extraData) => {
+                        changeStatus(activeModal.data.id, activeModal.data.pendingStatus?.description, extraData);
+                        setActiveModal(null);
+                    }}
                 />
             )}
         </Layout>

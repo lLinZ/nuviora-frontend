@@ -90,11 +90,18 @@ export const ProductSearchDialog: FC<Props> = ({ open, onClose, onPick }) => {
                                     <ListItemText
                                         primary={p.showable_name ?? p.name ?? p.title ?? "Producto"}
                                         secondary={
-                                            <>
-                                                {p.sku && <Chip size="small" label={`SKU: ${p.sku}`} sx={{ mr: 1 }} />}
-                                                {typeof p.price !== "undefined" && <Chip size="small" label={`Precio: ${p.price}`} />}
-                                                {typeof p.stock !== "undefined" && <Chip size="small" label={`Stock: ${p.stock}`} sx={{ ml: 1 }} />}
-                                            </>
+                                            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                                                {p.description && (
+                                                    <Box sx={{ fontSize: '0.75rem', color: 'text.secondary', opacity: 0.8, fontStyle: 'italic', display: '-webkit-box', WebkitLineClamp: 1, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                                                        {p.description}
+                                                    </Box>
+                                                )}
+                                                <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}>
+                                                    {p.sku && <Chip size="small" variant="outlined" label={`SKU: ${p.sku}`} />}
+                                                    {typeof p.price !== "undefined" && <Chip size="small" color="primary" variant="outlined" label={`Precio: $${p.price}`} />}
+                                                    {typeof p.stock !== "undefined" && <Chip size="small" color={p.stock > 0 ? "success" : "error"} variant="outlined" label={`Stock: ${p.stock}`} />}
+                                                </Box>
+                                            </Box>
                                         }
                                     />
                                 </ListItemButton>

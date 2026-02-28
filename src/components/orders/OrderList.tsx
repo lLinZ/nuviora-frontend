@@ -78,18 +78,20 @@ export const OrderList: FC<OrderListProps> = ({ title }) => {
     }, [title, filters, searchTerm]);
 
     // Disparador Inicial (Carga Página 1)
-    // Se dispara si: 
-    // 1. La página es 0 (primera vez o reset)
-    // 2. Cambian filtros/busqueda (lo cual debería resetear page a 0 en el store, pero lo simulamos aqui)
+    // OPTIMIZED: Skip initial fetch if store already has item (populated by bulk fetch)
     useEffect(() => {
-        // Diferir la carga hasta después del render para evitar warning de React
-        // "Cannot update component while rendering a different component"
         const timer = setTimeout(() => {
-            fetchColumnData(1);
+            // Only fetch if:
+            // 1. Column is empty AND (Filters/Search are active OR it's first load)
+            // 2. Refresh signal was explicitly triggered
+            const isFresh = items.length === 0;
+            if (isFresh || refreshSignal > 0) {
+                fetchColumnData(1);
+            }
         }, 0);
 
         return () => clearTimeout(timer);
-    }, [filters, searchTerm, fetchColumnData, refreshSignal]); // Si cambian filtros, busqueda o signal, recargar columna completa
+    }, [refreshSignal, fetchColumnData]); // Removed filters/searchTerm from here to avoid storm, parent handles bulk refresh
 
     // --- Polling Logic --- 🔇 DISABLED: Using WebSocket Instead
     /*

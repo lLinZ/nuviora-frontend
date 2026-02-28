@@ -67,6 +67,24 @@ export const OrderProductItem: React.FC<OrderProductItemProps> = ({ product, cur
                     {product.showable_name || product.title}
                 </TypographyCustom>
 
+                {product.description && (
+                    <Typography
+                        variant="caption"
+                        color="text.secondary"
+                        sx={{
+                            display: '-webkit-box',
+                            WebkitLineClamp: 1,
+                            WebkitBoxOrient: 'vertical',
+                            overflow: 'hidden',
+                            fontSize: '0.7rem',
+                            mt: -0.2,
+                            opacity: 0.7
+                        }}
+                    >
+                        {product.description}
+                    </Typography>
+                )}
+
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 0.5 }}>
                     <Tooltip title={onEditQuantity ? "Click para editar cantidad" : ""}>
                         <Box

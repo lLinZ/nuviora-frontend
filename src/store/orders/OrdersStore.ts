@@ -1,4 +1,6 @@
 import { create } from "zustand";
+import { request } from "../../common/request";
+import { toast } from "react-toastify";
 
 // Estructura de cada columna
 interface ColumnState {
@@ -26,6 +28,10 @@ interface OrdersState {
         date_to: string;
     };
     refreshSignal: number;
+    activeModal: {
+        type: "assign_agent" | "assign_deliverer" | "postpone" | "assign_agency" | "novelty" | "resolve_novelty" | "mark_delivered" | "order_details" | null;
+        data?: any;
+    };
 
 
     // Actions
@@ -40,6 +46,10 @@ interface OrdersState {
     setSelectedAgentId: (id: number | null) => void;
     setSearchTerm: (term: string) => void;
     setRefreshSignal: (signal: number) => void;
+    setActiveModal: (type: OrdersState['activeModal']['type'], data?: any) => void;
+    setBulkColumns: (data: Record<string, { items: any[], total: number }>) => void;
+    changeStatus: (orderId: number, status: string, extraData?: any) => Promise<boolean>;
+    registerNovelty: (orderId: number, type: string, description: string) => Promise<boolean>;
 }
 
 export const useOrdersStore = create<OrdersState>((set, get) => ({
@@ -55,6 +65,7 @@ export const useOrdersStore = create<OrdersState>((set, get) => ({
         date_to: ''
     },
     refreshSignal: 0,
+    activeModal: { type: null },
 
 
     setFilters: (newFilters) => set((state) => ({ filters: { ...state.filters, ...newFilters } })),
@@ -193,4 +204,78 @@ export const useOrdersStore = create<OrdersState>((set, get) => ({
     setSelectedAgentId: (id) => set({ selectedAgentId: id }),
     setSearchTerm: (term) => set({ searchTerm: term }),
     setRefreshSignal: (signal) => set({ refreshSignal: signal }),
+    setActiveModal: (type, data) => set({ activeModal: { type, data } }),
+    setBulkColumns: (data) =>
+        set((state) => {
+            const newColumns: Record<string, ColumnState> = {};
+            if (!data || typeof data !== 'object') return { columns: {} };
+
+            Object.keys(data).forEach((status) => {
+                newColumns[status] = {
+                    id: status,
+                    items: data[status].items,
+                    page: 1,
+                    hasMore: data[status].total > data[status].items.length,
+                    isLoading: false,
+                    total: data[status].total,
+                };
+            });
+            return { columns: newColumns };
+        }),
+    changeStatus: async (orderId, status, extraData = null) => {
+        const body = new URLSearchParams();
+        body.append("status", status);
+        if (extraData) {
+            Object.keys(extraData).forEach(key => {
+                body.append(key, extraData[key]);
+            });
+        }
+
+        try {
+            const { ok, response } = await request(`/orders/${orderId}/status`, "PUT", body);
+            const data = await response.json();
+            if (ok) {
+                get().updateOrderInColumns(data.order);
+                toast.success(data.message || `Estado actualizado a ${status} ✅`);
+                return true;
+            } else {
+                toast.error(data.message || "Error al actualizar estado ❌");
+                return false;
+            }
+        } catch (e) {
+            console.error(e);
+            toast.error("Error de conexión 🚨");
+            return false;
+        }
+    },
+    registerNovelty: async (orderId, type, description) => {
+        const body = new URLSearchParams();
+        body.append("type", type);
+        body.append("description", description);
+
+        try {
+            const { ok, response } = await request(`/orders/${orderId}/updates`, "POST", body);
+            const data = await response.json();
+            if (ok) {
+                // Here we might need to update the order too because it might change status to 'Novedades'
+                // Usually the backend updateStatus handles this if it's a status change,
+                // but NoveltyDialog just adds an update.
+                // Wait, in OrderItem.tsx, handleNoveltySubmit calls /orders/{order.id}/updates
+                // THEN it should probably refresh the order.
+                // Actually, adding an update doesn't ALWAYS change status.
+                // But if it's the "Novelty" action, it usually implies changing to Novedades.
+                get().setSelectedOrder(data.order);
+                get().updateOrderInColumns(data.order);
+                toast.success(`Novedad registrada ✅`);
+                return true;
+            } else {
+                toast.error("No se pudo registrar la novedad ❌");
+                return false;
+            }
+        } catch (e) {
+            console.error(e);
+            toast.error("Error de conexión 🚨");
+            return false;
+        }
+    }
 }));

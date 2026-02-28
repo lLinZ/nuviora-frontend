@@ -25,6 +25,7 @@ import { fmtMoney } from "../../lib/money";
 import { ButtonCustom } from "../custom";
 import { ProductSearchDialog } from "../products/ProductsSearchDialog";
 import { OrderProductItem } from "./OrderProductItem";
+import { ProductTechnicalSheet } from "../products/ProductTechnicalSheet";
 import {
     NotificationAddRounded,
     ShoppingCartRounded,
@@ -436,6 +437,7 @@ export const OrderDialog: FC<OrderDialogProps> = ({ id, open, setOpen }) => {
                                     Historial
                                 </Badge>
                             } icon={<HistoryRounded sx={{ fontSize: '1.2rem' }} />} iconPosition="start" />
+                            <Tab label="Ficha Técnica" icon={<Inventory2OutlinedIcon sx={{ fontSize: '1.2rem' }} />} iconPosition="start" />
                             {['Admin', 'Gerente'].includes(user.role?.description || '') && (
                                 <Tab label="Acciones" icon={<RuleRounded sx={{ fontSize: '1.2rem' }} />} iconPosition="start" />
                             )}
@@ -765,6 +767,15 @@ export const OrderDialog: FC<OrderDialogProps> = ({ id, open, setOpen }) => {
                         )}
 
                         {activeTab === 3 && (
+                            <Box sx={{ maxWidth: '1000px', margin: 'auto' }}>
+                                <ProductTechnicalSheet
+                                    orderProducts={order.products || []}
+                                    isAdmin={['Admin', 'Gerente', 'Master'].includes(user.role?.description || '')}
+                                />
+                            </Box>
+                        )}
+
+                        {activeTab === 4 && (
                             <Box sx={{ maxWidth: '1000px', margin: 'auto' }}>
                                 <OrderActivityList orderId={order.id} />
                             </Box>

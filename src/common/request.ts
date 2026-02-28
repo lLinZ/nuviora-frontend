@@ -57,8 +57,8 @@ export const request = async (
 
     try {
         const response = await fetch(url, options);
-        return { status: response.status, response, err: [] };
+        return { ok: response.ok, status: response.status, response, err: [] };
     } catch (err) {
-        return { status: 500, response: {} as any, err };
+        return { ok: false, status: 500, response: {} as any, err };
     }
 };
