@@ -416,7 +416,13 @@ export const OrderDialog: FC<OrderDialogProps> = ({ id, open, setOpen }) => {
                     </Toolbar>
 
                     {/* 📱 TABS NAVIGATION */}
-                    <Box sx={{ bgcolor: 'rgba(0,0,0,0.1)', display: 'flex', justifyContent: 'center' }}>
+                    <Box sx={{
+                        bgcolor: 'rgba(0,0,0,0.15)',
+                        backdropFilter: 'blur(10px)',
+                        display: 'flex',
+                        justifyContent: 'center',
+                        borderTop: '1px solid rgba(255,255,255,0.1)'
+                    }}>
                         <Tabs
                             value={activeTab}
                             onChange={(_, v) => setActiveTab(v)}
@@ -426,8 +432,27 @@ export const OrderDialog: FC<OrderDialogProps> = ({ id, open, setOpen }) => {
                             scrollButtons="auto"
                             allowScrollButtonsMobile
                             sx={{
-                                '& .MuiTab-root': { py: 1.5, minHeight: 0, color: 'rgba(255,255,255,0.6)', fontWeight: 'bold' },
-                                '& .Mui-selected': { color: 'white !important' }
+                                '& .MuiTab-root': {
+                                    py: 2,
+                                    minHeight: 0,
+                                    color: 'rgba(255,255,255,0.5)',
+                                    fontWeight: '900',
+                                    fontSize: '0.8rem',
+                                    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                                    opacity: 0.7,
+                                    '&:hover': { opacity: 1, color: 'white' }
+                                },
+                                '& .Mui-selected': {
+                                    color: 'white !important',
+                                    opacity: 1,
+                                    transform: 'scale(1.05)',
+                                },
+                                '& .MuiTabs-indicator': {
+                                    height: 3,
+                                    borderRadius: '3px 3px 0 0',
+                                    bgcolor: 'secondary.main',
+                                    boxShadow: '0 -4px 12px rgba(255, 64, 129, 0.5)'
+                                }
                             }}
                         >
                             <Tab label="Detalle" icon={<ShoppingCartRounded sx={{ fontSize: '1.2rem' }} />} iconPosition="start" />

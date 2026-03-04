@@ -170,8 +170,8 @@ export const BroadcastMonitor = () => {
 
         const channel = echo.private(channelName);
 
-        channel.listen('OrderUpdated', (e: any) => {
-            console.log("♻️ Order Updated Event:", e);
+        channel.listen('.App\\Events\\OrderUpdated', (e: any) => {
+            console.log("♻️ Order Updated Event Received:", e);
             if (e.order) {
                 // Actualizamos la orden en el store/kanban directamente
                 updateOrderInColumns(e.order);
@@ -180,7 +180,7 @@ export const BroadcastMonitor = () => {
         });
 
         return () => {
-            channel.stopListening('OrderUpdated');
+            channel.stopListening('.App\\Events\\OrderUpdated');
             echo.leave(channelName);
         };
     }, [echo, user?.id, updateOrderInColumns]);

@@ -250,26 +250,20 @@ export const useOrdersStore = create<OrdersState>((set, get) => ({
     },
     registerNovelty: async (orderId, type, description) => {
         const body = new URLSearchParams();
-        body.append("type", type);
-        body.append("description", description);
+        body.append("status", "Novedades");
+        body.append("novedad_type", type);
+        body.append("novedad_description", description);
 
         try {
-            const { ok, response } = await request(`/orders/${orderId}/updates`, "POST", body);
+            const { ok, response } = await request(`/orders/${orderId}/status`, "PUT", body);
             const data = await response.json();
             if (ok) {
-                // Here we might need to update the order too because it might change status to 'Novedades'
-                // Usually the backend updateStatus handles this if it's a status change,
-                // but NoveltyDialog just adds an update.
-                // Wait, in OrderItem.tsx, handleNoveltySubmit calls /orders/{order.id}/updates
-                // THEN it should probably refresh the order.
-                // Actually, adding an update doesn't ALWAYS change status.
-                // But if it's the "Novelty" action, it usually implies changing to Novedades.
                 get().setSelectedOrder(data.order);
                 get().updateOrderInColumns(data.order);
-                toast.success(`Novedad registrada ✅`);
+                toast.success(`Novedad registrada: ${type} ✅`);
                 return true;
             } else {
-                toast.error("No se pudo registrar la novedad ❌");
+                toast.error(data.message || "No se pudo registrar la novedad ❌");
                 return false;
             }
         } catch (e) {
