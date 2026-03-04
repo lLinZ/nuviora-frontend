@@ -121,7 +121,10 @@ export const Orders = () => {
                 setBulkColumns(result.data);
             }
         };
-        fetchKanbanData();
+        const timer = setTimeout(() => {
+            fetchKanbanData();
+        }, 500); // 500ms debounce
+        return () => clearTimeout(timer);
     }, [filters, searchTerm, setBulkColumns]);
 
 
@@ -168,7 +171,7 @@ export const Orders = () => {
                         sx={{ maxWidth: 400, width: '100%', bgcolor: 'background.paper', borderRadius: 1 }}
                     />
                 </Box>
-                {isAdmin && (
+                {isSupervisor && (
                     <Box display="flex" gap={1} alignItems="center" flexWrap="wrap">
                         <FormControl size="small" sx={{ minWidth: 140 }}>
                             <InputLabel>Ciudad</InputLabel>
