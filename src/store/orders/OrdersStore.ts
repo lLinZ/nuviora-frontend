@@ -32,6 +32,8 @@ interface OrdersState {
         type: "assign_agent" | "assign_deliverer" | "postpone" | "assign_agency" | "novelty" | "resolve_novelty" | "mark_delivered" | "order_details" | null;
         data?: any;
     };
+    initialTabId: string;
+
 
 
     // Actions
@@ -42,7 +44,9 @@ interface OrdersState {
     updateOrderInColumns: (order: any) => void; // Para realtime updates o ediciones
     moveOrder: (orderId: number, fromStatus: string, toStatus: string, orderData: any) => void; // Optimistic UI
 
-    setSelectedOrder: (order: any | null) => void;
+    setSelectedOrder: (order: any | null, initialTab?: string) => void;
+    setInitialTabId: (id: string) => void;
+
     setSelectedAgentId: (id: number | null) => void;
     setSearchTerm: (term: string) => void;
     setRefreshSignal: (signal: number) => void;
@@ -66,6 +70,8 @@ export const useOrdersStore = create<OrdersState>((set, get) => ({
     },
     refreshSignal: 0,
     activeModal: { type: null },
+    initialTabId: 'detail',
+
 
 
     setFilters: (newFilters) => set((state) => ({ filters: { ...state.filters, ...newFilters } })),
@@ -200,7 +206,24 @@ export const useOrdersStore = create<OrdersState>((set, get) => ({
             return { columns: newCols };
         }),
 
-    setSelectedOrder: (order) => set({ selectedOrder: order }),
+    setSelectedOrder: (order, initialTab) => set((state) => {
+        const isNewOrder = order?.id !== state.selectedOrder?.id;
+        let nextTabId = state.initialTabId;
+
+        if (initialTab !== undefined) {
+            nextTabId = initialTab;
+        } else if (isNewOrder) {
+            nextTabId = 'detail';
+        }
+
+        return {
+            selectedOrder: order,
+            initialTabId: nextTabId
+        };
+    }),
+    setInitialTabId: (id) => set({ initialTabId: id }),
+
+
     setSelectedAgentId: (id) => set({ selectedAgentId: id }),
     setSearchTerm: (term) => set({ searchTerm: term }),
     setRefreshSignal: (signal) => set({ refreshSignal: signal }),
@@ -210,6 +233,19 @@ export const useOrdersStore = create<OrdersState>((set, get) => ({
             const newColumns: Record<string, ColumnState> = { ...state.columns };
             if (!data || typeof data !== 'object') return { columns: state.columns };
 
+            // 1. Reset all existing columns to empty state (prevents zombie cards when filtering)
+            Object.keys(newColumns).forEach((status) => {
+                newColumns[status] = {
+                    ...newColumns[status],
+                    items: [],
+                    total: 0,
+                    hasMore: false,
+                    page: 1,
+                    isLoading: false
+                };
+            });
+
+            // 2. Fill with new data
             Object.keys(data).forEach((status) => {
                 newColumns[status] = {
                     id: status,

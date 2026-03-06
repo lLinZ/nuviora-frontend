@@ -66,19 +66,19 @@ interface OrderDialogProps {
 export const OrderDialog: FC<OrderDialogProps> = ({ id, open, setOpen }) => {
     const theme = useTheme();
     const isDark = theme.palette.mode === "dark";
-    const [activeTab, setActiveTab] = useState(0);
+    const [activeTabId, setActiveTabId] = useState('detail');
     const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
 
     const {
         selectedOrder: order,
+        initialTabId,
         user,
         openCancel, setOpenCancel,
+
         openPostpone, setOpenPostpone,
         openApprove, setOpenApprove,
         openReject, setOpenReject,
         loadingReview,
-        // openAssignDeliverer, setOpenAssignDeliverer, // Moved to local state
-        // openAssign, setOpenAssign, // Moved to local state
         newLocation,
         handleClose,
         sendLocation,
@@ -113,6 +113,56 @@ export const OrderDialog: FC<OrderDialogProps> = ({ id, open, setOpen }) => {
         updateProductQuantity,
         updateOrderTotal,
     } = useOrderDialogLogic(id, open, setOpen);
+
+    const isAgencia = user?.role?.description === 'Agencia';
+    const isAdmin = ['Admin', 'Gerente', 'Master'].includes(user?.role?.description || '');
+
+    // Define available tabs
+    const allTabs = [
+        { id: 'detail', label: 'Detalle', icon: <ShoppingCartRounded sx={{ fontSize: '1.2rem' }} />, visible: true },
+        { id: 'finance', label: 'Finanzas', icon: <ReceiptLongRounded sx={{ fontSize: '1.2rem' }} />, visible: true },
+        {
+            id: 'whatsapp',
+            label: 'WhatsApp',
+            icon: <WhatsApp sx={{ fontSize: '1.2rem' }} />,
+            visible: !isAgencia,
+            badge: order?.whatsapp_unread_count || 0
+        },
+        {
+            id: 'history',
+            label: 'Historial',
+            icon: <HistoryRounded sx={{ fontSize: '1.2rem' }} />,
+            visible: true,
+            badge: order?.updates?.length || 0
+        },
+        {
+            id: 'technical',
+            label: 'Ficha Técnica',
+            icon: <Inventory2OutlinedIcon sx={{ fontSize: '1.2rem' }} />,
+            visible: !isAgencia
+        },
+        {
+            id: 'actions',
+            label: 'Acciones',
+            icon: <RuleRounded sx={{ fontSize: '1.2rem' }} />,
+            visible: isAdmin
+        },
+    ];
+
+    const visibleTabs = allTabs.filter(t => t.visible);
+
+    useEffect(() => {
+        if (open && initialTabId) {
+            setActiveTabId(initialTabId);
+        }
+    }, [open, initialTabId, order?.id]);
+
+    const handleTabChange = (_: any, newValue: string) => {
+
+        setActiveTabId(newValue);
+    };
+
+
 
     const [openReminder, setOpenReminder] = useState(false);
     const [openSearch, setOpenSearch] = useState(false);
@@ -426,28 +476,22 @@ export const OrderDialog: FC<OrderDialogProps> = ({ id, open, setOpen }) => {
                         borderTop: '1px solid rgba(255,255,255,0.1)'
                     }}>
                         <Tabs
-                            value={activeTab}
-                            onChange={(_, v) => setActiveTab(v)}
+                            value={activeTabId}
+                            onChange={handleTabChange}
                             textColor="inherit"
                             indicatorColor="secondary"
                             variant="scrollable"
                             scrollButtons="auto"
-                            allowScrollButtonsMobile
                             sx={{
+                                px: 2,
                                 '& .MuiTab-root': {
-                                    py: 2,
-                                    minHeight: 0,
-                                    color: 'rgba(255,255,255,0.5)',
-                                    fontWeight: '900',
-                                    fontSize: '0.8rem',
-                                    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                                    minHeight: 64,
+                                    fontSize: '0.875rem',
+                                    fontWeight: 600,
+                                    textTransform: 'none',
+                                    transition: 'all 0.2s',
                                     opacity: 0.7,
-                                    '&:hover': { opacity: 1, color: 'white' }
-                                },
-                                '& .Mui-selected': {
-                                    color: 'white !important',
-                                    opacity: 1,
-                                    transform: 'scale(1.05)',
+                                    '&.Mui-selected': { opacity: 1, color: 'secondary.main' }
                                 },
                                 '& .MuiTabs-indicator': {
                                     height: 3,
@@ -457,18 +501,19 @@ export const OrderDialog: FC<OrderDialogProps> = ({ id, open, setOpen }) => {
                                 }
                             }}
                         >
-                            <Tab label="Detalle" icon={<ShoppingCartRounded sx={{ fontSize: '1.2rem' }} />} iconPosition="start" />
-                            <Tab label="Finanzas" icon={<ReceiptLongRounded sx={{ fontSize: '1.2rem' }} />} iconPosition="start" />
-                            <Tab label="WhatsApp" icon={<WhatsApp sx={{ fontSize: '1.2rem' }} />} iconPosition="start" />
-                            <Tab label={
-                                <Badge badgeContent={order.updates?.length || 0} color="error" max={99} sx={{ '& .MuiBadge-badge': { right: -10, top: 2 } }}>
-                                    Historial
-                                </Badge>
-                            } icon={<HistoryRounded sx={{ fontSize: '1.2rem' }} />} iconPosition="start" />
-                            <Tab label="Ficha Técnica" icon={<Inventory2OutlinedIcon sx={{ fontSize: '1.2rem' }} />} iconPosition="start" />
-                            {['Admin', 'Gerente'].includes(user.role?.description || '') && (
-                                <Tab label="Acciones" icon={<RuleRounded sx={{ fontSize: '1.2rem' }} />} iconPosition="start" />
-                            )}
+                            {visibleTabs.map((tab) => (
+                                <Tab
+                                    key={tab.id}
+                                    value={tab.id}
+                                    label={tab.badge ? (
+                                        <Badge badgeContent={tab.badge} color="error" max={99} sx={{ '& .MuiBadge-badge': { right: -10, top: 2 } }}>
+                                            {tab.label}
+                                        </Badge>
+                                    ) : tab.label}
+                                    icon={tab.icon}
+                                    iconPosition="start"
+                                />
+                            ))}
                         </Tabs>
                     </Box>
                 </AppBar>
@@ -584,7 +629,7 @@ export const OrderDialog: FC<OrderDialogProps> = ({ id, open, setOpen }) => {
                             </Paper>
                         )}
 
-                        {activeTab === 0 && (
+                        {activeTabId === 'detail' && (
                             <Grid container spacing={3}>
                                 <Grid size={{ xs: 12, sm: 6, md: 6, lg: 5 }}>
                                     <Paper elevation={0} sx={{ p: 3, borderRadius: 4, bgcolor: 'background.paper', mb: 3, boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}>
@@ -749,7 +794,7 @@ export const OrderDialog: FC<OrderDialogProps> = ({ id, open, setOpen }) => {
                             </Grid>
                         )}
 
-                        {activeTab === 1 && (
+                        {activeTabId === 'finance' && (
                             <>
                                 {/* Hide payment sections for return orders */}
                                 {Boolean(order.is_return) ? (
@@ -788,19 +833,19 @@ export const OrderDialog: FC<OrderDialogProps> = ({ id, open, setOpen }) => {
                             </>
                         )}
 
-                        {activeTab === 2 && (
+                        {activeTabId === 'whatsapp' && (
                             <Box sx={{ maxWidth: '800px', margin: 'auto' }}>
                                 <OrderWhatsApp orderId={order.id} />
                             </Box>
                         )}
 
-                        {activeTab === 3 && (
+                        {activeTabId === 'history' && (
                             <Box sx={{ maxWidth: '800px', margin: 'auto' }}>
                                 <OrderUpdatesList updates={order.updates} />
                             </Box>
                         )}
 
-                        {activeTab === 4 && (
+                        {activeTabId === 'technical' && (
                             <Box sx={{ maxWidth: '1000px', margin: 'auto' }}>
                                 <ProductTechnicalSheet
                                     orderProducts={order.products || []}
@@ -809,11 +854,12 @@ export const OrderDialog: FC<OrderDialogProps> = ({ id, open, setOpen }) => {
                             </Box>
                         )}
 
-                        {activeTab === 5 && (
+                        {activeTabId === 'actions' && (
                             <Box sx={{ maxWidth: '1000px', margin: 'auto' }}>
                                 <OrderActivityList orderId={order.id} />
                             </Box>
                         )}
+
 
                         {/* 🛡️ SAFE AREA SPACER: Guarantees that content can always be scrolled above the fixed comment input */}
                         <Box sx={{ height: { xs: 200, sm: 300 }, width: '100%' }} />

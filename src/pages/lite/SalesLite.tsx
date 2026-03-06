@@ -44,6 +44,8 @@ import { CreateOrderDialog } from '../../components/orders/CreateOrderDialog';
 import { DailyRatesDialog } from '../../components/orders/DailyRatesDialog';
 import { AccountBalanceRounded, AddCircleOutline, CurrencyExchange } from '@mui/icons-material';
 import { OrderTimer } from '../../components/orders/OrderTimer';
+import { PhoneActionMenu } from '../../components/orders/PhoneActionMenu';
+
 
 // Componente simple de Tabla Lite
 const LiteOrderTable = ({ statusTitle, searchTerm, onRefresh, onDataUpdate }: any) => {
@@ -140,9 +142,11 @@ const LiteOrderTable = ({ statusTitle, searchTerm, onRefresh, onDataUpdate }: an
                                         <Typography variant="body2" color="text.secondary">
                                             {order.client?.first_name} {order.client?.last_name}
                                         </Typography>
-                                        <Typography variant="caption" color="primary">
-                                            {order.client?.phone}
-                                        </Typography>
+                                        <PhoneActionMenu
+                                            phone={order.client.phone}
+                                            sx={{ fontSize: '0.75rem', fontWeight: 'bold' }}
+                                        />
+
                                     </Box>
                                 </TableCell>
                                 <TableCell>

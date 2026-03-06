@@ -118,10 +118,12 @@ export const LiteOrderDialog: FC<LiteOrderDialogProps> = ({ id, open, setOpen, o
         openResolveNovedad, setOpenResolveNovedad,
         pendingStatus,
         targetStatus,
+        initialTabId,
         refreshOrder,
         updateProductQuantity,
         updateOrderTotal,
     } = useOrderDialogLogic(id, open, setOpen);
+
 
     const handleCloseWrapper = () => {
         if (internalHandleClose) internalHandleClose();
@@ -157,7 +159,20 @@ export const LiteOrderDialog: FC<LiteOrderDialogProps> = ({ id, open, setOpen, o
         }
     }, [order?.payments]);
 
+    useEffect(() => {
+        if (open) {
+            if (initialTabId === 'whatsapp') {
+                setShowWhatsApp(true);
+            } else {
+                setShowWhatsApp(false);
+            }
+        }
+    }, [open, initialTabId]);
+
+
+
     if (!order) return null;
+
     const binanceRate = Number(order?.binance_rate || 0);
 
     const handleCreateReturn = async () => {
@@ -521,21 +536,42 @@ export const LiteOrderDialog: FC<LiteOrderDialogProps> = ({ id, open, setOpen, o
                         </Paper>
 
                         {/* WhatsApp Chat */}
-                        <Paper elevation={0} sx={{ p: 2, mt: 2, borderRadius: 3 }}>
-                            <Box
-                                onClick={() => setShowWhatsApp(!showWhatsApp)}
-                                sx={{ display: 'flex', justifyContent: 'space-between', cursor: 'pointer', mb: 1 }}
-                            >
-                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                    <WhatsApp fontSize="small" color="primary" />
-                                    <Typography variant="subtitle1" fontWeight="bold">Chat WhatsApp</Typography>
+                        {user.role?.description !== 'Agencia' && (
+                            <Paper elevation={0} sx={{ p: 2, mt: 2, borderRadius: 3 }}>
+                                <Box
+                                    onClick={() => setShowWhatsApp(!showWhatsApp)}
+                                    sx={{ display: 'flex', justifyContent: 'space-between', cursor: 'pointer', mb: 1 }}
+                                >
+                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                        <WhatsApp fontSize="small" color="primary" />
+                                        <Typography variant="subtitle1" fontWeight="bold">Chat WhatsApp</Typography>
+                                        {(order.whatsapp_unread_count > 0) && (
+                                            <Box sx={{
+                                                bgcolor: '#25D366',
+                                                color: 'white',
+                                                borderRadius: '10px',
+                                                minWidth: '20px',
+                                                height: '18px',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                                px: 0.6,
+                                                fontSize: '0.7rem',
+                                                fontWeight: 'bold',
+                                                ml: 0.5
+                                            }}>
+                                                {order.whatsapp_unread_count}
+                                            </Box>
+                                        )}
+                                    </Box>
+                                    {showWhatsApp ? <ExpandLessRounded /> : <ExpandMoreRounded />}
+
                                 </Box>
-                                {showWhatsApp ? <ExpandLessRounded /> : <ExpandMoreRounded />}
-                            </Box>
-                            <Collapse in={showWhatsApp}>
-                                <OrderWhatsApp orderId={order.id} />
-                            </Collapse>
-                        </Paper>
+                                <Collapse in={showWhatsApp}>
+                                    <OrderWhatsApp orderId={order.id} />
+                                </Collapse>
+                            </Paper>
+                        )}
 
                         {/* Spacer for fixed chat footer */}
                         <Box sx={{ height: 150 }} />

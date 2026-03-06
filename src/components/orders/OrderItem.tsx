@@ -8,7 +8,8 @@ import {
     useTheme,
 } from "@mui/material";
 import AddRoundedIcon from "@mui/icons-material/AddRounded";
-import { NotificationsActiveRounded, WarningAmberRounded, HistoryRounded, ReplayRounded } from "@mui/icons-material";
+import { NotificationsActiveRounded, WarningAmberRounded, HistoryRounded, ReplayRounded, WhatsApp } from "@mui/icons-material";
+
 import React, { FC, useState } from "react";
 import { darken } from "@mui/material/styles";
 import { toast } from "react-toastify";
@@ -36,7 +37,8 @@ interface OrderItemProps {
 }
 export const statusColors = STATUS_COLORS;
 export const OrderItem: FC<OrderItemProps> = ({ order }) => {
-    const { isAdmin, isSupervisor, isAgent, userRole } = usePermissions();
+    const { isAdmin, isSupervisor, isAgent, isAgency, userRole } = usePermissions();
+
     const userStore = useUserStore();
     const { updateOrderInColumns, setSelectedOrder, setActiveModal } = useOrdersStore();
     const [pendingStatus, setPendingStatus] = useState<{ description: string } | null>(null);
@@ -48,9 +50,9 @@ export const OrderItem: FC<OrderItemProps> = ({ order }) => {
     const theme = useTheme();
 
     const handleOpen = () => {
-        setSelectedOrder(order);
-        // setOpen(true); // Removed
+        setSelectedOrder(order, 'detail');
     };
+
     const getProducts = async () => {
         setOrderProductsEmpty(false);
         toast.info('Cargando productos...', { autoClose: 1000 });
@@ -206,8 +208,10 @@ export const OrderItem: FC<OrderItemProps> = ({ order }) => {
 
     return (
         <Box
+            onClick={handleOpen}
             sx={{
                 p: 2,
+                cursor: 'pointer',
                 background:
                     theme.palette.mode === "dark"
                         ? darken(userStore.user.color, 0.7)
@@ -221,8 +225,14 @@ export const OrderItem: FC<OrderItemProps> = ({ order }) => {
                 maxWidth: "250px",
                 display: "flex",
                 flexFlow: "column wrap",
+                transition: 'transform 0.2s ease, box-shadow 0.2s ease',
+                '&:hover': {
+                    transform: 'translateY(-4px)',
+                    boxShadow: '0 4px 20px rgba(0,0,0,0.15)'
+                }
             }}
         >
+
             <Box sx={{ display: "flex", justifyContent: "space-between", mb: 1 }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, overflow: 'hidden', flex: 1 }}>
                     <TypographyCustom
@@ -290,16 +300,77 @@ export const OrderItem: FC<OrderItemProps> = ({ order }) => {
                     {order.client?.first_name} {order.client?.last_name}
                 </TypographyCustom>
                 {order.client?.phone && (
-                    <PhoneActionMenu
-                        phone={order.client.phone}
-                        sx={{
-                            maxWidth: "200px",
-                            whiteSpace: "nowrap",
-                            overflow: "hidden",
-                            textOverflow: "ellipsis",
-                        }}
-                    />
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <PhoneActionMenu
+                            phone={order.client.phone}
+                            sx={{
+                                maxWidth: "200px",
+                                whiteSpace: "nowrap",
+                                overflow: "hidden",
+                                textOverflow: "ellipsis",
+                            }}
+                        />
+                        {!isAgency && (
+                            <Tooltip title={order.whatsapp_unread_count > 0 ? `${order.whatsapp_unread_count} mensajes sin leer` : "Abrir Chat WhatsApp"}>
+                                <Box
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        setSelectedOrder(order, 'whatsapp');
+                                    }}
+                                    sx={{
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        width: 24,
+                                        height: 24,
+                                        borderRadius: '50%',
+                                        cursor: 'pointer',
+                                        transition: 'all 0.3s ease',
+                                        bgcolor: order.whatsapp_unread_count > 0 ? '#25D366' : 'rgba(128, 128, 128, 0.1)',
+                                        color: order.whatsapp_unread_count > 0 ? '#fff' : 'rgba(128, 128, 128, 0.5)',
+                                        '&:hover': {
+                                            bgcolor: order.whatsapp_unread_count > 0 ? '#128C7E' : 'rgba(128, 128, 128, 0.2)',
+                                            transform: 'scale(1.2)'
+                                        },
+                                        position: 'relative',
+                                        animation: order.whatsapp_unread_count > 0 ? 'pulse-whatsapp 2s infinite' : 'none',
+                                        '@keyframes pulse-whatsapp': {
+                                            '0%': { transform: 'scale(1)', boxShadow: '0 0 0 0 rgba(37, 211, 102, 0.4)' },
+                                            '70%': { transform: 'scale(1.1)', boxShadow: '0 0 0 10px rgba(37, 211, 102, 0)' },
+                                            '100%': { transform: 'scale(1)', boxShadow: '0 0 0 0 rgba(37, 211, 102, 0)' },
+                                        }
+                                    }}
+                                >
+                                    <WhatsApp sx={{ fontSize: '1rem' }} />
+                                    {order.whatsapp_unread_count > 0 && (
+                                        <Box sx={{
+                                            position: 'absolute',
+                                            top: -5,
+                                            right: -5,
+                                            bgcolor: '#ef5350',
+                                            color: 'white',
+                                            borderRadius: '50%',
+                                            minWidth: 14,
+                                            height: 14,
+                                            fontSize: '0.65rem',
+                                            fontWeight: 'bold',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            border: '1px solid white',
+                                            px: 0.3
+                                        }}>
+                                            {order.whatsapp_unread_count}
+                                        </Box>
+                                    )}
+                                </Box>
+                            </Tooltip>
+                        )}
+
+
+                    </Box>
                 )}
+
                 <TypographyCustom
                     variant="subtitle2"
                     color="text.secondary"

@@ -55,7 +55,9 @@ export const OrderList: FC<OrderListProps> = ({ title }) => {
             params.append('per_page', '25');
             params.append('page', pageToLoad.toString());
 
-            // Filtros Globales
+            // Filtros Globales (Leer directamente del store para mantener estable el callback)
+            const { filters, searchTerm } = useOrdersStore.getState();
+
             if (filters.city_id) params.append('city_id', filters.city_id);
             if (filters.agency_id) params.append('agency_id', filters.agency_id);
             if (filters.seller_id) params.append('seller_id', filters.seller_id);
@@ -68,8 +70,8 @@ export const OrderList: FC<OrderListProps> = ({ title }) => {
             // Filtro STATUS (Clave para Kanban por columnas)
             params.append('status', title);
 
-            const { status, response } = await request(`/orders?${params.toString()}`, 'GET', undefined, abortControllerRef.current.signal);
-            if (status) {
+            const { ok, response } = await request(`/orders?${params.toString()}`, 'GET', undefined, abortControllerRef.current.signal);
+            if (ok && typeof response.json === 'function') {
                 const data = await response.json();
                 const isAppend = pageToLoad > 1;
                 setColumnsOrder(title, data.data, isAppend, data.meta.last_page > pageToLoad, data.meta.total);
@@ -82,7 +84,7 @@ export const OrderList: FC<OrderListProps> = ({ title }) => {
             setColumnLoading(title, false);
             loadingRef.current = false;
         }
-    }, [title, filters, searchTerm, setColumnLoading, setColumnsOrder]);
+    }, [title, setColumnLoading, setColumnsOrder]);
 
     // Disparador Inicial (Carga Página 1)
     // OPTIMIZED: Skip initial fetch if store already has item (populated by bulk fetch)

@@ -9,8 +9,10 @@ import {
     NewReleasesRounded,
     CheckCircleRounded,
     ScheduleRounded,
-    TimerRounded
+    TimerRounded,
+    WhatsApp
 } from "@mui/icons-material";
+
 import { request } from "../../../common/request";
 import { IResponse } from "../../../interfaces/response-type";
 import { OrderDialog } from "../../orders/OrderDialog"; // Import OrderDialog if we need to mount it here? No, better mounted in Layout or Orders.tsx
@@ -119,7 +121,8 @@ export const BroadcastMonitor = () => {
                                     const data = await response.json();
                                     const fullOrder = data.order || data;
                                     updateOrderInColumns(fullOrder);
-                                    setSelectedOrder(fullOrder); // Open the dialog
+                                    setSelectedOrder(fullOrder, 'detail'); // Open the dialog
+
                                 }
                             } catch (e) {
                                 console.error("Error opening order from notification", e);
@@ -179,10 +182,58 @@ export const BroadcastMonitor = () => {
             }
         });
 
+        if (!role.includes('agencia')) {
+            channel.listen('.App\\Events\\WhatsappMessageReceived', (e: any) => {
+                console.log("💬 WhatsApp Message Received:", e);
+                const msg = e.message;
+                if (msg.is_from_client) {
+                    const toastId = toast.info(`WhatsApp: "${msg.body.substring(0, 40)}${msg.body.length > 40 ? '...' : ''}"`, {
+                        icon: <div style={{ backgroundColor: '#25D366', borderRadius: '50%', width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white' }}>
+                            <WhatsApp sx={{ fontSize: '1.2rem' }} />
+                        </div>,
+                        autoClose: 10000,
+                        position: "top-right",
+
+                        onClick: async () => {
+                            try {
+                                const { status, response }: IResponse = await request(`/orders/${msg.order_id}`, 'GET');
+                                if (status === 200) {
+                                    const data = await response.json();
+                                    setSelectedOrder(data.order || data, 'whatsapp');
+                                }
+
+                            } catch (err) {
+                                console.error("Error opening order from WhatsApp toast", err);
+                            }
+                            toast.dismiss(toastId);
+                        }
+                    });
+                }
+
+                // Important: We need to refresh the order object in the Kanban to update the unread count badge
+                const refreshOrder = async () => {
+                    try {
+                        const { status, response }: IResponse = await request(`/orders/${msg.order_id}`, 'GET');
+                        if (status === 200) {
+                            const data = await response.json();
+                            updateOrderInColumns(data.order || data);
+                        }
+                    } catch (err) {
+                        console.error("Error refreshing order for WhatsApp", err);
+                    }
+                }
+                refreshOrder();
+            });
+        }
+
+
+
         return () => {
             channel.stopListening('.App\\Events\\OrderUpdated');
+            channel.stopListening('.App\\Events\\WhatsappMessageReceived');
             echo.leave(channelName);
         };
+
     }, [echo, user?.id, updateOrderInColumns]);
 
     return null;

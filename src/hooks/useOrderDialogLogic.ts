@@ -10,7 +10,8 @@ export const useOrderDialogLogic = (
     open: boolean,
     setOpen: React.Dispatch<React.SetStateAction<boolean>>
 ) => {
-    const { selectedOrder, setSelectedOrder, updateOrderInColumns } = useOrdersStore();
+    const { selectedOrder, setSelectedOrder, updateOrderInColumns, initialTabId } = useOrdersStore();
+
     const user = useUserStore((state) => state.user);
 
     const [openCancel, setOpenCancel] = useState(false);
@@ -598,7 +599,9 @@ export const useOrderDialogLogic = (
 
     return {
         selectedOrder,
+        initialTabId,
         user,
+
         openCancel, setOpenCancel,
         openPostpone, setOpenPostpone,
         openApprove, setOpenApprove,
