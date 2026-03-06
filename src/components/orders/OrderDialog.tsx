@@ -25,6 +25,7 @@ import { fmtMoney } from "../../lib/money";
 import { ButtonCustom } from "../custom";
 import { ProductSearchDialog } from "../products/ProductsSearchDialog";
 import { OrderProductItem } from "./OrderProductItem";
+import { OrderWhatsApp } from "./OrderWhatsApp";
 import { ProductTechnicalSheet } from "../products/ProductTechnicalSheet";
 import {
     NotificationAddRounded,
@@ -44,7 +45,8 @@ import {
     Inventory2Outlined as Inventory2OutlinedIcon,
     ReplayRounded,
     CurrencyExchange,
-    EditRounded
+    EditRounded,
+    WhatsApp
 } from "@mui/icons-material";
 import { request } from "../../common/request";
 import { MarkDeliveredDialog } from "./MarkDeliveredDialog";
@@ -457,6 +459,7 @@ export const OrderDialog: FC<OrderDialogProps> = ({ id, open, setOpen }) => {
                         >
                             <Tab label="Detalle" icon={<ShoppingCartRounded sx={{ fontSize: '1.2rem' }} />} iconPosition="start" />
                             <Tab label="Finanzas" icon={<ReceiptLongRounded sx={{ fontSize: '1.2rem' }} />} iconPosition="start" />
+                            <Tab label="WhatsApp" icon={<WhatsApp sx={{ fontSize: '1.2rem' }} />} iconPosition="start" />
                             <Tab label={
                                 <Badge badgeContent={order.updates?.length || 0} color="error" max={99} sx={{ '& .MuiBadge-badge': { right: -10, top: 2 } }}>
                                     Historial
@@ -787,11 +790,17 @@ export const OrderDialog: FC<OrderDialogProps> = ({ id, open, setOpen }) => {
 
                         {activeTab === 2 && (
                             <Box sx={{ maxWidth: '800px', margin: 'auto' }}>
-                                <OrderUpdatesList updates={order.updates} />
+                                <OrderWhatsApp orderId={order.id} />
                             </Box>
                         )}
 
                         {activeTab === 3 && (
+                            <Box sx={{ maxWidth: '800px', margin: 'auto' }}>
+                                <OrderUpdatesList updates={order.updates} />
+                            </Box>
+                        )}
+
+                        {activeTab === 4 && (
                             <Box sx={{ maxWidth: '1000px', margin: 'auto' }}>
                                 <ProductTechnicalSheet
                                     orderProducts={order.products || []}
@@ -800,7 +809,7 @@ export const OrderDialog: FC<OrderDialogProps> = ({ id, open, setOpen }) => {
                             </Box>
                         )}
 
-                        {activeTab === 4 && (
+                        {activeTab === 5 && (
                             <Box sx={{ maxWidth: '1000px', margin: 'auto' }}>
                                 <OrderActivityList orderId={order.id} />
                             </Box>

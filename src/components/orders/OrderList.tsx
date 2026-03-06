@@ -34,10 +34,19 @@ export const OrderList: FC<OrderListProps> = ({ title }) => {
 
     // Ref para evitar doble fetch en strict mode o race conditions
     const loadingRef = useRef(false);
+    // Ref para el AbortController
+    const abortControllerRef = useRef<AbortController | null>(null);
 
     // Función de carga
     const fetchColumnData = useCallback(async (pageToLoad = 1) => {
-        if (loadingRef.current) return;
+        if (loadingRef.current && pageToLoad === 1) return; // Permitir scroll pero no doble refresh 1
+
+        // Cancelar petición anterior si existe
+        if (abortControllerRef.current) {
+            abortControllerRef.current.abort();
+        }
+        abortControllerRef.current = new AbortController();
+
         loadingRef.current = true;
         setColumnLoading(title, true);
 
@@ -59,23 +68,21 @@ export const OrderList: FC<OrderListProps> = ({ title }) => {
             // Filtro STATUS (Clave para Kanban por columnas)
             params.append('status', title);
 
-            const { status, response } = await request(`/orders?${params.toString()}`, 'GET');
+            const { status, response } = await request(`/orders?${params.toString()}`, 'GET', undefined, abortControllerRef.current.signal);
             if (status) {
                 const data = await response.json();
                 const isAppend = pageToLoad > 1;
-                // Actualizar store con total desde meta
                 setColumnsOrder(title, data.data, isAppend, data.meta.last_page > pageToLoad, data.meta.total);
-            } else {
-                // toast.error(`Error cargando ${title}`); 
-                // Silencioso mejor, para no spammear 10 toasts
             }
-        } catch (e) {
-            console.error(e);
+        } catch (e: any) {
+            if (e.name !== 'AbortError') {
+                console.error(e);
+            }
         } finally {
             setColumnLoading(title, false);
             loadingRef.current = false;
         }
-    }, [title, filters, searchTerm]);
+    }, [title, filters, searchTerm, setColumnLoading, setColumnsOrder]);
 
     // Disparador Inicial (Carga Página 1)
     // OPTIMIZED: Skip initial fetch if store already has item (populated by bulk fetch)
@@ -90,7 +97,12 @@ export const OrderList: FC<OrderListProps> = ({ title }) => {
             }
         }, 0);
 
-        return () => clearTimeout(timer);
+        return () => {
+            clearTimeout(timer);
+            if (abortControllerRef.current) {
+                abortControllerRef.current.abort();
+            }
+        };
     }, [refreshSignal, fetchColumnData]); // Removed filters/searchTerm from here to avoid storm, parent handles bulk refresh
 
     // --- Polling Logic --- 🔇 DISABLED: Using WebSocket Instead

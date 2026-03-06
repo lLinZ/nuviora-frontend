@@ -207,8 +207,8 @@ export const useOrdersStore = create<OrdersState>((set, get) => ({
     setActiveModal: (type, data) => set({ activeModal: { type, data } }),
     setBulkColumns: (data) =>
         set((state) => {
-            const newColumns: Record<string, ColumnState> = {};
-            if (!data || typeof data !== 'object') return { columns: {} };
+            const newColumns: Record<string, ColumnState> = { ...state.columns };
+            if (!data || typeof data !== 'object') return { columns: state.columns };
 
             Object.keys(data).forEach((status) => {
                 newColumns[status] = {

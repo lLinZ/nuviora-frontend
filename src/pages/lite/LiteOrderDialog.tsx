@@ -33,6 +33,7 @@ import { OrderUpdateInput } from "../../components/orders/OrderUpdateInput"; // 
 import { OrderUpdatesList } from "../../components/orders/OrderUpdatesList";
 import { OrderProductItem } from "../../components/orders/OrderProductItem";
 import { OrderTimer } from "../../components/orders/OrderTimer";
+import { OrderWhatsApp } from "../../components/orders/OrderWhatsApp";
 import MessageRoundedIcon from '@mui/icons-material/MessageRounded';
 import { ButtonCustom } from "../../components/custom";
 import { ProductSearchDialog } from "../../components/products/ProductsSearchDialog";
@@ -143,6 +144,7 @@ export const LiteOrderDialog: FC<LiteOrderDialogProps> = ({ id, open, setOpen, o
     const [upsellPrice, setUpsellPrice] = useState(0);
 
     const [showUpdates, setShowUpdates] = useState(false);
+    const [showWhatsApp, setShowWhatsApp] = useState(false);
 
     const [stagedPayments, setStagedPayments] = useState<any[]>([]);
     const [confirmReturnOpen, setConfirmReturnOpen] = useState(false);
@@ -515,6 +517,23 @@ export const LiteOrderDialog: FC<LiteOrderDialogProps> = ({ id, open, setOpen, o
                             </Box>
                             <Collapse in={showUpdates}>
                                 <OrderUpdatesList updates={order.updates || []} />
+                            </Collapse>
+                        </Paper>
+
+                        {/* WhatsApp Chat */}
+                        <Paper elevation={0} sx={{ p: 2, mt: 2, borderRadius: 3 }}>
+                            <Box
+                                onClick={() => setShowWhatsApp(!showWhatsApp)}
+                                sx={{ display: 'flex', justifyContent: 'space-between', cursor: 'pointer', mb: 1 }}
+                            >
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                    <WhatsApp fontSize="small" color="primary" />
+                                    <Typography variant="subtitle1" fontWeight="bold">Chat WhatsApp</Typography>
+                                </Box>
+                                {showWhatsApp ? <ExpandLessRounded /> : <ExpandMoreRounded />}
+                            </Box>
+                            <Collapse in={showWhatsApp}>
+                                <OrderWhatsApp orderId={order.id} />
                             </Collapse>
                         </Paper>
 
