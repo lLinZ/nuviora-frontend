@@ -1,6 +1,7 @@
 import React, { useEffect, useRef } from "react";
 import { useNotificationStore, AppNotification } from "../../store/notifications/NotificationStore";
 import { toast } from "react-toastify";
+import { useUserStore } from "../../store/user/UserStore";
 
 interface LiteNotificationMonitorProps {
     orders: any[];
@@ -9,6 +10,7 @@ interface LiteNotificationMonitorProps {
 
 export const LiteNotificationMonitor: React.FC<LiteNotificationMonitorProps> = ({ orders, onOpenOrder }) => {
     const { addNotification, dismissedOrderIds, notifications, dismissNotification } = useNotificationStore();
+    const user = useUserStore(s => s.user);
     const toastedRef = useRef<Set<number>>(new Set());
     const openRef = useRef(onOpenOrder);
 
@@ -76,7 +78,13 @@ export const LiteNotificationMonitor: React.FC<LiteNotificationMonitorProps> = (
                 }
 
                 if (order.scheduled_for && order.status && (order.status.description === 'Programado para mas tarde' || order.status.description === 'Reprogramado para hoy')) {
-                    processAlert(order.scheduled_for, "scheduled", "Contacto/Entrega");
+                    let canSee = true;
+                    if (user.role?.description === 'Agencia') canSee = false;
+                    else if (user.role?.description === 'Vendedor' && order.agent_id !== user.id) canSee = false;
+
+                    if (canSee) {
+                        processAlert(order.scheduled_for, "scheduled", "Contacto/Entrega");
+                    }
                 }
 
                 // New Time-based Alerts mirroring OrderTimer
@@ -118,7 +126,7 @@ export const LiteNotificationMonitor: React.FC<LiteNotificationMonitorProps> = (
         const interval = setInterval(checkReminders, 30000);
         return () => clearInterval(interval);
 
-    }, [orders, dismissedOrderIds, addNotification, notifications, dismissNotification]);
+    }, [orders, dismissedOrderIds, addNotification, notifications, dismissNotification, user]);
 
     return null;
 };

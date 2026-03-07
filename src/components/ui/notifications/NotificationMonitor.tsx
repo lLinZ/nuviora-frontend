@@ -2,10 +2,12 @@ import React, { useEffect, useRef } from "react";
 import { useOrdersStore } from "../../../store/orders/OrdersStore";
 import { useNotificationStore, AppNotification } from "../../../store/notifications/NotificationStore";
 import { toast } from "react-toastify";
+import { useUserStore } from "../../../store/user/UserStore";
 
 export const NotificationMonitor = () => {
     const { columns, setSelectedOrder } = useOrdersStore();
     const { addNotification, dismissedOrderIds, notifications, dismissNotification } = useNotificationStore();
+    const user = useUserStore(s => s.user);
     const toastedRef = useRef<Set<number>>(new Set());
 
     useEffect(() => {
@@ -69,7 +71,14 @@ export const NotificationMonitor = () => {
                 }
 
                 if (order.scheduled_for && order.status && (order.status.description === 'Programado para mas tarde' || order.status.description === 'Reprogramado para hoy')) {
-                    processAlert(order.scheduled_for, "scheduled", "Contacto/Entrega");
+                    // Filtrar por rol y asignación
+                    let canSee = true;
+                    if (user.role?.description === 'Agencia') canSee = false;
+                    else if (user.role?.description === 'Vendedor' && order.agent_id !== user.id) canSee = false;
+
+                    if (canSee) {
+                        processAlert(order.scheduled_for, "scheduled", "Contacto/Entrega");
+                    }
                 }
             });
 
@@ -82,7 +91,7 @@ export const NotificationMonitor = () => {
         const interval = setInterval(checkReminders, 20000); // Revisar cada 20s
         checkReminders();
         return () => clearInterval(interval);
-    }, [columns, dismissedOrderIds, addNotification, notifications, dismissNotification, setSelectedOrder]);
+    }, [columns, dismissedOrderIds, addNotification, notifications, dismissNotification, setSelectedOrder, user]);
 
     return null;
 };
