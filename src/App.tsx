@@ -30,6 +30,7 @@ import { Banks } from './pages/admin/Banks';
 import { PendingVueltos } from './pages/admin/PendingVueltos';
 import { SalesLite } from './pages/lite/SalesLite';
 import { OrderTrackingReport } from './pages/OrderTrackingReport';
+import { WhatsappTemplates } from './pages/admin/WhatsappTemplates';
 
 const useGetTheme = () => {
   const user = useUserStore((state) => state.user);
@@ -99,6 +100,7 @@ function App() {
           <Route path="/admin/company-accounts" element={<RequireRole allowedRoles={['Admin', 'Gerente']}><CompanyAccounts /></RequireRole>} />
           <Route path="/admin/banks" element={<RequireRole allowedRoles={['Admin', 'Gerente']}><Banks /></RequireRole>} />
           <Route path="/admin/pending-vueltos" element={<RequireRole allowedRoles={['Admin', 'Gerente']}><PendingVueltos /></RequireRole>} />
+          <Route path="/admin/whatsapp-templates" element={<RequireRole allowedRoles={['Admin']}><WhatsappTemplates /></RequireRole>} />
           <Route path="/tracking-report" element={<RequireRole allowedRoles={['Admin', 'Gerente']}><OrderTrackingReport /></RequireRole>} />
 
           {/* VISTA LITE DE VENTAS */}
