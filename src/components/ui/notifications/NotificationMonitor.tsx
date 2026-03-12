@@ -72,8 +72,10 @@ export const NotificationMonitor = () => {
 
                 if (order.scheduled_for && order.status && (order.status.description === 'Programado para mas tarde' || order.status.description === 'Reprogramado para hoy')) {
                     // Filtrar por rol y asignación
+                    // Nota: Admin excluido a petición del cliente
                     let canSee = true;
-                    if (user.role?.description === 'Agencia') canSee = false;
+                    if (user.role?.description === 'Admin') canSee = false;
+                    else if (user.role?.description === 'Agencia') canSee = false;
                     else if (user.role?.description === 'Vendedor' && order.agent_id !== user.id) canSee = false;
 
                     if (canSee) {
