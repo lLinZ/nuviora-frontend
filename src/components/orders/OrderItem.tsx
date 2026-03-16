@@ -53,7 +53,8 @@ export const OrderItem: FC<OrderItemProps> = ({ order }) => {
         setSelectedOrder(order, 'detail');
     };
 
-    const getProducts = async () => {
+    const getProducts = async (e?: React.MouseEvent) => {
+        if (e) e.stopPropagation();
         setOrderProductsEmpty(false);
         toast.info('Cargando productos...', { autoClose: 1000 });
         const { status, response }: IResponse = await request(`/order/${order.id}/products`, 'GET');
@@ -253,7 +254,9 @@ export const OrderItem: FC<OrderItemProps> = ({ order }) => {
                         </Tooltip>
                     )}
                 </Box>
-                <DenseMenu data={order} changeStatus={changeStatus} />
+                <Box onClick={(e) => e.stopPropagation()}>
+                    <DenseMenu data={order} changeStatus={changeStatus} />
+                </Box>
             </Box>
 
             {/* 🔁 INDICADOR: Orden atendida en día anterior */}
@@ -532,7 +535,7 @@ export const OrderItem: FC<OrderItemProps> = ({ order }) => {
                     </Box>
                 )}
             </Box>
-            <TypographyCustom sx={{ margin: 'auto', color: userStore.user.color, mt: 1 }} variant="subtitle1" onClick={() => getProducts()}>Ver productos</TypographyCustom>
+            <TypographyCustom sx={{ margin: 'auto', color: userStore.user.color, mt: 1 }} variant="subtitle1" onClick={getProducts}>Ver productos</TypographyCustom>
 
             {orderProducts.length > 0 ? orderProducts.map((p: any) =>
                 <Tooltip title={p.showable_name || p.title}>
