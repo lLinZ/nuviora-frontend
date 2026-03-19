@@ -49,6 +49,9 @@ export const OrderWhatsApp = ({ orderId }: { orderId: number }) => {
     const echo = useSocketStore((s) => s.echo);
     const { selectedOrder: order, updateOrderInColumns } = useOrdersStore();
 
+    // Move clientName up here so the WebSocket closure can capture it safely
+    const clientName  = order?.client?.first_name ? `${order.client.first_name} ${order.client.last_name || ''}` : 'Cliente';
+
     const windowOpen = windowMsLeft > 0;
     const windowPct  = (windowMsLeft / WINDOW_MS) * 100;
 
@@ -98,7 +101,7 @@ export const OrderWhatsApp = ({ orderId }: { orderId: number }) => {
             const { status, response } = await request(`/orders/${orderId}/whatsapp-messages?page=${pageNumber}&per_page=20`, 'GET');
             if (status === 200) {
                 const data = await response.json();
-                const fetched = data.data;
+                const fetched = data.data.reverse();
 
                 if (isLoadMore) {
                     const container = containerRef.current;
@@ -260,7 +263,6 @@ export const OrderWhatsApp = ({ orderId }: { orderId: number }) => {
         );
     }
 
-    const clientName  = order?.client?.first_name ? `${order.client.first_name} ${order.client.last_name || ''}` : 'Cliente';
     const clientPhone = order?.client?.phone || '';
 
     const windowUrgent = windowMsLeft > 0 && windowMsLeft < 2 * 60 * 60 * 1000; // < 2 h remaining
