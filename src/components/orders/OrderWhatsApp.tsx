@@ -163,7 +163,7 @@ export const OrderWhatsApp = ({ orderId }: { orderId: number }) => {
                     });
                 }
 
-                if (e.message.client_id === order?.client_id) {
+                if (Number(e.message.order_id) === Number(orderId)) {
                     setMessages(prev => {
                         if (prev.some(m => m.id === e.message.id || (m.message_id && m.message_id === e.message.message_id))) return prev;
                         return [...prev, e.message];
