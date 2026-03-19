@@ -98,7 +98,7 @@ export const OrderWhatsApp = ({ orderId }: { orderId: number }) => {
             const { status, response } = await request(`/orders/${orderId}/whatsapp-messages?page=${pageNumber}&per_page=20`, 'GET');
             if (status === 200) {
                 const data = await response.json();
-                const fetched = data.data.reverse();
+                const fetched = data.data;
 
                 if (isLoadMore) {
                     const container = containerRef.current;
