@@ -185,7 +185,17 @@ export const BroadcastMonitor = () => {
         if (!role.includes('agencia')) {
             channel.listen('.App\\Events\\WhatsappMessageReceived', (e: any) => {
                 console.log("💬 WhatsApp Message Received:", e);
-                const msg = e.message;
+                const msg = e.message || e;
+
+                // 🛑 SECURITY FALLBACK: Strict Multi-Agent Isolation
+                const currentUserRole = user?.role?.description?.toLowerCase() || '';
+                if (currentUserRole.includes('vendedor') && msg.agent_id && String(msg.agent_id) !== String(user?.id)) {
+                    console.warn(`[Security] Ignored external message intended for agent ${msg.agent_id}`);
+                    return;
+                }
+                if (currentUserRole.includes('agencia') && msg.agency_id && String(msg.agency_id) !== String(user?.id)) {
+                    return;
+                }
 
                 // Dispatch to global store so OrderWhatsApp.tsx reacts instantly
                 setIncomingWhatsappMessage(msg);
