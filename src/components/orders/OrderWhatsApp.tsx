@@ -107,14 +107,33 @@ export const OrderWhatsApp = ({ orderId }: { orderId: number }) => {
             const { status, response } = await request(`/orders/${orderId}/whatsapp-messages?page=${pageNumber}&per_page=20`, 'GET');
             if (status === 200) {
                 const data = await response.json();
-                // API already returns newest first (desc). We keep this array format [Newest, Older, Oldest]
-                const fetched = data.data; 
+                
+                // data.data is newest first (desc). We want oldest first, so we reverse it.
+                // e.g. [New, Older, Oldest] -> [Oldest, Older, New]
+                const fetched = [...data.data].reverse();
 
                 if (isLoadMore) {
-                    // With column-reverse, we just append older items to the end of the array.
-                    setMessages(prev => [...prev, ...fetched]);
+                    const scrollContainer = containerRef.current;
+                    const prevScrollHeight = scrollContainer ? scrollContainer.scrollHeight : 0;
+                    
+                    // We prepend older items to the beginning: [EvenOlder, ..., Oldest, Older, New]
+                    setMessages(prev => {
+                        // filter out duplicates just in case
+                        const newItems = fetched.filter(f => !prev.some(p => p.id === f.id));
+                        return [...newItems, ...prev];
+                    });
+
+                    // Restore scroll position so it doesn't jump to the top visually
+                    requestAnimationFrame(() => {
+                        if (scrollContainer) {
+                            const newScrollHeight = scrollContainer.scrollHeight;
+                            scrollContainer.scrollTop = scrollContainer.scrollTop + (newScrollHeight - prevScrollHeight);
+                        }
+                    });
+
                 } else {
                     setMessages(fetched);
+                    scrollToBottom(true);
                 }
 
                 setHasMore(data.current_page < data.last_page);
@@ -147,6 +166,14 @@ export const OrderWhatsApp = ({ orderId }: { orderId: number }) => {
         }
     };
 
+    const messagesEndRef = useRef<HTMLDivElement>(null);
+
+    const scrollToBottom = (instant = false) => {
+        if (messagesEndRef.current) {
+            messagesEndRef.current.scrollIntoView({ behavior: instant ? 'instant' : 'smooth', block: 'end' });
+        }
+    };
+
     // ── Mount / real-time ─────────────────────────────────────────────────────
     useEffect(() => {
         if (orderId) {
@@ -159,7 +186,7 @@ export const OrderWhatsApp = ({ orderId }: { orderId: number }) => {
         if (echo && orderId) {
             const channel = echo.private(getChannelName());
 
-            channel.listen('WhatsappMessageReceived', (e: any) => {
+            channel.listen('.App\\Events\\WhatsappMessageReceived', (e: any) => {
                 const currentOrder = orderRef.current;
                 const currentClientName = currentOrder?.client?.first_name 
                     ? `${currentOrder.client.first_name} ${currentOrder.client.last_name || ''}` 
@@ -175,9 +202,11 @@ export const OrderWhatsApp = ({ orderId }: { orderId: number }) => {
                     setMessages(prev => {
                         // Prevent duplicates
                         if (prev.some(m => m.id === e.message.id || (m.message_id && m.message_id === e.message.message_id))) return prev;
-                        // Put new message at the start for column-reverse so it shows at the bottom
-                        return [e.message, ...prev];
+                        // Append new message to the end of the array
+                        return [...prev, e.message];
                     });
+                    
+                    scrollToBottom();
 
                     // Reset 24-h window timer using the stamped sent_at from the payload
                     if (e.message.is_from_client) {
@@ -187,15 +216,15 @@ export const OrderWhatsApp = ({ orderId }: { orderId: number }) => {
                 }
             });
 
-            return () => { channel.stopListening('WhatsappMessageReceived'); };
+            return () => { channel.stopListening('.App\\Events\\WhatsappMessageReceived'); };
         }
     }, [orderId, echo]);
 
     // ── Scroll pagination ─────────────────────────────────────────────────────
     const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
         const t = e.target as HTMLDivElement;
-        // column-reverse scrolling up to older items: Math.abs(scrollTop) + clientHeight >= scrollHeight
-        const isAtTop = Math.abs(t.scrollTop) + t.clientHeight >= t.scrollHeight - 5;
+        // Check if user scrolled to the top to load older messages
+        const isAtTop = t.scrollTop <= 5;
         if (isAtTop && hasMore && !loadingMore) fetchMessages(page + 1, true);
     };
 
@@ -218,8 +247,12 @@ export const OrderWhatsApp = ({ orderId }: { orderId: number }) => {
             const { status, response } = await request(`/orders/${orderId}/whatsapp-messages`, 'POST', body);
             if (status === 201) {
                 const newMessage = await response.json();
-                // Put new message at the start for column-reverse
-                setMessages(prev => [newMessage, ...prev]);
+                // Append new message at the end
+                setMessages(prev => {
+                    if (prev.some(m => m.id === newMessage.id)) return prev;
+                    return [...prev, newMessage];
+                });
+                scrollToBottom();
                 if (!templateName) setInput('');
             } else {
                 toast.error('Error al enviar mensaje');
@@ -349,7 +382,7 @@ export const OrderWhatsApp = ({ orderId }: { orderId: number }) => {
                 onScroll={handleScroll}
                 sx={{
                     flex: 1, overflowY: 'auto', p: { xs: 2, md: 3 },
-                    display: 'flex', flexDirection: 'column-reverse', gap: 1,
+                    display: 'flex', flexDirection: 'column', gap: 1,
                     bgcolor: '#0b141a',
                     backgroundImage: `url("data:image/svg+xml,%3Csvg width='80' height='80' viewBox='0 0 80 80' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23ffffff' fill-opacity='0.03' fill-rule='evenodd'%3E%3Cpath d='M11 18c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm48 25c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm-43-7c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm63 31c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM34 90c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm56-76c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM12 86c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zm66-3c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zm-46-4c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zm13-82c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zm-46 44c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zm44-18c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM4 66c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zm18-50c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM5 28c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zm14 78c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2z'/%3E%3C/g%3E%3C/svg%3E")`,
                     '&::-webkit-scrollbar': { width: '6px' },
@@ -375,11 +408,8 @@ export const OrderWhatsApp = ({ orderId }: { orderId: number }) => {
                 ) : (
                     messages.map((m, i) => {
                         const isSentByMe = !m.is_from_client;
-                        // Because array is NEWEST first, i-1 is a NEWER message. i+1 is OLDER.
-                        // Tail should show if this message is the LAST one in a group of the same sender.
-                        // Wait, tail usually shows on the FIRST message of a group (oldest).
-                        // Since array is newest first (0 = newest), the next rendered item (1) is OLDER.
-                        // So to check if it's the bottom-most message of a group, we check if the PREVIOUS item (newer) has a different sender.
+                        // Tail should show if this message is the FIRST one in a group of the same sender.
+                        // Or you can check if the PREVIOUS message (i-1) is from a different sender.
                         const showTail   = i === 0 || messages[i - 1]?.is_from_client !== m.is_from_client;
                         return (
                             <Box key={m.id || i} sx={{ alignSelf: isSentByMe ? 'flex-end' : 'flex-start', maxWidth: '85%', display: 'flex', flexDirection: 'column', mb: 0.2 }}>
@@ -411,6 +441,7 @@ export const OrderWhatsApp = ({ orderId }: { orderId: number }) => {
                         );
                     })
                 )}
+                <div ref={messagesEndRef} style={{ height: 1 }} />
             </Box>
 
             {/* ── Window-closed banner (replaces input when expired) ── */}
