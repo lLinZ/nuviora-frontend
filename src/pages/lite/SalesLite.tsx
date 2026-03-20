@@ -24,7 +24,8 @@ import {
     Collapse,
     Divider,
     AppBar,
-    Toolbar
+    Toolbar,
+    Tooltip
 } from '@mui/material';
 import { useUserStore } from '../../store/user/UserStore';
 import { request } from '../../common/request';
@@ -45,7 +46,7 @@ import { DailyRatesDialog } from '../../components/orders/DailyRatesDialog';
 import { AccountBalanceRounded, AddCircleOutline, CurrencyExchange } from '@mui/icons-material';
 import { OrderTimer } from '../../components/orders/OrderTimer';
 import { PhoneActionMenu } from '../../components/orders/PhoneActionMenu';
-
+import { useOrdersStore } from '../../store/orders/OrdersStore';
 
 // Componente simple de Tabla Lite
 const LiteOrderTable = ({ statusTitle, searchTerm, onRefresh, onDataUpdate }: any) => {
@@ -101,7 +102,12 @@ const LiteOrderTable = ({ statusTitle, searchTerm, onRefresh, onDataUpdate }: an
 
 
 
-    const handleOpenOrder = (order: any) => {
+    const handleOpenOrder = (order: any, tab?: string) => {
+        if (tab) {
+            useOrdersStore.getState().setInitialTabId(tab);
+        } else {
+            useOrdersStore.getState().setInitialTabId('detail');
+        }
         setSelectedOrder(order);
         setOpenDialog(true);
     };
@@ -142,10 +148,68 @@ const LiteOrderTable = ({ statusTitle, searchTerm, onRefresh, onDataUpdate }: an
                                         <Typography variant="body2" color="text.secondary">
                                             {order.client?.first_name} {order.client?.last_name}
                                         </Typography>
-                                        <PhoneActionMenu
-                                            phone={order.client.phone}
-                                            sx={{ fontSize: '0.75rem', fontWeight: 'bold' }}
-                                        />
+                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                            <PhoneActionMenu
+                                                phone={order.client.phone}
+                                                sx={{ fontSize: '0.75rem', fontWeight: 'bold' }}
+                                            />
+                                            {user.role?.description !== 'Agencia' && (
+                                                <Tooltip title={order.whatsapp_unread_count > 0 ? `${order.whatsapp_unread_count} mensajes sin leer` : "Abrir Chat WhatsApp"}>
+                                                    <Box
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            handleOpenOrder(order, 'whatsapp');
+                                                        }}
+                                                        sx={{
+                                                            display: 'flex',
+                                                            alignItems: 'center',
+                                                            justifyContent: 'center',
+                                                            width: 24,
+                                                            height: 24,
+                                                            borderRadius: '50%',
+                                                            cursor: 'pointer',
+                                                            transition: 'all 0.3s ease',
+                                                            bgcolor: order.whatsapp_unread_count > 0 ? '#25D366' : 'rgba(128, 128, 128, 0.1)',
+                                                            color: order.whatsapp_unread_count > 0 ? '#fff' : 'rgba(128, 128, 128, 0.5)',
+                                                            '&:hover': {
+                                                                bgcolor: order.whatsapp_unread_count > 0 ? '#128C7E' : 'rgba(128, 128, 128, 0.2)',
+                                                                transform: 'scale(1.2)'
+                                                            },
+                                                            position: 'relative',
+                                                            animation: order.whatsapp_unread_count > 0 ? 'pulse-whatsapp 2s infinite' : 'none',
+                                                            '@keyframes pulse-whatsapp': {
+                                                                '0%': { transform: 'scale(1)', boxShadow: '0 0 0 0 rgba(37, 211, 102, 0.4)' },
+                                                                '70%': { transform: 'scale(1.1)', boxShadow: '0 0 0 10px rgba(37, 211, 102, 0)' },
+                                                                '100%': { transform: 'scale(1)', boxShadow: '0 0 0 0 rgba(37, 211, 102, 0)' },
+                                                            }
+                                                        }}
+                                                    >
+                                                        <WhatsApp sx={{ fontSize: '1rem' }} />
+                                                        {order.whatsapp_unread_count > 0 && (
+                                                            <Box sx={{
+                                                                position: 'absolute',
+                                                                top: -5,
+                                                                right: -5,
+                                                                bgcolor: '#ef5350',
+                                                                color: 'white',
+                                                                borderRadius: '50%',
+                                                                minWidth: 14,
+                                                                height: 14,
+                                                                fontSize: '0.65rem',
+                                                                fontWeight: 'bold',
+                                                                display: 'flex',
+                                                                alignItems: 'center',
+                                                                justifyContent: 'center',
+                                                                border: '1px solid white',
+                                                                px: 0.3
+                                                            }}>
+                                                                {order.whatsapp_unread_count}
+                                                            </Box>
+                                                        )}
+                                                    </Box>
+                                                </Tooltip>
+                                            )}
+                                        </Box>
 
                                     </Box>
                                 </TableCell>

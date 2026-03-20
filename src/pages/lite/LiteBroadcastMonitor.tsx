@@ -8,9 +8,11 @@ import {
     NewReleasesRounded,
     CheckCircleRounded,
     ScheduleRounded,
-    TimerRounded
+    TimerRounded,
+    WhatsApp
 } from "@mui/icons-material";
 import { request } from "../../common/request";
+import { useOrdersStore } from "../../store/orders/OrdersStore";
 
 export const LiteBroadcastMonitor = ({ onOrderUpdate, onOpenOrder }: { onOrderUpdate: (reset?: boolean) => void, onOpenOrder?: (id: number) => void }) => {
     const { echo, setSocket } = useSocketStore();
@@ -178,8 +180,45 @@ export const LiteBroadcastMonitor = ({ onOrderUpdate, onOpenOrder }: { onOrderUp
             }
         });
 
+        // WhatsApp Listener for Lite Version
+        channel.listen('.App\\Events\\WhatsappMessageReceived', (e: any) => {
+            const msg = e.message || e;
+
+            // 🛑 SECURITY FALLBACK: Strict Multi-Agent Isolation
+            const currentUserRole = user?.role?.description?.toLowerCase() || '';
+            if (currentUserRole.includes('vendedor') && msg.agent_id && String(msg.agent_id) !== String(user?.id)) {
+                return;
+            }
+            if (currentUserRole.includes('agencia') && msg.agency_id && String(msg.agency_id) !== String(user?.id)) {
+                return;
+            }
+
+            if (msg.is_from_client) {
+                const toastId = toast.info(`WhatsApp: "${msg.body.substring(0, 40)}${msg.body.length > 40 ? '...' : ''}"`, {
+                    icon: <div style={{ backgroundColor: '#25D366', borderRadius: '50%', width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white' }}>
+                        <WhatsApp sx={{ fontSize: '1.2rem' }} />
+                    </div>,
+                    autoClose: 10000,
+                    position: "top-right",
+                    onClick: () => {
+                        toast.dismiss(toastId);
+                        if (msg.order_id && openRef.current) {
+                            useOrdersStore.getState().setInitialTabId('whatsapp');
+                            openRef.current(msg.order_id);
+                        }
+                    }
+                });
+
+                // Update orders table so the bubble UI appears
+                if (updateRef.current) {
+                    updateRef.current(true);
+                }
+            }
+        });
+
         return () => {
             channel.stopListening('OrderUpdated');
+            channel.stopListening('.App\\Events\\WhatsappMessageReceived');
             echo.leave(channelName);
         };
     }, [echo, user?.id]);
