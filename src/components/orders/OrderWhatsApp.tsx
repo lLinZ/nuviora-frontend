@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
-import { Box, TextField, IconButton, Typography, CircularProgress, Paper, Button, LinearProgress, Tooltip } from '@mui/material';
+import { Box, TextField, IconButton, Typography, CircularProgress, Paper, Button, LinearProgress, Tooltip, Link } from '@mui/material';
 import { SendRounded, AutoAwesomeRounded, AttachFileRounded, WhatsApp as WhatsAppIcon, VerifiedRounded, LockRounded, LockOpenRounded } from '@mui/icons-material';
 import { request } from '../../common/request';
 import { toast } from 'react-toastify';
@@ -463,7 +463,31 @@ export const OrderWhatsApp = ({ orderId }: { orderId: number }) => {
                                         borderBottom: '10px solid transparent', borderRight: '10px solid #202c33',
                                     } : {}
                                 }}>
-                                    <Typography variant="body2" sx={{ fontSize: '0.9rem', lineHeight: 1.45, whiteSpace: 'pre-wrap' }}>{m.body}</Typography>
+                                    {/* 1. MEDIA ATTACHMENT */}
+                                    {m.media && (
+                                        <Box 
+                                            component="img" 
+                                            src={m.media} 
+                                            sx={{ 
+                                                maxWidth: '100%', 
+                                                maxHeight: 300, 
+                                                objectFit: 'cover', 
+                                                borderRadius: '8px', 
+                                                mb: m.body ? 1 : 0 
+                                            }} 
+                                        />
+                                    )}
+
+                                    {/* 2. TEXT BODY W/ URL PARSER */}
+                                    {m.body && (
+                                        <Typography variant="body2" sx={{ fontSize: '0.9rem', lineHeight: 1.45, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
+                                            {m.body.split(/(https?:\/\/[^\s]+)/g).map((part: string, index: number) => 
+                                                part.match(/(https?:\/\/[^\s]+)/g) 
+                                                ? <Link key={index} href={part} target="_blank" rel="noopener" sx={{ color: isSentByMe ? '#a6d4fa' : '#53bdeb', textDecoration: 'underline' }}>{part}</Link>
+                                                : <span key={index}>{part}</span>
+                                            )}
+                                        </Typography>
+                                    )}
                                     <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 0.5, mt: 0.2 }}>
                                         <Typography variant="caption" sx={{ fontSize: '0.65rem', opacity: 0.6, fontWeight: 500 }}>
                                             {new Date(m.created_at || m.sent_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
