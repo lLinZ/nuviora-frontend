@@ -463,31 +463,51 @@ export const OrderWhatsApp = ({ orderId }: { orderId: number }) => {
                                         borderBottom: '10px solid transparent', borderRight: '10px solid #202c33',
                                     } : {}
                                 }}>
-                                    {/* 1. MEDIA ATTACHMENT */}
-                                    {m.media && (
-                                        <Box 
-                                            component="img" 
-                                            src={m.media} 
-                                            sx={{ 
-                                                maxWidth: '100%', 
-                                                maxHeight: 300, 
-                                                objectFit: 'cover', 
-                                                borderRadius: '8px', 
-                                                mb: m.body ? 1 : 0 
-                                            }} 
-                                        />
-                                    )}
+                                    {/* 1. EXTRACT MEDIA URL & TEXT BODY */}
+                                    {(() => {
+                                        const cloudinaryMatch = m.body ? m.body.match(/(https?:\/\/[^\s]*(res\.cloudinary\.com|storage\/whatsapp\/|api\.nuviora\.cloud\/storage)[^\s]*)/i) : null;
+                                        const mediaSrc = m.media || (cloudinaryMatch ? cloudinaryMatch[0] : null);
+                                        const textBody = m.body ? m.body.replace(mediaSrc || '', '').trim() : '';
 
-                                    {/* 2. TEXT BODY W/ URL PARSER */}
-                                    {m.body && (
-                                        <Typography variant="body2" sx={{ fontSize: '0.9rem', lineHeight: 1.45, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
-                                            {m.body.split(/(https?:\/\/[^\s]+)/g).map((part: string, index: number) => 
-                                                part.match(/(https?:\/\/[^\s]+)/g) 
-                                                ? <Link key={index} href={part} target="_blank" rel="noopener" sx={{ color: isSentByMe ? '#a6d4fa' : '#53bdeb', textDecoration: 'underline' }}>{part}</Link>
-                                                : <span key={index}>{part}</span>
-                                            )}
-                                        </Typography>
-                                    )}
+                                        return (
+                                            <>
+                                                {/* 1. MEDIA ATTACHMENT */}
+                                                {mediaSrc && (
+                                                    <Box sx={{ 
+                                                        mb: textBody ? 1.5 : 0,
+                                                        borderRadius: '10px', 
+                                                        overflow: 'hidden', 
+                                                        border: '1px solid rgba(255,255,255,0.05)', 
+                                                        maxWidth: '100%',
+                                                        cursor: 'pointer'
+                                                    }} onClick={() => window.open(mediaSrc, '_blank')}>
+                                                        <Box component='img' 
+                                                            src={mediaSrc} 
+                                                            alt={textBody || 'WhatsApp Media'}
+                                                            sx={{ 
+                                                                width: '100%', 
+                                                                height: 'auto', 
+                                                                display: 'block', 
+                                                                objectFit: 'cover',
+                                                                maxHeight: '300px'
+                                                            }} 
+                                                        />
+                                                    </Box>
+                                                )}
+
+                                                {/* 2. TEXT BODY W/ URL PARSER */}
+                                                {textBody && (
+                                                    <Typography variant="body2" sx={{ fontSize: '0.9rem', lineHeight: 1.45, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
+                                                        {textBody.split(/(https?:\/\/[^\s]+)/g).map((part: string, index: number) => 
+                                                            part.match(/(https?:\/\/[^\s]+)/g) 
+                                                            ? <Link key={index} href={part} target="_blank" rel="noopener" sx={{ color: isSentByMe ? '#a6d4fa' : '#53bdeb', textDecoration: 'underline' }}>{part}</Link>
+                                                            : <span key={index}>{part}</span>
+                                                        )}
+                                                    </Typography>
+                                                )}
+                                            </>
+                                        );
+                                    })()}
                                     <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 0.5, mt: 0.2 }}>
                                         <Typography variant="caption" sx={{ fontSize: '0.65rem', opacity: 0.6, fontWeight: 500 }}>
                                             {new Date(m.created_at || m.sent_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
