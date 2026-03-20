@@ -16,12 +16,16 @@ import WhatsAppIcon from "@mui/icons-material/WhatsApp";
 import { useNotificationStore } from "../../store/notifications/NotificationStore";
 import { formatDistanceToNow } from "date-fns";
 import { es } from "date-fns/locale";
+import { useOrdersStore } from "../../store/orders/OrdersStore";
 import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
+import { LiteOrderDialog } from "./LiteOrderDialog";
 
-export const LiteWhatsAppBell = ({ onOpenOrder }: { onOpenOrder: (order: any, tab?: string) => void }) => {
+export const LiteWhatsAppBell = () => {
     const { whatsappNotifications, dismissWhatsAppNotification, clearAllWhatsApp } = useNotificationStore();
     const theme = useTheme();
     const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+    const [selectedOrderId, setSelectedOrderId] = useState<number | null>(null);
+    const [openDialog, setOpenDialog] = useState(false);
 
     const handleOpenMenu = (event: React.MouseEvent<HTMLElement>) => {
         setAnchorEl(event.currentTarget);
@@ -34,8 +38,10 @@ export const LiteWhatsAppBell = ({ onOpenOrder }: { onOpenOrder: (order: any, ta
     const handleNotificationClick = (orderId: number) => {
         dismissWhatsAppNotification(orderId);
         handleCloseMenu();
-        // Create a mock order object with just ID so SalesLite can open it by ID
-        onOpenOrder({ id: orderId }, 'whatsapp');
+        // Notify parent to open order dialog with whatsapp tab
+        useOrdersStore.getState().setInitialTabId('whatsapp');
+        setSelectedOrderId(orderId);
+        setOpenDialog(true);
     };
 
     return (
@@ -142,6 +148,14 @@ export const LiteWhatsAppBell = ({ onOpenOrder }: { onOpenOrder: (order: any, ta
                     )}
                 </Box>
             </Menu>
+
+            {openDialog && selectedOrderId && (
+                <LiteOrderDialog
+                    open={openDialog}
+                    setOpen={setOpenDialog}
+                    id={selectedOrderId}
+                />
+            )}
         </>
     );
 };

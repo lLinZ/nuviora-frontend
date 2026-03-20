@@ -549,7 +549,7 @@ export const SalesLite = () => {
                         </Button>
 
                         <LiteSettingsMenu />
-                        <LiteWhatsAppBell onOpenOrder={handleOpenOrderById} />
+                        <LiteWhatsAppBell />
                         <LiteNotificationBell />
                         <IconButton size="small" onClick={() => setShowTestPanel(!showTestPanel)} sx={{ color: 'warning.main', bgcolor: alpha(theme.palette.warning.main, 0.1) }}>
                             <NotificationsRounded fontSize="small" />
