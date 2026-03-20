@@ -191,7 +191,18 @@ export const OrderWhatsApp = ({ orderId }: { orderId: number }) => {
 
         if (echo && orderId) {
             // Listen specifically to this order's private channel
-            const channel = echo.private(`orders.${orderId}`);
+            const channelName = `orders.${orderId}`;
+            const channel = echo.private(channelName);
+
+            // Mandatory Action 1: Error listener
+            if (channel.error) {
+                channel.error((err: any) => console.error('[WS] Auth Error', err));
+            }
+
+            // Mandatory Action 2: Global listener for debugging
+            if (channel.listenToAll) {
+                channel.listenToAll((eventName: string, data: any) => console.log('[WS] Raw Event:', eventName, data));
+            }
 
             const handleNewMessage = (e: any) => {
                 const inboundMsg = e.message || e;
@@ -217,10 +228,16 @@ export const OrderWhatsApp = ({ orderId }: { orderId: number }) => {
                 }
             };
 
+            // Mandatory Action 3: DOUBLE BIND
             channel.listen('.App\\Events\\WhatsappMessageReceived', handleNewMessage);
+            channel.listen('WhatsappMessageReceived', handleNewMessage);
 
             return () => { 
                 channel.stopListening('.App\\Events\\WhatsappMessageReceived', handleNewMessage); 
+                channel.stopListening('WhatsappMessageReceived', handleNewMessage);
+                
+                // Mandatory Action 4: Ensure the cleanup function explicitly disconnects
+                echo.leave(channelName);
             };
         }
     }, [orderId, echo, startWindowTimer]);
