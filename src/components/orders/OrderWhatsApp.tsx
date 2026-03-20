@@ -231,10 +231,12 @@ export const OrderWhatsApp = ({ orderId }: { orderId: number }) => {
             // Mandatory Action 3: DOUBLE BIND
             channel.listen('.App\\Events\\WhatsappMessageReceived', handleNewMessage);
             channel.listen('WhatsappMessageReceived', handleNewMessage);
+            channel.listen('.WhatsappMessageReceived', handleNewMessage);
 
             return () => { 
                 channel.stopListening('.App\\Events\\WhatsappMessageReceived', handleNewMessage); 
                 channel.stopListening('WhatsappMessageReceived', handleNewMessage);
+                channel.stopListening('.WhatsappMessageReceived', handleNewMessage);
                 
                 // Mandatory Action 4: Ensure the cleanup function explicitly disconnects
                 echo.leave(channelName);
