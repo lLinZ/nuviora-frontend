@@ -191,13 +191,13 @@ export const BroadcastMonitor = () => {
                 setIncomingWhatsappMessage(msg);
 
                 if (msg.is_from_client) {
+                     // 1. Toast Notification
                     const toastId = toast.info(`WhatsApp: "${msg.body.substring(0, 40)}${msg.body.length > 40 ? '...' : ''}"`, {
                         icon: <div style={{ backgroundColor: '#25D366', borderRadius: '50%', width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white' }}>
                             <WhatsApp sx={{ fontSize: '1.2rem' }} />
                         </div>,
                         autoClose: 10000,
                         position: "top-right",
-
                         onClick: async () => {
                             try {
                                 const { status, response }: IResponse = await request(`/orders/${msg.order_id}`, 'GET');
@@ -205,28 +205,31 @@ export const BroadcastMonitor = () => {
                                     const data = await response.json();
                                     setSelectedOrder(data.order || data, 'whatsapp');
                                 }
-
                             } catch (err) {
                                 console.error("Error opening order from WhatsApp toast", err);
                             }
                             toast.dismiss(toastId);
                         }
                     });
-                }
 
-                // Important: We need to refresh the order object in the Kanban to update the unread count badge
-                const refreshOrder = async () => {
-                    try {
-                        const { status, response }: IResponse = await request(`/orders/${msg.order_id}`, 'GET');
-                        if (status === 200) {
-                            const data = await response.json();
-                            updateOrderInColumns(data.order || data);
+                    // 2. CRITICAL: Optimistic Global Store Update for Kanban Bubble!
+                    // Find the current unread count dynamically across lists
+                    let currentCount = 0;
+                    const stateCols = useOrdersStore.getState().columns;
+                    for (const colKey in stateCols) {
+                        const found = stateCols[colKey].items.find((o: any) => String(o.id) === String(msg.order_id));
+                        if (found) { 
+                            currentCount = found.whatsapp_unread_count || 0; 
+                            break; 
                         }
-                    } catch (err) {
-                        console.error("Error refreshing order for WhatsApp", err);
                     }
+
+                    // Push partial object. updateOrderInColumns parses IDs natively.
+                    updateOrderInColumns({ 
+                        id: msg.order_id, 
+                        whatsapp_unread_count: currentCount + 1 
+                    });
                 }
-                refreshOrder();
             });
         }
 
