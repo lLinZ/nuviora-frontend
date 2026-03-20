@@ -11,6 +11,15 @@ export interface AppNotification {
     createdAt: number;
 }
 
+export interface AppWhatsAppNotification {
+    id: number;
+    orderId: number;
+    orderName: string;
+    message: string;
+    time: string;
+    createdAt: number;
+}
+
 interface NotificationState {
     notifications: AppNotification[];
     dismissedOrderIds: Record<number, number>; // orderId -> timestamp of last dismissal
@@ -19,6 +28,12 @@ interface NotificationState {
     dismissNotification: (orderId: number) => void;
     setOpenDialogOrderId: (id: number | null) => void;
     clearAll: () => void;
+    
+    // WHATSAPP SPECIFIC STATE
+    whatsappNotifications: AppWhatsAppNotification[];
+    addWhatsAppNotification: (notification: AppWhatsAppNotification) => void;
+    dismissWhatsAppNotification: (orderId: number) => void;
+    clearAllWhatsApp: () => void;
 }
 
 export const useNotificationStore = create<NotificationState>()(
@@ -27,6 +42,7 @@ export const useNotificationStore = create<NotificationState>()(
             notifications: [],
             dismissedOrderIds: {},
             openDialogOrderId: null,
+            whatsappNotifications: [],
             setOpenDialogOrderId: (id) => set({ openDialogOrderId: id }),
             addNotification: (notification) => set((state) => {
                 // Avoid duplicates for same order/type if recently notified
@@ -47,6 +63,25 @@ export const useNotificationStore = create<NotificationState>()(
                 }
             })),
             clearAll: () => set({ notifications: [] }),
+
+            // WHATSAPP ACTIONS
+            addWhatsAppNotification: (notification) => set((state) => {
+                // Avoid duplicates 
+                const exists = state.whatsappNotifications.find(n => n.id === notification.id);
+                if (exists) return state;
+
+                // Also remove any older notification for the same order to prevent clutter, 
+                // but keep the count of unique unread ones (actually, just replacing it is easier)
+                const filtered = state.whatsappNotifications.filter(n => n.orderId !== notification.orderId);
+
+                return {
+                    whatsappNotifications: [notification, ...filtered].slice(0, 50)
+                };
+            }),
+            dismissWhatsAppNotification: (orderId) => set((state) => ({
+                whatsappNotifications: state.whatsappNotifications.filter(n => n.orderId !== orderId)
+            })),
+            clearAllWhatsApp: () => set({ whatsappNotifications: [] })
         }),
         { name: "notification-storage" }
     )

@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react";
 import { useSocketStore } from "../../store/sockets/SocketStore";
 import { useUserStore } from "../../store/user/UserStore";
-import { useNotificationStore, AppNotification } from "../../store/notifications/NotificationStore";
+import { useNotificationStore, AppNotification, AppWhatsAppNotification } from "../../store/notifications/NotificationStore";
 import { toast } from "react-toastify";
 import {
     AssignmentIndRounded,
@@ -17,7 +17,7 @@ import { useOrdersStore } from "../../store/orders/OrdersStore";
 export const LiteBroadcastMonitor = ({ onOrderUpdate, onOpenOrder }: { onOrderUpdate: (reset?: boolean) => void, onOpenOrder?: (id: number) => void }) => {
     const { echo, setSocket } = useSocketStore();
     const { user } = useUserStore();
-    const { addNotification, dismissNotification } = useNotificationStore();
+    const { addNotification, dismissNotification, addWhatsAppNotification } = useNotificationStore();
     const updateRef = useRef(onOrderUpdate);
     const openRef = useRef(onOpenOrder);
 
@@ -194,6 +194,16 @@ export const LiteBroadcastMonitor = ({ onOrderUpdate, onOpenOrder }: { onOrderUp
             }
 
             if (msg.is_from_client) {
+                // Add to the new isolated state
+                addWhatsAppNotification({
+                    id: msg.id || Date.now(),
+                    orderId: msg.order_id,
+                    orderName: msg.order_id ? String(msg.order_id) : 'Unknown',
+                    message: msg.body ? (msg.body.length > 50 ? msg.body.substring(0, 50) + '...' : msg.body) : 'Media file...',
+                    time: new Date().toLocaleTimeString(),
+                    createdAt: Date.now()
+                });
+
                 const toastId = toast.info(`WhatsApp: "${msg.body.substring(0, 40)}${msg.body.length > 40 ? '...' : ''}"`, {
                     icon: <div style={{ backgroundColor: '#25D366', borderRadius: '50%', width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white' }}>
                         <WhatsApp sx={{ fontSize: '1.2rem' }} />
