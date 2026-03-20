@@ -190,7 +190,8 @@ export const OrderWhatsApp = ({ orderId }: { orderId: number }) => {
         }
 
         if (echo && orderId) {
-            const channel = echo.private(getChannelName());
+            // Listen specifically to this order's private channel
+            const channel = echo.private(`orders.${orderId}`);
 
             const handleNewMessage = (e: any) => {
                 const inboundMsg = e.message || e;
@@ -411,14 +412,9 @@ export const OrderWhatsApp = ({ orderId }: { orderId: number }) => {
                         <Typography variant="body2" sx={{ textAlign: 'center', fontWeight: 500 }}>Aún no hay mensajes en esta orden.</Typography>
                     </Box>
                 ) : (
-                    [...messages].sort((a, b) => {
-                        // Guarantee ASCENDING sort by timestamp (Oldest at top, Newest at bottom)
-                        const timeA = new Date(a.created_at || a.sent_at || 0).getTime();
-                        const timeB = new Date(b.created_at || b.sent_at || 0).getTime();
-                        return timeA - timeB;
-                    }).map((m, i, sortedArr) => {
+                    messages.map((m, i) => {
                         const isSentByMe = !m.is_from_client;
-                        const showTail   = i === 0 || sortedArr[i - 1]?.is_from_client !== m.is_from_client;
+                        const showTail   = i === 0 || messages[i - 1]?.is_from_client !== m.is_from_client;
                         const uniqueKey  = m.id ? `msg-${m.id}` : (m.message_id ? `wamid-${m.message_id}` : `idx-${i}-${Date.now()}`);
                         
                         return (
