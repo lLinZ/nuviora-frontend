@@ -204,7 +204,10 @@ export const LiteBroadcastMonitor = ({ onOrderUpdate, onOpenOrder }: { onOrderUp
                     createdAt: Date.now()
                 });
 
-                const toastId = toast.info(`WhatsApp: "${msg.body.substring(0, 40)}${msg.body.length > 40 ? '...' : ''}"`, {
+                const toastText = msg.body 
+                    ? `WhatsApp: "${msg.body.substring(0, 40)}${msg.body.length > 40 ? '...' : ''}"` 
+                    : `WhatsApp: 📷 Archivo recibido`;
+                const toastId = toast.info(toastText, {
                     icon: <div style={{ backgroundColor: '#25D366', borderRadius: '50%', width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white' }}>
                         <WhatsApp sx={{ fontSize: '1.2rem' }} />
                     </div>,
