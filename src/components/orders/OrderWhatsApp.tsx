@@ -47,7 +47,7 @@ export const OrderWhatsApp = ({ orderId }: { orderId: number }) => {
 
     const user = useUserStore((s) => s.user);
     const echo = useSocketStore((s) => s.echo);
-    const { selectedOrder: order, updateOrderInColumns } = useOrdersStore();
+    const { selectedOrder: order, updateOrderInColumns, incomingWhatsappMessage } = useOrdersStore();
 
     // Move clientName up here so the WebSocket closure can capture it safely
     const clientName  = order?.client?.first_name ? `${order.client.first_name} ${order.client.last_name || ''}` : 'Cliente';
@@ -188,54 +188,41 @@ export const OrderWhatsApp = ({ orderId }: { orderId: number }) => {
         } else {
             setLoading(false);
         }
+    }, [orderId]);
 
-        if (echo && orderId) {
-            const channel = echo.private(getChannelName());
+    // Listen to global incoming messages via Zustand Store
+    useEffect(() => {
+        if (!incomingWhatsappMessage) return;
 
-            const handleNewMessage = (e: any) => {
-                const inboundMsg = e.message || e;
-                const activeClientName = orderRef.current?.client?.first_name 
-                    ? `${orderRef.current.client.first_name} ${orderRef.current.client.last_name || ''}` 
-                    : 'Cliente';
+        const inboundMsg = incomingWhatsappMessage;
 
-                // We safely append to the array state:
-                setMessages(prev => {
-                    const prevArray = Array.isArray(prev) ? prev : [];
-                    
-                    // Determine if the message belongs in this view
-                    // EITHER same order_id OR matches the inferred client_id from existing messages
-                    const matchesOrder = inboundMsg.order_id === orderId;
-                    const extractedClientId = prevArray.length > 0 ? prevArray[0].client_id : orderRef.current?.client_id;
-                    const matchesClient = extractedClientId && inboundMsg.client_id === extractedClientId;
-                    
-                    if (!matchesOrder && !matchesClient) {
-                        return prevArray; 
-                    }
+        setMessages(prev => {
+            const prevArray = Array.isArray(prev) ? prev : [];
+            
+            // Determine if the message belongs in this view
+            const matchesOrder = String(inboundMsg.order_id) === String(orderId);
+            const extractedClientId = prevArray.length > 0 ? prevArray[0].client_id : orderRef.current?.client_id;
+            const matchesClient = extractedClientId && String(inboundMsg.client_id) === String(extractedClientId);
+            
+            if (!matchesOrder && !matchesClient) {
+                return prevArray; 
+            }
 
-                    // Prevent duplicates
-                    const isDup = prevArray.some(m => m.id === inboundMsg.id || (m.message_id && m.message_id === inboundMsg.message_id));
-                    if (isDup) return prevArray;
+            // Prevent duplicates
+            const isDup = prevArray.some(m => String(m.id) === String(inboundMsg.id) || (m.message_id && m.message_id === inboundMsg.message_id));
+            if (isDup) return prevArray;
 
-                    // It's valid and new: append it correctly
-                    setTimeout(() => scrollToBottom(), 100);
-                    return [...prevArray, inboundMsg];
-                });
+            // It's valid and new: append it correctly
+            setTimeout(() => scrollToBottom(), 100);
+            return [...prevArray, inboundMsg];
+        });
 
-                if (inboundMsg.is_from_client) {
-                    // Update 24h window helper
-                    startWindowTimer(inboundMsg.sent_at);
-                    markAsRead();
-                }
-            };
-
-            channel.listen('.App\\Events\\WhatsappMessageReceived', handleNewMessage);
-
-            return () => { 
-                // Properly use callback unbinding to avoid destroying global listeners like BroadcastMonitor
-                channel.stopListening('.App\\Events\\WhatsappMessageReceived', handleNewMessage); 
-            };
+        if (inboundMsg.is_from_client) {
+            // Update 24h window helper
+            startWindowTimer(inboundMsg.sent_at);
+            markAsRead();
         }
-    }, [orderId, echo]);
+    }, [incomingWhatsappMessage, orderId, startWindowTimer]);
 
     // ── Scroll pagination ─────────────────────────────────────────────────────
     const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {

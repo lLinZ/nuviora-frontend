@@ -33,6 +33,7 @@ interface OrdersState {
         data?: any;
     };
     initialTabId: string;
+    incomingWhatsappMessage: any | null;
 
 
 
@@ -46,6 +47,7 @@ interface OrdersState {
 
     setSelectedOrder: (order: any | null, initialTab?: string) => void;
     setInitialTabId: (id: string) => void;
+    setIncomingWhatsappMessage: (msg: any) => void;
 
     setSelectedAgentId: (id: number | null) => void;
     setSearchTerm: (term: string) => void;
@@ -71,6 +73,7 @@ export const useOrdersStore = create<OrdersState>((set, get) => ({
     refreshSignal: 0,
     activeModal: { type: null },
     initialTabId: 'detail',
+    incomingWhatsappMessage: null,
 
 
 
@@ -222,6 +225,7 @@ export const useOrdersStore = create<OrdersState>((set, get) => ({
         };
     }),
     setInitialTabId: (id) => set({ initialTabId: id }),
+    setIncomingWhatsappMessage: (msg) => set({ incomingWhatsappMessage: msg }),
 
 
     setSelectedAgentId: (id) => set({ selectedAgentId: id }),

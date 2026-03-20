@@ -20,7 +20,7 @@ import { OrderDialog } from "../../orders/OrderDialog"; // Import OrderDialog if
 export const BroadcastMonitor = () => {
     const { echo, setSocket } = useSocketStore();
     const { user } = useUserStore();
-    const { updateOrderInColumns, setSelectedOrder } = useOrdersStore();
+    const { updateOrderInColumns, setSelectedOrder, setIncomingWhatsappMessage } = useOrdersStore();
     const { addNotification, dismissNotification } = useNotificationStore();
 
     useEffect(() => {
@@ -186,6 +186,10 @@ export const BroadcastMonitor = () => {
             channel.listen('.App\\Events\\WhatsappMessageReceived', (e: any) => {
                 console.log("💬 WhatsApp Message Received:", e);
                 const msg = e.message;
+
+                // Dispatch to global store so OrderWhatsApp.tsx reacts instantly
+                setIncomingWhatsappMessage(msg);
+
                 if (msg.is_from_client) {
                     const toastId = toast.info(`WhatsApp: "${msg.body.substring(0, 40)}${msg.body.length > 40 ? '...' : ''}"`, {
                         icon: <div style={{ backgroundColor: '#25D366', borderRadius: '50%', width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white' }}>
@@ -234,7 +238,7 @@ export const BroadcastMonitor = () => {
             echo.leave(channelName);
         };
 
-    }, [echo, user?.id, updateOrderInColumns]);
+    }, [echo, user?.id, updateOrderInColumns, setIncomingWhatsappMessage, setSelectedOrder]);
 
     return null;
 };
