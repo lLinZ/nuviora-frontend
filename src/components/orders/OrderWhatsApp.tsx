@@ -478,20 +478,29 @@ export const OrderWhatsApp = ({ orderId }: { orderId: number }) => {
                                                         borderRadius: '10px', 
                                                         overflow: 'hidden', 
                                                         border: '1px solid rgba(255,255,255,0.05)', 
-                                                        maxWidth: '100%',
-                                                        cursor: 'pointer'
-                                                    }} onClick={() => window.open(mediaSrc, '_blank')}>
-                                                        <Box component='img' 
-                                                            src={mediaSrc} 
-                                                            alt={textBody || 'WhatsApp Media'}
-                                                            sx={{ 
-                                                                width: '100%', 
-                                                                height: 'auto', 
-                                                                display: 'block', 
-                                                                objectFit: 'cover',
-                                                                maxHeight: '300px'
-                                                            }} 
-                                                        />
+                                                        maxWidth: '100%'
+                                                    }}>
+                                                        {mediaSrc.endsWith('.mp4') ? (
+                                                            <Box component='video' 
+                                                                controls 
+                                                                src={mediaSrc} 
+                                                                sx={{ width: '100%', display: 'block', maxHeight: '300px', bgcolor: '#000' }} 
+                                                            />
+                                                        ) : (
+                                                            <Box component='img' 
+                                                                src={mediaSrc} 
+                                                                alt={textBody || 'WhatsApp Media'}
+                                                                onClick={() => window.open(mediaSrc, '_blank')}
+                                                                sx={{ 
+                                                                    width: '100%', 
+                                                                    height: 'auto', 
+                                                                    display: 'block', 
+                                                                    objectFit: 'cover',
+                                                                    maxHeight: '300px',
+                                                                    cursor: 'pointer'
+                                                                }} 
+                                                            />
+                                                        )}
                                                     </Box>
                                                 )}
 
