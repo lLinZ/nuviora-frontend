@@ -535,6 +535,12 @@ export const LiteOrderDialog: FC<LiteOrderDialogProps> = ({ id, open, setOpen, o
                             </Collapse>
                         </Paper>
 
+                        {/* Spacer for fixed chat footer */}
+                        <Box sx={{ height: 150 }} />
+                    </Grid>
+                    
+                    {/* WIDE FULL-WIDTH CHAT COLUMN */}
+                    <Grid size={{ xs: 12 }}>
                         {/* WhatsApp Chat */}
                         {user.role?.description !== 'Agencia' && (
                             <Paper elevation={0} sx={{ p: 2, mt: 2, borderRadius: 3 }}>
@@ -572,9 +578,6 @@ export const LiteOrderDialog: FC<LiteOrderDialogProps> = ({ id, open, setOpen, o
                                 </Collapse>
                             </Paper>
                         )}
-
-                        {/* Spacer for fixed chat footer */}
-                        <Box sx={{ height: 150 }} />
                     </Grid>
                 </Grid>
             </DialogContent>

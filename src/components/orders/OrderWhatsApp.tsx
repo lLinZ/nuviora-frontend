@@ -341,7 +341,7 @@ export const OrderWhatsApp = ({ orderId }: { orderId: number }) => {
     // ── Render ────────────────────────────────────────────────────────────────
     return (
         <Paper elevation={0} sx={{
-            display: 'flex', flexDirection: 'column', height: '100%', minHeight: '600px',
+            display: 'flex', flexDirection: 'column', height: { xs: '450px', md: '600px' },
             borderRadius: { xs: 0, md: 4 }, bgcolor: '#0b141a', overflow: 'hidden',
             border: '1px solid', borderColor: 'rgba(255,255,255,0.05)', position: 'relative'
         }}>
