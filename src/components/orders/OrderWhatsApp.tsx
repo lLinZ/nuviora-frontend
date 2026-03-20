@@ -213,8 +213,17 @@ export const OrderWhatsApp = ({ orderId }: { orderId: number }) => {
                 setMessages(prev => {
                     const prevArray = Array.isArray(prev) ? prev : [];
                     
-                    // Prevent duplicates
-                    const isDup = prevArray.some(m => String(m.id) === String(inboundMsg.id) || (m.message_id && m.message_id === inboundMsg.message_id));
+                    // Prevent duplicates (ignoring broken backend IDs if applicable)
+                    const isDup = prevArray.some(m => 
+                        (m.id && inboundMsg.id && String(m.id) === String(inboundMsg.id) && String(inboundMsg.id) !== '1') || 
+                        (m.message_id && inboundMsg.message_id && m.message_id === inboundMsg.message_id)
+                    );
+
+                    // Fallback: assign a temporary unique ID for React rendering if the backend sends a collision ID
+                    if (String(inboundMsg.id) === '1') {
+                        inboundMsg.id = `temp-${Date.now()}`;
+                    }
+
                     if (isDup) return prevArray;
 
                     // Append instantly to the End of the Array
