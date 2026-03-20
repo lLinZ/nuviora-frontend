@@ -534,52 +534,54 @@ export const LiteOrderDialog: FC<LiteOrderDialogProps> = ({ id, open, setOpen, o
                                 <OrderUpdatesList updates={order.updates || []} />
                             </Collapse>
                         </Paper>
-
-                        {/* Spacer for fixed chat footer */}
-                        <Box sx={{ height: 150 }} />
                     </Grid>
                     
-                    {/* WIDE FULL-WIDTH CHAT COLUMN */}
-                    <Grid size={{ xs: 12 }}>
-                        {/* WhatsApp Chat */}
-                        {user.role?.description !== 'Agencia' && (
-                            <Paper elevation={0} sx={{ p: 2, mt: 2, borderRadius: 3 }}>
-                                <Box
-                                    onClick={() => setShowWhatsApp(!showWhatsApp)}
-                                    sx={{ display: 'flex', justifyContent: 'space-between', cursor: 'pointer', mb: 1 }}
-                                >
-                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                        <WhatsApp fontSize="small" color="primary" />
-                                        <Typography variant="subtitle1" fontWeight="bold">Chat WhatsApp</Typography>
-                                        {(order.whatsapp_unread_count > 0) && (
-                                            <Box sx={{
-                                                bgcolor: '#25D366',
-                                                color: 'white',
-                                                borderRadius: '10px',
-                                                minWidth: '20px',
-                                                height: '18px',
-                                                display: 'flex',
-                                                alignItems: 'center',
-                                                justifyContent: 'center',
-                                                px: 0.6,
-                                                fontSize: '0.7rem',
-                                                fontWeight: 'bold',
-                                                ml: 0.5
-                                            }}>
-                                                {order.whatsapp_unread_count}
-                                            </Box>
-                                        )}
-                                    </Box>
-                                    {showWhatsApp ? <ExpandLessRounded /> : <ExpandMoreRounded />}
-
-                                </Box>
-                                <Collapse in={showWhatsApp}>
-                                    <OrderWhatsApp orderId={order.id} />
-                                </Collapse>
-                            </Paper>
-                        )}
-                    </Grid>
                 </Grid>
+
+                {/* WIDE FULL-WIDTH CHAT COLUMN */}
+                <Box sx={{ width: '100%', mt: 3 }}>
+                    {/* WhatsApp Chat */}
+                    {user.role?.description !== 'Agencia' && (
+                        <Paper elevation={0} sx={{ p: 2, borderRadius: 3 }}>
+                            <Box
+                                onClick={() => setShowWhatsApp(!showWhatsApp)}
+                                sx={{ display: 'flex', justifyContent: 'space-between', cursor: 'pointer', mb: 1 }}
+                            >
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                    <WhatsApp fontSize="small" color="primary" />
+                                    <Typography variant="subtitle1" fontWeight="bold">Chat WhatsApp</Typography>
+                                    {(order.whatsapp_unread_count > 0) && (
+                                        <Box sx={{
+                                            bgcolor: '#25D366',
+                                            color: 'white',
+                                            borderRadius: '10px',
+                                            minWidth: '20px',
+                                            height: '18px',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            px: 0.6,
+                                            fontSize: '0.7rem',
+                                            fontWeight: 'bold',
+                                            ml: 0.5
+                                        }}>
+                                            {order.whatsapp_unread_count}
+                                        </Box>
+                                    )}
+                                </Box>
+                                {showWhatsApp ? <ExpandLessRounded /> : <ExpandMoreRounded />}
+
+                            </Box>
+                            <Collapse in={showWhatsApp}>
+                                <OrderWhatsApp orderId={order.id} />
+                            </Collapse>
+                        </Paper>
+                    )}
+                    
+                    {/* Spacer for fixed chat footer */}
+                    <Box sx={{ height: 150 }} />
+                </Box>
+
             </DialogContent>
 
             {/* 3. FIXED FOOTER CHAT */}
