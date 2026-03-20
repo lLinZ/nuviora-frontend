@@ -262,6 +262,46 @@ export const OrderWhatsApp = ({ orderId }: { orderId: number }) => {
     };
 
     // ── Send ──────────────────────────────────────────────────────────────────
+    const fileInputRef = useRef<HTMLInputElement>(null);
+
+    const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file || !orderId) return;
+
+        setSending(true);
+        try {
+            const formData = new FormData();
+            formData.append('file', file);
+            
+            const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+            const res = await fetch(`${import.meta.env.VITE_API_URL || 'https://api.nuviora.cloud/api'}/orders/${orderId}/whatsapp-media`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                },
+                body: formData
+            });
+
+            if (res.status === 201) {
+                const newMessage = await res.json();
+                setMessages(prev => {
+                    const messagesArray = Array.isArray(prev) ? prev : [];
+                    if (messagesArray.some(m => m.id === newMessage.id)) return messagesArray;
+                    return [...messagesArray, newMessage];
+                });
+                setTimeout(() => scrollToBottom(), 100);
+            } else {
+                toast.error('Error al subir archivo');
+            }
+        } catch (err) {
+            console.error(err);
+            toast.error('Error de conexión al subir');
+        } finally {
+            setSending(false);
+            if (fileInputRef.current) fileInputRef.current.value = '';
+        }
+    };
+    
     const handleSend = async (e?: React.FormEvent, templateName?: string, vars?: string[], customBody?: string) => {
         if (e) e.preventDefault();
         const bodyToSend = customBody || input.trim();
@@ -569,7 +609,14 @@ export const OrderWhatsApp = ({ orderId }: { orderId: number }) => {
                         sx={{ color: '#8696a0', '&:hover': { color: '#25d366', bgcolor: 'rgba(37, 211, 102, 0.1)' } }}>
                         <AutoAwesomeRounded />
                     </IconButton>
-                    <IconButton size="small" sx={{ color: '#8696a0' }}>
+                    <input 
+                        type="file" 
+                        ref={fileInputRef} 
+                        style={{ display: 'none' }} 
+                        accept="image/jpeg,image/png,image/jpg,video/mp4" 
+                        onChange={handleFileSelect} 
+                    />
+                    <IconButton size="small" onClick={() => fileInputRef.current?.click()} disabled={sending} sx={{ color: '#8696a0', '&:hover': { color: '#25d366', bgcolor: 'rgba(37, 211, 102, 0.1)' } }}>
                         <AttachFileRounded sx={{ transform: 'rotate(45deg)' }} />
                     </IconButton>
                     <TextField
