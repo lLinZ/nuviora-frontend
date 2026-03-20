@@ -47,7 +47,7 @@ export const OrderWhatsApp = ({ orderId }: { orderId: number }) => {
 
     const user = useUserStore((s) => s.user);
     const echo = useSocketStore((s) => s.echo);
-    const { selectedOrder: order, updateOrderInColumns, incomingWhatsappMessage } = useOrdersStore();
+    const { selectedOrder: order, updateOrderInColumns } = useOrdersStore();
 
     // Move clientName up here so the WebSocket closure can capture it safely
     const clientName  = order?.client?.first_name ? `${order.client.first_name} ${order.client.last_name || ''}` : 'Cliente';
@@ -188,41 +188,41 @@ export const OrderWhatsApp = ({ orderId }: { orderId: number }) => {
         } else {
             setLoading(false);
         }
-    }, [orderId]);
 
-    // Listen to global incoming messages via Zustand Store
-    useEffect(() => {
-        if (!incomingWhatsappMessage) return;
+        if (echo && orderId) {
+            const channel = echo.private(getChannelName());
 
-        const inboundMsg = incomingWhatsappMessage;
+            const handleNewMessage = (e: any) => {
+                const inboundMsg = e.message || e;
+                
+                // Active order check!
+                if (String(inboundMsg.order_id) !== String(orderId)) return;
 
-        setMessages(prev => {
-            const prevArray = Array.isArray(prev) ? prev : [];
-            
-            // Determine if the message belongs in this view
-            const matchesOrder = String(inboundMsg.order_id) === String(orderId);
-            const extractedClientId = prevArray.length > 0 ? prevArray[0].client_id : orderRef.current?.client_id;
-            const matchesClient = extractedClientId && String(inboundMsg.client_id) === String(extractedClientId);
-            
-            if (!matchesOrder && !matchesClient) {
-                return prevArray; 
-            }
+                setMessages(prev => {
+                    const prevArray = Array.isArray(prev) ? prev : [];
+                    
+                    // Prevent duplicates
+                    const isDup = prevArray.some(m => String(m.id) === String(inboundMsg.id) || (m.message_id && m.message_id === inboundMsg.message_id));
+                    if (isDup) return prevArray;
 
-            // Prevent duplicates
-            const isDup = prevArray.some(m => String(m.id) === String(inboundMsg.id) || (m.message_id && m.message_id === inboundMsg.message_id));
-            if (isDup) return prevArray;
+                    // Append instantly to the End of the Array
+                    setTimeout(() => scrollToBottom(), 100);
+                    return [...prevArray, inboundMsg];
+                });
 
-            // It's valid and new: append it correctly
-            setTimeout(() => scrollToBottom(), 100);
-            return [...prevArray, inboundMsg];
-        });
+                if (inboundMsg.is_from_client) {
+                    startWindowTimer(inboundMsg.sent_at);
+                    markAsRead();
+                }
+            };
 
-        if (inboundMsg.is_from_client) {
-            // Update 24h window helper
-            startWindowTimer(inboundMsg.sent_at);
-            markAsRead();
+            channel.listen('.App\\Events\\WhatsappMessageReceived', handleNewMessage);
+
+            return () => { 
+                channel.stopListening('.App\\Events\\WhatsappMessageReceived', handleNewMessage); 
+            };
         }
-    }, [incomingWhatsappMessage, orderId, startWindowTimer]);
+    }, [orderId, echo, startWindowTimer]);
 
     // ── Scroll pagination ─────────────────────────────────────────────────────
     const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
@@ -411,11 +411,14 @@ export const OrderWhatsApp = ({ orderId }: { orderId: number }) => {
                         <Typography variant="body2" sx={{ textAlign: 'center', fontWeight: 500 }}>Aún no hay mensajes en esta orden.</Typography>
                     </Box>
                 ) : (
-                    messages.map((m, i) => {
+                    [...messages].sort((a, b) => {
+                        // Guarantee ASCENDING sort by timestamp (Oldest at top, Newest at bottom)
+                        const timeA = new Date(a.created_at || a.sent_at || 0).getTime();
+                        const timeB = new Date(b.created_at || b.sent_at || 0).getTime();
+                        return timeA - timeB;
+                    }).map((m, i, sortedArr) => {
                         const isSentByMe = !m.is_from_client;
-                        // Tail should show if this message is the FIRST one in a group of the same sender.
-                        // Or you can check if the PREVIOUS message (i-1) is from a different sender.
-                        const showTail   = i === 0 || messages[i - 1]?.is_from_client !== m.is_from_client;
+                        const showTail   = i === 0 || sortedArr[i - 1]?.is_from_client !== m.is_from_client;
                         const uniqueKey  = m.id ? `msg-${m.id}` : (m.message_id ? `wamid-${m.message_id}` : `idx-${i}-${Date.now()}`);
                         
                         return (
