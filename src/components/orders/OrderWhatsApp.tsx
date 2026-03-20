@@ -89,11 +89,18 @@ export const OrderWhatsApp = ({ orderId }: { orderId: number }) => {
 
     // ── Channel helper ────────────────────────────────────────────────────────
     const getChannelName = () => {
-        if (['Admin', 'Gerente', 'Master'].includes(user.role?.description || '')) return 'orders';
-        if (user.role?.description === 'Agencia')    return `orders.agency.${user.id}`;
-        if (user.role?.description === 'Vendedor')   return `orders.agent.${user.id}`;
-        if (user.role?.description === 'Repartidor') return `orders.deliverer.${user.id}`;
-        return 'orders';
+        const roleDesc = user.role?.description?.toLowerCase() || '';
+        let channelName = 'orders';
+
+        if (roleDesc.includes('agencia')) {
+            channelName = `orders.agency.${user.id}`;
+        } else if (roleDesc.includes('vendedor')) {
+            channelName = `orders.agent.${user.id}`;
+        } else if (roleDesc.includes('repartidor')) {
+            channelName = `orders.deliverer.${user.id}`;
+        }
+
+        return channelName;
     };
 
     // ── Fetch messages ────────────────────────────────────────────────────────
@@ -108,19 +115,18 @@ export const OrderWhatsApp = ({ orderId }: { orderId: number }) => {
             if (status === 200) {
                 const data = await response.json();
                 
-                // data.data is newest first (desc). We want oldest first, so we reverse it.
-                // e.g. [New, Older, Oldest] -> [Oldest, Older, New]
-                const fetched = [...data.data].reverse();
+                // Ensure data.data is an array before spreading and reversing
+                const incomingArray = Array.isArray(data.data) ? data.data : [];
+                const fetched = [...incomingArray].reverse();
 
                 if (isLoadMore) {
                     const scrollContainer = containerRef.current;
                     const prevScrollHeight = scrollContainer ? scrollContainer.scrollHeight : 0;
                     
-                    // We prepend older items to the beginning: [EvenOlder, ..., Oldest, Older, New]
                     setMessages(prev => {
-                        // filter out duplicates just in case
-                        const newItems = fetched.filter(f => !prev.some(p => p.id === f.id));
-                        return [...newItems, ...prev];
+                        const prevArray = Array.isArray(prev) ? prev : [];
+                        const newItems = fetched.filter(f => !prevArray.some(p => p.id === f.id));
+                        return [...newItems, ...prevArray];
                     });
 
                     // Restore scroll position so it doesn't jump to the top visually
@@ -133,7 +139,7 @@ export const OrderWhatsApp = ({ orderId }: { orderId: number }) => {
 
                 } else {
                     setMessages(fetched);
-                    scrollToBottom(true);
+                    setTimeout(() => scrollToBottom(true), 150);
                 }
 
                 setHasMore(data.current_page < data.last_page);
@@ -186,37 +192,48 @@ export const OrderWhatsApp = ({ orderId }: { orderId: number }) => {
         if (echo && orderId) {
             const channel = echo.private(getChannelName());
 
-            channel.listen('.App\\Events\\WhatsappMessageReceived', (e: any) => {
-                const currentOrder = orderRef.current;
-                const currentClientName = currentOrder?.client?.first_name 
-                    ? `${currentOrder.client.first_name} ${currentOrder.client.last_name || ''}` 
+            const handleNewMessage = (e: any) => {
+                const inboundMsg = e.message || e;
+                const activeClientName = orderRef.current?.client?.first_name 
+                    ? `${orderRef.current.client.first_name} ${orderRef.current.client.last_name || ''}` 
                     : 'Cliente';
 
-                if (e.message.is_from_client) {
-                    toast.info(`Nuevo WhatsApp de ${currentClientName}: "${e.message.body.substring(0, 30)}..."`, {
-                        autoClose: 3000, position: 'top-right'
-                    });
-                }
-
-                if (currentOrder && e.message.client_id === currentOrder.client_id) {
-                    setMessages(prev => {
-                        // Prevent duplicates
-                        if (prev.some(m => m.id === e.message.id || (m.message_id && m.message_id === e.message.message_id))) return prev;
-                        // Append new message to the end of the array
-                        return [...prev, e.message];
-                    });
+                // We safely append to the array state:
+                setMessages(prev => {
+                    const prevArray = Array.isArray(prev) ? prev : [];
                     
-                    scrollToBottom();
-
-                    // Reset 24-h window timer using the stamped sent_at from the payload
-                    if (e.message.is_from_client) {
-                        startWindowTimer(e.message.sent_at);
-                        markAsRead();
+                    // Determine if the message belongs in this view
+                    // EITHER same order_id OR matches the inferred client_id from existing messages
+                    const matchesOrder = inboundMsg.order_id === orderId;
+                    const extractedClientId = prevArray.length > 0 ? prevArray[0].client_id : orderRef.current?.client_id;
+                    const matchesClient = extractedClientId && inboundMsg.client_id === extractedClientId;
+                    
+                    if (!matchesOrder && !matchesClient) {
+                        return prevArray; 
                     }
-                }
-            });
 
-            return () => { channel.stopListening('.App\\Events\\WhatsappMessageReceived'); };
+                    // Prevent duplicates
+                    const isDup = prevArray.some(m => m.id === inboundMsg.id || (m.message_id && m.message_id === inboundMsg.message_id));
+                    if (isDup) return prevArray;
+
+                    // It's valid and new: append it correctly
+                    setTimeout(() => scrollToBottom(), 100);
+                    return [...prevArray, inboundMsg];
+                });
+
+                if (inboundMsg.is_from_client) {
+                    // Update 24h window helper
+                    startWindowTimer(inboundMsg.sent_at);
+                    markAsRead();
+                }
+            };
+
+            channel.listen('.App\\Events\\WhatsappMessageReceived', handleNewMessage);
+
+            return () => { 
+                // Properly use callback unbinding to avoid destroying global listeners like BroadcastMonitor
+                channel.stopListening('.App\\Events\\WhatsappMessageReceived', handleNewMessage); 
+            };
         }
     }, [orderId, echo]);
 
@@ -247,12 +264,13 @@ export const OrderWhatsApp = ({ orderId }: { orderId: number }) => {
             const { status, response } = await request(`/orders/${orderId}/whatsapp-messages`, 'POST', body);
             if (status === 201) {
                 const newMessage = await response.json();
-                // Append new message at the end
+                // Append new message at the end safely
                 setMessages(prev => {
-                    if (prev.some(m => m.id === newMessage.id)) return prev;
-                    return [...prev, newMessage];
+                    const messagesArray = Array.isArray(prev) ? prev : [];
+                    if (messagesArray.some(m => m.id === newMessage.id)) return messagesArray;
+                    return [...messagesArray, newMessage];
                 });
-                scrollToBottom();
+                setTimeout(() => scrollToBottom(), 100);
                 if (!templateName) setInput('');
             } else {
                 toast.error('Error al enviar mensaje');
@@ -411,8 +429,10 @@ export const OrderWhatsApp = ({ orderId }: { orderId: number }) => {
                         // Tail should show if this message is the FIRST one in a group of the same sender.
                         // Or you can check if the PREVIOUS message (i-1) is from a different sender.
                         const showTail   = i === 0 || messages[i - 1]?.is_from_client !== m.is_from_client;
+                        const uniqueKey  = m.id ? `msg-${m.id}` : (m.message_id ? `wamid-${m.message_id}` : `idx-${i}-${Date.now()}`);
+                        
                         return (
-                            <Box key={m.id || i} sx={{ alignSelf: isSentByMe ? 'flex-end' : 'flex-start', maxWidth: '85%', display: 'flex', flexDirection: 'column', mb: 0.2 }}>
+                            <Box key={uniqueKey} sx={{ alignSelf: isSentByMe ? 'flex-end' : 'flex-start', maxWidth: '85%', display: 'flex', flexDirection: 'column', mb: 0.2 }}>
                                 <Box sx={{
                                     bgcolor: isSentByMe ? '#005c4b' : '#202c33', color: 'white',
                                     p: '6px 10px 8px 10px', borderRadius: '8px',
