@@ -22,6 +22,7 @@ import { TypographyCustom } from "../../custom";
 import { useUserStore } from "../../../store/user/UserStore";
 import { AssignmentReturnRounded, StoreRounded, HistoryRounded, SwapHorizRounded, EditNoteRounded, StorefrontRounded, PollRounded, MapRounded, PaymentRounded, AccountBalanceRounded, ReceiptLongRounded } from "@mui/icons-material";
 import { NotificationBell } from "../notifications/NotificationBell";
+import { WhatsAppBell } from "../notifications/WhatsAppBell";
 
 const Clock = () => {
     const [time, setTime] = useState<string>(moment().format("h:mm A"));
@@ -312,6 +313,7 @@ export const SideBar = () => {
                                 <ManageAccountsRoundedIcon />
                             </IconButton>
 
+                            <WhatsAppBell />
                             <NotificationBell />
 
                             <IconButton sx={{ alignSelf: "flex-end" }} onClick={logout}>

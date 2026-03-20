@@ -3,7 +3,7 @@ import { useSocketStore } from "../../../store/sockets/SocketStore";
 import { useUserStore } from "../../../store/user/UserStore";
 import { toast } from "react-toastify";
 import { useOrdersStore } from "../../../store/orders/OrdersStore";
-import { useNotificationStore, AppNotification } from "../../../store/notifications/NotificationStore";
+import { useNotificationStore, AppNotification, AppWhatsAppNotification } from "../../../store/notifications/NotificationStore";
 import {
     AssignmentIndRounded,
     NewReleasesRounded,
@@ -21,7 +21,7 @@ export const BroadcastMonitor = () => {
     const { echo, setSocket } = useSocketStore();
     const { user } = useUserStore();
     const { updateOrderInColumns, setSelectedOrder, setIncomingWhatsappMessage } = useOrdersStore();
-    const { addNotification, dismissNotification } = useNotificationStore();
+    const { addNotification, dismissNotification, addWhatsAppNotification } = useNotificationStore();
 
     useEffect(() => {
         if (!echo) {
@@ -201,6 +201,15 @@ export const BroadcastMonitor = () => {
                 setIncomingWhatsappMessage(msg);
 
                 if (msg.is_from_client) {
+                    addWhatsAppNotification({
+                        id: msg.id || Date.now(),
+                        orderId: msg.order_id,
+                        orderName: msg.order_id ? String(msg.order_id) : 'Unknown',
+                        message: msg.body ? (msg.body.length > 50 ? msg.body.substring(0, 50) + '...' : msg.body) : 'Media file...',
+                        time: new Date().toLocaleTimeString(),
+                        createdAt: Date.now()
+                    });
+
                      // 1. Toast Notification
                     const toastId = toast.info(`WhatsApp: "${msg.body.substring(0, 40)}${msg.body.length > 40 ? '...' : ''}"`, {
                         icon: <div style={{ backgroundColor: '#25D366', borderRadius: '50%', width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white' }}>
