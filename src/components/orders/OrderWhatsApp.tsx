@@ -273,18 +273,11 @@ export const OrderWhatsApp = ({ orderId }: { orderId: number }) => {
             const formData = new FormData();
             formData.append('file', file);
             
-            const token = localStorage.getItem('token') || sessionStorage.getItem('token');
-            const res = await fetch(`${import.meta.env.VITE_API_URL || 'https://api.nuviora.cloud/api'}/orders/${orderId}/whatsapp-media`, {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Accept': 'application/json'
-                },
-                body: formData
-            });
+            // Use the established `request` wrapper to ensure the correct Auth Headers / Cookies are sent
+            const { status, response } = await request(`/orders/${orderId}/whatsapp-media`, 'POST', formData, true);
 
-            if (res.status === 201) {
-                const newMessage = await res.json();
+            if (status === 201) {
+                const newMessage = await response.json();
                 setMessages(prev => {
                     const messagesArray = Array.isArray(prev) ? prev : [];
                     if (messagesArray.some(m => m.id === newMessage.id)) return messagesArray;
@@ -292,7 +285,7 @@ export const OrderWhatsApp = ({ orderId }: { orderId: number }) => {
                 });
                 setTimeout(() => scrollToBottom(), 100);
             } else {
-                const text = await res.text();
+                const text = await response.text();
                 console.error("Raw Error Response:", text);
                 try {
                     const errData = JSON.parse(text);
