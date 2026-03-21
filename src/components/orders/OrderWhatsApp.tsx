@@ -277,7 +277,8 @@ export const OrderWhatsApp = ({ orderId }: { orderId: number }) => {
             const res = await fetch(`${import.meta.env.VITE_API_URL || 'https://api.nuviora.cloud/api'}/orders/${orderId}/whatsapp-media`, {
                 method: 'POST',
                 headers: {
-                    'Authorization': `Bearer ${token}`
+                    'Authorization': `Bearer ${token}`,
+                    'Accept': 'application/json'
                 },
                 body: formData
             });
@@ -291,7 +292,15 @@ export const OrderWhatsApp = ({ orderId }: { orderId: number }) => {
                 });
                 setTimeout(() => scrollToBottom(), 100);
             } else {
-                toast.error('Error al subir archivo');
+                const text = await res.text();
+                console.error("Raw Error Response:", text);
+                try {
+                    const errData = JSON.parse(text);
+                    toast.error(errData.error || errData.message || 'Error al subir archivo');
+                } catch (e) {
+                    const match = text.match(/<title>(.*?)<\/title>/);
+                    toast.error(match ? `[Server]: ${match[1]}` : 'Error al subir (HTML 500)');
+                }
             }
         } catch (err) {
             console.error(err);
