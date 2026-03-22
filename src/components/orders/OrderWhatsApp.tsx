@@ -513,7 +513,6 @@ export const OrderWhatsApp = ({ orderId }: { orderId: number }) => {
 
                                         return (
                                             <>
-                                                {/* 1. MEDIA ATTACHMENT */}
                                                 {mediaSrc && (
                                                     <Box sx={{ 
                                                         mb: textBody ? 1.5 : 0,
@@ -527,6 +526,12 @@ export const OrderWhatsApp = ({ orderId }: { orderId: number }) => {
                                                                 controls 
                                                                 src={mediaSrc} 
                                                                 sx={{ width: '100%', display: 'block', maxHeight: '300px', bgcolor: '#000' }} 
+                                                            />
+                                                        ) : mediaSrc.endsWith('.ogg') || mediaSrc.endsWith('.mp3') || mediaSrc.endsWith('.wav') ? (
+                                                            <Box component='audio' 
+                                                                controls 
+                                                                src={mediaSrc} 
+                                                                sx={{ width: '100%', outline: 'none', mt: 1 }} 
                                                             />
                                                         ) : (
                                                             <Box component='img' 
@@ -615,7 +620,7 @@ export const OrderWhatsApp = ({ orderId }: { orderId: number }) => {
                         type="file" 
                         ref={fileInputRef} 
                         style={{ display: 'none' }} 
-                        accept="image/jpeg,image/png,image/jpg,video/mp4" 
+                        accept="image/jpeg,image/png,image/jpg,video/mp4,audio/*" 
                         onChange={handleFileSelect} 
                     />
                     <IconButton size="small" onClick={() => fileInputRef.current?.click()} disabled={sending} sx={{ color: '#8696a0', '&:hover': { color: '#25d366', bgcolor: 'rgba(37, 211, 102, 0.1)' } }}>
