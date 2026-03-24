@@ -246,7 +246,7 @@ export const CreateOrderDialog = ({ open, onClose, onSuccess }: CreateOrderDialo
                                     <MenuItem value="">-- Sin asignar (Nuevo) --</MenuItem>
                                     {agents.map((agent: any) => (
                                         <MenuItem key={agent.id} value={agent.id}>
-                                            {agent.username || agent.name + ' ' + (agent.last_name || '')}
+                                            {agent.username || agent.names + ' ' + (agent.surnames || '')}
                                         </MenuItem>
                                     ))}
                                 </Select>
