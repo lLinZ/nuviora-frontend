@@ -12,6 +12,7 @@ export interface ContactData {
     name: string;
     phone: string;
     unread_count: number;
+    is_window_open: boolean;
     last_message: string;
     last_message_date: string;
     type: 'lead' | 'order';

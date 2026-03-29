@@ -141,7 +141,15 @@ export const ChatArea: FC<ChatAreaProps> = ({ selectedContact, onRefreshContacts
                 </Avatar>
                 <Box sx={{ flexGrow: 1 }}>
                     <Typography variant="subtitle1" fontWeight="bold">{selectedContact.name}</Typography>
-                    <Typography variant="caption" color="text.secondary">{selectedContact.phone}</Typography>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <Typography variant="caption" color="text.secondary">{selectedContact.phone}</Typography>
+                        <Chip 
+                            label={selectedContact.is_window_open ? "Sesion Activa (24h)" : "Sesion Expirada"} 
+                            color={selectedContact.is_window_open ? "success" : "default"} 
+                            size="small" 
+                            sx={{ height: 18, fontSize: '0.6rem', fontWeight: 'bold', opacity: 0.8 }} 
+                        />
+                    </Box>
                 </Box>
                 <IconButton onClick={onOpenContext} sx={{ display: { xs: 'block', lg: 'none' } }}>
                     <InfoRounded />
