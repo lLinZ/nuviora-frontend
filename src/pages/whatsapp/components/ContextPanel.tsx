@@ -8,9 +8,10 @@ import dayjs from "dayjs";
 interface ContextPanelProps {
     selectedContact: ContactData | null;
     isMobileDrawer?: boolean;
+    onRefresh?: () => void;
 }
 
-export const ContextPanel: FC<ContextPanelProps> = ({ selectedContact, isMobileDrawer = false }) => {
+export const ContextPanel: FC<ContextPanelProps> = ({ selectedContact, isMobileDrawer = false, onRefresh }) => {
     const navigate = useNavigate();
 
     if (!selectedContact) {
