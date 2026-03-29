@@ -12,6 +12,7 @@ import { useUserStore } from './store/user/UserStore';
 import { RequireRole } from './components/auth/RequireRole';
 import { Dashboard } from './pages/Dashboard';
 import { Profile } from './pages/auth/Profile';
+import { WhatsAppPage } from './pages/whatsapp/WhatsAppPage';
 import { Orders } from './pages/Orders';
 import { Currency } from './pages/currency/Currency';
 import { Users } from './pages/users/Users';
@@ -78,6 +79,10 @@ function App() {
           } />
 
           <Route path="/orders/cancelled" element={<RequireRole allowedRoles={['Admin', 'Gerente']}><CancellationsReview /></RequireRole>} />
+          
+          {/* Vistas Centralizadas */}
+          <Route path="/whatsapp" element={<RequireRole><WhatsAppPage /></RequireRole>} />
+
           <Route path="/deliverers" element={<RequireRole allowedRoles={['Admin']}><DeliverersPage /></RequireRole>} />
           <Route path="/currency" element={<RequireRole allowedRoles={['Admin']}><Currency /></RequireRole>} />
           <Route path="/users" element={<RequireRole allowedRoles={['Admin', 'Gerente']}><Users /></RequireRole>} />

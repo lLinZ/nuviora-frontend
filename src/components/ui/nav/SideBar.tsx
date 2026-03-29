@@ -16,6 +16,7 @@ import LocalMallRoundedIcon from "@mui/icons-material/LocalMallRounded";
 // import AssignmentIndRoundedIcon from "@mui/icons-material/AssignmentIndRounded";
 import SavingsRoundedIcon from "@mui/icons-material/SavingsRounded";
 import BarChartRoundedIcon from "@mui/icons-material/BarChartRounded";
+import WhatsAppIcon from "@mui/icons-material/WhatsApp";
 
 import moment from "moment";
 import { TypographyCustom } from "../../custom";
@@ -105,6 +106,12 @@ export const SideBar = () => {
                 icon: <DashboardRoundedIcon />,
                 link: "/dashboard",
                 roles: ["Admin", "Gerente", "Vendedor", "Repartidor", "Agencia"],
+            },
+            {
+                text: "WhatsApp CRM",
+                icon: <WhatsAppIcon />,
+                link: "/whatsapp",
+                roles: ["Admin", "Gerente", "Vendedor"],
             },
             {
                 text: "Usuarios",

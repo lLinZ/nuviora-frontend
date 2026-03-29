@@ -14,34 +14,22 @@ type Props = {
     container?: boolean;
 }
 
-export const Layout: FC<Props> = ({ children, container = true }) => {
+export const Layout: FC<Props> = ({ children, container = true, noMargin = false }) => {
     const user = useUserStore((state) => state.user);
     return (
         <Box sx={{ display: 'flex', flexDirection: 'row', minHeight: '100vh', justifyContent: 'space-between' }}>
             <NotificationMonitor />
             <BroadcastMonitor />
             <SideBar />
-            {!container ? (
-                <Box sx={{
-                    flex: 1, // Usar flex: 1 para que ocupe el espacio restante sin desbordar
-                    minHeight: '100vh',
-                    p: 2,
-                    background: (theme) => theme.palette.mode === 'dark' ? darken(user.color, 0.9) : lighten(user.color, 0.97),
-                    overflowX: 'hidden'
-                }}>
-                    {children}
-                </Box>
-            ) : (
-                <Box sx={{
-                    flex: 1, // Usar flex: 1 para que ocupe el espacio restante sin desbordar
-                    minHeight: '100vh',
-                    p: 2,
-                    background: (theme) => theme.palette.mode === 'dark' ? darken(user.color, 0.9) : lighten(user.color, 0.97),
-                    overflowX: 'hidden'
-                }}>
-                    {children}
-                </Box>
-            )}
+            <Box sx={{
+                flex: 1,
+                minHeight: '100vh',
+                p: noMargin ? 0 : 2,
+                background: (theme) => theme.palette.mode === 'dark' ? darken(user.color, 0.9) : lighten(user.color, 0.97),
+                overflowX: 'hidden'
+            }}>
+                {children}
+            </Box>
             {/* <Footer /> */}
             <ToastContainer
                 stacked
