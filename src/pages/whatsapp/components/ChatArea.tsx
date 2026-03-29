@@ -286,7 +286,13 @@ export const ChatArea: FC<ChatAreaProps> = ({ selectedContact, onRefreshContacts
                                         color: '#000' 
                                     }}
                                 >
-                                    {msg.body}
+                                    {msg.body.split(/(https?:\/\/[^\s]+)/g).map((part, i) => (
+                                        part.match(/^https?:\/\//) ? (
+                                            <a key={i} href={part} target="_blank" rel="noopener noreferrer" style={{ color: '#007bff', textDecoration: 'underline' }}>
+                                                {part}
+                                            </a>
+                                        ) : part
+                                    ))}
                                 </Typography>
                                 <Typography 
                                     variant="caption" 
