@@ -1,6 +1,6 @@
-import { FC, useState } from "react";
-import { Box, Typography, List, ListItemButton, Avatar, Badge, Chip, TextField, InputAdornment, Divider } from "@mui/material";
-import { SearchRounded, PhoneRounded, ShoppingBagRounded } from "@mui/icons-material";
+import { FC } from "react";
+import { Box, Typography, List, ListItemButton, Avatar, Badge, Chip, TextField, InputAdornment, Divider, Button } from "@mui/material";
+import { SearchRounded } from "@mui/icons-material";
 import { ContactData } from "../WhatsAppPage";
 import dayjs from "dayjs";
 
@@ -8,16 +8,21 @@ interface SidebarProps {
     contacts: ContactData[];
     selectedContact: ContactData | null;
     onSelect: (contact: ContactData) => void;
+    searchTerm: string;
+    onSearchChange: (value: string) => void;
+    hasMore: boolean;
+    onLoadMore: () => void;
 }
 
-export const Sidebar: FC<SidebarProps> = ({ contacts, selectedContact, onSelect }) => {
-    const [search, setSearch] = useState("");
-
-    const filtered = contacts.filter(c => 
-        c.name.toLowerCase().includes(search.toLowerCase()) || 
-        c.phone.includes(search)
-    );
-
+export const Sidebar: FC<SidebarProps> = ({ 
+    contacts, 
+    selectedContact, 
+    onSelect,
+    searchTerm,
+    onSearchChange,
+    hasMore,
+    onLoadMore
+}) => {
     return (
         <Box 
             sx={{ 
@@ -38,8 +43,8 @@ export const Sidebar: FC<SidebarProps> = ({ contacts, selectedContact, onSelect 
                     fullWidth
                     size="small"
                     placeholder="Buscar o empezar un chat"
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
+                    value={searchTerm}
+                    onChange={(e) => onSearchChange(e.target.value)}
                     slotProps={{
                         input: {
                             startAdornment: (
@@ -56,7 +61,7 @@ export const Sidebar: FC<SidebarProps> = ({ contacts, selectedContact, onSelect 
             <Divider />
 
             <List sx={{ flexGrow: 1, overflowY: 'auto', p: 0 }}>
-                {filtered.map(contact => (
+                {contacts.map(contact => (
                     <ListItemButton
                         key={contact.id}
                         selected={selectedContact?.id === contact.id}
@@ -107,7 +112,22 @@ export const Sidebar: FC<SidebarProps> = ({ contacts, selectedContact, onSelect 
                         </Box>
                     </ListItemButton>
                 ))}
-                {filtered.length === 0 && (
+                
+                {hasMore && (
+                    <Box sx={{ p: 2, textAlign: 'center' }}>
+                        <Button 
+                            onClick={onLoadMore} 
+                            fullWidth 
+                            size="small" 
+                            variant="text"
+                            sx={{ color: 'primary.main', fontWeight: 'bold' }}
+                        >
+                            Cargar más chats...
+                        </Button>
+                    </Box>
+                )}
+
+                {contacts.length === 0 && (
                     <Box sx={{ p: 4, textAlign: 'center', opacity: 0.5 }}>
                         <Typography variant="body2">No encontramos chats</Typography>
                     </Box>

@@ -25,16 +25,34 @@ export const WhatsAppPage = () => {
     const [contacts, setContacts] = useState<ContactData[]>([]);
     const [selectedContact, setSelectedContact] = useState<ContactData | null>(null);
     const [loading, setLoading] = useState(true);
+    const [searchTerm, setSearchTerm] = useState("");
+    const [page, setPage] = useState(1);
+    const [hasMore, setHasMore] = useState(false);
 
-    const fetchContacts = async () => {
+    const fetchContacts = async (isLoadMore = false, forcedSearch?: string) => {
         try {
-            const { status, response } = await request('/whatsapp-conversations', 'GET');
+            const search = forcedSearch !== undefined ? forcedSearch : searchTerm;
+            const currentPage = isLoadMore ? page + 1 : 1;
+            const url = `/whatsapp-conversations?search=${encodeURIComponent(search)}&page=${currentPage}`;
+            
+            const { status, response } = await request(url, 'GET');
             if (status) {
                 const json = await response.json();
-                setContacts(json);
-                // Update selected contact if it exists
+                const newContacts = json.data;
+                
+                if (isLoadMore) {
+                    setContacts(prev => [...prev, ...newContacts]);
+                    setPage(currentPage);
+                } else {
+                    setContacts(newContacts);
+                    setPage(1);
+                }
+                
+                setHasMore(!!json.next_page_url);
+
+                // Update selected contact context if it exists in the new data
                 if (selectedContact) {
-                    const updated = json.find((c: ContactData) => c.id === selectedContact.id);
+                    const updated = newContacts.find((c: ContactData) => c.id === selectedContact.id);
                     if (updated) setSelectedContact(updated);
                 }
             }
@@ -46,16 +64,35 @@ export const WhatsAppPage = () => {
         }
     };
 
+    // Initial load and polling (only for first page/last activity)
     useEffect(() => {
         fetchContacts();
         
-        // TODO: In the future, attach Pusher socket listener here 
-        // to listen for 'WhatsappMessageReceived' and reload fetchContacts()
-        const interval = setInterval(fetchContacts, 15000); // Temporary polling
+        const interval = setInterval(() => {
+            // Only poll if not searching or on first page to keep it light
+            if (!searchTerm && page === 1) {
+                fetchContacts();
+            }
+        }, 15000); 
         return () => clearInterval(interval);
     }, []);
 
+    // Debounced search
+    useEffect(() => {
+        const delayDebounceFn = setTimeout(() => {
+            if (loading === false) { // Avoid double triggering on initial mount
+                fetchContacts(false, searchTerm);
+            }
+        }, 500);
+
+        return () => clearTimeout(delayDebounceFn);
+    }, [searchTerm]);
+
     const [showMobileContext, setShowMobileContext] = useState(false);
+
+    const handleLoadMore = () => {
+        fetchContacts(true);
+    };
 
     const handleSelectContact = (contact: ContactData) => {
         const updated = contacts.map(c => 
@@ -88,6 +125,10 @@ export const WhatsAppPage = () => {
                             contacts={contacts} 
                             selectedContact={selectedContact} 
                             onSelect={handleSelectContact} 
+                            searchTerm={searchTerm}
+                            onSearchChange={setSearchTerm}
+                            hasMore={hasMore}
+                            onLoadMore={handleLoadMore}
                         />
 
                         {/* Chat Area */}

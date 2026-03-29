@@ -176,7 +176,7 @@ export const ChatArea: FC<ChatAreaProps> = ({ selectedContact, onRefreshContacts
                                 {msg.media && (
                                     <Box sx={{ mb: 1, borderRadius: 2, overflow: 'hidden' }}>
                                         {/* Extremely basic media rendering just for layout demo */}
-                                        <a href={msg.media} target="_blank" rel="noopener noreferrer" style={{ color: 'inherit', textDecoration: 'none' }}>
+                                        <a href={msg.media} target="_blank" rel="noopener noreferrer" style={{ color: '#000', textDecoration: 'underline' }}>
                                             📦 Archivo Adjunto
                                         </a>
                                     </Box>
