@@ -5,6 +5,7 @@ import { ContactData } from "../WhatsAppPage";
 import { request } from "../../../common/request";
 import dayjs from "dayjs";
 import { toast } from "react-toastify";
+import { useSocketStore } from "../../../store/sockets/SocketStore";
 
 interface ChatAreaProps {
     selectedContact: ContactData | null;
@@ -29,6 +30,7 @@ export const ChatArea: FC<ChatAreaProps> = ({ selectedContact, onRefreshContacts
     const [sending, setSending] = useState(false);
     
     const messagesEndRef = useRef<HTMLDivElement>(null);
+    const { echo } = useSocketStore();
 
     const fetchMessages = async () => {
         if (!selectedContact) return;
@@ -50,23 +52,44 @@ export const ChatArea: FC<ChatAreaProps> = ({ selectedContact, onRefreshContacts
 
     const markAsRead = async () => {
         if (!selectedContact || selectedContact.unread_count === 0) return;
-        // The API used for orders was /orders/{id}/read-whatsapp. 
-        // We will need a centralized one or just rely on optimistic local clear for now.
-        // onRefreshContacts(); 
+        // Logic to mark as read can be added here
     };
 
     useEffect(() => {
         if (selectedContact) {
             fetchMessages();
             markAsRead();
-            
-            // Polling every 5 seconds for new messages in the current chat
-            const interval = setInterval(fetchMessages, 5000);
-            return () => clearInterval(interval);
         } else {
             setMessages([]);
         }
-    }, [selectedContact]);
+    }, [selectedContact?.id]);
+
+    // WebSocket: Escuchar mensajes en tiempo real para el chat ACTIVO
+    useEffect(() => {
+        if (!echo || !selectedContact) return;
+
+        const channel = echo.private('whatsapp');
+        
+        channel.listen('WhatsappMessageReceived', (data: any) => {
+            const { message } = data;
+            if (!message) return;
+
+            const client_id = message.client_id || (message.client ? message.client.id : null);
+            
+            // Solo añadir si el mensaje pertenece al cliente seleccionado
+            if (client_id === selectedContact.id) {
+                setMessages(prev => {
+                    // Evitar duplicados (por ejemplo, si el socket llega antes del fetch o viceversa)
+                    if (prev.find(m => m.id === message.id)) return prev;
+                    return [...prev, message];
+                });
+            }
+        });
+
+        return () => {
+            channel.stopListening('WhatsappMessageReceived');
+        };
+    }, [echo, selectedContact?.id]);
 
     const renderMedia = (mediaUrl: string) => {
         const url = mediaUrl.toLowerCase();
@@ -74,8 +97,20 @@ export const ChatArea: FC<ChatAreaProps> = ({ selectedContact, onRefreshContacts
         // Video
         if (url.endsWith('.mp4') || url.endsWith('.webm')) {
             return (
-                <Box component="video" controls sx={{ width: '100%', borderRadius: 2, mb: 1 }}>
-                    <source src={mediaUrl} type="video/mp4" />
+                <Box sx={{ maxWidth: 320, width: '100%', mb: 1 }}>
+                    <Box 
+                        component="video" 
+                        controls 
+                        sx={{ 
+                            width: '100%', 
+                            maxHeight: 400, 
+                            borderRadius: 2, 
+                            bgcolor: '#000',
+                            display: 'block' 
+                        }}
+                    >
+                        <source src={mediaUrl} type="video/mp4" />
+                    </Box>
                 </Box>
             );
         }
@@ -83,9 +118,11 @@ export const ChatArea: FC<ChatAreaProps> = ({ selectedContact, onRefreshContacts
         // Audio
         if (url.endsWith('.ogg') || url.endsWith('.mp3')) {
             return (
-                <Box component="audio" controls sx={{ width: '100%', mb: 1 }}>
-                    <source src={mediaUrl} type="audio/ogg" />
-                    Tu navegador no soporta audio.
+                <Box sx={{ minWidth: { xs: 240, sm: 300 }, width: '100%', mb: 1 }}>
+                    <Box component="audio" controls sx={{ width: '100%', height: 40 }}>
+                        <source src={mediaUrl} type="audio/ogg" />
+                        Tu navegador no soporta audio.
+                    </Box>
                 </Box>
             );
         }
@@ -96,7 +133,15 @@ export const ChatArea: FC<ChatAreaProps> = ({ selectedContact, onRefreshContacts
                 <Box 
                     component="img" 
                     src={mediaUrl} 
-                    sx={{ width: '100%', maxHeight: 300, objectFit: 'cover', borderRadius: 2, mb: 1, cursor: 'pointer' }}
+                    sx={{ 
+                        maxWidth: 320, 
+                        width: '100%', 
+                        maxHeight: 400, 
+                        objectFit: 'cover', 
+                        borderRadius: 2, 
+                        mb: 1, 
+                        cursor: 'pointer' 
+                    }}
                     onClick={() => window.open(mediaUrl, '_blank')}
                 />
             );
@@ -110,15 +155,16 @@ export const ChatArea: FC<ChatAreaProps> = ({ selectedContact, onRefreshContacts
         );
     };
 
-    useEffect(() => {
-        scrollToBottom();
-    }, [messages]);
-
     const scrollToBottom = () => {
         setTimeout(() => {
             messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
         }, 100);
     };
+
+    // Auto-scroll solo cuando llegan mensajes nuevos
+    useEffect(() => {
+        scrollToBottom();
+    }, [messages.length]);
 
     const handleSend = async (e?: React.FormEvent) => {
         e?.preventDefault();
@@ -141,24 +187,24 @@ export const ChatArea: FC<ChatAreaProps> = ({ selectedContact, onRefreshContacts
 
         try {
             const { status, response } = await request(`/whatsapp-conversations/${selectedContact.id}/messages`, 'POST', {
-                body: textToSend,
-                is_from_client: false
+                body: textToSend
             });
 
             if (status) {
                 const json = await response.json();
+                // Reemplazamos el temporal con el real
                 setMessages(prev => prev.map(m => m.id === tempMsg.id ? json : m));
                 onRefreshContacts();
             } else {
-                toast.error("Error enviando");
-                setMessages(prev => prev.filter(m => m.id !== tempMsg.id)); // revert
-                setInputText(textToSend);
+                toast.error("Error enviando mensaje");
+                setMessages(prev => prev.filter(m => m.id !== tempMsg.id));
             }
         } catch (error) {
             console.error(error);
+            toast.error("Error de conexión");
+            setMessages(prev => prev.filter(m => m.id !== tempMsg.id));
         } finally {
             setSending(false);
-            scrollToBottom();
         }
     };
 
@@ -176,7 +222,7 @@ export const ChatArea: FC<ChatAreaProps> = ({ selectedContact, onRefreshContacts
     }
 
     return (
-        <Box sx={{ flexGrow: 1, display: { xs: selectedContact ? 'flex' : 'none', md: 'flex' }, flexDirection: 'column', bgcolor: '#efeae2', position: 'relative' }}>
+        <Box sx={{ flexGrow: 1, display: { xs: selectedContact ? 'flex' : 'none', md: 'flex' }, flexDirection: 'column', bgcolor: '#efeae2', position: 'relative', overflow: 'hidden' }}>
             {/* Header */}
             <Paper elevation={1} sx={{ p: 2, display: 'flex', alignItems: 'center', gap: 2, borderRadius: 0, zIndex: 2 }}>
                 <IconButton onClick={onBack} sx={{ display: { xs: 'block', md: 'none' } }}>
@@ -204,7 +250,7 @@ export const ChatArea: FC<ChatAreaProps> = ({ selectedContact, onRefreshContacts
 
             {/* Message Area */}
             <Box sx={{ flexGrow: 1, overflowY: 'auto', p: 3, display: 'flex', flexDirection: 'column', gap: 1 }}>
-                {loading ? (
+                {loading && messages.length === 0 ? (
                     <Box sx={{ alignSelf: 'center', m: 'auto' }}><CircularProgress size={30} /></Box>
                 ) : (
                     messages.map((msg) => (
@@ -212,7 +258,7 @@ export const ChatArea: FC<ChatAreaProps> = ({ selectedContact, onRefreshContacts
                             key={msg.id}
                             sx={{
                                 alignSelf: msg.is_from_client ? 'flex-start' : 'flex-end',
-                                maxWidth: '70%',
+                                maxWidth: '85%',
                                 minWidth: 100,
                             }}
                         >
@@ -237,7 +283,7 @@ export const ChatArea: FC<ChatAreaProps> = ({ selectedContact, onRefreshContacts
                                     sx={{ 
                                         whiteSpace: 'pre-wrap', 
                                         wordBreak: 'break-word',
-                                        color: '#000' // Ensure visibility against hardcoded light backgrounds
+                                        color: '#000' 
                                     }}
                                 >
                                     {msg.body}
@@ -250,7 +296,7 @@ export const ChatArea: FC<ChatAreaProps> = ({ selectedContact, onRefreshContacts
                                         opacity: 0.6, 
                                         mt: 0.5, 
                                         fontSize: '0.65rem',
-                                        color: '#000' // Ensure visibility
+                                        color: '#000'
                                     }}
                                 >
                                     {dayjs(msg.sent_at).format('HH:mm')} 

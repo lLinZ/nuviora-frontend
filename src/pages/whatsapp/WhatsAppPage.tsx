@@ -5,7 +5,7 @@ import { request } from "../../common/request";
 import { Sidebar } from "./components/Sidebar";
 import { ChatArea } from "./components/ChatArea";
 import { ContextPanel } from "./components/ContextPanel";
-import { toast } from "react-toastify";
+import { useSocketStore } from "../../store/sockets/SocketStore";
 
 export interface ContactData {
     id: number;
@@ -29,6 +29,10 @@ export const WhatsAppPage = () => {
     const [searchTerm, setSearchTerm] = useState("");
     const [page, setPage] = useState(1);
     const [hasMore, setHasMore] = useState(false);
+    const [showMobileContext, setShowMobileContext] = useState(false);
+
+    // Sockets
+    const { echo } = useSocketStore();
 
     const fetchContacts = async (isLoadMore = false, forcedSearch?: string) => {
         try {
@@ -51,45 +55,73 @@ export const WhatsAppPage = () => {
                 
                 setHasMore(!!json.next_page_url);
 
-                // Update selected contact context if it exists in the new data
                 if (selectedContact) {
                     const updated = newContacts.find((c: ContactData) => c.id === selectedContact.id);
-                    if (updated) setSelectedContact(updated);
+                    if (updated) setSelectedContact(prev => ({ ...prev, ...updated }));
                 }
             }
         } catch (error) {
-            toast.error("Error al cargar conversaciones");
-            console.error(error);
+            console.error("Error fetching contacts", error);
         } finally {
             setLoading(false);
         }
     };
 
-    // Initial load and polling (only for first page/last activity)
     useEffect(() => {
         fetchContacts();
-        
-        const interval = setInterval(() => {
-            // Only poll if not searching or on first page to keep it light
-            if (!searchTerm && page === 1) {
-                fetchContacts();
-            }
-        }, 15000); 
-        return () => clearInterval(interval);
     }, []);
+
+    // Escuchar cambios en tiempo real para el Sidebar
+    useEffect(() => {
+        if (!echo) return;
+
+        const channel = echo.private('whatsapp');
+        
+        channel.listen('WhatsappMessageReceived', (data: any) => {
+            const { message } = data;
+            if (!message) return;
+
+            setContacts(prev => {
+                const client_id = message.client_id || (message.client ? message.client.id : null);
+                if (!client_id) return prev;
+
+                const index = prev.findIndex(c => c.id === client_id);
+                
+                if (index !== -1) {
+                    const updatedContacts = [...prev];
+                    const contact = { ...updatedContacts[index] };
+                    
+                    contact.last_message = message.body;
+                    contact.last_message_date = message.sent_at;
+                    
+                    if (selectedContact?.id !== client_id) {
+                        contact.unread_count = (contact.unread_count || 0) + 1;
+                    }
+
+                    updatedContacts.splice(index, 1);
+                    return [contact, ...updatedContacts];
+                } else {
+                    if (!searchTerm) fetchContacts(false);
+                    return prev;
+                }
+            });
+        });
+
+        return () => {
+            channel.stopListening('WhatsappMessageReceived');
+        };
+    }, [echo, selectedContact?.id, searchTerm]);
 
     // Debounced search
     useEffect(() => {
         const delayDebounceFn = setTimeout(() => {
-            if (loading === false) { // Avoid double triggering on initial mount
+            if (!loading) {
                 fetchContacts(false, searchTerm);
             }
         }, 500);
 
         return () => clearTimeout(delayDebounceFn);
     }, [searchTerm]);
-
-    const [showMobileContext, setShowMobileContext] = useState(false);
 
     const handleLoadMore = () => {
         fetchContacts(true);
@@ -121,7 +153,6 @@ export const WhatsAppPage = () => {
                     </Box>
                 ) : (
                     <>
-                        {/* Sidebar */}
                         <Sidebar 
                             contacts={contacts} 
                             selectedContact={selectedContact} 
@@ -132,27 +163,29 @@ export const WhatsAppPage = () => {
                             onLoadMore={handleLoadMore}
                         />
 
-                        {/* Chat Area */}
                         <ChatArea 
                             selectedContact={selectedContact} 
-                            onRefreshContacts={fetchContacts}
+                            onRefreshContacts={() => fetchContacts(false)}
                             onBack={() => setSelectedContact(null)}
                             onOpenContext={() => setShowMobileContext(true)}
                         />
 
-                        {/* Context Right Panel (Desktop) */}
                         <ContextPanel 
                             selectedContact={selectedContact} 
+                            onRefresh={() => fetchContacts(false)}
                         />
 
-                        {/* Context Right Panel (Mobile Drawer) */}
-                        <Drawer 
-                            open={showMobileContext} 
-                            anchor="right" 
+                        <Drawer
+                            anchor="right"
+                            open={showMobileContext}
                             onClose={() => setShowMobileContext(false)}
-                            sx={{ display: { xs: 'block', lg: 'none' }, '& .MuiDrawer-paper': { width: '100%', maxWidth: 360 } }}
                         >
-                            <ContextPanel selectedContact={selectedContact} isMobileDrawer={true} />
+                            <Box sx={{ width: 320 }}>
+                                <ContextPanel 
+                                    selectedContact={selectedContact} 
+                                    onRefresh={() => fetchContacts(false)}
+                                />
+                            </Box>
                         </Drawer>
                     </>
                 )}
