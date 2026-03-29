@@ -181,10 +181,27 @@ export const ChatArea: FC<ChatAreaProps> = ({ selectedContact, onRefreshContacts
                                         </a>
                                     </Box>
                                 )}
-                                <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
+                                <Typography 
+                                    variant="body2" 
+                                    sx={{ 
+                                        whiteSpace: 'pre-wrap', 
+                                        wordBreak: 'break-word',
+                                        color: '#000' // Ensure visibility against hardcoded light backgrounds
+                                    }}
+                                >
                                     {msg.body}
                                 </Typography>
-                                <Typography variant="caption" sx={{ display: 'flex', justifyContent: 'flex-end', opacity: 0.6, mt: 0.5, fontSize: '0.65rem' }}>
+                                <Typography 
+                                    variant="caption" 
+                                    sx={{ 
+                                        display: 'flex', 
+                                        justifyContent: 'flex-end', 
+                                        opacity: 0.6, 
+                                        mt: 0.5, 
+                                        fontSize: '0.65rem',
+                                        color: '#000' // Ensure visibility
+                                    }}
+                                >
                                     {dayjs(msg.sent_at).format('HH:mm')} 
                                     {!msg.is_from_client && (
                                         <Box component="span" sx={{ ml: 0.5 }}>
