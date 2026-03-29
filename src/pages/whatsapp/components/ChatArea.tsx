@@ -59,10 +59,56 @@ export const ChatArea: FC<ChatAreaProps> = ({ selectedContact, onRefreshContacts
         if (selectedContact) {
             fetchMessages();
             markAsRead();
+            
+            // Polling every 5 seconds for new messages in the current chat
+            const interval = setInterval(fetchMessages, 5000);
+            return () => clearInterval(interval);
         } else {
             setMessages([]);
         }
     }, [selectedContact]);
+
+    const renderMedia = (mediaUrl: string) => {
+        const url = mediaUrl.toLowerCase();
+        
+        // Video
+        if (url.endsWith('.mp4') || url.endsWith('.webm')) {
+            return (
+                <Box component="video" controls sx={{ width: '100%', borderRadius: 2, mb: 1 }}>
+                    <source src={mediaUrl} type="video/mp4" />
+                </Box>
+            );
+        }
+
+        // Audio
+        if (url.endsWith('.ogg') || url.endsWith('.mp3')) {
+            return (
+                <Box component="audio" controls sx={{ width: '100%', mb: 1 }}>
+                    <source src={mediaUrl} type="audio/ogg" />
+                    Tu navegador no soporta audio.
+                </Box>
+            );
+        }
+
+        // Image
+        if (url.match(/\.(jpg|jpeg|png|gif|webp)$/)) {
+            return (
+                <Box 
+                    component="img" 
+                    src={mediaUrl} 
+                    sx={{ width: '100%', maxHeight: 300, objectFit: 'cover', borderRadius: 2, mb: 1, cursor: 'pointer' }}
+                    onClick={() => window.open(mediaUrl, '_blank')}
+                />
+            );
+        }
+
+        // Fallback to link
+        return (
+            <a href={mediaUrl} target="_blank" rel="noopener noreferrer" style={{ color: '#000', textDecoration: 'underline', fontSize: '0.75rem', display: 'block', marginBottom: '4px' }}>
+                📦 Archivo Adjunto
+            </a>
+        );
+    };
 
     useEffect(() => {
         scrollToBottom();
@@ -183,10 +229,7 @@ export const ChatArea: FC<ChatAreaProps> = ({ selectedContact, onRefreshContacts
                             >
                                 {msg.media && (
                                     <Box sx={{ mb: 1, borderRadius: 2, overflow: 'hidden' }}>
-                                        {/* Extremely basic media rendering just for layout demo */}
-                                        <a href={msg.media} target="_blank" rel="noopener noreferrer" style={{ color: '#000', textDecoration: 'underline' }}>
-                                            📦 Archivo Adjunto
-                                        </a>
+                                        {renderMedia(msg.media)}
                                     </Box>
                                 )}
                                 <Typography 
@@ -226,20 +269,36 @@ export const ChatArea: FC<ChatAreaProps> = ({ selectedContact, onRefreshContacts
 
             {/* Input Form */}
             <Paper component="form" onSubmit={handleSend} elevation={1} sx={{ p: 2, display: 'flex', alignItems: 'center', gap: 1, borderRadius: 0, bgcolor: 'background.paper', zIndex: 2 }}>
-                <IconButton color="default" disabled>
-                    <AttachFileRounded />
-                </IconButton>
-                <TextField
-                    fullWidth
-                    size="small"
-                    placeholder="Escribe un mensaje aquí..."
-                    value={inputText}
-                    onChange={(e) => setInputText(e.target.value)}
-                    sx={{ '& fieldset': { borderRadius: 4 } }}
-                />
-                <IconButton color="primary" type="submit" disabled={!inputText.trim() || sending}>
-                    {sending ? <CircularProgress size={24} /> : <SendRounded />}
-                </IconButton>
+                {!selectedContact.is_window_open ? (
+                    <Box sx={{ flexGrow: 1, p: 1, bgcolor: '#fff3e0', border: '1px solid #ffe0b2', borderRadius: 2, textAlign: 'center' }}>
+                        <Typography variant="caption" color="warning.dark" sx={{ fontWeight: 'bold', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 0.5 }}>
+                            ⚠️ Ventana de 24h cerrada. El cliente debe escribir primero.
+                        </Typography>
+                    </Box>
+                ) : (
+                    <>
+                        <IconButton color="default" disabled>
+                            <AttachFileRounded />
+                        </IconButton>
+                        <TextField
+                            fullWidth
+                            size="small"
+                            placeholder="Escribe un mensaje aquí..."
+                            value={inputText}
+                            onChange={(e) => setInputText(e.target.value)}
+                            sx={{ '& fieldset': { borderRadius: 4 } }}
+                            onKeyPress={(e) => {
+                                if (e.key === 'Enter' && !e.shiftKey) {
+                                    e.preventDefault();
+                                    handleSend(e);
+                                }
+                            }}
+                        />
+                        <IconButton color="primary" type="submit" disabled={!inputText.trim() || sending}>
+                            {sending ? <CircularProgress size={24} /> : <SendRounded />}
+                        </IconButton>
+                    </>
+                )}
             </Paper>
         </Box>
     );
