@@ -79,23 +79,33 @@ export const ChatArea: FC<ChatAreaProps> = ({ selectedContact, onRefreshContacts
 
         const channel = echo.private('whatsapp');
         
+        console.log("Subscribed to whatsapp private channel for client", selectedContact.id);
+
         channel.listen('WhatsappMessageReceived', (data: any) => {
             const { message } = data;
             if (!message) return;
 
+            console.log("Real-time Message Received in ChatArea:", message);
+
             const client_id = message.client_id || (message.client ? message.client.id : null);
             
             // Solo añadir si el mensaje pertenece al cliente seleccionado
-            if (client_id === selectedContact.id) {
+            // Usamos == para evitar problemas de string vs number
+            if (client_id == selectedContact.id) {
+                console.log("Match! Updating messages list.");
                 setMessages(prev => {
-                    // Evitar duplicados (por ejemplo, si el socket llega antes del fetch o viceversa)
+                    // Evitar duplicados
                     if (prev.find(m => m.id === message.id)) return prev;
                     return [...prev, message];
                 });
+                
+                // Marcar como leído si estamos en la ventana del chat
+                markAsRead();
             }
         });
 
         return () => {
+            console.log("Unsubscribing from whatsapp channel");
             channel.stopListening('WhatsappMessageReceived');
         };
     }, [echo, selectedContact?.id]);

@@ -86,7 +86,7 @@ export const WhatsAppPage = () => {
                 const client_id = message.client_id || (message.client ? message.client.id : null);
                 if (!client_id) return prev;
 
-                const index = prev.findIndex(c => c.id === client_id);
+                const index = prev.findIndex(c => c.id == client_id);
                 
                 if (index !== -1) {
                     const updatedContacts = [...prev];
@@ -95,7 +95,7 @@ export const WhatsAppPage = () => {
                     contact.last_message = message.body;
                     contact.last_message_date = message.sent_at;
                     
-                    if (selectedContact?.id !== client_id) {
+                    if (selectedContact?.id != client_id) {
                         contact.unread_count = (contact.unread_count || 0) + 1;
                     }
 
