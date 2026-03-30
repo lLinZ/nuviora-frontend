@@ -109,8 +109,40 @@ export const ChatArea: FC<ChatAreaProps> = ({ selectedContact, onRefreshContacts
 
         const url = mediaUrl.toLowerCase();
         
-        // Video
-        if (url.endsWith('.mp4') || url.endsWith('.webm') || (media.type === 'video')) {
+        // Priority 1: Audio (Check type first or common audio extensions)
+        if (media.type === 'audio' || url.endsWith('.ogg') || url.endsWith('.mp3') || url.endsWith('.wav') || url.endsWith('.m4a') || (url.endsWith('.webm') && media.type !== 'video')) {
+            return (
+                <Box sx={{ minWidth: { xs: 240, sm: 300 }, width: '100%', mb: 1 }}>
+                    <Box component="audio" controls sx={{ width: '100%', height: 40 }}>
+                        <source src={mediaUrl} />
+                        Tu navegador no soporta audio.
+                    </Box>
+                </Box>
+            );
+        }
+
+        // Priority 2: Image
+        if (media.type === 'image' || url.match(/\.(jpg|jpeg|png|gif|webp)$/)) {
+            return (
+                <Box 
+                    component="img" 
+                    src={mediaUrl} 
+                    sx={{ 
+                        maxWidth: 320, 
+                        width: '100%', 
+                        maxHeight: 400, 
+                        objectFit: 'cover', 
+                        borderRadius: 2, 
+                        mb: 1, 
+                        cursor: 'pointer' 
+                    }}
+                    onClick={() => window.open(mediaUrl, '_blank')}
+                />
+            );
+        }
+
+        // Priority 3: Video
+        if (media.type === 'video' || url.endsWith('.mp4')) {
             return (
                 <Box sx={{ maxWidth: 320, width: '100%', mb: 1 }}>
                     <Box 
@@ -127,38 +159,6 @@ export const ChatArea: FC<ChatAreaProps> = ({ selectedContact, onRefreshContacts
                         <source src={mediaUrl} />
                     </Box>
                 </Box>
-            );
-        }
-
-        // Audio
-        if (url.endsWith('.ogg') || url.endsWith('.mp3') || (media.type === 'audio')) {
-            return (
-                <Box sx={{ minWidth: { xs: 240, sm: 300 }, width: '100%', mb: 1 }}>
-                    <Box component="audio" controls sx={{ width: '100%', height: 40 }}>
-                        <source src={mediaUrl} />
-                        Tu navegador no soporta audio.
-                    </Box>
-                </Box>
-            );
-        }
-
-        // Image
-        if (url.match(/\.(jpg|jpeg|png|gif|webp)$/) || (media.type === 'image')) {
-            return (
-                <Box 
-                    component="img" 
-                    src={mediaUrl} 
-                    sx={{ 
-                        maxWidth: 320, 
-                        width: '100%', 
-                        maxHeight: 400, 
-                        objectFit: 'cover', 
-                        borderRadius: 2, 
-                        mb: 1, 
-                        cursor: 'pointer' 
-                    }}
-                    onClick={() => window.open(mediaUrl, '_blank')}
-                />
             );
         }
 
