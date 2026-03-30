@@ -1,9 +1,13 @@
-import { FC } from "react";
-import { Box, Typography, Button, Paper, Divider, Stack, Chip, Avatar } from "@mui/material";
-import { ShoppingCartCheckoutRounded, OpenInNewRounded, ShoppingBagRounded } from "@mui/icons-material";
+import { FC, useState } from "react";
+import { Box, Typography, Button, Paper, Divider, Stack, Chip, Avatar, IconButton } from "@mui/material";
+import { ShoppingCartCheckoutRounded, OpenInNewRounded, ShoppingBagRounded, EditRounded } from "@mui/icons-material";
 import { ContactData } from "../WhatsAppPage";
 import { useNavigate } from "react-router-dom";
 import dayjs from "dayjs";
+import { useUserStore } from "../../../store/user/UserStore";
+import { AssignAgentDialog } from "../../../components/orders/AssignAgentDialog";
+import { request } from "../../../common/request";
+import { toast } from "react-toastify";
 
 interface ContextPanelProps {
     selectedContact: ContactData | null;
@@ -13,18 +17,36 @@ interface ContextPanelProps {
 
 export const ContextPanel: FC<ContextPanelProps> = ({ selectedContact, isMobileDrawer = false, onRefresh }) => {
     const navigate = useNavigate();
+    const user = useUserStore(state => state.user);
+    const [openAssign, setOpenAssign] = useState(false);
 
     if (!selectedContact) {
         return <Box sx={{ width: 320, borderLeft: '1px solid', borderColor: 'divider', bgcolor: 'background.paper', display: { xs: 'none', lg: 'block' } }} />;
     }
 
-    const { type, context, name, phone } = selectedContact;
+    const { type, context, name, phone, id: clientId } = selectedContact;
     const isLead = type === 'lead' || !context.order;
+    const isAdmin = ['Admin', 'Manager', 'Gerente', 'Master'].includes(user.role?.description || '');
 
     const handleConvertToOrder = () => {
-        // Redirigir a vista de ordenes y pasar teléfono prellenado por state react-router
         navigate('/orders', { state: { createNewOrder: true, prefillPhone: phone, prefillName: name } });
     };
+
+    const handleAssignAgent = async (agentId: number) => {
+        try {
+            const { status } = await request(`/crm/clients/${clientId}/assign`, 'POST', JSON.stringify({ agent_id: agentId }));
+            if (status) {
+                toast.success("Asignación actualizada");
+                if (onRefresh) onRefresh();
+                setOpenAssign(false);
+            }
+        } catch (error) {
+            console.error(error);
+            toast.error("Error al asignar");
+        }
+    };
+
+    const agentName = context.agent?.names || context.order?.agent?.names || '...';
 
     return (
         <Box 
@@ -63,6 +85,27 @@ export const ContextPanel: FC<ContextPanelProps> = ({ selectedContact, isMobileD
             <Divider />
 
             <Box sx={{ p: 3, flexGrow: 1 }}>
+                
+                {/* Information Card (Lead or Order) */}
+                <Box sx={{ mb: 3 }}>
+                    <Typography variant="overline" color="text.secondary" fontWeight="bold" sx={{ mb: 1.5, display: 'block' }}>
+                        Estado de Asignación
+                    </Typography>
+                    <Paper elevation={0} sx={{ p: 2, borderRadius: 3, border: '1px solid', borderColor: 'divider', bgcolor: 'action.hover' }}>
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <Box>
+                                <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>Asignado a:</Typography>
+                                <Typography variant="body2" fontWeight="bold">{agentName}</Typography>
+                            </Box>
+                            {isAdmin && (
+                                <IconButton size="small" color="primary" onClick={() => setOpenAssign(true)}>
+                                    <EditRounded fontSize="small" />
+                                </IconButton>
+                            )}
+                        </Box>
+                    </Paper>
+                </Box>
+
                 <Typography variant="overline" color="text.secondary" fontWeight="bold" sx={{ mb: 2, display: 'block' }}>
                     Acciones Comerciales
                 </Typography>
@@ -114,22 +157,16 @@ export const ContextPanel: FC<ContextPanelProps> = ({ selectedContact, isMobileD
                                 <Typography variant="h4" fontWeight="bold" color="primary.main" sx={{ mb: 2 }}>
                                     ${context.order.current_total_price}
                                 </Typography>
-                                <Stack spacing={1}>
-                                    <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                                        <Typography variant="caption" color="text.secondary">Fecha:</Typography>
-                                        <Typography variant="caption" fontWeight="bold">{dayjs(context.order.created_at).format('DD/MM/YYYY')}</Typography>
-                                    </Box>
-                                    <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                                        <Typography variant="caption" color="text.secondary">Atendido por:</Typography>
-                                        <Typography variant="caption" fontWeight="bold">{context.order.agent?.names || '...'}</Typography>
-                                    </Box>
-                                </Stack>
+                                <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                                    <Typography variant="caption" color="text.secondary">Fecha:</Typography>
+                                    <Typography variant="caption" fontWeight="bold">{dayjs(context.order.created_at).format('DD/MM/YYYY')}</Typography>
+                                </Box>
                             </Paper>
                         )}
                         <Button 
                             variant="outlined" 
                             fullWidth 
-                            onClick={handleConvertToOrder} 
+                            onClick={() => navigate('/orders')} 
                             startIcon={<ShoppingBagRounded />}
                             sx={{ borderRadius: 3 }}
                         >
@@ -138,6 +175,13 @@ export const ContextPanel: FC<ContextPanelProps> = ({ selectedContact, isMobileD
                     </Box>
                 )}
             </Box>
+
+            {/* Custom Assignment Dialog for Leads */}
+            <AssignAgentDialog 
+                open={openAssign} 
+                onClose={() => setOpenAssign(false)} 
+                onPick={(agent) => handleAssignAgent(agent.id)}
+            />
         </Box>
     );
 };

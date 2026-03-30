@@ -25,8 +25,9 @@ import { SquareOutlined } from "@mui/icons-material";
 interface AssignAgentDialogProps {
     open: boolean;
     onClose: () => void;
-    orderId: number;
+    orderId?: number;
     onAssigned?: (agent: any) => void;
+    onPick?: (agent: any) => void;
 }
 
 export const AssignAgentDialog: FC<AssignAgentDialogProps> = ({
@@ -34,6 +35,7 @@ export const AssignAgentDialog: FC<AssignAgentDialogProps> = ({
     onClose,
     orderId,
     onAssigned,
+    onPick,
 }) => {
     const [agents, setAgents] = useState<any[]>([]);
     const [loading, setLoading] = useState(false);
@@ -69,6 +71,19 @@ export const AssignAgentDialog: FC<AssignAgentDialogProps> = ({
     };
 
     const handleAssign = async (agentId: number) => {
+        const selectedAgent = agents.find(a => a.id === agentId);
+        
+        if (onPick) {
+            onPick(selectedAgent);
+            onClose();
+            return;
+        }
+
+        if (!orderId) {
+            toast.error("ID de orden no proporcionado");
+            return;
+        }
+
         setAssigning(true);
         try {
             const body = new URLSearchParams();
@@ -82,12 +97,8 @@ export const AssignAgentDialog: FC<AssignAgentDialogProps> = ({
 
             if (status) {
                 const data = await response.json();
-
-                // 🔹 Asegúrate de que se actualice TODO (status + agent)
                 updateOrderInColumns(data.order);
-
                 if (onAssigned) onAssigned(data.order.agent);
-
                 toast.success(
                     `Orden #${data.order.name} asignada a ${data.order.agent.names} 👩‍💼`
                 );

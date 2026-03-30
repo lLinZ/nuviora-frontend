@@ -1,4 +1,4 @@
-import { FC } from "react";
+import { FC, useState } from "react";
 import { Box, Typography, List, ListItemButton, Avatar, Badge, Chip, TextField, InputAdornment, Divider, Button } from "@mui/material";
 import { SearchRounded } from "@mui/icons-material";
 import { ContactData } from "../WhatsAppPage";
@@ -14,6 +14,9 @@ interface SidebarProps {
     onLoadMore: () => void;
 }
 
+import { ShiftManagement } from "./ShiftManagement";
+import { useUserStore } from "../../../store/user/UserStore";
+
 export const Sidebar: FC<SidebarProps> = ({ 
     contacts, 
     selectedContact, 
@@ -23,6 +26,10 @@ export const Sidebar: FC<SidebarProps> = ({
     hasMore,
     onLoadMore
 }) => {
+    const user = useUserStore(state => state.user);
+    const [openShift, setOpenShift] = useState(false);
+    const isAdmin = ['Admin', 'Manager', 'Gerente', 'Master'].includes(user.role?.description || '');
+
     return (
         <Box 
             sx={{ 
@@ -36,9 +43,22 @@ export const Sidebar: FC<SidebarProps> = ({
             }}
         >
             <Box sx={{ p: 2, pb: 1 }}>
-                <Typography variant="h6" fontWeight="bold" sx={{ mb: 1.5 }}>
-                    Mensajes
-                </Typography>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1.5 }}>
+                    <Typography variant="h6" fontWeight="bold">
+                        Mensajes
+                    </Typography>
+                    {isAdmin && (
+                        <Button 
+                            size="small" 
+                            variant="outlined" 
+                            onClick={() => setOpenShift(true)}
+                            sx={{ borderRadius: 4, textTransform: 'none', px: 1.5 }}
+                        >
+                            Turnos
+                        </Button>
+                    )}
+                </Box>
+                <ShiftManagement open={openShift} onClose={() => setOpenShift(false)} />
                 <TextField
                     fullWidth
                     size="small"

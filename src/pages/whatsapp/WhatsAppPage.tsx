@@ -18,6 +18,7 @@ export interface ContactData {
     type: 'lead' | 'order';
     context: {
         order?: any;
+        agent?: any;
         conversation?: any;
     };
 }

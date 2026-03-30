@@ -28,10 +28,12 @@ import { AccountBalanceRounded, AddCircleOutline, CurrencyExchange } from "@mui/
 import { usePermissions } from "../hooks/usePermissions";
 import { ORDER_STATUS } from "../constants/OrderStatus";
 
+import { useLocation } from "react-router-dom";
 
 export const Orders = () => {
     const { isAdmin, isSupervisor, canCreateOrders, userRole, isAgency, isDeliverer } = usePermissions();
     const userStore = useUserStore();
+    const location = useLocation();
     const { searchTerm, setSearchTerm, selectedOrder, setSelectedOrder, filters, setFilters: setStoreFilters, activeModal, setActiveModal, setBulkColumns, changeStatus, registerNovelty } = useOrdersStore();
     const validateToken = useUserStore((state) => state.validateToken);
 
@@ -44,6 +46,19 @@ export const Orders = () => {
     const [openBankDialog, setOpenBankDialog] = useState(false);
     const [openRatesDialog, setOpenRatesDialog] = useState(false);
     const [openCreateDialog, setOpenCreateDialog] = useState(false);
+    const [prefillData, setPrefillData] = useState<any>(null);
+
+    useEffect(() => {
+        if (location.state?.createNewOrder) {
+            setPrefillData({
+                name: location.state.prefillName,
+                phone: location.state.prefillPhone
+            });
+            setOpenCreateDialog(true);
+            // Clear location state to avoid re-opening on manual refresh
+            window.history.replaceState({}, document.title);
+        }
+    }, [location.state]);
 
 
 
@@ -378,7 +393,12 @@ export const Orders = () => {
             <DailyRatesDialog open={openRatesDialog} onClose={() => setOpenRatesDialog(false)} />
             <CreateOrderDialog
                 open={openCreateDialog}
-                onClose={() => setOpenCreateDialog(false)}
+                onClose={() => {
+                    setOpenCreateDialog(false);
+                    setPrefillData(null);
+                }}
+                prefillName={prefillData?.name}
+                prefillPhone={prefillData?.phone}
             />
             {selectedOrder && (
                 <OrderDialog

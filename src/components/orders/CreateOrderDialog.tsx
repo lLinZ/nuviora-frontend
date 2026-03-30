@@ -12,9 +12,11 @@ interface CreateOrderDialogProps {
     open: boolean;
     onClose: () => void;
     onSuccess?: (order: any) => void;
+    prefillName?: string;
+    prefillPhone?: string;
 }
 
-export const CreateOrderDialog = ({ open, onClose, onSuccess }: CreateOrderDialogProps) => {
+export const CreateOrderDialog = ({ open, onClose, onSuccess, prefillName, prefillPhone }: CreateOrderDialogProps) => {
     const user = useUserStore(state => state.user);
     const [loading, setLoading] = useState(false);
 
@@ -44,8 +46,33 @@ export const CreateOrderDialog = ({ open, onClose, onSuccess }: CreateOrderDialo
             if (isAdminOrManager) {
                 fetchAgents();
             }
+
+            // Prefill logic
+            if (prefillName) setClientName(prefillName);
+            if (prefillPhone) {
+                // Remove non-numeric characters and handle common formats
+                const cleanPhone = prefillPhone.replace(/\D/g, '');
+                
+                // If contains country code (e.g. 58), remove it
+                let trimmed = cleanPhone.startsWith('58') ? cleanPhone.substring(2) : cleanPhone;
+                
+                // Handle formats starting with 0 (e.g. 0412...)
+                if (trimmed.startsWith('0')) trimmed = trimmed.substring(1);
+
+                if (trimmed.length === 10) {
+                    const prefix = `0${trimmed.substring(0, 3)}`;
+                    const number = trimmed.substring(3);
+                    const validPrefixes = ['0412', '0422', '0414', '0424', '0416', '0426'];
+                    if (validPrefixes.includes(prefix)) {
+                        setPhonePrefix(prefix);
+                        setPhoneNumber(number);
+                    } else {
+                        setPhoneNumber(trimmed.substring(3)); // Fallback, let user adjust
+                    }
+                }
+            }
         }
-    }, [open, isAdminOrManager]);
+    }, [open, isAdminOrManager, prefillName, prefillPhone]);
 
     const fetchCities = async () => {
         try {
