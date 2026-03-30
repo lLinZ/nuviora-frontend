@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { LiteNotificationBell } from './LiteNotificationBell';
 import { LiteWhatsAppBell } from './LiteWhatsAppBell';
 import {
@@ -313,6 +314,7 @@ const LiteOrderTable = ({ statusTitle, searchTerm, onRefresh, onDataUpdate }: an
 };
 
 export const SalesLite = () => {
+    const navigate = useNavigate();
     const user = useUserStore((state) => state.user);
     const logout = useUserStore((state) => state.logout);
     const validateToken = useUserStore((state) => state.validateToken);
@@ -548,6 +550,19 @@ export const SalesLite = () => {
                             Crear
                         </Button>
 
+                        <Tooltip title="WhatsApp CRM">
+                            <IconButton 
+                                size="small" 
+                                onClick={() => navigate('/whatsapp')} 
+                                sx={{ 
+                                    color: '#25D366', 
+                                    bgcolor: alpha('#25D366', 0.1),
+                                    '&:hover': { bgcolor: alpha('#25D366', 0.2) }
+                                }}
+                            >
+                                <WhatsApp fontSize="small" />
+                            </IconButton>
+                        </Tooltip>
                         <LiteSettingsMenu />
                         <LiteWhatsAppBell />
                         <LiteNotificationBell />

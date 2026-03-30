@@ -81,7 +81,7 @@ function App() {
           <Route path="/orders/cancelled" element={<RequireRole allowedRoles={['Admin', 'Gerente']}><CancellationsReview /></RequireRole>} />
           
           {/* Vistas Centralizadas */}
-          <Route path="/whatsapp" element={<RequireRole allowedRoles={['Admin', 'Gerente']}><WhatsAppPage /></RequireRole>} />
+          <Route path="/whatsapp" element={<RequireRole allowedRoles={['Admin', 'Gerente', 'Vendedor']}><WhatsAppPage /></RequireRole>} />
 
           <Route path="/deliverers" element={<RequireRole allowedRoles={['Admin']}><DeliverersPage /></RequireRole>} />
           <Route path="/currency" element={<RequireRole allowedRoles={['Admin']}><Currency /></RequireRole>} />

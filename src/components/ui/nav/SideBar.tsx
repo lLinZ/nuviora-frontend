@@ -111,7 +111,7 @@ export const SideBar = () => {
                 text: "WhatsApp CRM",
                 icon: <WhatsAppIcon />,
                 link: "/whatsapp",
-                roles: ["Admin", "Gerente"],
+                roles: ["Admin", "Gerente", "Vendedor"],
             },
             {
                 text: "Usuarios",
