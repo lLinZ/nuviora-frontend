@@ -1,7 +1,8 @@
 import { FC, useState } from "react";
-import { Box, Typography, List, ListItemButton, Avatar, Badge, Chip, TextField, InputAdornment, Divider, Button } from "@mui/material";
-import { SearchRounded } from "@mui/icons-material";
+import { Box, Typography, List, ListItemButton, Avatar, Badge, Chip, TextField, InputAdornment, Divider, Button, IconButton } from "@mui/material";
+import { SearchRounded, ArrowBackRounded } from "@mui/icons-material";
 import { ContactData } from "../WhatsAppPage";
+import { useNavigate } from "react-router-dom";
 import dayjs from "dayjs";
 
 interface SidebarProps {
@@ -27,6 +28,7 @@ export const Sidebar: FC<SidebarProps> = ({
     onLoadMore
 }) => {
     const user = useUserStore(state => state.user);
+    const navigate = useNavigate();
     const [openShift, setOpenShift] = useState(false);
     const isAdmin = ['Admin', 'Manager', 'Gerente', 'Master'].includes(user.role?.description || '');
 
@@ -42,6 +44,24 @@ export const Sidebar: FC<SidebarProps> = ({
                 flexDirection: 'column'
             }}
         >
+            {user.is_lite_view && (
+                <Box sx={{ p: 1.5, borderBottom: '1px solid', borderColor: 'divider', bgcolor: 'action.hover' }}>
+                    <Button 
+                        startIcon={<ArrowBackRounded />} 
+                        fullWidth 
+                        onClick={() => navigate('/dashboard')}
+                        sx={{ 
+                            textTransform: 'none', 
+                            justifyContent: 'start', 
+                            fontWeight: 'bold',
+                            borderRadius: 2,
+                            color: 'text.secondary'
+                        }}
+                    >
+                        Volver al Panel
+                    </Button>
+                </Box>
+            )}
             <Box sx={{ p: 2, pb: 1 }}>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1.5 }}>
                     <Typography variant="h6" fontWeight="bold">
