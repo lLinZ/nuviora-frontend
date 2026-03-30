@@ -237,7 +237,14 @@ export const ChatArea: FC<ChatAreaProps> = ({ selectedContact, onRefreshContacts
     const startRecording = async () => {
         try {
             const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-            const mediaRecorder = new MediaRecorder(stream);
+            
+            // Buscar un tipo de MIME compatible con WhatsApp
+            const mimeTypes = ['audio/ogg; codecs=opus', 'audio/mp4', 'audio/aac', 'audio/mpeg'];
+            const supportedMimeType = mimeTypes.find(type => MediaRecorder.isTypeSupported(type));
+            
+            const options = supportedMimeType ? { mimeType: supportedMimeType } : {};
+            const mediaRecorder = new MediaRecorder(stream, options);
+            
             mediaRecorderRef.current = mediaRecorder;
             audioChunksRef.current = [];
 
@@ -248,8 +255,10 @@ export const ChatArea: FC<ChatAreaProps> = ({ selectedContact, onRefreshContacts
             };
 
             mediaRecorder.onstop = () => {
-                const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/ogg; codecs=opus' });
-                const audioFile = new File([audioBlob], `voice-note-${Date.now()}.ogg`, { type: 'audio/ogg' });
+                const mimeType = supportedMimeType || 'audio/ogg';
+                const extension = mimeType.includes('mp4') ? 'm4a' : 'ogg';
+                const audioBlob = new Blob(audioChunksRef.current, { type: mimeType });
+                const audioFile = new File([audioBlob], `voice-note-${Date.now()}.${extension}`, { type: mimeType });
                 handleUpload(audioFile);
                 stream.getTracks().forEach(track => track.stop());
             };
@@ -363,7 +372,7 @@ export const ChatArea: FC<ChatAreaProps> = ({ selectedContact, onRefreshContacts
                                         color: '#000' 
                                     }}
                                 >
-                                    {msg.body.split(/(https?:\/\/[^\s]+)/g).map((part, i) => (
+                                    {(msg.body || '').split(/(https?:\/\/[^\s]+)/g).map((part, i) => (
                                         part.match(/^https?:\/\//) ? (
                                             <a key={i} href={part} target="_blank" rel="noopener noreferrer" style={{ color: '#007bff', textDecoration: 'underline' }}>
                                                 {part}
