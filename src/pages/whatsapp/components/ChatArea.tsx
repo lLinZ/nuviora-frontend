@@ -1,6 +1,6 @@
 import { FC, useEffect, useRef, useState } from "react";
-import { Box, Typography, Avatar, IconButton, TextField, CircularProgress, Paper, Chip } from "@mui/material";
-import { SendRounded, AttachFileRounded, ArrowBackRounded, InfoRounded, AddRounded } from "@mui/icons-material";
+import { Box, Typography, Avatar, IconButton, TextField, CircularProgress, Paper, Chip, Tooltip, Zoom } from "@mui/material";
+import { SendRounded, AttachFileRounded, ArrowBackRounded, InfoRounded, MicRounded, StopRounded, DeleteRounded, ImageRounded, VideocamRounded } from "@mui/icons-material";
 import { ContactData } from "../WhatsAppPage";
 import { request } from "../../../common/request";
 import dayjs from "dayjs";
@@ -19,7 +19,7 @@ interface Message {
     body: string;
     is_from_client: boolean;
     status: string;
-    media: string | null;
+    media: any | null; // Changed to support object
     sent_at: string;
 }
 
@@ -28,7 +28,16 @@ export const ChatArea: FC<ChatAreaProps> = ({ selectedContact, onRefreshContacts
     const [loading, setLoading] = useState(false);
     const [inputText, setInputText] = useState("");
     const [sending, setSending] = useState(false);
+    const [uploading, setUploading] = useState(false);
     
+    // Recording state
+    const [isRecording, setIsRecording] = useState(false);
+    const [recordingDuration, setRecordingDuration] = useState(0);
+    const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+    const audioChunksRef = useRef<Blob[]>([]);
+    const recordingIntervalRef = useRef<any>(null);
+
+    const fileInputRef = useRef<HTMLInputElement>(null);
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const { echo } = useSocketStore();
 
@@ -91,11 +100,17 @@ export const ChatArea: FC<ChatAreaProps> = ({ selectedContact, onRefreshContacts
         };
     }, [echo, selectedContact?.id]);
 
-    const renderMedia = (mediaUrl: string) => {
+    const renderMedia = (media: any) => {
+        if (!media) return null;
+        
+        // Handle both old string and new object
+        const mediaUrl = typeof media === 'string' ? media : media.link;
+        if (!mediaUrl) return null;
+
         const url = mediaUrl.toLowerCase();
         
         // Video
-        if (url.endsWith('.mp4') || url.endsWith('.webm')) {
+        if (url.endsWith('.mp4') || url.endsWith('.webm') || (media.type === 'video')) {
             return (
                 <Box sx={{ maxWidth: 320, width: '100%', mb: 1 }}>
                     <Box 
@@ -109,18 +124,18 @@ export const ChatArea: FC<ChatAreaProps> = ({ selectedContact, onRefreshContacts
                             display: 'block' 
                         }}
                     >
-                        <source src={mediaUrl} type="video/mp4" />
+                        <source src={mediaUrl} />
                     </Box>
                 </Box>
             );
         }
 
         // Audio
-        if (url.endsWith('.ogg') || url.endsWith('.mp3')) {
+        if (url.endsWith('.ogg') || url.endsWith('.mp3') || (media.type === 'audio')) {
             return (
                 <Box sx={{ minWidth: { xs: 240, sm: 300 }, width: '100%', mb: 1 }}>
                     <Box component="audio" controls sx={{ width: '100%', height: 40 }}>
-                        <source src={mediaUrl} type="audio/ogg" />
+                        <source src={mediaUrl} />
                         Tu navegador no soporta audio.
                     </Box>
                 </Box>
@@ -128,7 +143,7 @@ export const ChatArea: FC<ChatAreaProps> = ({ selectedContact, onRefreshContacts
         }
 
         // Image
-        if (url.match(/\.(jpg|jpeg|png|gif|webp)$/)) {
+        if (url.match(/\.(jpg|jpeg|png|gif|webp)$/) || (media.type === 'image')) {
             return (
                 <Box 
                     component="img" 
@@ -150,7 +165,7 @@ export const ChatArea: FC<ChatAreaProps> = ({ selectedContact, onRefreshContacts
         // Fallback to link
         return (
             <a href={mediaUrl} target="_blank" rel="noopener noreferrer" style={{ color: '#000', textDecoration: 'underline', fontSize: '0.75rem', display: 'block', marginBottom: '4px' }}>
-                📦 Archivo Adjunto
+                📦 Archivo Adjunto ({media.type || 'Archivo'})
             </a>
         );
     };
@@ -174,17 +189,6 @@ export const ChatArea: FC<ChatAreaProps> = ({ selectedContact, onRefreshContacts
         const textToSend = inputText;
         setInputText("");
 
-        // Optimistic ui update
-        const tempMsg: Message = {
-            id: Date.now(),
-            body: textToSend,
-            is_from_client: false,
-            status: 'sending',
-            media: null,
-            sent_at: new Date().toISOString()
-        };
-        setMessages(prev => [...prev, tempMsg]);
-
         try {
             const { status, response } = await request(`/whatsapp-conversations/${selectedContact.id}/messages`, 'POST', {
                 body: textToSend
@@ -192,20 +196,93 @@ export const ChatArea: FC<ChatAreaProps> = ({ selectedContact, onRefreshContacts
 
             if (status) {
                 const json = await response.json();
-                // Reemplazamos el temporal con el real
-                setMessages(prev => prev.map(m => m.id === tempMsg.id ? json : m));
+                setMessages(prev => [...prev, json]);
                 onRefreshContacts();
             } else {
                 toast.error("Error enviando mensaje");
-                setMessages(prev => prev.filter(m => m.id !== tempMsg.id));
             }
         } catch (error) {
             console.error(error);
             toast.error("Error de conexión");
-            setMessages(prev => prev.filter(m => m.id !== tempMsg.id));
         } finally {
             setSending(false);
         }
+    };
+
+    const handleUpload = async (file: File) => {
+        if (!selectedContact) return;
+        setUploading(true);
+        
+        const formData = new FormData();
+        formData.append('file', file);
+        
+        try {
+            const { status, response } = await request(`/whatsapp-conversations/${selectedContact.id}/media`, 'POST', formData);
+            if (status) {
+                const json = await response.json();
+                setMessages(prev => [...prev, json]);
+                onRefreshContacts();
+            } else {
+                const err = await response.json();
+                toast.error(err.message || "Error subiendo archivo");
+            }
+        } catch (error) {
+            console.error(error);
+            toast.error("Error de conexión al subir archivo");
+        } finally {
+            setUploading(false);
+        }
+    };
+
+    const startRecording = async () => {
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            const mediaRecorder = new MediaRecorder(stream);
+            mediaRecorderRef.current = mediaRecorder;
+            audioChunksRef.current = [];
+
+            mediaRecorder.ondataavailable = (event) => {
+                if (event.data.size > 0) {
+                    audioChunksRef.current.push(event.data);
+                }
+            };
+
+            mediaRecorder.onstop = () => {
+                const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/ogg; codecs=opus' });
+                const audioFile = new File([audioBlob], `voice-note-${Date.now()}.ogg`, { type: 'audio/ogg' });
+                handleUpload(audioFile);
+                stream.getTracks().forEach(track => track.stop());
+            };
+
+            mediaRecorder.start();
+            setIsRecording(true);
+            setRecordingDuration(0);
+            recordingIntervalRef.current = setInterval(() => {
+                setRecordingDuration(prev => prev + 1);
+            }, 1000);
+        } catch (err) {
+            console.error("Error accessing microphone:", err);
+            toast.error("No se pudo acceder al micrófono");
+        }
+    };
+
+    const stopRecording = (shouldSend = true) => {
+        if (mediaRecorderRef.current && isRecording) {
+            if (!shouldSend) {
+                mediaRecorderRef.current.onstop = () => {
+                    mediaRecorderRef.current?.stream.getTracks().forEach(track => track.stop());
+                };
+            }
+            mediaRecorderRef.current.stop();
+            setIsRecording(false);
+            clearInterval(recordingIntervalRef.current);
+        }
+    };
+
+    const formatDuration = (seconds: number) => {
+        const mins = Math.floor(seconds / 60);
+        const secs = seconds % 60;
+        return `${mins}:${secs.toString().padStart(2, '0')}`;
     };
 
     if (!selectedContact) {
@@ -327,11 +404,39 @@ export const ChatArea: FC<ChatAreaProps> = ({ selectedContact, onRefreshContacts
                             ⚠️ Ventana de 24h cerrada. El cliente debe escribir primero.
                         </Typography>
                     </Box>
+                ) : isRecording ? (
+                    <Box sx={{ flexGrow: 1, display: 'flex', alignItems: 'center', bgcolor: 'action.hover', p: 0.5, px: 2, borderRadius: 10, gap: 2 }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexGrow: 1 }}>
+                            <Box sx={{ width: 10, height: 10, bgcolor: 'error.main', borderRadius: '50%', animation: 'pulse-record 1s infinite', '@keyframes pulse-record': { '0%': { opacity: 1 }, '50%': { opacity: 0.3 }, '100%': { opacity: 1 } } }} />
+                            <Typography variant="body2" fontWeight="bold">{formatDuration(recordingDuration)}</Typography>
+                        </Box>
+                        <IconButton color="error" onClick={() => stopRecording(false)}>
+                            <DeleteRounded />
+                        </IconButton>
+                        <IconButton color="primary" onClick={() => stopRecording(true)} sx={{ bgcolor: 'primary.main', color: 'white', '&:hover': { bgcolor: 'primary.dark' } }}>
+                            <SendRounded />
+                        </IconButton>
+                    </Box>
                 ) : (
                     <>
-                        <IconButton color="default" disabled>
-                            <AttachFileRounded />
-                        </IconButton>
+                        <input
+                            type="file"
+                            hidden
+                            ref={fileInputRef}
+                            onChange={(e) => {
+                                const file = e.target.files?.[0];
+                                if (file) handleUpload(file);
+                                // Reset input
+                                e.target.value = '';
+                            }}
+                            accept="image/*,video/*"
+                        />
+                        <Tooltip title="Adjuntar foto o video">
+                            <IconButton color="default" onClick={() => fileInputRef.current?.click()} disabled={uploading}>
+                                {uploading ? <CircularProgress size={24} /> : <AttachFileRounded />}
+                            </IconButton>
+                        </Tooltip>
+                        
                         <TextField
                             fullWidth
                             size="small"
@@ -339,6 +444,7 @@ export const ChatArea: FC<ChatAreaProps> = ({ selectedContact, onRefreshContacts
                             value={inputText}
                             onChange={(e) => setInputText(e.target.value)}
                             sx={{ '& fieldset': { borderRadius: 4 } }}
+                            disabled={uploading}
                             onKeyPress={(e) => {
                                 if (e.key === 'Enter' && !e.shiftKey) {
                                     e.preventDefault();
@@ -346,9 +452,18 @@ export const ChatArea: FC<ChatAreaProps> = ({ selectedContact, onRefreshContacts
                                 }
                             }}
                         />
-                        <IconButton color="primary" type="submit" disabled={!inputText.trim() || sending}>
-                            {sending ? <CircularProgress size={24} /> : <SendRounded />}
-                        </IconButton>
+
+                        {inputText.trim() ? (
+                            <IconButton color="primary" type="submit" disabled={sending}>
+                                {sending ? <CircularProgress size={24} /> : <SendRounded />}
+                            </IconButton>
+                        ) : (
+                            <Tooltip title="Enviar nota de voz">
+                                <IconButton color="primary" onClick={startRecording} disabled={uploading}>
+                                    <MicRounded />
+                                </IconButton>
+                            </Tooltip>
+                        )}
                     </>
                 )}
             </Paper>
