@@ -521,13 +521,13 @@ export const OrderWhatsApp = ({ orderId }: { orderId: number }) => {
                                                         border: '1px solid rgba(255,255,255,0.05)', 
                                                         maxWidth: '100%'
                                                     }}>
-                                                        {mediaSrc.endsWith('.mp4') ? (
+                                                        {typeof mediaSrc === 'string' && mediaSrc.endsWith('.mp4') ? (
                                                             <Box component='video' 
                                                                 controls 
                                                                 src={mediaSrc} 
                                                                 sx={{ width: '100%', display: 'block', maxHeight: '300px', bgcolor: '#000' }} 
                                                             />
-                                                        ) : mediaSrc.endsWith('.ogg') || mediaSrc.endsWith('.mp3') || mediaSrc.endsWith('.wav') ? (
+                                                        ) : typeof mediaSrc === 'string' && (mediaSrc.endsWith('.ogg') || mediaSrc.endsWith('.mp3') || mediaSrc.endsWith('.wav')) ? (
                                                             <Box component='audio' 
                                                                 controls 
                                                                 src={mediaSrc} 
