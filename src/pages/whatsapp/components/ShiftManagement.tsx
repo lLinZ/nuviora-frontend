@@ -69,7 +69,7 @@ export const ShiftManagement: FC<ShiftManagementProps> = ({ open, onClose }) => 
             </DialogTitle>
             <DialogContent dividers>
                 <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                    Selecciona quiénes entrarán en la rotación automática de nuevos leads hoy.
+                    Selecciona los agentes que participarán en la rotación automática de nuevos leads. Este ajuste es permanente hasta que lo cambies de nuevo.
                 </Typography>
                 {loading ? (
                     <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}><CircularProgress size={30} /></Box>
@@ -94,7 +94,7 @@ export const ShiftManagement: FC<ShiftManagementProps> = ({ open, onClose }) => 
                                 </ListItemAvatar>
                                 <ListItemText 
                                     primary={`${agent.names} ${agent.surnames}`}
-                                    secondary={agent.is_active_crm ? 'En turno' : 'Descanso'}
+                                    secondary={agent.is_active_crm ? 'Activo para Leads' : 'Inactivo'}
                                 />
                             </ListItem>
                         ))}

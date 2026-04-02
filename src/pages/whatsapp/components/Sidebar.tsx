@@ -144,9 +144,11 @@ export const Sidebar: FC<SidebarProps> = ({
                                     {contact.last_message}
                                 </Typography>
                                 {contact.type === 'lead' ? (
-                                    <Chip label="Lead" size="small" color="secondary" sx={{ height: 20, fontSize: '0.65rem', fontWeight: 'bold' }} />
+                                    <Chip label="Lead Nuevo" size="small" color="secondary" sx={{ height: 20, fontSize: '0.65rem', fontWeight: 'bold' }} />
+                                ) : contact.context.order?.name ? (
+                                    <Chip label={`#${contact.context.order.name}`} size="small" color="primary" variant="outlined" sx={{ height: 20, fontSize: '0.65rem', fontWeight: 'bold', borderColor: 'currentColor', color: 'inherit' }} />
                                 ) : (
-                                    <Chip label={`#${contact.context.order?.name}`} size="small" color="primary" variant="outlined" sx={{ height: 20, fontSize: '0.65rem', fontWeight: 'bold', borderColor: 'currentColor', color: 'inherit' }} />
+                                    <Chip label="Lead Nuevo" size="small" color="secondary" sx={{ height: 20, fontSize: '0.65rem', fontWeight: 'bold' }} />
                                 )}
                             </Box>
                         </Box>
