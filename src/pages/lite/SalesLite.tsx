@@ -553,7 +553,7 @@ export const SalesLite = () => {
                         <Tooltip title="WhatsApp CRM">
                             <IconButton 
                                 size="small" 
-                                onClick={() => navigate('/whatsapp')} 
+                                onClick={() => window.open('/whatsapp', '_blank')} 
                                 sx={{ 
                                     color: '#25D366', 
                                     bgcolor: alpha('#25D366', 0.1),

@@ -114,6 +114,12 @@ export const SideBar = () => {
                 roles: ["Admin", "Gerente", "Vendedor"],
             },
             {
+                text: "Plantillas WhatsApp",
+                icon: <EditNoteRounded />,
+                link: "/admin/whatsapp-templates",
+                roles: ["Admin"],
+            },
+            {
                 text: "Usuarios",
                 icon: <GroupsRoundedIcon />,
                 link: "/users",
@@ -360,7 +366,11 @@ const SideBarLink: FC<SideBarLinkProps> = ({ icon, text, link, open, matches }) 
     const user = useUserStore((state) => state.user);
 
     const onClick = (link: string) => {
-        navigate(link);
+        if (link === "/whatsapp") {
+            window.open(link, "_blank");
+        } else {
+            navigate(link);
+        }
     };
 
     return (
