@@ -9,6 +9,8 @@ import {
 import { DeleteRounded, AddRounded, LinkRounded, SettingsEthernetRounded } from "@mui/icons-material";
 import { request } from "../../common/request";
 import { toast } from "react-toastify";
+import { Layout } from "../../components/ui/Layout";
+import { DescripcionDeVista } from "../../components/ui/content/DescripcionDeVista";
 
 interface Status {
     id: number;
@@ -105,26 +107,25 @@ export const WebhooksPage: FC = () => {
     };
 
     return (
-        <Box sx={{ p: 4, maxWidth: 1000, margin: "0 auto" }}>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4 }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                    <Box sx={{ p: 1.5, bgcolor: 'primary.main', borderRadius: 3, color: 'white', display: 'flex' }}>
-                        <SettingsEthernetRounded />
-                    </Box>
+        <Layout>
+            <Box sx={{ p: 4, maxWidth: 1200, margin: "0 auto" }}>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4 }}>
                     <Box>
                         <Typography variant="h4" fontWeight="black" sx={{ lineHeight: 1.2 }}>Integraciones Webhooks</Typography>
-                        <Typography variant="body2" color="text.secondary">Gestiona tus conexiones con n8n, Make u otras herramientas externas.</Typography>
+                        <DescripcionDeVista 
+                            title="Webhooks / n8n" 
+                            description="Gestiona tus conexiones con n8n, Make u otras herramientas externas para automatizar procesos." 
+                        />
                     </Box>
+                    <Button 
+                        variant="contained" 
+                        startIcon={<AddRounded />} 
+                        onClick={() => setOpenAdd(true)}
+                        sx={{ borderRadius: 3, px: 3, py: 1.5, textTransform: 'none', fontWeight: 'bold' }}
+                    >
+                        Añadir Integración
+                    </Button>
                 </Box>
-                <Button 
-                    variant="contained" 
-                    startIcon={<AddRounded />} 
-                    onClick={() => setOpenAdd(true)}
-                    sx={{ borderRadius: 6, px: 3, textTransform: 'none', fontWeight: 'bold' }}
-                >
-                    Añadir Integración
-                </Button>
-            </Box>
 
             <TableContainer component={Paper} elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 4 }}>
                 <Table>
@@ -229,5 +230,6 @@ export const WebhooksPage: FC = () => {
                 </DialogActions>
             </Dialog>
         </Box>
+    </Layout>
     );
 };
