@@ -21,7 +21,7 @@ import WhatsAppIcon from "@mui/icons-material/WhatsApp";
 import moment from "moment";
 import { TypographyCustom } from "../../custom";
 import { useUserStore } from "../../../store/user/UserStore";
-import { AssignmentReturnRounded, StoreRounded, HistoryRounded, SwapHorizRounded, EditNoteRounded, StorefrontRounded, PollRounded, MapRounded, PaymentRounded, AccountBalanceRounded, ReceiptLongRounded } from "@mui/icons-material";
+import { AssignmentReturnRounded, StoreRounded, HistoryRounded, SwapHorizRounded, EditNoteRounded, StorefrontRounded, PollRounded, MapRounded, PaymentRounded, AccountBalanceRounded, ReceiptLongRounded, SettingsEthernetRounded } from "@mui/icons-material";
 import { NotificationBell } from "../notifications/NotificationBell";
 import { WhatsAppBell } from "../notifications/WhatsAppBell";
 
@@ -117,6 +117,12 @@ export const SideBar = () => {
                 text: "Plantillas WhatsApp",
                 icon: <EditNoteRounded />,
                 link: "/admin/whatsapp-templates",
+                roles: ["Admin"],
+            },
+            {
+                text: "Integraciones Webhooks",
+                icon: <SettingsEthernetRounded />,
+                link: "/admin/webhooks",
                 roles: ["Admin"],
             },
             {
