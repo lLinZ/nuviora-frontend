@@ -45,11 +45,16 @@ export const WebhooksPage: FC = () => {
                 request("/statuses", "GET")
             ]);
 
-            if (webhookRes.status === 200) {
+            if (webhookRes.ok) {
                 setWebhooks(await webhookRes.response.json());
+            } else {
+                console.error("Error loading webhooks:", webhookRes.status);
             }
-            if (statusRes.status === 200) {
+            
+            if (statusRes.ok) {
                 setStatuses(await statusRes.response.json());
+            } else {
+                console.error("Error loading statuses:", statusRes.status);
             }
         } catch (error) {
             console.error(error);
@@ -76,14 +81,17 @@ export const WebhooksPage: FC = () => {
                 event_type: "order.status_changed"
             };
 
-            const { status } = await request("/webhooks", "POST", body);
-            if (status === 200) {
+            const { ok, status } = await request("/webhooks", "POST", body);
+            if (ok) {
                 toast.success("Webhook configurado exitosamente");
                 setOpenAdd(false);
                 setNewName("");
                 setNewUrl("");
                 setSelectedStatus("all");
                 fetchData();
+            } else {
+                console.error("Error status:", status);
+                toast.error("Error al guardar webhook: " + status);
             }
         } catch (error) {
             console.error(error);
