@@ -251,7 +251,6 @@ export const WhatsappTemplates: React.FC = () => {
                             Plantillas de WhatsApp
                         </Typography>
                         <DescripcionDeVista
-                            title="Plantillas de WhatsApp"
                             description="Configura mensajes predefinidos y plantillas oficiales de Meta API."
                         />
                     </Box>

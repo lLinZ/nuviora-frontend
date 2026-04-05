@@ -7,7 +7,7 @@ import NavigateBeforeRounded from '@mui/icons-material/NavigateBeforeRounded';
 import { useUserStore } from '../../../store/user/UserStore';
 
 type Props = {
-    title: string;
+    title?: string;
     description: string;
     backPath?: string | To;
     buttons?: boolean;
@@ -58,9 +58,11 @@ export const DescripcionDeVista: FC<Props> = ({ description, title, backPath = u
                 </IconButton>)
                 }
                 {children}
-                <Typography variant='h4' fontWeight={'bold'}>
-                    {title}
-                </Typography>
+                {title && (
+                    <Typography variant='h4' fontWeight={'bold'}>
+                        {title}
+                    </Typography>
+                )}
             </Box>
             <Typography variant='subtitle2' color='text.secondary'>
                 {description}
