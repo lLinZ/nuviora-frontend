@@ -15,11 +15,14 @@ import {
     Switch,
     FormControlLabel,
     Stack,
-    Tooltip,
     Divider,
     Paper,
     LinearProgress,
-    Chip
+    Chip,
+    Alert,
+    Tooltip,
+    CircularProgress,
+    Avatar,
 } from '@mui/material';
 import {
     AddRounded,
@@ -28,7 +31,12 @@ import {
     WhatsApp as WhatsAppIcon,
     VerifiedRounded,
     MessageRounded,
-    HelpOutline
+    SyncRounded,
+    DownloadDoneRounded,
+    CheckCircleRounded,
+    ErrorRounded,
+    HourglassTopRounded,
+    CloudDownloadRounded,
 } from '@mui/icons-material';
 import { Layout } from '../../components/ui/Layout';
 import { DescripcionDeVista } from '../../components/ui/content/DescripcionDeVista';
@@ -46,12 +54,39 @@ interface IWhatsappTemplate {
     created_at?: string;
 }
 
+interface IMetaTemplate {
+    id: string;
+    name: string;
+    status: 'APPROVED' | 'PENDING' | 'REJECTED' | 'PAUSED' | 'DISABLED';
+    language: string;
+    category: string;
+    body_preview: string;
+    already_imported: boolean;
+    components: any[];
+}
+
+const STATUS_CONFIG: Record<string, { label: string; color: 'success' | 'warning' | 'error' | 'default'; icon: React.ReactNode }> = {
+    APPROVED: { label: 'Aprobada', color: 'success', icon: <CheckCircleRounded sx={{ fontSize: 14 }} /> },
+    PENDING:  { label: 'Pendiente', color: 'warning', icon: <HourglassTopRounded sx={{ fontSize: 14 }} /> },
+    REJECTED: { label: 'Rechazada', color: 'error', icon: <ErrorRounded sx={{ fontSize: 14 }} /> },
+    PAUSED:   { label: 'Pausada', color: 'default', icon: <ErrorRounded sx={{ fontSize: 14 }} /> },
+    DISABLED: { label: 'Desactivada', color: 'default', icon: <ErrorRounded sx={{ fontSize: 14 }} /> },
+};
+
 export const WhatsappTemplates: React.FC = () => {
     const { isValid } = useValidateSession();
     const [templates, setTemplates] = useState<IWhatsappTemplate[]>([]);
     const [loading, setLoading] = useState(false);
     const [dialogOpen, setDialogOpen] = useState(false);
     const [selectedTemplate, setSelectedTemplate] = useState<IWhatsappTemplate | null>(null);
+
+    // Meta sync
+    const [metaDialogOpen, setMetaDialogOpen] = useState(false);
+    const [metaTemplates, setMetaTemplates] = useState<IMetaTemplate[]>([]);
+    const [metaLoading, setMetaLoading] = useState(false);
+    const [metaError, setMetaError] = useState<string | null>(null);
+    const [importingId, setImportingId] = useState<string | null>(null);
+    const [importLabelFor, setImportLabelFor] = useState<string>('');
 
     // Form states
     const [formData, setFormData] = useState({
@@ -83,6 +118,60 @@ export const WhatsappTemplates: React.FC = () => {
         }
     };
 
+    // ─── Meta Sync ────────────────────────────────────────────────────────────
+
+    const handleOpenMetaDialog = async () => {
+        setMetaDialogOpen(true);
+        setMetaError(null);
+        setMetaTemplates([]);
+        setMetaLoading(true);
+        try {
+            const { status, response }: IResponse = await request('/whatsapp-templates/meta', 'GET');
+            const data = await response.json();
+            if (status === 200) {
+                setMetaTemplates(data.data ?? []);
+            } else {
+                setMetaError(data.error ?? 'Error al consultar Meta.');
+            }
+        } catch (err) {
+            setMetaError('No se pudo conectar con el servidor.');
+        } finally {
+            setMetaLoading(false);
+        }
+    };
+
+    const handleImportMeta = async (tpl: IMetaTemplate) => {
+        setImportingId(tpl.id);
+        try {
+            const label = importLabelFor === tpl.id
+                ? (document.getElementById(`meta-label-${tpl.id}`) as HTMLInputElement)?.value || tpl.name
+                : tpl.name;
+
+            const { status, response }: IResponse = await request('/whatsapp-templates/import-meta', 'POST', {
+                name:  tpl.name,
+                label: label,
+                body:  tpl.body_preview || tpl.name,
+            });
+
+            if (status === 200 || status === 201) {
+                toast.success(`Plantilla "${tpl.name}" importada correctamente`);
+                setMetaTemplates(prev =>
+                    prev.map(t => t.id === tpl.id ? { ...t, already_imported: true } : t)
+                );
+                loadTemplates();
+            } else {
+                const data = await response.json();
+                toast.error(data.message || 'Error al importar');
+            }
+        } catch (err) {
+            toast.error('Error al importar la plantilla');
+        } finally {
+            setImportingId(null);
+        }
+    };
+
+    // ─── CRUD ─────────────────────────────────────────────────────────────────
+
     const handleOpenDialog = (template: IWhatsappTemplate | null = null) => {
         if (template) {
             setSelectedTemplate(template);
@@ -94,12 +183,7 @@ export const WhatsappTemplates: React.FC = () => {
             });
         } else {
             setSelectedTemplate(null);
-            setFormData({
-                name: '',
-                label: '',
-                body: '',
-                is_official: false
-            });
+            setFormData({ name: '', label: '', body: '', is_official: false });
         }
         setDialogOpen(true);
     };
@@ -118,16 +202,12 @@ export const WhatsappTemplates: React.FC = () => {
         setLoading(true);
         try {
             const endpoint = selectedTemplate ? `/whatsapp-templates/${selectedTemplate.id}` : '/whatsapp-templates';
-            const method = selectedTemplate ? 'PUT' : 'POST';
-
-            // Clean name (lowercase, underscores)
+            const method   = selectedTemplate ? 'PUT' : 'POST';
             const submissionData = {
                 ...formData,
                 name: formData.name.toLowerCase().replace(/\s+/g, '_')
             };
-
             const { status } = await request(endpoint, method, submissionData);
-
             if (status === 200 || status === 201) {
                 toast.success(selectedTemplate ? 'Plantilla actualizada' : 'Plantilla creada');
                 handleCloseDialog();
@@ -145,7 +225,6 @@ export const WhatsappTemplates: React.FC = () => {
 
     const handleDelete = async (id: number) => {
         if (!window.confirm('¿Estás seguro de eliminar esta plantilla?')) return;
-
         setLoading(true);
         try {
             const { status } = await request(`/whatsapp-templates/${id}`, 'DELETE');
@@ -154,12 +233,13 @@ export const WhatsappTemplates: React.FC = () => {
                 loadTemplates();
             }
         } catch (error) {
-            console.error(error);
             toast.error('Error al eliminar la plantilla');
         } finally {
             setLoading(false);
         }
     };
+
+    // ─── Render ───────────────────────────────────────────────────────────────
 
     return (
         <Layout>
@@ -175,23 +255,48 @@ export const WhatsappTemplates: React.FC = () => {
                             description="Configura mensajes predefinidos y plantillas oficiales de Meta API."
                         />
                     </Box>
-                    <Button
-                        variant="contained"
-                        startIcon={<AddRounded />}
-                        onClick={() => handleOpenDialog()}
-                        sx={{
-                            borderRadius: 3,
-                            px: 3,
-                            py: 1.5,
-                            textTransform: 'none',
-                            fontWeight: 'bold',
-                            boxShadow: '0 8px 16px rgba(0,0,0,0.1)',
-                            bgcolor: '#25d366',
-                            '&:hover': { bgcolor: '#128c7e' }
-                        }}
-                    >
-                        Nueva Plantilla
-                    </Button>
+
+                    <Stack direction="row" spacing={2}>
+                        <Tooltip title="Consultar las plantillas aprobadas en tu cuenta de WhatsApp Business (Meta)">
+                            <Button
+                                id="btn-sync-meta"
+                                variant="outlined"
+                                startIcon={<SyncRounded />}
+                                onClick={handleOpenMetaDialog}
+                                sx={{
+                                    borderRadius: 3,
+                                    px: 3,
+                                    py: 1.5,
+                                    textTransform: 'none',
+                                    fontWeight: 'bold',
+                                    borderColor: '#1877F2',
+                                    color: '#1877F2',
+                                    '&:hover': { bgcolor: 'rgba(24,119,242,0.06)', borderColor: '#1877F2' }
+                                }}
+                            >
+                                Sincronizar con Meta
+                            </Button>
+                        </Tooltip>
+
+                        <Button
+                            id="btn-new-template"
+                            variant="contained"
+                            startIcon={<AddRounded />}
+                            onClick={() => handleOpenDialog()}
+                            sx={{
+                                borderRadius: 3,
+                                px: 3,
+                                py: 1.5,
+                                textTransform: 'none',
+                                fontWeight: 'bold',
+                                boxShadow: '0 8px 16px rgba(0,0,0,0.1)',
+                                bgcolor: '#25d366',
+                                '&:hover': { bgcolor: '#128c7e' }
+                            }}
+                        >
+                            Nueva Plantilla
+                        </Button>
+                    </Stack>
                 </Stack>
 
                 {loading && <LinearProgress sx={{ mb: 4, borderRadius: 2 }} />}
@@ -209,17 +314,13 @@ export const WhatsappTemplates: React.FC = () => {
                                     border: '1px solid',
                                     borderColor: 'divider',
                                     transition: 'transform 0.2s, box-shadow 0.2s',
-                                    '&:hover': {
-                                        transform: 'translateY(-4px)',
-                                        boxShadow: '0 12px 24px rgba(0,0,0,0.1)'
-                                    }
+                                    '&:hover': { transform: 'translateY(-4px)', boxShadow: '0 12px 24px rgba(0,0,0,0.1)' }
                                 }}
                             >
                                 <CardContent sx={{ flex: 1 }}>
                                     <Stack direction="row" spacing={2} alignItems="flex-start" sx={{ mb: 2 }}>
                                         <Box sx={{
-                                            p: 1.5,
-                                            borderRadius: 3,
+                                            p: 1.5, borderRadius: 3,
                                             bgcolor: template.is_official ? 'secondary.main' : 'rgba(37, 211, 102, 0.1)',
                                             color: template.is_official ? 'white' : '#25d366'
                                         }}>
@@ -234,24 +335,15 @@ export const WhatsappTemplates: React.FC = () => {
                                             </Typography>
                                         </Box>
                                         {!!template.is_official && (
-                                            <Chip
-                                                label="OFICIAL"
-                                                size="small"
-                                                color="secondary"
-                                                sx={{ fontWeight: 'bold', fontSize: '0.65rem', height: 20 }}
-                                            />
+                                            <Chip label="OFICIAL" size="small" color="secondary"
+                                                sx={{ fontWeight: 'bold', fontSize: '0.65rem', height: 20 }} />
                                         )}
                                     </Stack>
 
-                                    <Paper
-                                        variant="outlined"
-                                        sx={{
-                                            p: 2,
-                                            borderRadius: 3,
-                                            bgcolor: (theme) => theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.01)',
-                                            borderStyle: 'dashed'
-                                        }}
-                                    >
+                                    <Paper variant="outlined" sx={{
+                                        p: 2, borderRadius: 3, borderStyle: 'dashed',
+                                        bgcolor: (theme) => theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.01)',
+                                    }}>
                                         <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap', color: 'text.secondary', fontStyle: 'italic' }}>
                                             "{template.body}"
                                         </Typography>
@@ -261,48 +353,209 @@ export const WhatsappTemplates: React.FC = () => {
                                 <Divider />
 
                                 <Box sx={{ p: 2, display: 'flex', justifyContent: 'flex-end', gap: 1 }}>
-                                    <IconButton
-                                        size="small"
-                                        onClick={() => handleOpenDialog(template)}
-                                        sx={{ bgcolor: 'action.hover' }}
-                                    >
+                                    <IconButton size="small" onClick={() => handleOpenDialog(template)} sx={{ bgcolor: 'action.hover' }}>
                                         <EditRounded fontSize="small" />
                                     </IconButton>
-                                    <IconButton
-                                        size="small"
-                                        color="error"
-                                        onClick={() => handleDelete(template.id)}
-                                        sx={{ bgcolor: 'rgba(255,0,0,0.05)', '&:hover': { bgcolor: 'rgba(255,0,0,0.1)' } }}
-                                    >
+                                    <IconButton size="small" color="error" onClick={() => handleDelete(template.id)}
+                                        sx={{ bgcolor: 'rgba(255,0,0,0.05)', '&:hover': { bgcolor: 'rgba(255,0,0,0.1)' } }}>
                                         <DeleteRounded fontSize="small" />
                                     </IconButton>
                                 </Box>
                             </Card>
                         </Grid>
                     ))}
+
                     {templates.length === 0 && !loading && (
                         <Grid size={{ xs: 12 }}>
                             <Paper sx={{ p: 8, textAlign: 'center', borderRadius: 4, bgcolor: 'background.default', border: '2px dashed', borderColor: 'divider' }}>
                                 <MessageRounded sx={{ fontSize: 64, color: 'text.disabled', mb: 2 }} />
                                 <Typography color="text.secondary">No hay plantillas registradas</Typography>
-                                <Button
-                                    sx={{ mt: 2 }}
-                                    variant="outlined"
-                                    onClick={() => handleOpenDialog()}
-                                >
-                                    Crear mi primera plantilla
-                                </Button>
+                                <Stack direction="row" spacing={2} justifyContent="center" sx={{ mt: 2 }}>
+                                    <Button variant="outlined" onClick={handleOpenMetaDialog} startIcon={<SyncRounded />}>
+                                        Importar desde Meta
+                                    </Button>
+                                    <Button variant="outlined" onClick={() => handleOpenDialog()}>
+                                        Crear manualmente
+                                    </Button>
+                                </Stack>
                             </Paper>
                         </Grid>
                     )}
                 </Grid>
 
+                {/* ── Dialog: Meta Templates ─────────────────────────────────────── */}
+                <Dialog
+                    open={metaDialogOpen}
+                    onClose={() => setMetaDialogOpen(false)}
+                    maxWidth="md"
+                    fullWidth
+                    PaperProps={{ sx: { borderRadius: 4 } }}
+                >
+                    <DialogTitle sx={{ fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                        <Avatar sx={{ bgcolor: '#1877F2', width: 36, height: 36 }}>
+                            <SyncRounded sx={{ fontSize: 20 }} />
+                        </Avatar>
+                        Plantillas en Meta (WhatsApp Business)
+                        <Chip
+                            label={`${metaTemplates.length} encontradas`}
+                            size="small"
+                            color="primary"
+                            sx={{ ml: 'auto', fontWeight: 'bold' }}
+                        />
+                    </DialogTitle>
+
+                    <DialogContent dividers>
+                        {metaLoading && (
+                            <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', py: 6, gap: 2 }}>
+                                <CircularProgress size={48} />
+                                <Typography color="text.secondary">Consultando la API de Meta...</Typography>
+                            </Box>
+                        )}
+
+                        {metaError && !metaLoading && (
+                            <Alert
+                                severity="error"
+                                sx={{ borderRadius: 3 }}
+                                action={
+                                    <Button size="small" onClick={handleOpenMetaDialog}>Reintentar</Button>
+                                }
+                            >
+                                <strong>Error:</strong> {metaError}
+                                {metaError.includes('WHATSAPP_WABA_ID') && (
+                                    <Box sx={{ mt: 1, p: 1.5, bgcolor: 'rgba(0,0,0,0.05)', borderRadius: 2, fontFamily: 'monospace', fontSize: 13 }}>
+                                        Agrega esta línea al .env del VPS:<br />
+                                        <strong>WHATSAPP_WABA_ID=tu_waba_id_aqui</strong>
+                                    </Box>
+                                )}
+                            </Alert>
+                        )}
+
+                        {!metaLoading && !metaError && metaTemplates.length === 0 && (
+                            <Box sx={{ textAlign: 'center', py: 6 }}>
+                                <MessageRounded sx={{ fontSize: 56, color: 'text.disabled', mb: 2 }} />
+                                <Typography color="text.secondary">No se encontraron plantillas en Meta.</Typography>
+                            </Box>
+                        )}
+
+                        {!metaLoading && metaTemplates.length > 0 && (
+                            <Stack spacing={2} sx={{ mt: 1 }}>
+                                {metaTemplates.map((tpl) => {
+                                    const statusCfg = STATUS_CONFIG[tpl.status] ?? STATUS_CONFIG.PENDING;
+                                    return (
+                                        <Paper
+                                            key={tpl.id}
+                                            variant="outlined"
+                                            sx={{
+                                                p: 2.5,
+                                                borderRadius: 3,
+                                                borderColor: tpl.already_imported ? 'success.main' : 'divider',
+                                                bgcolor: tpl.already_imported
+                                                    ? (theme) => theme.palette.mode === 'dark' ? 'rgba(46,125,50,0.08)' : 'rgba(46,125,50,0.04)'
+                                                    : 'transparent',
+                                                opacity: tpl.status === 'REJECTED' || tpl.status === 'DISABLED' ? 0.65 : 1,
+                                            }}
+                                        >
+                                            <Stack direction="row" alignItems="flex-start" spacing={2}>
+                                                <Box sx={{ flex: 1, minWidth: 0 }}>
+                                                    <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 0.5, flexWrap: 'wrap', gap: 0.5 }}>
+                                                        <Typography fontWeight="bold" sx={{ fontFamily: 'monospace', fontSize: 14 }}>
+                                                            {tpl.name}
+                                                        </Typography>
+                                                        <Chip
+                                                            size="small"
+                                                            label={statusCfg.label}
+                                                            color={statusCfg.color}
+                                                            icon={statusCfg.icon as any}
+                                                            sx={{ fontWeight: 'bold', fontSize: '0.65rem', height: 20 }}
+                                                        />
+                                                        <Chip
+                                                            size="small"
+                                                            label={tpl.category}
+                                                            variant="outlined"
+                                                            sx={{ fontSize: '0.65rem', height: 20 }}
+                                                        />
+                                                        <Chip
+                                                            size="small"
+                                                            label={tpl.language?.toUpperCase()}
+                                                            variant="outlined"
+                                                            sx={{ fontSize: '0.65rem', height: 20 }}
+                                                        />
+                                                    </Stack>
+
+                                                    {tpl.body_preview ? (
+                                                        <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5, fontStyle: 'italic' }}>
+                                                            "{tpl.body_preview}"
+                                                        </Typography>
+                                                    ) : (
+                                                        <Typography variant="caption" color="text.disabled">
+                                                            (Sin cuerpo de texto — puede ser una plantilla de medios)
+                                                        </Typography>
+                                                    )}
+
+                                                    {/* Label input for import */}
+                                                    {!tpl.already_imported && tpl.status === 'APPROVED' && (
+                                                        <TextField
+                                                            id={`meta-label-${tpl.id}`}
+                                                            size="small"
+                                                            label="Etiqueta amigable"
+                                                            placeholder={tpl.name}
+                                                            sx={{ mt: 1.5, maxWidth: 320 }}
+                                                            helperText="Nombre que verán los vendedores"
+                                                        />
+                                                    )}
+                                                </Box>
+
+                                                <Box sx={{ flexShrink: 0 }}>
+                                                    {tpl.already_imported ? (
+                                                        <Chip
+                                                            icon={<DownloadDoneRounded sx={{ fontSize: 16 }} />}
+                                                            label="Ya importada"
+                                                            color="success"
+                                                            size="small"
+                                                            sx={{ fontWeight: 'bold' }}
+                                                        />
+                                                    ) : tpl.status === 'APPROVED' ? (
+                                                        <Button
+                                                            id={`btn-import-${tpl.name}`}
+                                                            variant="contained"
+                                                            size="small"
+                                                            startIcon={importingId === tpl.id
+                                                                ? <CircularProgress size={14} color="inherit" />
+                                                                : <CloudDownloadRounded />
+                                                            }
+                                                            onClick={() => handleImportMeta(tpl)}
+                                                            disabled={importingId === tpl.id}
+                                                            sx={{ borderRadius: 2, textTransform: 'none', fontWeight: 'bold', whiteSpace: 'nowrap' }}
+                                                        >
+                                                            Importar
+                                                        </Button>
+                                                    ) : (
+                                                        <Typography variant="caption" color="text.disabled">
+                                                            No importable
+                                                        </Typography>
+                                                    )}
+                                                </Box>
+                                            </Stack>
+                                        </Paper>
+                                    );
+                                })}
+                            </Stack>
+                        )}
+                    </DialogContent>
+
+                    <DialogActions sx={{ p: 2.5 }}>
+                        <Button onClick={() => setMetaDialogOpen(false)} color="inherit">Cerrar</Button>
+                        <Button onClick={handleOpenMetaDialog} startIcon={<SyncRounded />} disabled={metaLoading}>
+                            Actualizar lista
+                        </Button>
+                    </DialogActions>
+                </Dialog>
+
+                {/* ── Dialog: Create / Edit ──────────────────────────────────────── */}
                 <Dialog
                     open={dialogOpen}
                     onClose={handleCloseDialog}
-                    PaperProps={{
-                        sx: { borderRadius: 4, width: '100%', maxWidth: 500 }
-                    }}
+                    PaperProps={{ sx: { borderRadius: 4, width: '100%', maxWidth: 500 } }}
                 >
                     <DialogTitle sx={{ fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: 1 }}>
                         {selectedTemplate ? <EditRounded color="primary" /> : <AddRounded color="primary" />}
@@ -318,7 +571,6 @@ export const WhatsappTemplates: React.FC = () => {
                                 placeholder="Ej: Pedir Ubicación"
                                 helperText="Nombre que verán los vendedores en el chat."
                             />
-
                             <TextField
                                 label="Nombre técnico (API ID)"
                                 fullWidth
@@ -327,7 +579,6 @@ export const WhatsappTemplates: React.FC = () => {
                                 placeholder="Ej: pedir_ubicacion"
                                 helperText="Debe ser minúsculas y sin espacios. Si es oficial, debe coincidir con Meta."
                             />
-
                             <TextField
                                 label="Contenido del Mensaje"
                                 fullWidth
@@ -336,14 +587,14 @@ export const WhatsappTemplates: React.FC = () => {
                                 value={formData.body}
                                 onChange={(e) => setFormData({ ...formData, body: e.target.value })}
                                 placeholder="Escribe el mensaje aquí..."
-                                helperText={
-                                    <span>
-                                        Usa <strong>{"{{1}}"}</strong> para insertar el nombre del cliente automáticamente.
-                                    </span>
-                                }
+                                helperText={<span>Usa <strong>{"{{1}}"}</strong> para insertar el nombre del cliente automáticamente.</span>}
                             />
-
-                            <Paper sx={{ p: 2, bgcolor: (theme) => formData.is_official ? 'secondary.main' : 'action.hover', color: formData.is_official ? 'white' : 'inherit', transition: 'all 0.3s' }}>
+                            <Paper sx={{
+                                p: 2,
+                                bgcolor: (theme) => formData.is_official ? 'secondary.main' : 'action.hover',
+                                color: formData.is_official ? 'white' : 'inherit',
+                                transition: 'all 0.3s'
+                            }}>
                                 <FormControlLabel
                                     control={
                                         <Switch
