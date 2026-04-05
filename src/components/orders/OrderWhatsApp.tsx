@@ -29,6 +29,17 @@ function formatCountdown(ms: number): string {
 }
 
 // ─── Component ─────────────────────────────────────────────────────────────────
+const extractVars = (tpl: any) => {
+    const allText = [
+        tpl.body,
+        ...(tpl.meta_components || []).map((c: any) => c.text || '')
+    ].join(' ');
+    const matches = allText.match(/\{\{(\d+)\}\}/g);
+    if (!matches) return [];
+    const nums = matches.map(m => parseInt(m.match(/\d+/)![0]));
+    return [...new Set(nums)].sort((a, b) => a - b);
+};
+
 export const OrderWhatsApp = ({ orderId }: { orderId: number }) => {
     const [messages, setMessages] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
@@ -358,8 +369,15 @@ export const OrderWhatsApp = ({ orderId }: { orderId: number }) => {
 
     const handleQuickReply = async (template: any) => {
         if (template.is_official) {
-            const vars = [clientName];
-            const finalBody = template.body.replace('{{1}}', clientName);
+            const varNums = extractVars(template);
+            // Fill all variables with clientName as fallback
+            const vars = varNums.map(() => clientName);
+            
+            let finalBody = template.body;
+            varNums.forEach(n => {
+                finalBody = finalBody.replace(`{{${n}}}`, clientName);
+            });
+            
             await handleSend(undefined, template.name, vars, finalBody);
         } else {
             setInput(template.body);
@@ -700,9 +718,19 @@ export const OrderWhatsApp = ({ orderId }: { orderId: number }) => {
                                                         )}
                                                     </Box>
                                                 }
-                                                secondary={qr.body}
+                                                secondary={
+                                                    <Box sx={{ mt: 0.5 }}>
+                                                        {qr.meta_components?.find((c: any) => c.type === 'HEADER')?.text && (
+                                                            <Typography variant="caption" display="block" sx={{ fontWeight: 'bold', color: 'white', borderBottom: '1px solid rgba(255,255,255,0.1)', pb: 0.5, mb: 0.5 }}>
+                                                                {qr.meta_components.find((c: any) => c.type === 'HEADER').text}
+                                                            </Typography>
+                                                        )}
+                                                        <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.5)', fontStyle: 'italic' }}>
+                                                            {qr.body}
+                                                        </Typography>
+                                                    </Box>
+                                                }
                                                 primaryTypographyProps={{ fontWeight: 'bold', color: 'secondary.main', mb: 0.5 }}
-                                                secondaryTypographyProps={{ sx: { color: 'rgba(255,255,255,0.5)', fontSize: '0.8rem' } }}
                                             />
                                         </ListItemButton>
                                     </ListItem>

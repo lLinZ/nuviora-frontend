@@ -94,7 +94,8 @@ export const WhatsappTemplates: React.FC = () => {
         name: '',
         label: '',
         body: '',
-        is_official: false
+        is_official: false,
+        meta_components: [] as any[]
     });
 
     useEffect(() => {
@@ -181,11 +182,18 @@ export const WhatsappTemplates: React.FC = () => {
                 name: template.name,
                 label: template.label,
                 body: template.body,
-                is_official: !!template.is_official
+                is_official: !!template.is_official,
+                meta_components: template.meta_components || []
             });
         } else {
             setSelectedTemplate(null);
-            setFormData({ name: '', label: '', body: '', is_official: false });
+            setFormData({ 
+                name: '', 
+                label: '', 
+                body: '', 
+                is_official: false,
+                meta_components: []
+            });
         }
         setDialogOpen(true);
     };
