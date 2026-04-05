@@ -1,6 +1,6 @@
 import { FC, useEffect, useRef, useState } from "react";
-import { Box, Typography, Avatar, IconButton, TextField, CircularProgress, Paper, Chip, Tooltip, Zoom } from "@mui/material";
-import { SendRounded, AttachFileRounded, ArrowBackRounded, InfoRounded, MicRounded, StopRounded, DeleteRounded, ImageRounded, VideocamRounded } from "@mui/icons-material";
+import { Box, Typography, Avatar, IconButton, TextField, CircularProgress, Paper, Chip, Tooltip, Dialog, DialogTitle, DialogContent, DialogActions, Button, List, ListItem, ListItemButton, ListItemText, Divider, Stack, Alert } from "@mui/material";
+import { SendRounded, AttachFileRounded, ArrowBackRounded, InfoRounded, MicRounded, DeleteRounded, VerifiedRounded, MessageRounded } from "@mui/icons-material";
 import { ContactData } from "../WhatsAppPage";
 import { request } from "../../../common/request";
 import dayjs from "dayjs";
@@ -23,6 +23,34 @@ interface Message {
     sent_at: string;
 }
 
+interface ITemplate {
+    id: number;
+    name: string;
+    label: string;
+    body: string;
+    is_official: boolean;
+    meta_components?: any[];
+}
+
+// Extract {{1}}, {{2}} etc. from template strings
+const extractVars = (textOrTpl: string | ITemplate): string[] => {
+    let allText = '';
+    if (typeof textOrTpl === 'string') {
+        allText = textOrTpl;
+    } else {
+        // If it's a template object, check body AND components (header, body etc)
+        allText = textOrTpl.body;
+        if (textOrTpl.meta_components) {
+            textOrTpl.meta_components.forEach(c => {
+                if (c.text) allText += ' ' + c.text;
+            });
+        }
+    }
+    const matches = allText.match(/\{\{\d+\}\}/g) || [];
+    const nums = [...new Set(matches.map(m => m.replace(/\D/g, '')))].sort((a, b) => +a - +b);
+    return nums;
+};
+
 export const ChatArea: FC<ChatAreaProps> = ({ selectedContact, onRefreshContacts, onBack, onOpenContext }) => {
     const [messages, setMessages] = useState<Message[]>([]);
     const [loading, setLoading] = useState(false);
@@ -36,6 +64,13 @@ export const ChatArea: FC<ChatAreaProps> = ({ selectedContact, onRefreshContacts
     const mediaRecorderRef = useRef<MediaRecorder | null>(null);
     const audioChunksRef = useRef<Blob[]>([]);
     const recordingIntervalRef = useRef<any>(null);
+
+    // Template picker state
+    const [templateDialogOpen, setTemplateDialogOpen] = useState(false);
+    const [templates, setTemplates] = useState<ITemplate[]>([]);
+    const [templatesLoading, setTemplatesLoading] = useState(false);
+    const [selectedTemplate, setSelectedTemplate] = useState<ITemplate | null>(null);
+    const [templateVars, setTemplateVars] = useState<Record<string, string>>({});
 
     const fileInputRef = useRef<HTMLInputElement>(null);
     const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -214,6 +249,75 @@ export const ChatArea: FC<ChatAreaProps> = ({ selectedContact, onRefreshContacts
         } catch (error) {
             console.error(error);
             toast.error("Error de conexión");
+        } finally {
+            setSending(false);
+        }
+    };
+
+    // ─── Template Picker ────────────────────────────────────────────────────
+
+    const handleOpenTemplates = async () => {
+        setTemplatesLoading(true);
+        setSelectedTemplate(null);
+        setTemplateVars({});
+        setTemplateDialogOpen(true);
+        try {
+            const { status, response } = await request('/whatsapp-templates', 'GET');
+            if (status === 200) {
+                const data = await response.json();
+                setTemplates(data);
+            }
+        } finally {
+            setTemplatesLoading(false);
+        }
+    };
+
+    const handleSelectTemplate = (tpl: ITemplate) => {
+        setSelectedTemplate(tpl);
+        // Pre-fill vars: use client name for {{1}} by default
+        const nums = extractVars(tpl);
+        const defaults: Record<string, string> = {};
+        if (nums[0]) defaults[nums[0]] = selectedContact?.name?.split(' ')[0] ?? '';
+        setTemplateVars(defaults);
+    };
+
+    const buildPreview = (body: string, vars: Record<string, string>) => {
+        return body.replace(/\{\{(\d+)\}\}/g, (_, num) => vars[num] ? `*${vars[num]}*` : `{{${num}}}`);
+    };
+
+    const handleSendTemplate = async () => {
+        if (!selectedTemplate || !selectedContact) return;
+        setSending(true);
+        try {
+            const nums = extractVars(selectedTemplate);
+            const vars = nums.map(n => templateVars[n] ?? '');
+            const preview = buildPreview(selectedTemplate.body, templateVars);
+
+            const payload: any = {
+                body: preview,
+            };
+
+            if (selectedTemplate.is_official) {
+                payload.template_name = selectedTemplate.name;
+                payload.vars = vars;
+            }
+
+            const { status, response } = await request(
+                `/whatsapp-conversations/${selectedContact.id}/messages`, 'POST', payload
+            );
+
+            if (status === 201 || status === 200) {
+                const json = await response.json();
+                setMessages(prev => [...prev, json]);
+                onRefreshContacts();
+                setTemplateDialogOpen(false);
+                setSelectedTemplate(null);
+            } else {
+                const err = await response.json();
+                toast.error(err.message || 'Error enviando plantilla');
+            }
+        } catch (err) {
+            toast.error('Error de conexión');
         } finally {
             setSending(false);
         }
@@ -415,13 +519,103 @@ export const ChatArea: FC<ChatAreaProps> = ({ selectedContact, onRefreshContacts
                 <div ref={messagesEndRef} />
             </Box>
 
+            {/* Template Picker Dialog */}
+            <Dialog open={templateDialogOpen} onClose={() => setTemplateDialogOpen(false)} maxWidth="sm" fullWidth PaperProps={{ sx: { borderRadius: 4 } }}>
+                <DialogTitle sx={{ fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <VerifiedRounded color="success" />
+                    Enviar Plantilla de WhatsApp
+                </DialogTitle>
+                <DialogContent dividers sx={{ p: 0 }}>
+                    {templatesLoading ? (
+                        <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}><CircularProgress /></Box>
+                    ) : !selectedTemplate ? (
+                        // Step 1: Pick a template
+                        <List disablePadding>
+                            {templates.length === 0 && (
+                                <Box sx={{ p: 3, textAlign: 'center' }}>
+                                    <Typography color="text.secondary">No hay plantillas registradas.</Typography>
+                                </Box>
+                            )}
+                            {templates.map((tpl, i) => (
+                                <Box key={tpl.id}>
+                                    <ListItemButton onClick={() => handleSelectTemplate(tpl)} sx={{ py: 1.5, px: 3 }}>
+                                        <Box sx={{ mr: 1.5, color: tpl.is_official ? 'secondary.main' : '#25d366' }}>
+                                            {tpl.is_official ? <VerifiedRounded fontSize="small" /> : <MessageRounded fontSize="small" />}
+                                        </Box>
+                                        <ListItemText
+                                            primary={<><strong>{tpl.label}</strong>{tpl.is_official && <Chip label="OFICIAL" size="small" color="secondary" sx={{ ml: 1, height: 18, fontSize: '0.6rem' }} />}</>}
+                                            secondary={tpl.body.length > 80 ? tpl.body.slice(0, 80) + '…' : tpl.body}
+                                        />
+                                    </ListItemButton>
+                                    {i < templates.length - 1 && <Divider />}
+                                </Box>
+                            ))}
+                        </List>
+                    ) : (
+                        // Step 2: Fill variables
+                        <Box sx={{ p: 3 }}>
+                            <Button size="small" onClick={() => setSelectedTemplate(null)} sx={{ mb: 2 }}>← Volver</Button>
+                            <Typography fontWeight="bold" sx={{ mb: 1 }}>{selectedTemplate.label}</Typography>
+
+                            {extractVars(selectedTemplate).length > 0 && (
+                                <Stack spacing={2} sx={{ mb: 2 }}>
+                                    {extractVars(selectedTemplate).map(num => (
+                                        <TextField
+                                            key={num}
+                                            label={`Variable {{${num}}}`}
+                                            size="small"
+                                            fullWidth
+                                            value={templateVars[num] ?? ''}
+                                            onChange={e => setTemplateVars(prev => ({ ...prev, [num]: e.target.value }))}
+                                            helperText={num === '1' ? 'Normalmente el nombre del cliente' : undefined}
+                                        />
+                                    ))}
+                                </Stack>
+                            )}
+
+                            <Alert severity="info" icon={false} sx={{ borderRadius: 2, fontStyle: 'italic', fontSize: 13 }}>
+                                Vista previa:<br />
+                                {buildPreview(selectedTemplate.body, templateVars)}
+                            </Alert>
+
+                            {!selectedContact.is_window_open && selectedTemplate.is_official && (
+                                <Alert severity="success" sx={{ mt: 1.5, borderRadius: 2, fontSize: 12 }}>
+                                    ✅ Esta es una plantilla oficial — se puede enviar aunque la ventana de 24h esté cerrada.
+                                </Alert>
+                            )}
+                        </Box>
+                    )}
+                </DialogContent>
+                <DialogActions sx={{ p: 2 }}>
+                    <Button onClick={() => setTemplateDialogOpen(false)} color="inherit">Cancelar</Button>
+                    {selectedTemplate && (
+                        <Button
+                            variant="contained"
+                            onClick={handleSendTemplate}
+                            disabled={sending}
+                            startIcon={sending ? <CircularProgress size={16} color="inherit" /> : <SendRounded />}
+                            sx={{ borderRadius: 2, bgcolor: '#25d366', '&:hover': { bgcolor: '#128c7e' } }}
+                        >
+                            Enviar Plantilla
+                        </Button>
+                    )}
+                </DialogActions>
+            </Dialog>
+
             {/* Input Form */}
             <Paper component="form" onSubmit={handleSend} elevation={1} sx={{ p: 2, display: 'flex', alignItems: 'center', gap: 1, borderRadius: 0, bgcolor: 'background.paper', zIndex: 2 }}>
                 {!selectedContact.is_window_open ? (
-                    <Box sx={{ flexGrow: 1, p: 1, bgcolor: '#fff3e0', border: '1px solid #ffe0b2', borderRadius: 2, textAlign: 'center' }}>
-                        <Typography variant="caption" color="warning.dark" sx={{ fontWeight: 'bold', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 0.5 }}>
-                            ⚠️ Ventana de 24h cerrada. El cliente debe escribir primero.
-                        </Typography>
+                    <Box sx={{ flexGrow: 1, display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <Box sx={{ flexGrow: 1, p: 1, bgcolor: '#fff3e0', border: '1px solid #ffe0b2', borderRadius: 2, textAlign: 'center' }}>
+                            <Typography variant="caption" color="warning.dark" sx={{ fontWeight: 'bold', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 0.5 }}>
+                                ⚠️ Ventana de 24h cerrada. Usa una plantilla oficial.
+                            </Typography>
+                        </Box>
+                        <Tooltip title="Enviar plantilla oficial">
+                            <IconButton onClick={handleOpenTemplates} sx={{ bgcolor: 'secondary.main', color: 'white', '&:hover': { bgcolor: 'secondary.dark' } }}>
+                                <VerifiedRounded />
+                            </IconButton>
+                        </Tooltip>
                     </Box>
                 ) : isRecording ? (
                     <Box sx={{ flexGrow: 1, display: 'flex', alignItems: 'center', bgcolor: 'action.hover', p: 0.5, px: 2, borderRadius: 10, gap: 2 }}>
@@ -453,6 +647,12 @@ export const ChatArea: FC<ChatAreaProps> = ({ selectedContact, onRefreshContacts
                         <Tooltip title="Adjuntar foto o video">
                             <IconButton color="default" onClick={() => fileInputRef.current?.click()} disabled={uploading}>
                                 {uploading ? <CircularProgress size={24} /> : <AttachFileRounded />}
+                            </IconButton>
+                        </Tooltip>
+
+                        <Tooltip title="Enviar plantilla">
+                            <IconButton onClick={handleOpenTemplates} sx={{ color: 'secondary.main' }}>
+                                <VerifiedRounded fontSize="small" />
                             </IconButton>
                         </Tooltip>
                         

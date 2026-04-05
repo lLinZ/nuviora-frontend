@@ -148,9 +148,10 @@ export const WhatsappTemplates: React.FC = () => {
                 : tpl.name;
 
             const { status, response }: IResponse = await request('/whatsapp-templates/import-meta', 'POST', {
-                name:  tpl.name,
-                label: label,
-                body:  tpl.body_preview || tpl.name,
+                name:            tpl.name,
+                label:           label,
+                body:            tpl.body_preview || tpl.name,
+                meta_components: tpl.components,
             });
 
             if (status === 200 || status === 201) {
