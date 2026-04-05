@@ -51,6 +51,7 @@ interface IWhatsappTemplate {
     label: string;
     body: string;
     is_official: boolean;
+    meta_components?: any[];
     created_at?: string;
 }
 
@@ -344,6 +345,11 @@ export const WhatsappTemplates: React.FC = () => {
                                         p: 2, borderRadius: 3, borderStyle: 'dashed',
                                         bgcolor: (theme) => theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.01)',
                                     }}>
+                                        {template.meta_components?.find((c: any) => c.type === 'HEADER')?.text && (
+                                            <Typography variant="subtitle2" fontWeight="bold" sx={{ mb: 1.5, color: 'text.primary', borderBottom: '1px solid', borderColor: 'divider', pb: 1 }}>
+                                                {template.meta_components.find((c: any) => c.type === 'HEADER').text}
+                                            </Typography>
+                                        )}
                                         <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap', color: 'text.secondary', fontStyle: 'italic' }}>
                                             "{template.body}"
                                         </Typography>
@@ -482,8 +488,14 @@ export const WhatsappTemplates: React.FC = () => {
                                                         />
                                                     </Stack>
 
+                                                    {tpl.components?.find(c => c.type === 'HEADER')?.text && (
+                                                        <Typography variant="body2" fontWeight="bold" sx={{ color: 'text.primary', mb: 0.5 }}>
+                                                            {tpl.components.find(c => c.type === 'HEADER').text}
+                                                        </Typography>
+                                                    )}
+
                                                     {tpl.body_preview ? (
-                                                        <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5, fontStyle: 'italic' }}>
+                                                        <Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic' }}>
                                                             "{tpl.body_preview}"
                                                         </Typography>
                                                     ) : (

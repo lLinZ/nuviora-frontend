@@ -281,8 +281,14 @@ export const ChatArea: FC<ChatAreaProps> = ({ selectedContact, onRefreshContacts
         setTemplateVars(defaults);
     };
 
-    const buildPreview = (body: string, vars: Record<string, string>) => {
-        return body.replace(/\{\{(\d+)\}\}/g, (_, num) => vars[num] ? `*${vars[num]}*` : `{{${num}}}`);
+    const buildPreview = (tpl: ITemplate, vars: Record<string, string>) => {
+        let full = '';
+        const header = tpl.meta_components?.find((c: any) => c.type === 'HEADER')?.text;
+        if (header) {
+            full += header.replace(/\{\{(\d+)\}\}/g, (_: string, num: string) => vars[num] ? `*${vars[num]}*` : `{{${num}}}`) + '\n\n';
+        }
+        full += tpl.body.replace(/\{\{(\d+)\}\}/g, (_: string, num: string) => vars[num] ? `*${vars[num]}*` : `{{${num}}}`);
+        return full;
     };
 
     const handleSendTemplate = async () => {
@@ -291,7 +297,7 @@ export const ChatArea: FC<ChatAreaProps> = ({ selectedContact, onRefreshContacts
         try {
             const nums = extractVars(selectedTemplate);
             const vars = nums.map(n => templateVars[n] ?? '');
-            const preview = buildPreview(selectedTemplate.body, templateVars);
+            const preview = buildPreview(selectedTemplate, templateVars);
 
             const payload: any = {
                 body: preview,
@@ -544,7 +550,11 @@ export const ChatArea: FC<ChatAreaProps> = ({ selectedContact, onRefreshContacts
                                         </Box>
                                         <ListItemText
                                             primary={<><strong>{tpl.label}</strong>{tpl.is_official && <Chip label="OFICIAL" size="small" color="secondary" sx={{ ml: 1, height: 18, fontSize: '0.6rem' }} />}</>}
-                                            secondary={tpl.body.length > 80 ? tpl.body.slice(0, 80) + '…' : tpl.body}
+                                            secondary={
+                                                tpl.meta_components?.find((c: any) => c.type === 'HEADER')?.text 
+                                                ? `${tpl.meta_components.find((c: any) => c.type === 'HEADER').text} | ${tpl.body}`.slice(0, 80) + '…'
+                                                : (tpl.body.length > 80 ? tpl.body.slice(0, 80) + '…' : tpl.body)
+                                            }
                                         />
                                     </ListItemButton>
                                     {i < templates.length - 1 && <Divider />}
@@ -573,9 +583,9 @@ export const ChatArea: FC<ChatAreaProps> = ({ selectedContact, onRefreshContacts
                                 </Stack>
                             )}
 
-                            <Alert severity="info" icon={false} sx={{ borderRadius: 2, fontStyle: 'italic', fontSize: 13 }}>
+                            <Alert severity="info" icon={false} sx={{ borderRadius: 2, fontStyle: 'italic', fontSize: 13, whiteSpace: 'pre-wrap' }}>
                                 Vista previa:<br />
-                                {buildPreview(selectedTemplate.body, templateVars)}
+                                {buildPreview(selectedTemplate, templateVars)}
                             </Alert>
 
                             {!selectedContact.is_window_open && selectedTemplate.is_official && (
