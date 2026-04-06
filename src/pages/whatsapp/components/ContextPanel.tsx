@@ -46,7 +46,7 @@ export const ContextPanel: FC<ContextPanelProps> = ({ selectedContact, isMobileD
         }
     };
 
-    const agentName = context.agent?.names || context.order?.agent?.names || '...';
+    const agentName = context.order?.agent?.names || context.agent?.names || '...';
 
     return (
         <Box 
