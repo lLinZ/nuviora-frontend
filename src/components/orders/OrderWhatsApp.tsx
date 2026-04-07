@@ -554,11 +554,11 @@ export const OrderWhatsApp = ({ orderId }: { orderId: number }) => {
                                                                 sx={{ width: '100%', display: 'block', maxHeight: '300px', bgcolor: '#000' }} 
                                                             />
                                                         ) : mediaType === 'audio' || (typeof mediaSrc === 'string' && (mediaSrc.toLowerCase().includes('.ogg') || mediaSrc.toLowerCase().includes('.mp3') || mediaSrc.toLowerCase().includes('.wav') || mediaSrc.toLowerCase().includes('.m4a'))) ? (
-                                                            <Box sx={{ width: '100%', mt: 1, mb: 1, bgcolor: 'rgba(255,255,255,0.05)', borderRadius: 2, p: 0.5 }}>
+                                                            <Box sx={{ width: '100%', minWidth: { xs: 220, md: 280 }, mt: 1, mb: 1, bgcolor: 'rgba(255,255,255,0.08)', borderRadius: 2, p: 0.5 }}>
                                                                 <Box component='audio' 
                                                                     controls 
                                                                     src={mediaSrc} 
-                                                                    sx={{ width: '100%', outline: 'none', height: 32 }} 
+                                                                    sx={{ width: '100%', outline: 'none', height: 45, display: 'block' }} 
                                                                 >
                                                                     <source src={mediaSrc} type={mediaSrc.toLowerCase().includes('.m4a') ? "audio/mp4" : "audio/ogg"} />
                                                                 </Box>

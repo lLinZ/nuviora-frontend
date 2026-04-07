@@ -163,8 +163,8 @@ export const ChatArea: FC<ChatAreaProps> = ({ selectedContact, onRefreshContacts
 
         if (isAudio) {
             return (
-                <Box sx={{ minWidth: { xs: 240, sm: 300 }, width: '100%', mb: 1 }}>
-                    <Box component="audio" controls sx={{ width: '100%', height: 40, borderRadius: 2 }}>
+                <Box sx={{ minWidth: { xs: 260, sm: 300 }, width: '100%', mb: 1, bgcolor: 'rgba(0,0,0,0.05)', borderRadius: 2, p: 0.5 }}>
+                    <Box component="audio" controls sx={{ width: '100%', height: 45, outline: 'none', display: 'block' }}>
                         <source src={mediaUrl} type={url.includes('.m4a') ? "audio/mp4" : url.includes('.wav') ? "audio/wav" : "audio/ogg"} />
                         Tu navegador no soporta audio.
                     </Box>
