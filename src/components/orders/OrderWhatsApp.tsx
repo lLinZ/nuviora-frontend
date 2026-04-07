@@ -545,12 +545,16 @@ export const OrderWhatsApp = ({ orderId }: { orderId: number }) => {
                                                                 src={mediaSrc} 
                                                                 sx={{ width: '100%', display: 'block', maxHeight: '300px', bgcolor: '#000' }} 
                                                             />
-                                                        ) : typeof mediaSrc === 'string' && (mediaSrc.endsWith('.ogg') || mediaSrc.endsWith('.mp3') || mediaSrc.endsWith('.wav')) ? (
-                                                            <Box component='audio' 
-                                                                controls 
-                                                                src={mediaSrc} 
-                                                                sx={{ width: '100%', outline: 'none', mt: 1 }} 
-                                                            />
+                                                        ) : typeof mediaSrc === 'string' && (mediaSrc.toLowerCase().includes('.ogg') || mediaSrc.toLowerCase().includes('.mp3') || mediaSrc.toLowerCase().includes('.wav') || mediaSrc.toLowerCase().includes('.m4a')) ? (
+                                                            <Box sx={{ width: '100%', mt: 1, mb: 1, bgcolor: 'rgba(255,255,255,0.05)', borderRadius: 2, p: 0.5 }}>
+                                                                <Box component='audio' 
+                                                                    controls 
+                                                                    src={mediaSrc} 
+                                                                    sx={{ width: '100%', outline: 'none', height: 32 }} 
+                                                                >
+                                                                    <source src={mediaSrc} type={mediaSrc.toLowerCase().includes('.m4a') ? "audio/mp4" : "audio/ogg"} />
+                                                                </Box>
+                                                            </Box>
                                                         ) : (
                                                             <Box component='img' 
                                                                 src={mediaSrc} 
