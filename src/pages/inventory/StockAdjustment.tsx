@@ -42,7 +42,7 @@ export const StockAdjustment: React.FC<Props> = ({ isEmbedded }) => {
 
     const loadProducts = async () => {
         try {
-            const { status, response }: IResponse = await request('/inventory/products', 'GET');
+            const { status, response }: IResponse = await request('/inventory/products?paginate=false', 'GET');
             if (status) {
                 const data = await response.json();
                 setProducts(data.data || []);
