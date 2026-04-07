@@ -154,12 +154,18 @@ export const ChatArea: FC<ChatAreaProps> = ({ selectedContact, onRefreshContacts
 
         const url = mediaUrl.toLowerCase();
         
-        // Priority 1: Audio (Check type first or common audio extensions)
-        if (media.type === 'audio' || url.endsWith('.ogg') || url.endsWith('.mp3') || url.endsWith('.wav') || url.endsWith('.m4a') || (url.endsWith('.webm') && media.type !== 'video')) {
+        const isAudio = media.type === 'audio' || 
+                        url.includes('.ogg') || 
+                        url.includes('.mp3') || 
+                        url.includes('.wav') || 
+                        url.includes('.m4a') || 
+                        (url.includes('.webm') && media.type !== 'video');
+
+        if (isAudio) {
             return (
                 <Box sx={{ minWidth: { xs: 240, sm: 300 }, width: '100%', mb: 1 }}>
-                    <Box component="audio" controls sx={{ width: '100%', height: 40 }}>
-                        <source src={mediaUrl} />
+                    <Box component="audio" controls sx={{ width: '100%', height: 40, borderRadius: 2 }}>
+                        <source src={mediaUrl} type={url.includes('.m4a') ? "audio/mp4" : url.includes('.wav') ? "audio/wav" : "audio/ogg"} />
                         Tu navegador no soporta audio.
                     </Box>
                 </Box>
