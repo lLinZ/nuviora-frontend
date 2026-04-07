@@ -525,8 +525,16 @@ export const OrderWhatsApp = ({ orderId }: { orderId: number }) => {
                                 }}>
                                     {/* 1. EXTRACT MEDIA URL & TEXT BODY */}
                                     {(() => {
-                                        const cloudinaryMatch = m.body ? m.body.match(/(https?:\/\/[^\s]*(res\.cloudinary\.com|storage\/whatsapp\/|api\.nuviora\.cloud\/storage)[^\s]*)/i) : null;
-                                        const mediaSrc = m.media || (cloudinaryMatch ? cloudinaryMatch[0] : null);
+                                        // 1. Normalizar multimedia (Soportar string antiguo o objeto nuevo)
+                                        const mediaData = typeof m.media === 'string' ? { link: m.media, type: 'unknown' } : m.media;
+                                        
+                                        const cloudinaryMatch = (!mediaData && m.body) ? m.body.match(/(https?:\/\/[^\s]*(res\.cloudinary\.com|storage\/whatsapp\/|api\.nuviora\.cloud\/storage)[^\s]*)/i) : null;
+                                        
+                                        const finalMedia = mediaData || (cloudinaryMatch ? { link: cloudinaryMatch[0], type: 'unknown' } : null);
+                                        const mediaSrc = finalMedia?.link || null;
+                                        const mediaType = finalMedia?.type || 'unknown';
+
+                                        // Limpiar el body del mensaje de links de cloudinary para que no se dupliquen
                                         const textBody = m.body ? m.body.replace(mediaSrc || '', '').trim() : '';
 
                                         return (
@@ -539,13 +547,13 @@ export const OrderWhatsApp = ({ orderId }: { orderId: number }) => {
                                                         border: '1px solid rgba(255,255,255,0.05)', 
                                                         maxWidth: '100%'
                                                     }}>
-                                                        {typeof mediaSrc === 'string' && mediaSrc.endsWith('.mp4') ? (
+                                                        {mediaType === 'video' || (typeof mediaSrc === 'string' && mediaSrc.toLowerCase().includes('.mp4')) ? (
                                                             <Box component='video' 
                                                                 controls 
                                                                 src={mediaSrc} 
                                                                 sx={{ width: '100%', display: 'block', maxHeight: '300px', bgcolor: '#000' }} 
                                                             />
-                                                        ) : typeof mediaSrc === 'string' && (mediaSrc.toLowerCase().includes('.ogg') || mediaSrc.toLowerCase().includes('.mp3') || mediaSrc.toLowerCase().includes('.wav') || mediaSrc.toLowerCase().includes('.m4a')) ? (
+                                                        ) : mediaType === 'audio' || (typeof mediaSrc === 'string' && (mediaSrc.toLowerCase().includes('.ogg') || mediaSrc.toLowerCase().includes('.mp3') || mediaSrc.toLowerCase().includes('.wav') || mediaSrc.toLowerCase().includes('.m4a'))) ? (
                                                             <Box sx={{ width: '100%', mt: 1, mb: 1, bgcolor: 'rgba(255,255,255,0.05)', borderRadius: 2, p: 0.5 }}>
                                                                 <Box component='audio' 
                                                                     controls 
