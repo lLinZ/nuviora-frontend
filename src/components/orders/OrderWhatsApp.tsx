@@ -539,13 +539,16 @@ export const OrderWhatsApp = ({ orderId }: { orderId: number }) => {
 
                                         // Helper: detectar tipo de medio por URL o tipo explícito
                                         const urlLower = (mediaSrc || '').toLowerCase().split('?')[0]; // quitar query params
-                                        const isVideo = mediaType === 'video' ||
+                                        const isSticker = mediaType === 'sticker' || urlLower.includes('wa_sticker_');
+                                        const isVideo = !isSticker && (
+                                            mediaType === 'video' ||
                                             urlLower.endsWith('.mp4') ||
                                             urlLower.endsWith('.webm') ||
                                             urlLower.endsWith('.mov') ||
                                             urlLower.endsWith('.3gp') ||
-                                            urlLower.includes('wa_vid_'); // prefijo generado por el webhook
-                                        const isAudio = !isVideo && (
+                                            urlLower.includes('wa_vid_') // prefijo generado por el webhook
+                                        );
+                                        const isAudio = !isSticker && !isVideo && (
                                             mediaType === 'audio' || mediaType === 'voice' ||
                                             urlLower.endsWith('.ogg') ||
                                             urlLower.endsWith('.mp3') ||
@@ -557,45 +560,61 @@ export const OrderWhatsApp = ({ orderId }: { orderId: number }) => {
                                         return (
                                             <>
                                                 {mediaSrc && (
-                                                    <Box sx={{ 
-                                                        mb: textBody ? 1.5 : 0,
-                                                        borderRadius: '10px', 
-                                                        overflow: 'hidden', 
-                                                        border: '1px solid rgba(255,255,255,0.05)', 
-                                                        maxWidth: '100%'
-                                                    }}>
-                                                        {isVideo ? (
-                                                            <Box component='video' 
-                                                                controls 
-                                                                src={mediaSrc} 
-                                                                sx={{ width: '100%', display: 'block', maxHeight: '300px', bgcolor: '#000' }} 
-                                                            />
-                                                        ) : isAudio ? (
-                                                            <Box sx={{ width: '100%', minWidth: { xs: 220, md: 280 }, mt: 1, mb: 1, bgcolor: 'rgba(255,255,255,0.08)', borderRadius: 2, p: 0.5 }}>
-                                                                <Box component='audio' 
+                                                    isSticker ? (
+                                                        // Sticker: imagen flotante transparente, sin borde ni fondo
+                                                        <Box component='img'
+                                                            src={mediaSrc}
+                                                            alt='Sticker'
+                                                            onClick={() => window.open(mediaSrc, '_blank')}
+                                                            sx={{
+                                                                width: 150, height: 150,
+                                                                display: 'block',
+                                                                objectFit: 'contain',
+                                                                cursor: 'pointer',
+                                                                mb: textBody ? 1 : 0,
+                                                            }}
+                                                        />
+                                                    ) : (
+                                                        <Box sx={{ 
+                                                            mb: textBody ? 1.5 : 0,
+                                                            borderRadius: '10px', 
+                                                            overflow: 'hidden', 
+                                                            border: '1px solid rgba(255,255,255,0.05)', 
+                                                            maxWidth: '100%'
+                                                        }}>
+                                                            {isVideo ? (
+                                                                <Box component='video' 
                                                                     controls 
                                                                     src={mediaSrc} 
-                                                                    sx={{ width: '100%', outline: 'none', height: 45, display: 'block' }} 
-                                                                >
-                                                                    <source src={mediaSrc} type={urlLower.endsWith('.m4a') ? "audio/mp4" : "audio/ogg"} />
+                                                                    sx={{ width: '100%', display: 'block', maxHeight: '300px', bgcolor: '#000' }} 
+                                                                />
+                                                            ) : isAudio ? (
+                                                                <Box sx={{ width: '100%', minWidth: { xs: 220, md: 280 }, mt: 1, mb: 1, bgcolor: 'rgba(255,255,255,0.08)', borderRadius: 2, p: 0.5 }}>
+                                                                    <Box component='audio' 
+                                                                        controls 
+                                                                        src={mediaSrc} 
+                                                                        sx={{ width: '100%', outline: 'none', height: 45, display: 'block' }} 
+                                                                    >
+                                                                        <source src={mediaSrc} type={urlLower.endsWith('.m4a') ? "audio/mp4" : "audio/ogg"} />
+                                                                    </Box>
                                                                 </Box>
-                                                            </Box>
-                                                        ) : (
-                                                            <Box component='img' 
-                                                                src={mediaSrc} 
-                                                                alt={textBody || 'WhatsApp Media'}
-                                                                onClick={() => window.open(mediaSrc, '_blank')}
-                                                                sx={{ 
-                                                                    width: '100%', 
-                                                                    height: 'auto', 
-                                                                    display: 'block', 
-                                                                    objectFit: 'cover',
-                                                                    maxHeight: '300px',
-                                                                    cursor: 'pointer'
-                                                                }} 
-                                                            />
-                                                        )}
-                                                    </Box>
+                                                            ) : (
+                                                                <Box component='img' 
+                                                                    src={mediaSrc} 
+                                                                    alt={textBody || 'WhatsApp Media'}
+                                                                    onClick={() => window.open(mediaSrc, '_blank')}
+                                                                    sx={{ 
+                                                                        width: '100%', 
+                                                                        height: 'auto', 
+                                                                        display: 'block', 
+                                                                        objectFit: 'cover',
+                                                                        maxHeight: '300px',
+                                                                        cursor: 'pointer'
+                                                                    }} 
+                                                                />
+                                                            )}
+                                                        </Box>
+                                                    )
                                                 )}
 
                                                 {/* 2. TEXT BODY W/ URL PARSER */}

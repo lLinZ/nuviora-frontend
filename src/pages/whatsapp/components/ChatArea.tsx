@@ -156,16 +156,21 @@ export const ChatArea: FC<ChatAreaProps> = ({ selectedContact, onRefreshContacts
         const urlLower = mediaUrl.toLowerCase().split('?')[0];
         const mediaType = typeof media === 'string' ? 'unknown' : (media.type || 'unknown');
 
+        // Detect sticker first (before video — .webp stickers would otherwise fall through to image)
+        const isSticker = mediaType === 'sticker' || urlLower.includes('wa_sticker_');
+
         // Detect video by explicit type OR common extensions OR webhook filename prefix
-        const isVideo = mediaType === 'video' ||
+        const isVideo = !isSticker && (
+            mediaType === 'video' ||
             urlLower.endsWith('.mp4') ||
             urlLower.endsWith('.webm') ||
             urlLower.endsWith('.mov') ||
             urlLower.endsWith('.3gp') ||
-            urlLower.includes('wa_vid_');
+            urlLower.includes('wa_vid_')
+        );
 
-        // Detect audio (only if not video)
-        const isAudio = !isVideo && (
+        // Detect audio (only if not sticker and not video)
+        const isAudio = !isSticker && !isVideo && (
             mediaType === 'audio' || mediaType === 'voice' ||
             urlLower.endsWith('.ogg') ||
             urlLower.endsWith('.mp3') ||
@@ -174,6 +179,18 @@ export const ChatArea: FC<ChatAreaProps> = ({ selectedContact, onRefreshContacts
             urlLower.includes('wa_audio_') ||
             (urlLower.endsWith('.webm') && mediaType !== 'video')
         );
+
+        if (isSticker) {
+            return (
+                <Box 
+                    component="img" 
+                    src={mediaUrl}
+                    alt="Sticker"
+                    onClick={() => window.open(mediaUrl, '_blank')}
+                    sx={{ width: 150, height: 150, objectFit: 'contain', display: 'block', cursor: 'pointer', mb: 1 }}
+                />
+            );
+        }
 
         if (isAudio) {
             return (
