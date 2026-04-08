@@ -157,8 +157,7 @@ export const ChatArea: FC<ChatAreaProps> = ({ selectedContact, onRefreshContacts
         const mediaType = typeof media === 'string' ? 'unknown' : (media.type || 'unknown');
 
         // Detect sticker first (before video — .webp stickers would otherwise fall through to image)
-        const isSticker = mediaType === 'sticker' || urlLower.includes('wa_sticker_');
-        const isAnimatedSticker = urlLower.includes('wa_sticker_anim_');
+        const isSticker = mediaType === 'sticker' || urlLower.includes('wa_sticker_') || urlLower.endsWith('.webp');
 
         // Detect video by explicit type OR common extensions OR webhook filename prefix
         const isVideo = !isSticker && (
@@ -182,27 +181,13 @@ export const ChatArea: FC<ChatAreaProps> = ({ selectedContact, onRefreshContacts
         );
 
         if (isSticker) {
-            return isAnimatedSticker ? (
-                // Sticker animado: video con autoplay/loop para WebP animado
-                <Box
-                    component="video"
-                    autoPlay
-                    loop
-                    muted
-                    playsInline
-                    onClick={() => window.open(mediaUrl, '_blank')}
-                    sx={{ width: 150, height: 150, objectFit: 'contain', display: 'block', cursor: 'pointer', mb: 1, bgcolor: 'transparent' }}
-                >
-                    <source src={mediaUrl} type="image/webp" />
-                </Box>
-            ) : (
-                // Sticker estático: imagen flotante transparente
+            return (
                 <Box 
                     component="img" 
                     src={mediaUrl}
                     alt="Sticker"
                     onClick={() => window.open(mediaUrl, '_blank')}
-                    sx={{ width: 150, height: 150, objectFit: 'contain', display: 'block', cursor: 'pointer', mb: 1 }}
+                    sx={{ width: 150, height: 150, objectFit: 'contain', display: 'block', cursor: 'pointer', mb: 1, bgcolor: 'transparent' }}
                 />
             );
         }

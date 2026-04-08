@@ -539,8 +539,7 @@ export const OrderWhatsApp = ({ orderId }: { orderId: number }) => {
 
                                         // Helper: detectar tipo de medio por URL o tipo explícito
                                         const urlLower = (mediaSrc || '').toLowerCase().split('?')[0]; // quitar query params
-                                        const isSticker = mediaType === 'sticker' || urlLower.includes('wa_sticker_');
-                                        const isAnimatedSticker = urlLower.includes('wa_sticker_anim_');
+                                        const isSticker = mediaType === 'sticker' || urlLower.includes('wa_sticker_') || urlLower.endsWith('.webp');
                                         const isVideo = !isSticker && (
                                             mediaType === 'video' ||
                                             urlLower.endsWith('.mp4') ||
@@ -562,41 +561,20 @@ export const OrderWhatsApp = ({ orderId }: { orderId: number }) => {
                                             <>
                                                 {mediaSrc && (
                                                     isSticker ? (
-                                                        isAnimatedSticker ? (
-                                                            // Sticker animado: usar <video> para reproducir WebP animado
-                                                            <Box
-                                                                component='video'
-                                                                autoPlay
-                                                                loop
-                                                                muted
-                                                                playsInline
-                                                                onClick={() => window.open(mediaSrc, '_blank')}
-                                                                sx={{
-                                                                    width: 150, height: 150,
-                                                                    display: 'block',
-                                                                    objectFit: 'contain',
-                                                                    cursor: 'pointer',
-                                                                    mb: textBody ? 1 : 0,
-                                                                    bgcolor: 'transparent',
-                                                                }}
-                                                            >
-                                                                <source src={mediaSrc} type="image/webp" />
-                                                            </Box>
-                                                        ) : (
-                                                            // Sticker estático: imagen flotante transparente
-                                                            <Box component='img'
-                                                                src={mediaSrc}
-                                                                alt='Sticker'
-                                                                onClick={() => window.open(mediaSrc, '_blank')}
-                                                                sx={{
-                                                                    width: 150, height: 150,
-                                                                    display: 'block',
-                                                                    objectFit: 'contain',
-                                                                    cursor: 'pointer',
-                                                                    mb: textBody ? 1 : 0,
-                                                                }}
-                                                            />
-                                                        )
+                                                        // Stickers (Animados o Estáticos): siempre en <img> (WebP animado es soportado por <img>)
+                                                        <Box component='img'
+                                                            src={mediaSrc}
+                                                            alt='Sticker'
+                                                            onClick={() => window.open(mediaSrc, '_blank')}
+                                                            sx={{
+                                                                width: 150, height: 150,
+                                                                display: 'block',
+                                                                objectFit: 'contain',
+                                                                cursor: 'pointer',
+                                                                mb: textBody ? 1 : 0,
+                                                                bgcolor: 'transparent',
+                                                            }}
+                                                        />
                                                     ) : (
                                                         <Box sx={{ 
                                                             mb: textBody ? 1.5 : 0,
