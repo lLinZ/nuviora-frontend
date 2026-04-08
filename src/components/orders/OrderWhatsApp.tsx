@@ -537,6 +537,23 @@ export const OrderWhatsApp = ({ orderId }: { orderId: number }) => {
                                         // Limpiar el body del mensaje de links de cloudinary para que no se dupliquen
                                         const textBody = m.body ? m.body.replace(mediaSrc || '', '').trim() : '';
 
+                                        // Helper: detectar tipo de medio por URL o tipo explícito
+                                        const urlLower = (mediaSrc || '').toLowerCase().split('?')[0]; // quitar query params
+                                        const isVideo = mediaType === 'video' ||
+                                            urlLower.endsWith('.mp4') ||
+                                            urlLower.endsWith('.webm') ||
+                                            urlLower.endsWith('.mov') ||
+                                            urlLower.endsWith('.3gp') ||
+                                            urlLower.includes('wa_vid_'); // prefijo generado por el webhook
+                                        const isAudio = !isVideo && (
+                                            mediaType === 'audio' || mediaType === 'voice' ||
+                                            urlLower.endsWith('.ogg') ||
+                                            urlLower.endsWith('.mp3') ||
+                                            urlLower.endsWith('.wav') ||
+                                            urlLower.endsWith('.m4a') ||
+                                            urlLower.includes('wa_audio_') // prefijo generado por el webhook
+                                        );
+
                                         return (
                                             <>
                                                 {mediaSrc && (
@@ -547,20 +564,20 @@ export const OrderWhatsApp = ({ orderId }: { orderId: number }) => {
                                                         border: '1px solid rgba(255,255,255,0.05)', 
                                                         maxWidth: '100%'
                                                     }}>
-                                                        {mediaType === 'video' || (typeof mediaSrc === 'string' && mediaSrc.toLowerCase().includes('.mp4')) ? (
+                                                        {isVideo ? (
                                                             <Box component='video' 
                                                                 controls 
                                                                 src={mediaSrc} 
                                                                 sx={{ width: '100%', display: 'block', maxHeight: '300px', bgcolor: '#000' }} 
                                                             />
-                                                        ) : mediaType === 'audio' || (typeof mediaSrc === 'string' && (mediaSrc.toLowerCase().includes('.ogg') || mediaSrc.toLowerCase().includes('.mp3') || mediaSrc.toLowerCase().includes('.wav') || mediaSrc.toLowerCase().includes('.m4a'))) ? (
+                                                        ) : isAudio ? (
                                                             <Box sx={{ width: '100%', minWidth: { xs: 220, md: 280 }, mt: 1, mb: 1, bgcolor: 'rgba(255,255,255,0.08)', borderRadius: 2, p: 0.5 }}>
                                                                 <Box component='audio' 
                                                                     controls 
                                                                     src={mediaSrc} 
                                                                     sx={{ width: '100%', outline: 'none', height: 45, display: 'block' }} 
                                                                 >
-                                                                    <source src={mediaSrc} type={mediaSrc.toLowerCase().includes('.m4a') ? "audio/mp4" : "audio/ogg"} />
+                                                                    <source src={mediaSrc} type={urlLower.endsWith('.m4a') ? "audio/mp4" : "audio/ogg"} />
                                                                 </Box>
                                                             </Box>
                                                         ) : (

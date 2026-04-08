@@ -152,48 +152,41 @@ export const ChatArea: FC<ChatAreaProps> = ({ selectedContact, onRefreshContacts
         const mediaUrl = typeof media === 'string' ? media : media.link;
         if (!mediaUrl) return null;
 
-        const url = mediaUrl.toLowerCase();
-        
-        const isAudio = media.type === 'audio' || 
-                        url.includes('.ogg') || 
-                        url.includes('.mp3') || 
-                        url.includes('.wav') || 
-                        url.includes('.m4a') || 
-                        (url.includes('.webm') && media.type !== 'video');
+        // Strip query params for extension detection (e.g. CDN signed URLs)
+        const urlLower = mediaUrl.toLowerCase().split('?')[0];
+        const mediaType = typeof media === 'string' ? 'unknown' : (media.type || 'unknown');
+
+        // Detect video by explicit type OR common extensions OR webhook filename prefix
+        const isVideo = mediaType === 'video' ||
+            urlLower.endsWith('.mp4') ||
+            urlLower.endsWith('.webm') ||
+            urlLower.endsWith('.mov') ||
+            urlLower.endsWith('.3gp') ||
+            urlLower.includes('wa_vid_');
+
+        // Detect audio (only if not video)
+        const isAudio = !isVideo && (
+            mediaType === 'audio' || mediaType === 'voice' ||
+            urlLower.endsWith('.ogg') ||
+            urlLower.endsWith('.mp3') ||
+            urlLower.endsWith('.wav') ||
+            urlLower.endsWith('.m4a') ||
+            urlLower.includes('wa_audio_') ||
+            (urlLower.endsWith('.webm') && mediaType !== 'video')
+        );
 
         if (isAudio) {
             return (
                 <Box sx={{ minWidth: { xs: 260, sm: 300 }, width: '100%', mb: 1, bgcolor: 'rgba(0,0,0,0.05)', borderRadius: 2, p: 0.5 }}>
                     <Box component="audio" controls sx={{ width: '100%', height: 45, outline: 'none', display: 'block' }}>
-                        <source src={mediaUrl} type={url.includes('.m4a') ? "audio/mp4" : url.includes('.wav') ? "audio/wav" : "audio/ogg"} />
+                        <source src={mediaUrl} type={urlLower.endsWith('.m4a') ? "audio/mp4" : urlLower.endsWith('.wav') ? "audio/wav" : "audio/ogg"} />
                         Tu navegador no soporta audio.
                     </Box>
                 </Box>
             );
         }
 
-        // Priority 2: Image
-        if (media.type === 'image' || url.match(/\.(jpg|jpeg|png|gif|webp)$/)) {
-            return (
-                <Box 
-                    component="img" 
-                    src={mediaUrl} 
-                    sx={{ 
-                        maxWidth: 320, 
-                        width: '100%', 
-                        maxHeight: 400, 
-                        objectFit: 'cover', 
-                        borderRadius: 2, 
-                        mb: 1, 
-                        cursor: 'pointer' 
-                    }}
-                    onClick={() => window.open(mediaUrl, '_blank')}
-                />
-            );
-        }
-
-        // Priority 3: Video
-        if (media.type === 'video' || url.endsWith('.mp4')) {
+        if (isVideo) {
             return (
                 <Box sx={{ maxWidth: 320, width: '100%', mb: 1 }}>
                     <Box 
@@ -213,10 +206,30 @@ export const ChatArea: FC<ChatAreaProps> = ({ selectedContact, onRefreshContacts
             );
         }
 
+        // Default: Image
+        if (mediaType === 'image' || urlLower.match(/\.(jpg|jpeg|png|gif|webp)$/) || mediaType === 'unknown') {
+            return (
+                <Box 
+                    component="img" 
+                    src={mediaUrl} 
+                    sx={{ 
+                        maxWidth: 320, 
+                        width: '100%', 
+                        maxHeight: 400, 
+                        objectFit: 'cover', 
+                        borderRadius: 2, 
+                        mb: 1, 
+                        cursor: 'pointer' 
+                    }}
+                    onClick={() => window.open(mediaUrl, '_blank')}
+                />
+            );
+        }
+
         // Fallback to link
         return (
             <a href={mediaUrl} target="_blank" rel="noopener noreferrer" style={{ color: '#000', textDecoration: 'underline', fontSize: '0.75rem', display: 'block', marginBottom: '4px' }}>
-                📦 Archivo Adjunto ({media.type || 'Archivo'})
+                📦 Archivo Adjunto ({mediaType || 'Archivo'})
             </a>
         );
     };
