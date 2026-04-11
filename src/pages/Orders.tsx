@@ -57,8 +57,12 @@ export const Orders = () => {
             setOpenCreateDialog(true);
             // Clear location state to avoid re-opening on manual refresh
             window.history.replaceState({}, document.title);
+        } else if (location.state?.openOrderId) {
+            setSelectedOrder({ id: location.state.openOrderId });
+            // Clear location state
+            window.history.replaceState({}, document.title);
         }
-    }, [location.state]);
+    }, [location.state, setSelectedOrder]);
 
 
 

@@ -166,7 +166,7 @@ export const ContextPanel: FC<ContextPanelProps> = ({ selectedContact, isMobileD
                         <Button 
                             variant="outlined" 
                             fullWidth 
-                            onClick={() => navigate('/orders')} 
+                            onClick={() => navigate('/orders', { state: { openOrderId: context.order?.id } })} 
                             startIcon={<ShoppingBagRounded />}
                             sx={{ borderRadius: 3 }}
                         >
