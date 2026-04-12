@@ -6,6 +6,7 @@ import { Sidebar } from "./components/Sidebar";
 import { ChatArea } from "./components/ChatArea";
 import { ContextPanel } from "./components/ContextPanel";
 import { useSocketStore } from "../../store/sockets/SocketStore";
+import { OrderDialog } from "../../components/orders/OrderDialog";
 
 export interface ContactData {
     id: number;
@@ -31,15 +32,21 @@ export const WhatsAppPage = () => {
     const [page, setPage] = useState(1);
     const [hasMore, setHasMore] = useState(false);
     const [showMobileContext, setShowMobileContext] = useState(false);
+    const [filter, setFilter] = useState<'all' | 'unread' | 'read'>('all');
+
+    // Contextual Order Dialog
+    const [orderDialogOpen, setOrderDialogOpen] = useState(false);
+    const [selectedOrderId, setSelectedOrderId] = useState<number | undefined>(undefined);
 
     // Sockets
     const { echo } = useSocketStore();
 
-    const fetchContacts = async (isLoadMore = false, forcedSearch?: string) => {
+    const fetchContacts = async (isLoadMore = false, forcedSearch?: string, forcedFilter?: string) => {
         try {
             const search = forcedSearch !== undefined ? forcedSearch : searchTerm;
+            const currentFilter = forcedFilter !== undefined ? forcedFilter : filter;
             const currentPage = isLoadMore ? page + 1 : 1;
-            const url = `/whatsapp-conversations?search=${encodeURIComponent(search)}&page=${currentPage}`;
+            const url = `/whatsapp-conversations?search=${encodeURIComponent(search)}&page=${currentPage}&filter=${currentFilter}`;
             
             const { status, response } = await request(url, 'GET');
             if (status) {
@@ -124,6 +131,13 @@ export const WhatsAppPage = () => {
         return () => clearTimeout(delayDebounceFn);
     }, [searchTerm]);
 
+    // Filter change
+    useEffect(() => {
+        if (!loading) {
+            fetchContacts(false, searchTerm, filter);
+        }
+    }, [filter]);
+
     const handleLoadMore = () => {
         fetchContacts(true);
     };
@@ -134,6 +148,11 @@ export const WhatsAppPage = () => {
         );
         setContacts(updated);
         setSelectedContact({ ...contact, unread_count: 0 });
+    };
+
+    const handleOpenOrder = (id: number) => {
+        setSelectedOrderId(id);
+        setOrderDialogOpen(true);
     };
 
     return (
@@ -160,6 +179,8 @@ export const WhatsAppPage = () => {
                             onSelect={handleSelectContact} 
                             searchTerm={searchTerm}
                             onSearchChange={setSearchTerm}
+                            filter={filter}
+                            onFilterChange={setFilter}
                             hasMore={hasMore}
                             onLoadMore={handleLoadMore}
                         />
@@ -174,6 +195,7 @@ export const WhatsAppPage = () => {
                         <ContextPanel 
                             selectedContact={selectedContact} 
                             onRefresh={() => fetchContacts(false)}
+                            onOpenOrder={handleOpenOrder}
                         />
 
                         <Drawer
@@ -182,12 +204,25 @@ export const WhatsAppPage = () => {
                             onClose={() => setShowMobileContext(false)}
                         >
                             <Box sx={{ width: 320 }}>
-                                <ContextPanel 
+                                <Sidebar 
+                                    contacts={contacts} 
                                     selectedContact={selectedContact} 
-                                    onRefresh={() => fetchContacts(false)}
+                                    onSelect={handleSelectContact} 
+                                    searchTerm={searchTerm}
+                                    onSearchChange={setSearchTerm}
+                                    filter={filter}
+                                    onFilterChange={setFilter}
+                                    hasMore={hasMore}
+                                    onLoadMore={handleLoadMore}
                                 />
                             </Box>
                         </Drawer>
+
+                        <OrderDialog 
+                            id={selectedOrderId} 
+                            open={orderDialogOpen} 
+                            setOpen={setOrderDialogOpen} 
+                        />
                     </>
                 )}
             </Paper>

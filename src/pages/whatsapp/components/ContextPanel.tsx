@@ -13,9 +13,10 @@ interface ContextPanelProps {
     selectedContact: ContactData | null;
     isMobileDrawer?: boolean;
     onRefresh?: () => void;
+    onOpenOrder?: (id: number) => void;
 }
 
-export const ContextPanel: FC<ContextPanelProps> = ({ selectedContact, isMobileDrawer = false, onRefresh }) => {
+export const ContextPanel: FC<ContextPanelProps> = ({ selectedContact, isMobileDrawer = false, onRefresh, onOpenOrder }) => {
     const navigate = useNavigate();
     const user = useUserStore(state => state.user);
     const [openAssign, setOpenAssign] = useState(false);
@@ -166,7 +167,13 @@ export const ContextPanel: FC<ContextPanelProps> = ({ selectedContact, isMobileD
                         <Button 
                             variant="outlined" 
                             fullWidth 
-                            onClick={() => navigate('/orders', { state: { openOrderId: context.order?.id } })} 
+                            onClick={() => {
+                                if (onOpenOrder && context.order?.id) {
+                                    onOpenOrder(context.order.id);
+                                } else {
+                                    navigate('/orders', { state: { openOrderId: context.order?.id } });
+                                }
+                            }} 
                             startIcon={<ShoppingBagRounded />}
                             sx={{ borderRadius: 3 }}
                         >

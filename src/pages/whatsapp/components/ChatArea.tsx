@@ -96,7 +96,15 @@ export const ChatArea: FC<ChatAreaProps> = ({ selectedContact, onRefreshContacts
 
     const markAsRead = async () => {
         if (!selectedContact || selectedContact.unread_count === 0) return;
-        // Logic to mark as read can be added here
+        try {
+            const { status } = await request(`/whatsapp-conversations/${selectedContact.id}/read`, 'POST');
+            if (status) {
+                // If successful, we can optionally notify parent or just trust the local state update that already happened in WhatsAppPage
+                console.log("Messages marked as read in DB");
+            }
+        } catch (error) {
+            console.error("Error marking as read", error);
+        }
     };
 
     useEffect(() => {

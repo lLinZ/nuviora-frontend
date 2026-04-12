@@ -1,6 +1,7 @@
 import { FC, useState } from "react";
 import { Box, Typography, List, ListItemButton, Avatar, Badge, Chip, TextField, InputAdornment, Divider, Button, IconButton } from "@mui/material";
-import { SearchRounded, ArrowBackRounded } from "@mui/icons-material";
+import { SearchRounded, ArrowBackRounded, DoneAllRounded, MarkChatUnreadRounded, ChatBubbleRounded } from "@mui/icons-material";
+import { Tabs, Tab } from "@mui/material";
 import { ContactData } from "../WhatsAppPage";
 import { useNavigate } from "react-router-dom";
 import dayjs from "dayjs";
@@ -11,6 +12,8 @@ interface SidebarProps {
     onSelect: (contact: ContactData) => void;
     searchTerm: string;
     onSearchChange: (value: string) => void;
+    filter: 'all' | 'unread' | 'read';
+    onFilterChange: (value: 'all' | 'unread' | 'read') => void;
     hasMore: boolean;
     onLoadMore: () => void;
 }
@@ -24,6 +27,8 @@ export const Sidebar: FC<SidebarProps> = ({
     onSelect,
     searchTerm,
     onSearchChange,
+    filter,
+    onFilterChange,
     hasMore,
     onLoadMore
 }) => {
@@ -97,6 +102,44 @@ export const Sidebar: FC<SidebarProps> = ({
                     }}
                 />
             </Box>
+
+            <Tabs 
+                value={filter} 
+                onChange={(_, val) => onFilterChange(val)}
+                variant="fullWidth"
+                sx={{ 
+                    minHeight: 48,
+                    borderBottom: '1px solid',
+                    borderColor: 'divider',
+                    '& .MuiTab-root': { 
+                        textTransform: 'none', 
+                        fontSize: '0.75rem', 
+                        fontWeight: 'bold',
+                        minWidth: 0,
+                        px: 1,
+                        gap: 0.5
+                    }
+                }}
+            >
+                <Tab 
+                    value="all" 
+                    label="Todos" 
+                    icon={<ChatBubbleRounded sx={{ fontSize: '1rem' }} />} 
+                    iconPosition="start"
+                />
+                <Tab 
+                    value="unread" 
+                    label="No leídos" 
+                    icon={<MarkChatUnreadRounded sx={{ fontSize: '1rem' }} />} 
+                    iconPosition="start"
+                />
+                <Tab 
+                    value="read" 
+                    label="Leídos" 
+                    icon={<DoneAllRounded sx={{ fontSize: '1rem' }} />} 
+                    iconPosition="start"
+                />
+            </Tabs>
 
             <Divider />
 
