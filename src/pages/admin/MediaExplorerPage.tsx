@@ -48,10 +48,10 @@ export const MediaExplorerPage = () => {
     const fetchItems = useCallback(async (targetPath = path) => {
         setLoading(true);
         try {
-            const { status, response } = await request(`/media-explorer?path=${encodeURIComponent(targetPath)}`, 'GET');
-            if (status) {
+            const { ok, response } = await request(`/media-explorer?path=${encodeURIComponent(targetPath)}`, 'GET');
+            if (ok) {
                 const json = await response.json();
-                setItems(json.items);
+                setItems(json.items || []);
             }
         } catch (error) {
             console.error(error);
