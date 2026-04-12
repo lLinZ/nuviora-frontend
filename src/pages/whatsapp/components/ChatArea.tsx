@@ -95,13 +95,10 @@ export const ChatArea: FC<ChatAreaProps> = ({ selectedContact, onRefreshContacts
     };
 
     const markAsRead = async () => {
-        if (!selectedContact || selectedContact.unread_count === 0) return;
+        if (!selectedContact) return;
         try {
-            const { status } = await request(`/whatsapp-conversations/${selectedContact.id}/read`, 'POST');
-            if (status) {
-                // If successful, we can optionally notify parent or just trust the local state update that already happened in WhatsAppPage
-                console.log("Messages marked as read in DB");
-            }
+            await request(`/whatsapp-conversations/${selectedContact.id}/read`, 'POST');
+            // Notify parent to refresh list if needed or simply let real-time updates handle it
         } catch (error) {
             console.error("Error marking as read", error);
         }

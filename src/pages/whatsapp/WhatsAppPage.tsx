@@ -54,10 +54,14 @@ export const WhatsAppPage = () => {
                 const newContacts = json.data;
                 
                 if (isLoadMore) {
-                    setContacts(prev => [...prev, ...newContacts]);
+                    setContacts(prev => [...prev, ...newContacts].map(c => 
+                        selectedContact?.id === c.id ? { ...c, unread_count: 0 } : c
+                    ));
                     setPage(currentPage);
                 } else {
-                    setContacts(newContacts);
+                    setContacts(newContacts.map((c: ContactData) => 
+                        selectedContact?.id === c.id ? { ...c, unread_count: 0 } : c
+                    ));
                     setPage(1);
                 }
                 
@@ -65,7 +69,7 @@ export const WhatsAppPage = () => {
 
                 if (selectedContact) {
                     const updated = newContacts.find((c: ContactData) => c.id === selectedContact.id);
-                    if (updated) setSelectedContact(prev => ({ ...prev, ...updated }));
+                    if (updated) setSelectedContact(prev => ({ ...prev, ...updated, unread_count: 0 }));
                 }
             }
         } catch (error) {
@@ -143,11 +147,13 @@ export const WhatsAppPage = () => {
     };
 
     const handleSelectContact = (contact: ContactData) => {
-        const updated = contacts.map(c => 
+        // Clear locally in sidebar list for immediate UX
+        setContacts(prev => prev.map(c => 
             c.id === contact.id ? { ...c, unread_count: 0 } : c
-        );
-        setContacts(updated);
-        setSelectedContact({ ...contact, unread_count: 0 });
+        ));
+        
+        // Pass original contact so ChatArea knows if it needs to sync with DB
+        setSelectedContact(contact);
     };
 
     const handleOpenOrder = (id: number) => {
