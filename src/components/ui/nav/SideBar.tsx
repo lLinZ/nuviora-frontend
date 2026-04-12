@@ -17,6 +17,7 @@ import LocalMallRoundedIcon from "@mui/icons-material/LocalMallRounded";
 import SavingsRoundedIcon from "@mui/icons-material/SavingsRounded";
 import BarChartRoundedIcon from "@mui/icons-material/BarChartRounded";
 import WhatsAppIcon from "@mui/icons-material/WhatsApp";
+import { InsertDriveFileRounded } from "@mui/icons-material";
 
 import moment from "moment";
 import { TypographyCustom } from "../../custom";
@@ -226,6 +227,12 @@ export const SideBar = () => {
                 text: "Tracking de Órdenes",
                 icon: <HistoryRounded />,
                 link: "/tracking-report",
+                roles: ["Admin", "Gerente"],
+            },
+            {
+                text: "Biblioteca de Medios",
+                icon: <InsertDriveFileRounded />,
+                link: "/admin/media-explorer",
                 roles: ["Admin", "Gerente"],
             },
         ],
