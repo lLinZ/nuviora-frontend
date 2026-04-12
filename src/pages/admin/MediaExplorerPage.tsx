@@ -4,7 +4,7 @@ import {
     IconButton, Grid, Card, CardContent, CardActionArea, 
     Menu, MenuItem, Dialog, DialogTitle, DialogContent, 
     DialogActions, TextField, LinearProgress, Tooltip,
-    InputAdornment, Alert, Snackbar
+    InputAdornment, Alert, Snackbar, Divider
 } from '@mui/material';
 import { 
     FolderRounded, InsertDriveFileRounded, UploadRounded, 
@@ -230,7 +230,7 @@ export const MediaExplorerPage = () => {
 
                     <Grid container spacing={2}>
                         {filteredItems.map((item, index) => (
-                            <Grid item xs={12} sm={6} md={3} lg={2} key={index}>
+                            <Grid size={{ xs: 12, sm: 6, md: 3, lg: 2 }} key={index}>
                                 <Card variant="outlined" sx={{ borderRadius: 3, transition: '0.2s', '&:hover': { transform: 'translateY(-4px)', boxShadow: 4 } }}>
                                     <CardActionArea 
                                         onClick={() => item.type === 'directory' ? navigateTo(item.path) : window.open(item.url, '_blank')}
