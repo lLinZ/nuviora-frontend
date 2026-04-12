@@ -10,7 +10,8 @@ import {
     FolderRounded, InsertDriveFileRounded, UploadRounded, 
     CreateNewFolderRounded, MoreVertRounded, DeleteRounded, 
     EditRounded, ContentCopyRounded, RefreshRounded, 
-    ArrowForwardIosRounded, SearchRounded, VisibilityRounded
+    ArrowForwardIosRounded, SearchRounded, VisibilityRounded,
+    VideoLibraryRounded
 } from '@mui/icons-material';
 import { Layout } from '../../components/ui/Layout';
 import { request } from '../../common/request';
@@ -242,6 +243,8 @@ export const MediaExplorerPage = () => {
                                             ) : (
                                                 item.extension?.match(/(jpg|jpeg|png|webp|gif)/i) ? (
                                                     <img src={item.url} alt={item.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                                ) : item.extension?.match(/(mp4|mov|avi|wmv)/i) ? (
+                                                    <VideoLibraryRounded sx={{ fontSize: 60, color: 'secondary.main' }} />
                                                 ) : (
                                                     <InsertDriveFileRounded sx={{ fontSize: 60, color: 'text.secondary' }} />
                                                 )
