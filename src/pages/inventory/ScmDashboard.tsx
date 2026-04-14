@@ -64,6 +64,7 @@ export const ScmDashboard: React.FC = () => {
     const [meta, setMeta] = useState<Meta | null>(null);
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState('');
+    const [apiError, setApiError] = useState<string | null>(null);
 
     // Edit dialog
     const [editTarget, setEditTarget] = useState<ScmProduct | null>(null);
@@ -72,15 +73,26 @@ export const ScmDashboard: React.FC = () => {
 
     const fetchData = async () => {
         setLoading(true);
+        setApiError(null);
         try {
             const { status, response } = await request('/scm/dashboard', 'GET');
             if (status === 200) {
                 const json = await response.json();
-                setData(json.data);
-                setMeta(json.meta);
+                setData(json.data ?? []);
+                setMeta(json.meta ?? null);
+            } else {
+                let msg = `Error HTTP ${status}`;
+                try {
+                    const err = await response.json();
+                    msg = err.message || err.error || msg;
+                } catch {}
+                setApiError(msg);
+                toast.error(`SCM Error: ${msg}`);
             }
-        } catch {
-            toast.error('Error al cargar el dashboard SCM');
+        } catch (e: any) {
+            const msg = e?.message || 'Error de conexión al servidor';
+            setApiError(msg);
+            toast.error(msg);
         } finally {
             setLoading(false);
         }
@@ -188,6 +200,12 @@ export const ScmDashboard: React.FC = () => {
                 <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
                     <CircularProgress />
                 </Box>
+            ) : apiError ? (
+                <Alert severity="error" sx={{ borderRadius: 3 }} action={
+                    <Button color="inherit" size="small" onClick={fetchData}>Reintentar</Button>
+                }>
+                    <strong>Error del servidor:</strong> {apiError}
+                </Alert>
             ) : filtered.length === 0 ? (
                 <Alert severity="info" sx={{ borderRadius: 3 }}>
                     No se encontraron productos en inventario. Asegúrate de correr la migración y tener registros en la tabla <strong>inventories</strong>.
