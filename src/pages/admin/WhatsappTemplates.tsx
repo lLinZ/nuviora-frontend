@@ -50,7 +50,9 @@ interface IWhatsappTemplate {
     name: string;
     label: string;
     body: string;
+    language?: string;
     is_official: boolean;
+    visible_to_sellers: boolean;
     meta_components?: any[];
     created_at?: string;
 }
@@ -95,6 +97,7 @@ export const WhatsappTemplates: React.FC = () => {
         label: '',
         body: '',
         is_official: false,
+        visible_to_sellers: true,
         meta_components: [] as any[]
     });
 
@@ -150,10 +153,12 @@ export const WhatsappTemplates: React.FC = () => {
                 : tpl.name;
 
             const { status, response }: IResponse = await request('/whatsapp-templates/import-meta', 'POST', {
-                name:            tpl.name,
-                label:           label,
-                body:            tpl.body_preview || tpl.name,
-                meta_components: tpl.components,
+                name:                tpl.name,
+                label:               label,
+                language:            tpl.language,
+                body:                tpl.body_preview || tpl.name,
+                meta_components:     tpl.components,
+                visible_to_sellers:  true, // Default visible; admin can change it afterwards
             });
 
             if (status === 200 || status === 201) {
@@ -183,6 +188,7 @@ export const WhatsappTemplates: React.FC = () => {
                 label: template.label,
                 body: template.body,
                 is_official: !!template.is_official,
+                visible_to_sellers: template.visible_to_sellers !== false,
                 meta_components: template.meta_components || []
             });
         } else {
@@ -192,6 +198,7 @@ export const WhatsappTemplates: React.FC = () => {
                 label: '', 
                 body: '', 
                 is_official: false,
+                visible_to_sellers: true,
                 meta_components: []
             });
         }
@@ -366,7 +373,14 @@ export const WhatsappTemplates: React.FC = () => {
 
                                 <Divider />
 
-                                <Box sx={{ p: 2, display: 'flex', justifyContent: 'flex-end', gap: 1 }}>
+                        <Box sx={{ p: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 1 }}>
+                                    <Chip
+                                        size="small"
+                                        label={template.visible_to_sellers ? 'Visible a vendedoras' : 'Solo admin'}
+                                        color={template.visible_to_sellers ? 'success' : 'warning'}
+                                        sx={{ fontSize: '0.65rem', height: 22, fontWeight: 'bold', opacity: 0.9 }}
+                                    />
+                                    <Box sx={{ display: 'flex', gap: 1 }}>
                                     <IconButton size="small" onClick={() => handleOpenDialog(template)} sx={{ bgcolor: 'action.hover' }}>
                                         <EditRounded fontSize="small" />
                                     </IconButton>
@@ -374,6 +388,7 @@ export const WhatsappTemplates: React.FC = () => {
                                         sx={{ bgcolor: 'rgba(255,0,0,0.05)', '&:hover': { bgcolor: 'rgba(255,0,0,0.1)' } }}>
                                         <DeleteRounded fontSize="small" />
                                     </IconButton>
+                                    </Box>
                                 </Box>
                             </Card>
                         </Grid>
@@ -628,6 +643,39 @@ export const WhatsappTemplates: React.FC = () => {
                                             <Typography variant="subtitle2" fontWeight="bold">Plantilla Oficial de Meta API</Typography>
                                             <Typography variant="caption" sx={{ opacity: 0.8 }}>
                                                 Actívalo solo si ya registraste y aprobaste este template en Facebook Business.
+                                            </Typography>
+                                        </Box>
+                                    }
+                                />
+                            </Paper>
+
+                            {/* Visibility toggle */}
+                            <Paper sx={{
+                                p: 2,
+                                bgcolor: formData.visible_to_sellers ? 'rgba(46,125,50,0.08)' : 'rgba(237,108,2,0.08)',
+                                border: '1px solid',
+                                borderColor: formData.visible_to_sellers ? 'success.light' : 'warning.light',
+                                transition: 'all 0.3s',
+                                borderRadius: 2,
+                            }}>
+                                <FormControlLabel
+                                    control={
+                                        <Switch
+                                            color={formData.visible_to_sellers ? 'success' : 'warning'}
+                                            checked={formData.visible_to_sellers}
+                                            onChange={(e) => setFormData({ ...formData, visible_to_sellers: e.target.checked })}
+                                        />
+                                    }
+                                    label={
+                                        <Box>
+                                            <Typography variant="subtitle2" fontWeight="bold">
+                                                {formData.visible_to_sellers ? '👁️ Visible para vendedoras' : '🔒 Solo visible para admin/gerente'}
+                                            </Typography>
+                                            <Typography variant="caption" color="text.secondary">
+                                                {formData.visible_to_sellers
+                                                    ? 'Las vendedoras pueden usar esta plantilla en el chat.'
+                                                    : 'Esta plantilla solo la verán admins y gerentes.'
+                                                }
                                             </Typography>
                                         </Box>
                                     }
