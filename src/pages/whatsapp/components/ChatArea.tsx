@@ -1,17 +1,19 @@
 import { FC, useEffect, useRef, useState } from "react";
-import { Box, Typography, Avatar, IconButton, TextField, CircularProgress, Paper, Chip, Tooltip, Dialog, DialogTitle, DialogContent, DialogActions, Button, List, ListItem, ListItemButton, ListItemText, Divider, Stack, Alert } from "@mui/material";
+import { Box, Typography, Avatar, IconButton, TextField, CircularProgress, Paper, Chip, Tooltip, Dialog, DialogTitle, DialogContent, DialogActions, Button, List, ListItem, ListItemButton, ListItemText, Divider, Stack, Alert, ClickAwayListener } from "@mui/material";
 import { SendRounded, AttachFileRounded, ArrowBackRounded, InfoRounded, MicRounded, DeleteRounded, VerifiedRounded, MessageRounded } from "@mui/icons-material";
+import EmojiEmotionsRoundedIcon from "@mui/icons-material/EmojiEmotionsRounded";
+import EmojiPicker, { EmojiClickData, Theme } from "emoji-picker-react";
 import { ContactData } from "../WhatsAppPage";
 import { request } from "../../../common/request";
 import dayjs from "dayjs";
 import { toast } from "react-toastify";
-import { useSocketStore } from "../../../store/sockets/SocketStore";
 
 interface ChatAreaProps {
     selectedContact: ContactData | null;
     onRefreshContacts: () => void;
     onBack?: () => void;
     onOpenContext?: () => void;
+    incomingMessage?: any; // Passed from WhatsAppPage's single WebSocket hub
 }
 
 interface Message {
@@ -19,7 +21,7 @@ interface Message {
     body: string;
     is_from_client: boolean;
     status: string;
-    media: any | null; // Changed to support object
+    media: any | null;
     sent_at: string;
 }
 
@@ -38,7 +40,6 @@ const extractVars = (textOrTpl: string | ITemplate): string[] => {
     if (typeof textOrTpl === 'string') {
         allText = textOrTpl;
     } else {
-        // If it's a template object, check body AND components (header, body etc)
         allText = textOrTpl.body;
         if (textOrTpl.meta_components) {
             textOrTpl.meta_components.forEach(c => {
@@ -51,13 +52,16 @@ const extractVars = (textOrTpl: string | ITemplate): string[] => {
     return nums;
 };
 
-export const ChatArea: FC<ChatAreaProps> = ({ selectedContact, onRefreshContacts, onBack, onOpenContext }) => {
+export const ChatArea: FC<ChatAreaProps> = ({ selectedContact, onRefreshContacts, onBack, onOpenContext, incomingMessage }) => {
     const [messages, setMessages] = useState<Message[]>([]);
     const [loading, setLoading] = useState(false);
     const [inputText, setInputText] = useState("");
     const [sending, setSending] = useState(false);
     const [uploading, setUploading] = useState(false);
-    
+
+    // Emoji picker
+    const [showEmoji, setShowEmoji] = useState(false);
+
     // Recording state
     const [isRecording, setIsRecording] = useState(false);
     const [recordingDuration, setRecordingDuration] = useState(0);
@@ -74,7 +78,6 @@ export const ChatArea: FC<ChatAreaProps> = ({ selectedContact, onRefreshContacts
 
     const fileInputRef = useRef<HTMLInputElement>(null);
     const messagesEndRef = useRef<HTMLDivElement>(null);
-    const { echo } = useSocketStore();
 
     const fetchMessages = async () => {
         if (!selectedContact) return;
@@ -98,7 +101,6 @@ export const ChatArea: FC<ChatAreaProps> = ({ selectedContact, onRefreshContacts
         if (!selectedContact) return;
         try {
             await request(`/whatsapp-conversations/${selectedContact.id}/read`, 'POST');
-            // Notify parent to refresh list if needed or simply let real-time updates handle it
         } catch (error) {
             console.error("Error marking as read", error);
         }
@@ -113,88 +115,39 @@ export const ChatArea: FC<ChatAreaProps> = ({ selectedContact, onRefreshContacts
         }
     }, [selectedContact?.id]);
 
-    // WebSocket: Escuchar mensajes en tiempo real para el chat ACTIVO
+    // ─── Handle incoming real-time message from WhatsAppPage's WebSocket hub ─
     useEffect(() => {
-        if (!echo || !selectedContact) return;
-
-        const channel = echo.private('whatsapp');
-        
-        console.log("Subscribed to whatsapp private channel for client", selectedContact.id);
-
-        channel.listen('WhatsappMessageReceived', (data: any) => {
-            const { message } = data;
-            if (!message) return;
-
-            console.log("Real-time Message Received in ChatArea:", message);
-
-            const client_id = message.client_id || (message.client ? message.client.id : null);
-            
-            // Solo añadir si el mensaje pertenece al cliente seleccionado
-            // Usamos == para evitar problemas de string vs number
-            if (client_id == selectedContact.id) {
-                console.log("Match! Updating messages list.");
-                setMessages(prev => {
-                    // Evitar duplicados
-                    if (prev.find(m => m.id === message.id)) return prev;
-                    return [...prev, message];
-                });
-                
-                // Marcar como leído si estamos en la ventana del chat
-                markAsRead();
-            }
+        if (!incomingMessage) return;
+        setMessages(prev => {
+            if (prev.find(m => m.id === incomingMessage.id)) return prev;
+            return [...prev, incomingMessage];
         });
-
-        return () => {
-            console.log("Unsubscribing from whatsapp channel");
-            channel.stopListening('WhatsappMessageReceived');
-        };
-    }, [echo, selectedContact?.id]);
+        markAsRead();
+    }, [incomingMessage]);
 
     const renderMedia = (media: any) => {
         if (!media) return null;
         
-        // Handle both old string and new object
         const mediaUrl = typeof media === 'string' ? media : media.link;
         if (!mediaUrl) return null;
 
-        // Strip query params for extension detection (e.g. CDN signed URLs)
         const urlLower = mediaUrl.toLowerCase().split('?')[0];
         const mediaType = typeof media === 'string' ? 'unknown' : (media.type || 'unknown');
 
-        // Detect sticker first (before video — .webp stickers would otherwise fall through to image)
         const isSticker = mediaType === 'sticker' || urlLower.includes('wa_sticker_') || urlLower.endsWith('.webp');
-
-        // Detect video by explicit type OR common extensions OR webhook filename prefix
         const isVideo = !isSticker && (
             mediaType === 'video' ||
-            urlLower.endsWith('.mp4') ||
-            urlLower.endsWith('.webm') ||
-            urlLower.endsWith('.mov') ||
-            urlLower.endsWith('.3gp') ||
+            urlLower.endsWith('.mp4') || urlLower.endsWith('.webm') || urlLower.endsWith('.mov') || urlLower.endsWith('.3gp') ||
             urlLower.includes('wa_vid_')
         );
-
-        // Detect audio (only if not sticker and not video)
         const isAudio = !isSticker && !isVideo && (
             mediaType === 'audio' || mediaType === 'voice' ||
-            urlLower.endsWith('.ogg') ||
-            urlLower.endsWith('.mp3') ||
-            urlLower.endsWith('.wav') ||
-            urlLower.endsWith('.m4a') ||
-            urlLower.includes('wa_audio_') ||
-            (urlLower.endsWith('.webm') && mediaType !== 'video')
+            urlLower.endsWith('.ogg') || urlLower.endsWith('.mp3') || urlLower.endsWith('.wav') || urlLower.endsWith('.m4a') ||
+            urlLower.includes('wa_audio_') || (urlLower.endsWith('.webm') && mediaType !== 'video')
         );
 
         if (isSticker) {
-            return (
-                <Box 
-                    component="img" 
-                    src={mediaUrl}
-                    alt="Sticker"
-                    onClick={() => window.open(mediaUrl, '_blank')}
-                    sx={{ width: 150, height: 150, objectFit: 'contain', display: 'block', cursor: 'pointer', mb: 1, bgcolor: 'transparent' }}
-                />
-            );
+            return <Box component="img" src={mediaUrl} alt="Sticker" onClick={() => window.open(mediaUrl, '_blank')} sx={{ width: 150, height: 150, objectFit: 'contain', display: 'block', cursor: 'pointer', mb: 1, bgcolor: 'transparent' }} />;
         }
 
         if (isAudio) {
@@ -202,7 +155,6 @@ export const ChatArea: FC<ChatAreaProps> = ({ selectedContact, onRefreshContacts
                 <Box sx={{ minWidth: { xs: 260, sm: 300 }, width: '100%', mb: 1, bgcolor: 'rgba(0,0,0,0.05)', borderRadius: 2, p: 0.5 }}>
                     <Box component="audio" controls sx={{ width: '100%', height: 45, outline: 'none', display: 'block' }}>
                         <source src={mediaUrl} type={urlLower.endsWith('.m4a') ? "audio/mp4" : urlLower.endsWith('.wav') ? "audio/wav" : "audio/ogg"} />
-                        Tu navegador no soporta audio.
                     </Box>
                 </Box>
             );
@@ -211,61 +163,25 @@ export const ChatArea: FC<ChatAreaProps> = ({ selectedContact, onRefreshContacts
         if (isVideo) {
             return (
                 <Box sx={{ maxWidth: 320, width: '100%', mb: 1 }}>
-                    <Box 
-                        component="video" 
-                        controls 
-                        sx={{ 
-                            width: '100%', 
-                            maxHeight: 400, 
-                            borderRadius: 2, 
-                            bgcolor: '#000',
-                            display: 'block' 
-                        }}
-                    >
+                    <Box component="video" controls sx={{ width: '100%', maxHeight: 400, borderRadius: 2, bgcolor: '#000', display: 'block' }}>
                         <source src={mediaUrl} />
                     </Box>
                 </Box>
             );
         }
 
-        // Default: Image
         if (mediaType === 'image' || urlLower.match(/\.(jpg|jpeg|png|gif|webp)$/) || mediaType === 'unknown') {
-            return (
-                <Box 
-                    component="img" 
-                    src={mediaUrl} 
-                    sx={{ 
-                        maxWidth: 320, 
-                        width: '100%', 
-                        maxHeight: 400, 
-                        objectFit: 'cover', 
-                        borderRadius: 2, 
-                        mb: 1, 
-                        cursor: 'pointer' 
-                    }}
-                    onClick={() => window.open(mediaUrl, '_blank')}
-                />
-            );
+            return <Box component="img" src={mediaUrl} sx={{ maxWidth: 320, width: '100%', maxHeight: 400, objectFit: 'cover', borderRadius: 2, mb: 1, cursor: 'pointer' }} onClick={() => window.open(mediaUrl, '_blank')} />;
         }
 
-        // Fallback to link
-        return (
-            <a href={mediaUrl} target="_blank" rel="noopener noreferrer" style={{ color: '#000', textDecoration: 'underline', fontSize: '0.75rem', display: 'block', marginBottom: '4px' }}>
-                📦 Archivo Adjunto ({mediaType || 'Archivo'})
-            </a>
-        );
+        return <a href={mediaUrl} target="_blank" rel="noopener noreferrer" style={{ color: '#000', textDecoration: 'underline', fontSize: '0.75rem', display: 'block', marginBottom: '4px' }}>📦 Archivo Adjunto ({mediaType || 'Archivo'})</a>;
     };
 
     const scrollToBottom = () => {
-        setTimeout(() => {
-            messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-        }, 100);
+        setTimeout(() => { messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, 100);
     };
 
-    // Auto-scroll solo cuando llegan mensajes nuevos
-    useEffect(() => {
-        scrollToBottom();
-    }, [messages.length]);
+    useEffect(() => { scrollToBottom(); }, [messages.length]);
 
     const handleSend = async (e?: React.FormEvent) => {
         e?.preventDefault();
@@ -274,12 +190,10 @@ export const ChatArea: FC<ChatAreaProps> = ({ selectedContact, onRefreshContacts
         setSending(true);
         const textToSend = inputText;
         setInputText("");
+        setShowEmoji(false);
 
         try {
-            const { status, response } = await request(`/whatsapp-conversations/${selectedContact.id}/messages`, 'POST', {
-                body: textToSend
-            });
-
+            const { status, response } = await request(`/whatsapp-conversations/${selectedContact.id}/messages`, 'POST', { body: textToSend });
             if (status) {
                 const json = await response.json();
                 setMessages(prev => [...prev, json]);
@@ -288,14 +202,13 @@ export const ChatArea: FC<ChatAreaProps> = ({ selectedContact, onRefreshContacts
                 toast.error("Error enviando mensaje");
             }
         } catch (error) {
-            console.error(error);
             toast.error("Error de conexión");
         } finally {
             setSending(false);
         }
     };
 
-    // ─── Template Picker ────────────────────────────────────────────────────
+    // ─── Template Picker ─────────────────────────────────────────────────────
 
     const handleOpenTemplates = async () => {
         setTemplatesLoading(true);
@@ -315,7 +228,6 @@ export const ChatArea: FC<ChatAreaProps> = ({ selectedContact, onRefreshContacts
 
     const handleSelectTemplate = (tpl: ITemplate) => {
         setSelectedTemplate(tpl);
-        // Pre-fill vars: use client name for {{1}} by default
         const nums = extractVars(tpl);
         const defaults: Record<string, string> = {};
         if (nums[0]) defaults[nums[0]] = selectedContact?.name?.split(' ')[0] ?? '';
@@ -340,19 +252,13 @@ export const ChatArea: FC<ChatAreaProps> = ({ selectedContact, onRefreshContacts
             const vars = nums.map(n => templateVars[n] ?? '');
             const preview = buildPreview(selectedTemplate, templateVars);
 
-            const payload: any = {
-                body: preview,
-            };
-
+            const payload: any = { body: preview };
             if (selectedTemplate.is_official) {
                 payload.template_name = selectedTemplate.name;
                 payload.vars = vars;
             }
 
-            const { status, response } = await request(
-                `/whatsapp-conversations/${selectedContact.id}/messages`, 'POST', payload
-            );
-
+            const { status, response } = await request(`/whatsapp-conversations/${selectedContact.id}/messages`, 'POST', payload);
             if (status === 201 || status === 200) {
                 const json = await response.json();
                 setMessages(prev => [...prev, json]);
@@ -363,7 +269,7 @@ export const ChatArea: FC<ChatAreaProps> = ({ selectedContact, onRefreshContacts
                 const err = await response.json();
                 toast.error(err.message || 'Error enviando plantilla');
             }
-        } catch (err) {
+        } catch {
             toast.error('Error de conexión');
         } finally {
             setSending(false);
@@ -373,10 +279,8 @@ export const ChatArea: FC<ChatAreaProps> = ({ selectedContact, onRefreshContacts
     const handleUpload = async (file: File) => {
         if (!selectedContact) return;
         setUploading(true);
-        
         const formData = new FormData();
         formData.append('file', file);
-        
         try {
             const { status, response } = await request(`/whatsapp-conversations/${selectedContact.id}/media`, 'POST', formData);
             if (status) {
@@ -387,8 +291,7 @@ export const ChatArea: FC<ChatAreaProps> = ({ selectedContact, onRefreshContacts
                 const err = await response.json();
                 toast.error(err.message || "Error subiendo archivo");
             }
-        } catch (error) {
-            console.error(error);
+        } catch {
             toast.error("Error de conexión al subir archivo");
         } finally {
             setUploading(false);
@@ -398,23 +301,14 @@ export const ChatArea: FC<ChatAreaProps> = ({ selectedContact, onRefreshContacts
     const startRecording = async () => {
         try {
             const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-            
-            // Buscar un tipo de MIME compatible con WhatsApp
             const mimeTypes = ['audio/ogg; codecs=opus', 'audio/mp4', 'audio/aac', 'audio/mpeg'];
             const supportedMimeType = mimeTypes.find(type => MediaRecorder.isTypeSupported(type));
-            
             const options = supportedMimeType ? { mimeType: supportedMimeType } : {};
             const mediaRecorder = new MediaRecorder(stream, options);
-            
             mediaRecorderRef.current = mediaRecorder;
             audioChunksRef.current = [];
 
-            mediaRecorder.ondataavailable = (event) => {
-                if (event.data.size > 0) {
-                    audioChunksRef.current.push(event.data);
-                }
-            };
-
+            mediaRecorder.ondataavailable = (event) => { if (event.data.size > 0) audioChunksRef.current.push(event.data); };
             mediaRecorder.onstop = () => {
                 const mimeType = supportedMimeType || 'audio/ogg';
                 const extension = mimeType.includes('mp4') ? 'm4a' : 'ogg';
@@ -427,11 +321,8 @@ export const ChatArea: FC<ChatAreaProps> = ({ selectedContact, onRefreshContacts
             mediaRecorder.start();
             setIsRecording(true);
             setRecordingDuration(0);
-            recordingIntervalRef.current = setInterval(() => {
-                setRecordingDuration(prev => prev + 1);
-            }, 1000);
-        } catch (err) {
-            console.error("Error accessing microphone:", err);
+            recordingIntervalRef.current = setInterval(() => { setRecordingDuration(prev => prev + 1); }, 1000);
+        } catch {
             toast.error("No se pudo acceder al micrófono");
         }
     };
@@ -439,9 +330,7 @@ export const ChatArea: FC<ChatAreaProps> = ({ selectedContact, onRefreshContacts
     const stopRecording = (shouldSend = true) => {
         if (mediaRecorderRef.current && isRecording) {
             if (!shouldSend) {
-                mediaRecorderRef.current.onstop = () => {
-                    mediaRecorderRef.current?.stream.getTracks().forEach(track => track.stop());
-                };
+                mediaRecorderRef.current.onstop = () => { mediaRecorderRef.current?.stream.getTracks().forEach(track => track.stop()); };
             }
             mediaRecorderRef.current.stop();
             setIsRecording(false);
@@ -460,9 +349,7 @@ export const ChatArea: FC<ChatAreaProps> = ({ selectedContact, onRefreshContacts
             <Box sx={{ flexGrow: 1, display: { xs: 'none', md: 'flex' }, flexDirection: 'column', alignItems: 'center', justifyContent: 'center', bgcolor: 'background.default' }}>
                 <Paper elevation={0} sx={{ p: 4, borderRadius: 5, textAlign: 'center', bgcolor: 'transparent' }}>
                     <Typography variant="h5" fontWeight="bold" color="text.secondary">Nuviora Web</Typography>
-                    <Typography variant="body1" color="text.disabled" sx={{ mt: 1 }}>
-                        Selecciona un chat en la barra lateral para conversar.
-                    </Typography>
+                    <Typography variant="body1" color="text.disabled" sx={{ mt: 1 }}>Selecciona un chat en la barra lateral para conversar.</Typography>
                 </Paper>
             </Box>
         );
@@ -472,9 +359,7 @@ export const ChatArea: FC<ChatAreaProps> = ({ selectedContact, onRefreshContacts
         <Box sx={{ flexGrow: 1, display: { xs: selectedContact ? 'flex' : 'none', md: 'flex' }, flexDirection: 'column', bgcolor: '#efeae2', position: 'relative', overflow: 'hidden' }}>
             {/* Header */}
             <Paper elevation={1} sx={{ p: 2, display: 'flex', alignItems: 'center', gap: 2, borderRadius: 0, zIndex: 2 }}>
-                <IconButton onClick={onBack} sx={{ display: { xs: 'block', md: 'none' } }}>
-                    <ArrowBackRounded />
-                </IconButton>
+                <IconButton onClick={onBack} sx={{ display: { xs: 'block', md: 'none' } }}><ArrowBackRounded /></IconButton>
                 <Avatar sx={{ bgcolor: selectedContact.type === 'lead' ? 'secondary.main' : 'primary.main', fontWeight: 'bold' }}>
                     {selectedContact.name.charAt(0)}
                 </Avatar>
@@ -490,9 +375,7 @@ export const ChatArea: FC<ChatAreaProps> = ({ selectedContact, onRefreshContacts
                         />
                     </Box>
                 </Box>
-                <IconButton onClick={onOpenContext} sx={{ display: { xs: 'block', lg: 'none' } }}>
-                    <InfoRounded />
-                </IconButton>
+                <IconButton onClick={onOpenContext} sx={{ display: { xs: 'block', lg: 'none' } }}><InfoRounded /></IconButton>
             </Paper>
 
             {/* Message Area */}
@@ -501,57 +384,21 @@ export const ChatArea: FC<ChatAreaProps> = ({ selectedContact, onRefreshContacts
                     <Box sx={{ alignSelf: 'center', m: 'auto' }}><CircularProgress size={30} /></Box>
                 ) : (
                     messages.map((msg) => (
-                        <Box 
-                            key={msg.id}
-                            sx={{
-                                alignSelf: msg.is_from_client ? 'flex-start' : 'flex-end',
-                                maxWidth: '85%',
-                                minWidth: 100,
-                            }}
-                        >
-                            <Paper 
-                                elevation={0}
-                                sx={{ 
-                                    p: 1.5, 
-                                    pt: 1,
-                                    bgcolor: msg.is_from_client ? 'white' : '#d9fdd3',
-                                    borderRadius: 3,
-                                    borderTopLeftRadius: msg.is_from_client ? 0 : 12,
-                                    borderTopRightRadius: msg.is_from_client ? 12 : 0,
-                                }}
-                            >
+                        <Box key={msg.id} sx={{ alignSelf: msg.is_from_client ? 'flex-start' : 'flex-end', maxWidth: '85%', minWidth: 100 }}>
+                            <Paper elevation={0} sx={{ p: 1.5, pt: 1, bgcolor: msg.is_from_client ? 'white' : '#d9fdd3', borderRadius: 3, borderTopLeftRadius: msg.is_from_client ? 0 : 12, borderTopRightRadius: msg.is_from_client ? 12 : 0 }}>
                                 {msg.media && (
                                     <Box sx={{ mb: 1, borderRadius: 2, overflow: 'hidden' }}>
                                         {renderMedia(msg.media)}
                                     </Box>
                                 )}
-                                <Typography 
-                                    variant="body2" 
-                                    sx={{ 
-                                        whiteSpace: 'pre-wrap', 
-                                        wordBreak: 'break-word',
-                                        color: '#000' 
-                                    }}
-                                >
+                                <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word', color: '#000' }}>
                                     {(msg.body || '').split(/(https?:\/\/[^\s]+)/g).map((part, i) => (
                                         part.match(/^https?:\/\//) ? (
-                                            <a key={i} href={part} target="_blank" rel="noopener noreferrer" style={{ color: '#007bff', textDecoration: 'underline' }}>
-                                                {part}
-                                            </a>
+                                            <a key={i} href={part} target="_blank" rel="noopener noreferrer" style={{ color: '#007bff', textDecoration: 'underline' }}>{part}</a>
                                         ) : part
                                     ))}
                                 </Typography>
-                                <Typography 
-                                    variant="caption" 
-                                    sx={{ 
-                                        display: 'flex', 
-                                        justifyContent: 'flex-end', 
-                                        opacity: 0.6, 
-                                        mt: 0.5, 
-                                        fontSize: '0.65rem',
-                                        color: '#000'
-                                    }}
-                                >
+                                <Typography variant="caption" sx={{ display: 'flex', justifyContent: 'flex-end', opacity: 0.6, mt: 0.5, fontSize: '0.65rem', color: '#000' }}>
                                     {dayjs(msg.sent_at).format('HH:mm')} 
                                     {!msg.is_from_client && (
                                         <Box component="span" sx={{ ml: 0.5 }}>
@@ -576,7 +423,6 @@ export const ChatArea: FC<ChatAreaProps> = ({ selectedContact, onRefreshContacts
                     {templatesLoading ? (
                         <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}><CircularProgress /></Box>
                     ) : !selectedTemplate ? (
-                        // Step 1: Pick a template
                         <List disablePadding>
                             {templates.length === 0 && (
                                 <Box sx={{ p: 3, textAlign: 'center' }}>
@@ -603,7 +449,6 @@ export const ChatArea: FC<ChatAreaProps> = ({ selectedContact, onRefreshContacts
                             ))}
                         </List>
                     ) : (
-                        // Step 2: Fill variables
                         <Box sx={{ p: 3 }}>
                             <Button size="small" onClick={() => setSelectedTemplate(null)} sx={{ mb: 2 }}>← Volver</Button>
                             <Typography fontWeight="bold" sx={{ mb: 1 }}>{selectedTemplate.label}</Typography>
@@ -654,7 +499,7 @@ export const ChatArea: FC<ChatAreaProps> = ({ selectedContact, onRefreshContacts
             </Dialog>
 
             {/* Input Form */}
-            <Paper component="form" onSubmit={handleSend} elevation={1} sx={{ p: 2, display: 'flex', alignItems: 'center', gap: 1, borderRadius: 0, bgcolor: 'background.paper', zIndex: 2 }}>
+            <Paper component="form" onSubmit={handleSend} elevation={1} sx={{ p: 2, display: 'flex', alignItems: 'center', gap: 1, borderRadius: 0, bgcolor: 'background.paper', zIndex: 2, position: 'relative' }}>
                 {!selectedContact.is_window_open ? (
                     <Box sx={{ flexGrow: 1, display: 'flex', alignItems: 'center', gap: 1 }}>
                         <Box sx={{ flexGrow: 1, p: 1, bgcolor: '#fff3e0', border: '1px solid #ffe0b2', borderRadius: 2, textAlign: 'center' }}>
@@ -674,12 +519,8 @@ export const ChatArea: FC<ChatAreaProps> = ({ selectedContact, onRefreshContacts
                             <Box sx={{ width: 10, height: 10, bgcolor: 'error.main', borderRadius: '50%', animation: 'pulse-record 1s infinite', '@keyframes pulse-record': { '0%': { opacity: 1 }, '50%': { opacity: 0.3 }, '100%': { opacity: 1 } } }} />
                             <Typography variant="body2" fontWeight="bold">{formatDuration(recordingDuration)}</Typography>
                         </Box>
-                        <IconButton color="error" onClick={() => stopRecording(false)}>
-                            <DeleteRounded />
-                        </IconButton>
-                        <IconButton color="primary" onClick={() => stopRecording(true)} sx={{ bgcolor: 'primary.main', color: 'white', '&:hover': { bgcolor: 'primary.dark' } }}>
-                            <SendRounded />
-                        </IconButton>
+                        <IconButton color="error" onClick={() => stopRecording(false)}><DeleteRounded /></IconButton>
+                        <IconButton color="primary" onClick={() => stopRecording(true)} sx={{ bgcolor: 'primary.main', color: 'white', '&:hover': { bgcolor: 'primary.dark' } }}><SendRounded /></IconButton>
                     </Box>
                 ) : (
                     <>
@@ -690,7 +531,6 @@ export const ChatArea: FC<ChatAreaProps> = ({ selectedContact, onRefreshContacts
                             onChange={(e) => {
                                 const file = e.target.files?.[0];
                                 if (file) handleUpload(file);
-                                // Reset input
                                 e.target.value = '';
                             }}
                             accept="image/*,video/*"
@@ -706,6 +546,30 @@ export const ChatArea: FC<ChatAreaProps> = ({ selectedContact, onRefreshContacts
                                 <VerifiedRounded fontSize="small" />
                             </IconButton>
                         </Tooltip>
+
+                        {/* Emoji picker button */}
+                        <ClickAwayListener onClickAway={() => setShowEmoji(false)}>
+                            <Box sx={{ position: 'relative' }}>
+                                <Tooltip title="Emojis">
+                                    <IconButton onClick={() => setShowEmoji(v => !v)} sx={{ color: showEmoji ? 'primary.main' : 'text.secondary' }}>
+                                        <EmojiEmotionsRoundedIcon fontSize="small" />
+                                    </IconButton>
+                                </Tooltip>
+                                {showEmoji && (
+                                    <Box sx={{ position: 'absolute', bottom: '48px', left: 0, zIndex: 1300 }}>
+                                        <EmojiPicker
+                                            onEmojiClick={(emojiData: EmojiClickData) => {
+                                                setInputText(prev => prev + emojiData.emoji);
+                                            }}
+                                            theme={"auto" as Theme}
+                                            lazyLoadEmojis
+                                            height={380}
+                                            width={320}
+                                        />
+                                    </Box>
+                                )}
+                            </Box>
+                        </ClickAwayListener>
                         
                         <TextField
                             fullWidth
@@ -715,10 +579,10 @@ export const ChatArea: FC<ChatAreaProps> = ({ selectedContact, onRefreshContacts
                             onChange={(e) => setInputText(e.target.value)}
                             sx={{ '& fieldset': { borderRadius: 4 } }}
                             disabled={uploading}
-                            onKeyPress={(e) => {
+                            onKeyDown={(e) => {
                                 if (e.key === 'Enter' && !e.shiftKey) {
                                     e.preventDefault();
-                                    handleSend(e);
+                                    handleSend(e as any);
                                 }
                             }}
                         />

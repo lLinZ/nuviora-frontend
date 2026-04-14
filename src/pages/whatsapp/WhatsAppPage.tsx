@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Box, Paper, CircularProgress, Drawer } from "@mui/material";
 import { Layout } from "../../components/ui/Layout";
 import { request } from "../../common/request";
@@ -34,12 +34,21 @@ export const WhatsAppPage = () => {
     const [showMobileContext, setShowMobileContext] = useState(false);
     const [filter, setFilter] = useState<'all' | 'unread' | 'read'>('all');
 
+    // Used to pass incoming real-time messages directly to ChatArea without re-subscribing
+    const [incomingMessage, setIncomingMessage] = useState<any>(null);
+
     // Contextual Order Dialog
     const [orderDialogOpen, setOrderDialogOpen] = useState(false);
     const [selectedOrderId, setSelectedOrderId] = useState<number | undefined>(undefined);
 
     // Sockets
     const { echo } = useSocketStore();
+
+    // Keep a ref so the WebSocket closure always has the current selectedContact id
+    const selectedContactRef = useRef<ContactData | null>(null);
+    useEffect(() => {
+        selectedContactRef.current = selectedContact;
+    }, [selectedContact]);
 
     const fetchContacts = async (isLoadMore = false, forcedSearch?: string, forcedFilter?: string) => {
         try {
@@ -55,20 +64,20 @@ export const WhatsAppPage = () => {
                 
                 if (isLoadMore) {
                     setContacts(prev => [...prev, ...newContacts].map(c => 
-                        selectedContact?.id === c.id ? { ...c, unread_count: 0 } : c
+                        selectedContactRef.current?.id === c.id ? { ...c, unread_count: 0 } : c
                     ));
                     setPage(currentPage);
                 } else {
                     setContacts(newContacts.map((c: ContactData) => 
-                        selectedContact?.id === c.id ? { ...c, unread_count: 0 } : c
+                        selectedContactRef.current?.id === c.id ? { ...c, unread_count: 0 } : c
                     ));
                     setPage(1);
                 }
                 
                 setHasMore(!!json.next_page_url);
 
-                if (selectedContact) {
-                    const updated = newContacts.find((c: ContactData) => c.id === selectedContact.id);
+                if (selectedContactRef.current) {
+                    const updated = newContacts.find((c: ContactData) => c.id === selectedContactRef.current!.id);
                     if (updated) setSelectedContact(prev => ({ ...prev, ...updated, unread_count: 0 }));
                 }
             }
@@ -83,46 +92,66 @@ export const WhatsAppPage = () => {
         fetchContacts();
     }, []);
 
-    // Escuchar cambios en tiempo real para el Sidebar
+    // ─── SINGLE WebSocket hub — all real-time logic lives here ───────────────
     useEffect(() => {
         if (!echo) return;
 
         const channel = echo.private('whatsapp');
-        
+
+        // New message received (incoming from client OR outgoing from agent/n8n)
         channel.listen('WhatsappMessageReceived', (data: any) => {
             const { message } = data;
             if (!message) return;
 
-            setContacts(prev => {
-                const client_id = message.client_id || (message.client ? message.client.id : null);
-                if (!client_id) return prev;
+            const client_id = message.client_id || (message.client ? message.client.id : null);
+            if (!client_id) return;
 
+            // 1. Update Sidebar contact list
+            setContacts(prev => {
                 const index = prev.findIndex(c => c.id == client_id);
-                
+
                 if (index !== -1) {
                     const updatedContacts = [...prev];
                     const contact = { ...updatedContacts[index] };
-                    
+
                     contact.last_message = message.body;
                     contact.last_message_date = message.sent_at;
-                    
-                    if (selectedContact?.id != client_id) {
+
+                    // Only increment unread if the chat is NOT currently selected
+                    if (selectedContactRef.current?.id != client_id && message.is_from_client) {
                         contact.unread_count = (contact.unread_count || 0) + 1;
                     }
 
+                    // Bubble to top
                     updatedContacts.splice(index, 1);
                     return [contact, ...updatedContacts];
                 } else {
+                    // New contact not yet in list — reload if not searching
                     if (!searchTerm) fetchContacts(false);
                     return prev;
                 }
             });
+
+            // 2. If this matches the active chat, push message to ChatArea
+            if (selectedContactRef.current?.id == client_id) {
+                setIncomingMessage(message);
+            }
+        });
+
+        // A chat was marked as read — zero out unread count in sidebar
+        channel.listen('WhatsappChatRead', (data: any) => {
+            const { client_id } = data;
+            if (!client_id) return;
+            setContacts(prev =>
+                prev.map(c => c.id == client_id ? { ...c, unread_count: 0 } : c)
+            );
         });
 
         return () => {
             channel.stopListening('WhatsappMessageReceived');
+            channel.stopListening('WhatsappChatRead');
         };
-    }, [echo, selectedContact?.id, searchTerm]);
+    }, [echo, searchTerm]);
 
     // Debounced search
     useEffect(() => {
@@ -151,8 +180,7 @@ export const WhatsAppPage = () => {
         setContacts(prev => prev.map(c => 
             c.id === contact.id ? { ...c, unread_count: 0 } : c
         ));
-        
-        // Pass original contact so ChatArea knows if it needs to sync with DB
+        setIncomingMessage(null); // Clear any stale incoming message from previous chat
         setSelectedContact(contact);
     };
 
@@ -196,6 +224,7 @@ export const WhatsAppPage = () => {
                             onRefreshContacts={() => fetchContacts(false)}
                             onBack={() => setSelectedContact(null)}
                             onOpenContext={() => setShowMobileContext(true)}
+                            incomingMessage={incomingMessage}
                         />
 
                         <ContextPanel 
