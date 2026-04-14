@@ -2,7 +2,7 @@ import { FC, useEffect, useRef, useState } from "react";
 import { Box, Typography, Avatar, IconButton, TextField, CircularProgress, Paper, Chip, Tooltip, Dialog, DialogTitle, DialogContent, DialogActions, Button, List, ListItem, ListItemButton, ListItemText, Divider, Stack, Alert, ClickAwayListener } from "@mui/material";
 import { SendRounded, AttachFileRounded, ArrowBackRounded, InfoRounded, MicRounded, DeleteRounded, VerifiedRounded, MessageRounded } from "@mui/icons-material";
 import EmojiEmotionsRoundedIcon from "@mui/icons-material/EmojiEmotionsRounded";
-import EmojiPicker, { EmojiClickData, Theme } from "emoji-picker-react";
+
 import { ContactData } from "../WhatsAppPage";
 import { request } from "../../../common/request";
 import dayjs from "dayjs";
@@ -556,20 +556,56 @@ export const ChatArea: FC<ChatAreaProps> = ({ selectedContact, onRefreshContacts
                                     </IconButton>
                                 </Tooltip>
                                 {showEmoji && (
-                                    <Box sx={{ position: 'absolute', bottom: '48px', left: 0, zIndex: 1300 }}>
-                                        <EmojiPicker
-                                            onEmojiClick={(emojiData: EmojiClickData) => {
-                                                setInputText(prev => prev + emojiData.emoji);
-                                            }}
-                                            theme={"auto" as Theme}
-                                            lazyLoadEmojis
-                                            height={380}
-                                            width={320}
-                                        />
+                                    <Box sx={{
+                                        position: 'absolute',
+                                        bottom: '52px',
+                                        left: 0,
+                                        zIndex: 1300,
+                                        bgcolor: 'background.paper',
+                                        border: '1px solid',
+                                        borderColor: 'divider',
+                                        borderRadius: 3,
+                                        p: 1.5,
+                                        boxShadow: '0 8px 32px rgba(0,0,0,0.18)',
+                                        width: 280,
+                                    }}>
+                                        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1, px: 0.5, fontWeight: 'bold' }}>
+                                            Emojis frecuentes
+                                        </Typography>
+                                        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                                            {[
+                                                '😊','😂','🤣','❤️','😍','🥰','😘','🙏','👏','🔥',
+                                                '✅','💪','🎉','😅','😭','🤔','👍','💯','🙌','😎',
+                                                '🤩','😃','😄','😁','😆','😉','🥳','😋','🤗','😏',
+                                                '💬','📲','📦','🚀','⭐','💫','✨','🎁','🛵','📍',
+                                                '⏰','📅','💵','💰','📢','👋','🤝','💼','✔️','❌',
+                                                '⚠️','💡','🔔','📌','🏠','🌟','👀','😤','🥺','😮',
+                                            ].map(emoji => (
+                                                <Box
+                                                    key={emoji}
+                                                    onClick={() => {
+                                                        setInputText(prev => prev + emoji);
+                                                        setShowEmoji(false);
+                                                    }}
+                                                    sx={{
+                                                        fontSize: '1.4rem',
+                                                        cursor: 'pointer',
+                                                        p: 0.4,
+                                                        borderRadius: 1.5,
+                                                        lineHeight: 1,
+                                                        transition: 'background 0.15s',
+                                                        '&:hover': { bgcolor: 'action.hover', transform: 'scale(1.2)' }
+                                                    }}
+                                                >
+                                                    {emoji}
+                                                </Box>
+                                            ))}
+                                        </Box>
                                     </Box>
                                 )}
                             </Box>
                         </ClickAwayListener>
+
                         
                         <TextField
                             fullWidth
