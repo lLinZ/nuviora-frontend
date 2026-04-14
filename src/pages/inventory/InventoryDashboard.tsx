@@ -9,7 +9,8 @@ import {
     Inventory as InventoryIcon,
     LocalShipping as DelivererIcon,
     SwapHoriz as OperationIcon,
-    History as HistoryIcon
+    History as HistoryIcon,
+    QueryStats as ScmIcon,
 } from '@mui/icons-material';
 import { Layout } from '../../components/ui/Layout';
 import { DescripcionDeVista } from '../../components/ui/content/DescripcionDeVista';
@@ -24,6 +25,7 @@ import { DelivererStock } from '../deliverers/DelivererStock';
 import { StockTransfer } from './StockTransfer';
 import { StockAdjustment } from './StockAdjustment';
 import { InventoryMovements } from './InventoryMovements';
+import { ScmDashboard } from './ScmDashboard';
 
 interface TabPanelProps {
     children?: React.ReactNode;
@@ -72,6 +74,7 @@ export const InventoryDashboard: React.FC = () => {
             ), roles: ['Admin'], path: '/operations'
         },
         { label: 'Historial', icon: <HistoryIcon />, component: <InventoryMovements isEmbedded />, roles: ['Admin', 'Agencia'], path: '/movements' },
+        { label: 'Reabastecimiento SCM', icon: <ScmIcon />, component: <ScmDashboard />, roles: ['Admin', 'Gerente', 'Master'], path: '/scm' },
     ];
 
     const availableTabs = allTabs.filter(tab => tab.roles.includes(roleDesc));
