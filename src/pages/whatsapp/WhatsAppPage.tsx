@@ -7,6 +7,7 @@ import { ChatArea } from "./components/ChatArea";
 import { ContextPanel } from "./components/ContextPanel";
 import { useSocketStore } from "../../store/sockets/SocketStore";
 import { OrderDialog } from "../../components/orders/OrderDialog";
+import { useUserStore } from "../../store/user/UserStore";
 
 // ─── Utilidades de notificacion ───────────────────────────────────────────────
 
@@ -121,6 +122,7 @@ export const WhatsAppPage = () => {
     const [selectedOrderId, setSelectedOrderId] = useState<number | undefined>(undefined);
 
     const { echo } = useSocketStore();
+    const user = useUserStore(state => state.user);
 
     const selectedContactRef = useRef<ContactData | null>(null);
     useEffect(() => {
@@ -262,8 +264,11 @@ export const WhatsAppPage = () => {
                     const without = prev.filter(c => c.id != client_id);
                     return insertContactSorted(without, updatedContact);
                 } else {
-                    // Contacto nuevo — recargar la lista
-                    fetchContacts(false);
+                    // Contacto nuevo — recargar la lista solo si le corresponde a este usuario o es Admin
+                    const isAdmin = ['Admin', 'Manager', 'Gerente', 'Master'].includes(user?.role?.description || '');
+                    if (isAdmin || message.agent_id === user?.id || message.order?.agent_id === user?.id) {
+                        fetchContacts(false);
+                    }
                     return prev;
                 }
             });
