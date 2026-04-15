@@ -195,18 +195,16 @@ export const WhatsAppPage = () => {
         const connector = (echo as any).connector;
         if (connector?.pusher) {
             const pusher = connector.pusher;
-            pusher.connection.bind('connected', () => setConnectionStatus('connected'));
-            pusher.connection.bind('connecting', () => setConnectionStatus('reconnecting'));
-            pusher.connection.bind('unavailable', () => setConnectionStatus('disconnected'));
-            pusher.connection.bind('disconnected', () => setConnectionStatus('disconnected'));
-            pusher.connection.bind('failed', () => setConnectionStatus('disconnected'));
 
-            // Al reconectar: pedir mensajes faltantes
+            // Un solo handler para 'connected': actualiza estado Y recupera mensajes perdidos
             pusher.connection.bind('connected', () => {
                 setConnectionStatus('connected');
-                // Refetch para recuperar mensajes perdidos durante la desconexión
-                fetchContacts(false);
+                fetchContacts(false); // recuperar mensajes perdidos durante la desconexión
             });
+            pusher.connection.bind('connecting',  () => setConnectionStatus('reconnecting'));
+            pusher.connection.bind('unavailable', () => setConnectionStatus('disconnected'));
+            pusher.connection.bind('disconnected', () => setConnectionStatus('disconnected'));
+            pusher.connection.bind('failed',      () => setConnectionStatus('disconnected'));
         }
 
         // Mensaje nuevo (entrante del cliente O saliente del agente/n8n)
@@ -225,10 +223,8 @@ export const WhatsAppPage = () => {
             // Regla: SOLO mensajes del cliente activan sonido y notificacion.
             // Automatizaciones, respuestas del agente y eventos internos: silencio total.
             if (isIncoming && !isActiveChat) {
-                // Nivel 2: sonido suave tipo ping
                 playNotificationSound();
 
-                // Nivel 2: notificacion del SO (solo si la pestana no tiene foco)
                 const clientName = message.client?.first_name
                     ? `${message.client.first_name} ${message.client.last_name ?? ''}`.trim()
                     : 'Cliente';
@@ -237,7 +233,6 @@ export const WhatsAppPage = () => {
                     message.body?.slice(0, 120) ?? 'Nuevo mensaje'
                 );
 
-                // Nivel 1: contador global para el titulo de la pestana
                 setTotalUnread(n => n + 1);
             }
 
@@ -253,18 +248,16 @@ export const WhatsAppPage = () => {
                         last_message_date: message.sent_at,
                         last_message_type: message.message_type ?? 'outgoing_agent_message',
                         conversation_bucket: newBucket,
-                        // Badge de no leidos SOLO para mensajes del cliente
                         unread_count: isIncoming && !isActiveChat
                             ? (oldContact.unread_count || 0) + 1
                             : oldContact.unread_count,
                     };
 
-                    // Quitar de posicion actual y reinsertar ordenado por bucket
                     const without = prev.filter(c => c.id != client_id);
                     return insertContactSorted(without, updatedContact);
                 } else {
-                    // Contacto nuevo — recargar si no hay busqueda activa
-                    if (!searchTerm) fetchContacts(false);
+                    // Contacto nuevo — recargar la lista
+                    fetchContacts(false);
                     return prev;
                 }
             });
@@ -275,7 +268,7 @@ export const WhatsAppPage = () => {
             }
         });
 
-        // Chat marcado como leido — limpiar badge y descontar del total
+        // Chat marcado como leido
         channel.listen('WhatsappChatRead', (data: any) => {
             const { client_id } = data;
             if (!client_id) return;
@@ -291,7 +284,10 @@ export const WhatsAppPage = () => {
             channel.stopListening('WhatsappMessageReceived');
             channel.stopListening('WhatsappChatRead');
         };
-    }, [echo, searchTerm]);
+    // searchTerm NO va en deps — causaría re-suscripción con cada letra que escribe la vendedora
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [echo]);
+
 
     // Debounced search
     useEffect(() => {
