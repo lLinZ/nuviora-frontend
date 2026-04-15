@@ -90,18 +90,16 @@ const BUCKET_PRIORITY: Record<ConversationBucket, number> = {
 };
 
 function insertContactSorted(list: ContactData[], contact: ContactData): ContactData[] {
-    const result = [...list];
-    // Encontrar posición correcta por prioridad de bucket → unread DESC → fecha DESC
-    const idx = result.findIndex(c => {
-        const pa = BUCKET_PRIORITY[contact.conversation_bucket] ?? 2;
-        const pb = BUCKET_PRIORITY[c.conversation_bucket] ?? 2;
-        if (pa !== pb) return pa < pb;
-        if (contact.unread_count !== c.unread_count) return contact.unread_count > c.unread_count;
-        return new Date(contact.last_message_date) > new Date(c.last_message_date);
+    const result = [...list, contact];
+    return result.sort((a, b) => {
+        const pa = BUCKET_PRIORITY[a.conversation_bucket] ?? 2;
+        const pb = BUCKET_PRIORITY[b.conversation_bucket] ?? 2;
+        if (pa !== pb) return pa - pb; // Menor es más prioritario (requires_attention = 1)
+        if (a.unread_count !== b.unread_count) return (b.unread_count || 0) - (a.unread_count || 0);
+        const da = new Date(a.last_message_date || 0).getTime();
+        const db = new Date(b.last_message_date || 0).getTime();
+        return db - da;
     });
-    if (idx === -1) result.push(contact);
-    else result.splice(idx, 0, contact);
-    return result;
 }
 
 export const WhatsAppPage = () => {
