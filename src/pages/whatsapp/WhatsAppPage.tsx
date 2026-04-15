@@ -127,6 +127,12 @@ export const WhatsAppPage = () => {
         selectedContactRef.current = selectedContact;
     }, [selectedContact]);
 
+    const bucketRef = useRef(bucket);
+    useEffect(() => { bucketRef.current = bucket; }, [bucket]);
+
+    const searchTermRef = useRef(searchTerm);
+    useEffect(() => { searchTermRef.current = searchTerm; }, [searchTerm]);
+
     // Pedir permiso de notificaciones al abrir la pagina
     useEffect(() => {
         requestNotificationPermission();
@@ -145,8 +151,8 @@ export const WhatsAppPage = () => {
 
     const fetchContacts = useCallback(async (isLoadMore = false, forcedSearch?: string, forcedBucket?: string) => {
         try {
-            const search = forcedSearch !== undefined ? forcedSearch : searchTerm;
-            const currentBucket = forcedBucket !== undefined ? forcedBucket : bucket;
+            const search = forcedSearch !== undefined ? forcedSearch : searchTermRef.current;
+            const currentBucket = forcedBucket !== undefined ? forcedBucket : bucketRef.current;
             const currentPage = isLoadMore ? page + 1 : 1;
             const url = `/whatsapp-conversations?search=${encodeURIComponent(search)}&page=${currentPage}&bucket=${currentBucket}`;
             
