@@ -54,7 +54,6 @@ function showBrowserNotification(title: string, body: string) {
             body,
             icon: '/favicon.ico',
             tag: 'whatsapp-crm-incoming',
-            renotify: true,
         });
         setTimeout(() => notif.close(), 5000);
     }
