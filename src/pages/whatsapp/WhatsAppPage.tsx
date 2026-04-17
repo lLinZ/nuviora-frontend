@@ -211,13 +211,20 @@ export const WhatsAppPage = () => {
         }
     }
 
+    // Fetch inicial de agentes
     useEffect(() => {
         fetchAgents();
     }, []);
 
+    // REACCIVIDAD: Cuando cambia cualquier filtro, refrescar la lista
+    // Usamos un pequeño delay para la busqueda de texto (debounce) para no saturar el servidor
     useEffect(() => {
-        fetchContacts();
-    }, []);
+        const delayDebounceFn = setTimeout(() => {
+            fetchContacts();
+        }, searchTerm ? 400 : 0);
+
+        return () => clearTimeout(delayDebounceFn);
+    }, [searchTerm, bucket, sortBy, agentId, startDate, endDate]);
 
     // ─── WebSocket hub ────────────────────────────────────────────────────────
     useEffect(() => {
