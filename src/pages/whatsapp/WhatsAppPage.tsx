@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from "react";
+import { toast } from "react-toastify";
 import { Box, Paper, CircularProgress, Drawer } from "@mui/material";
 import { Layout } from "../../components/ui/Layout";
 import { request } from "../../common/request";
@@ -92,12 +93,23 @@ const BUCKET_PRIORITY: Record<ConversationBucket, number> = {
 };
 
 function insertContactSorted(list: ContactData[], contact: ContactData): ContactData[] {
-    const result = [...list, contact];
+    // 1. Eliminar duplicados previos por seguridad
+    const filtered = list.filter(c => Number(c.id) !== Number(contact.id));
+    const result = [...filtered, contact];
+
+    // 2. Ordenar con criterios claros para las vendedoras
     return result.sort((a, b) => {
+        // A. Prioridad por Bucket (Atención > Seguimiento > Cerrados)
         const pa = BUCKET_PRIORITY[a.conversation_bucket] ?? 2;
         const pb = BUCKET_PRIORITY[b.conversation_bucket] ?? 2;
-        if (pa !== pb) return pa - pb; // Menor es más prioritario (requires_attention = 1)
-        if (a.unread_count !== b.unread_count) return (b.unread_count || 0) - (a.unread_count || 0);
+        if (pa !== pb) return pa - pb;
+
+        // B. Prioridad por Pendientes (Puntos rojos arriba)
+        const ua = a.unread_count || 0;
+        const ub = b.unread_count || 0;
+        if (ua !== ub) return ub - ua;
+
+        // C. Por fecha (Más reciente arriba)
         const da = new Date(a.last_message_date || 0).getTime();
         const db = new Date(b.last_message_date || 0).getTime();
         return db - da;
@@ -262,31 +274,38 @@ export const WhatsAppPage = () => {
 
             // ─── NOTIFICACIONES ───────────────────────────────────────────────
             // Regla: SOLO mensajes del cliente activan sonido y notificacion.
-            // Automatizaciones, respuestas del agente y eventos internos: silencio total.
             if (isIncoming && !isActiveChat) {
                 playNotificationSound();
 
-                const clientName = message.client?.first_name
-                    ? `${message.client.first_name} ${message.client.last_name ?? ''}`.trim()
-                    : 'Cliente';
-                showBrowserNotification(
-                    `Nuevo mensaje de ${clientName}`,
-                    message.body?.slice(0, 120) ?? 'Nuevo mensaje'
-                );
+                const clientName = message.client?.names || message.client?.first_name || 'Cliente';
+                const bodyPreview = message.body?.slice(0, 80) ?? 'Nuevo mensaje';
+
+                // 1. Notificación del Sistema (OS)
+                showBrowserNotification(`Nuevo mensaje de ${clientName}`, bodyPreview);
+
+                // 2. Toast de la App (Burbuja interna)
+                toast.info(`📩 ${clientName}: ${bodyPreview}`, {
+                    position: "top-right",
+                    autoClose: 3500,
+                    hideProgressBar: false,
+                    closeOnClick: true,
+                    pauseOnHover: true,
+                    draggable: true,
+                });
 
                 setTotalUnread(n => n + 1);
             }
 
             // 1. Actualizar sidebar
             setContacts(prev => {
-                const index = prev.findIndex(c => c.id == client_id);
+                const index = prev.findIndex(c => Number(c.id) === Number(client_id));
 
                 if (index !== -1) {
                     const oldContact = prev[index];
                     const updatedContact: ContactData = {
                         ...oldContact,
                         last_message: message.body,
-                        last_message_date: message.sent_at,
+                        last_message_date: message.sent_at || new Date().toISOString(),
                         last_message_type: message.message_type ?? 'outgoing_agent_message',
                         conversation_bucket: newBucket,
                         unread_count: isIncoming && !isActiveChat
