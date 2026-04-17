@@ -69,6 +69,8 @@ interface SidebarProps {
     endDate: string;
     onEndDateChange: (val: string) => void;
     agents: any[];
+    serverBucketCounts?: Record<string, number>;
+    serverCriticalCount?: number;
 }
 
 export const Sidebar: FC<SidebarProps> = ({
@@ -91,6 +93,8 @@ export const Sidebar: FC<SidebarProps> = ({
     endDate,
     onEndDateChange,
     agents,
+    serverBucketCounts,
+    serverCriticalCount,
 }) => {
     const user = useUserStore(state => state.user);
     const navigate = useNavigate();
@@ -100,13 +104,18 @@ export const Sidebar: FC<SidebarProps> = ({
     const connInfo = CONNECTION_CONFIG[connectionStatus];
     const ConnIcon = connInfo.Icon;
 
-    const bucketCounts = contacts.reduce((acc, c) => {
-        acc[c.conversation_bucket] = (acc[c.conversation_bucket] ?? 0) + 1;
-        return acc;
-    }, {} as Record<string, number>);
+    // Usar contadores del servidor si estan disponibles (precisos)
+    // Si no, calcular desde los contactos visibles (fallback)
+    const bucketCounts = serverBucketCounts && Object.keys(serverBucketCounts).length > 0
+        ? serverBucketCounts
+        : contacts.reduce((acc, c) => {
+            acc[c.conversation_bucket] = (acc[c.conversation_bucket] ?? 0) + 1;
+            return acc;
+        }, {} as Record<string, number>);
 
-    // Nivel 3: cuántos chats en estado crítico (>30 min sin respuesta)
-    const criticalCount = contacts.filter(isCritical).length;
+    const criticalCount = serverCriticalCount !== undefined
+        ? serverCriticalCount
+        : contacts.filter(isCritical).length;
 
     return (
         <Box

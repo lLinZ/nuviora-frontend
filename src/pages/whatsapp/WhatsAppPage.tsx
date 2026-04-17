@@ -140,6 +140,10 @@ export const WhatsAppPage = () => {
     const [orderDialogOpen, setOrderDialogOpen] = useState(false);
     const [selectedOrderId, setSelectedOrderId] = useState<number | undefined>(undefined);
 
+    // Contadores globales que vienen del servidor (siempre precisos, no dependen de paginacion)
+    const [serverBucketCounts, setServerBucketCounts] = useState<Record<string, number>>({});
+    const [serverCriticalCount, setServerCriticalCount] = useState(0);
+
     const { echo } = useSocketStore();
     const user = useUserStore(state => state.user);
 
@@ -202,6 +206,10 @@ export const WhatsAppPage = () => {
                 }
                 
                 setHasMore(!!json.next_page_url);
+
+                // Guardar contadores globales del servidor
+                if (json.bucket_counts) setServerBucketCounts(json.bucket_counts);
+                if (json.critical_count !== undefined) setServerCriticalCount(json.critical_count);
 
                 if (selectedContactRef.current) {
                     const updated = newContacts.find((c: ContactData) => c.id === selectedContactRef.current!.id);
@@ -296,10 +304,12 @@ export const WhatsAppPage = () => {
                 setTotalUnread(n => n + 1);
             }
 
-            // 1. Actualizar sidebar
+            // 1. Actualizar sidebar — solo si el contacto pertenece al bucket activo
             setContacts(prev => {
+                const currentBucket = bucketRef.current;
                 const index = prev.findIndex(c => Number(c.id) === Number(client_id));
 
+                // Si el contacto ya estaba en la lista, actualizar siempre
                 if (index !== -1) {
                     const oldContact = prev[index];
                     const updatedContact: ContactData = {
@@ -313,10 +323,20 @@ export const WhatsAppPage = () => {
                             : oldContact.unread_count,
                     };
 
-                    const without = prev.filter(c => c.id != client_id);
+                    // Si hay un filtro de bucket activo y el contacto ya no pertenece a ese bucket,
+                    // eliminarlo de la lista (se movio a otro bucket)
+                    if (currentBucket !== 'all' && newBucket !== currentBucket) {
+                        return prev.filter(c => Number(c.id) !== Number(client_id));
+                    }
+
+                    const without = prev.filter(c => Number(c.id) !== Number(client_id));
                     return insertContactSorted(without, updatedContact);
                 } else {
-                    // Contacto nuevo — recargar la lista solo si le corresponde a este usuario o es Admin
+                    // Contacto nuevo en la vista — solo agregar si pertenece al bucket activo
+                    if (currentBucket !== 'all' && newBucket !== currentBucket) {
+                        return prev; // No pertenece al filtro actual, ignorar
+                    }
+                    // Si pertenece, recargar la lista completa
                     const isAdmin = ['Admin', 'Manager', 'Gerente', 'Master'].includes(user?.role?.description || '');
                     if (isAdmin || message.agent_id === user?.id || message.order?.agent_id === user?.id) {
                         fetchContacts(false);
@@ -423,6 +443,8 @@ export const WhatsAppPage = () => {
                             endDate={endDate}
                             onEndDateChange={setEndDate}
                             agents={agents}
+                            serverBucketCounts={serverBucketCounts}
+                            serverCriticalCount={serverCriticalCount}
                         />
 
                         <ChatArea 
