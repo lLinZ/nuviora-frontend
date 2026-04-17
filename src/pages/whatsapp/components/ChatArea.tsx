@@ -86,8 +86,14 @@ export const ChatArea: FC<ChatAreaProps> = ({ selectedContact, onRefreshContacts
             const { status, response } = await request(`/whatsapp-conversations/${selectedContact.id}/messages`, 'GET');
             if (status) {
                 const json = await response.json();
-                setMessages(json);
-                scrollToBottom();
+                if (Array.isArray(json)) {
+                    setMessages(json);
+                    scrollToBottom();
+                } else {
+                    console.error("API returned non-array messages", json);
+                    setMessages([]);
+                    if (json.message) toast.error(json.message);
+                }
             }
         } catch (error) {
             console.error(error);
