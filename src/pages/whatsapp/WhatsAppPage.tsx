@@ -75,6 +75,8 @@ export interface ContactData {
     last_message_type: MessageType;
     conversation_bucket: ConversationBucket;
     type: 'lead' | 'order';
+    products_summary?: string;
+    total_ves?: number;
     context: {
         order?: any;
         agent?: any;
@@ -114,6 +116,13 @@ export const WhatsAppPage = () => {
     const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>('connected');
     const [totalUnread, setTotalUnread] = useState(0);
 
+    // Nuevos filtros
+    const [sortBy, setSortBy] = useState('latency');
+    const [agentId, setAgentId] = useState<string | number>("");
+    const [startDate, setStartDate] = useState("");
+    const [endDate, setEndDate] = useState("");
+    const [agents, setAgents] = useState<any[]>([]);
+
     const [incomingMessage, setIncomingMessage] = useState<any>(null);
 
     const [orderDialogOpen, setOrderDialogOpen] = useState(false);
@@ -132,6 +141,11 @@ export const WhatsAppPage = () => {
 
     const searchTermRef = useRef(searchTerm);
     useEffect(() => { searchTermRef.current = searchTerm; }, [searchTerm]);
+
+    const filtersRef = useRef({ sortBy, agentId, startDate, endDate });
+    useEffect(() => { 
+        filtersRef.current = { sortBy, agentId, startDate, endDate }; 
+    }, [sortBy, agentId, startDate, endDate]);
 
     // Pedir permiso de notificaciones al abrir la pagina
     useEffect(() => {
@@ -153,8 +167,10 @@ export const WhatsAppPage = () => {
         try {
             const search = forcedSearch !== undefined ? forcedSearch : searchTermRef.current;
             const currentBucket = forcedBucket !== undefined ? forcedBucket : bucketRef.current;
+            const { sortBy, agentId, startDate, endDate } = filtersRef.current;
+            
             const currentPage = isLoadMore ? page + 1 : 1;
-            const url = `/whatsapp-conversations?search=${encodeURIComponent(search)}&page=${currentPage}&bucket=${currentBucket}`;
+            const url = `/whatsapp-conversations?search=${encodeURIComponent(search)}&page=${currentPage}&bucket=${currentBucket}&sort_by=${sortBy}&agent_id=${agentId}&start_date=${startDate}&end_date=${endDate}`;
             
             const { status, response } = await request(url, 'GET');
             if (status) {
@@ -185,7 +201,19 @@ export const WhatsAppPage = () => {
         } finally {
             setLoading(false);
         }
-    }, [searchTerm, bucket, page]);
+    }, [searchTerm, bucket, page, sortBy, agentId, startDate, endDate]);
+
+    const fetchAgents = async () => {
+        const { status, response } = await request('/users/agents', 'GET');
+        if (status) {
+            const data = await response.json();
+            setAgents(data);
+        }
+    }
+
+    useEffect(() => {
+        fetchAgents();
+    }, []);
 
     useEffect(() => {
         fetchContacts();
@@ -309,12 +337,12 @@ export const WhatsAppPage = () => {
         return () => clearTimeout(delayDebounceFn);
     }, [searchTerm]);
 
-    // Bucket change
+    // Bucket or Filters change
     useEffect(() => {
         if (!loading) {
             fetchContacts(false, searchTerm, bucket);
         }
-    }, [bucket]);
+    }, [bucket, sortBy, agentId, startDate, endDate]);
 
     const handleLoadMore = () => fetchContacts(true);
 
@@ -360,6 +388,15 @@ export const WhatsAppPage = () => {
                             hasMore={hasMore}
                             onLoadMore={handleLoadMore}
                             connectionStatus={connectionStatus}
+                            sortBy={sortBy}
+                            onSortChange={setSortBy}
+                            agentId={agentId}
+                            onAgentChange={setAgentId}
+                            startDate={startDate}
+                            onStartDateChange={setStartDate}
+                            endDate={endDate}
+                            onEndDateChange={setEndDate}
+                            agents={agents}
                         />
 
                         <ChatArea 
@@ -393,6 +430,15 @@ export const WhatsAppPage = () => {
                                     hasMore={hasMore}
                                     onLoadMore={handleLoadMore}
                                     connectionStatus={connectionStatus}
+                                    sortBy={sortBy}
+                                    onSortChange={setSortBy}
+                                    agentId={agentId}
+                                    onAgentChange={setAgentId}
+                                    startDate={startDate}
+                                    onStartDateChange={setStartDate}
+                                    endDate={endDate}
+                                    onEndDateChange={setEndDate}
+                                    agents={agents}
                                 />
                             </Box>
                         </Drawer>

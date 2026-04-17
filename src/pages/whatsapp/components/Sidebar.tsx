@@ -59,6 +59,16 @@ interface SidebarProps {
     hasMore: boolean;
     onLoadMore: () => void;
     connectionStatus: ConnectionStatus;
+    // Nuevos filtros
+    sortBy: string;
+    onSortChange: (val: string) => void;
+    agentId: string | number;
+    onAgentChange: (val: string) => void;
+    startDate: string;
+    onStartDateChange: (val: string) => void;
+    endDate: string;
+    onEndDateChange: (val: string) => void;
+    agents: any[];
 }
 
 export const Sidebar: FC<SidebarProps> = ({
@@ -72,6 +82,15 @@ export const Sidebar: FC<SidebarProps> = ({
     hasMore,
     onLoadMore,
     connectionStatus,
+    sortBy,
+    onSortChange,
+    agentId,
+    onAgentChange,
+    startDate,
+    onStartDateChange,
+    endDate,
+    onEndDateChange,
+    agents,
 }) => {
     const user = useUserStore(state => state.user);
     const navigate = useNavigate();
@@ -198,6 +217,74 @@ export const Sidebar: FC<SidebarProps> = ({
                         }
                     }}
                 />
+
+                {/* --- NUEVOS FILTROS (Kid-friendly / CEO style) --- */}
+                <Box sx={{ mt: 1.5, display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                    <Box sx={{ flexGrow: 1, minWidth: '45%' }}>
+                        <Typography variant="caption" sx={{ fontWeight: 'bold', ml: 0.5, color: 'text.secondary' }}>
+                            Ordenar por:
+                        </Typography>
+                        <TextField
+                            select
+                            fullWidth
+                            size="small"
+                            value={sortBy}
+                            onChange={(e) => onSortChange(e.target.value)}
+                            SelectProps={{ native: true }}
+                            sx={{ '& .MuiInputBase-root': { borderRadius: 2, fontSize: '0.75rem', bgcolor: 'rgba(0,0,0,0.03)' } }}
+                        >
+                            <option value="latency">Orden de llegada</option>
+                            <option value="messages_count">Cantidad de mensajes</option>
+                        </TextField>
+                    </Box>
+
+                    {isAdmin && (
+                        <Box sx={{ flexGrow: 1, minWidth: '45%' }}>
+                            <Typography variant="caption" sx={{ fontWeight: 'bold', ml: 0.5, color: 'text.secondary' }}>
+                                Vendedora:
+                            </Typography>
+                            <TextField
+                                select
+                                title="Filtrar por vendedora"
+                                fullWidth
+                                size="small"
+                                value={agentId || ""}
+                                onChange={(e) => onAgentChange(e.target.value)}
+                                SelectProps={{ native: true }}
+                                sx={{ '& .MuiInputBase-root': { borderRadius: 2, fontSize: '0.75rem', bgcolor: 'rgba(0,0,0,0.03)' } }}
+                            >
+                                <option value="">Todas</option>
+                                {agents.map((a: any) => (
+                                    <option key={a.id} value={a.id}>{a.name}</option>
+                                ))}
+                            </TextField>
+                        </Box>
+                    )}
+
+                    <Box sx={{ flexGrow: 1, minWidth: '100%' }}>
+                        <Typography variant="caption" sx={{ fontWeight: 'bold', ml: 0.5, color: 'text.secondary' }}>
+                            Fecha interacción:
+                        </Typography>
+                        <Box sx={{ display: 'flex', gap: 0.5 }}>
+                            <TextField
+                                type="date"
+                                size="small"
+                                fullWidth
+                                value={startDate}
+                                onChange={(e) => onStartDateChange(e.target.value)}
+                                sx={{ '& .MuiInputBase-root': { borderRadius: 2, fontSize: '0.7rem' } }}
+                            />
+                            <TextField
+                                type="date"
+                                size="small"
+                                fullWidth
+                                value={endDate}
+                                onChange={(e) => onEndDateChange(e.target.value)}
+                                sx={{ '& .MuiInputBase-root': { borderRadius: 2, fontSize: '0.7rem' } }}
+                            />
+                        </Box>
+                    </Box>
+                </Box>
             </Box>
 
             {/* Bucket tabs */}
@@ -336,27 +423,42 @@ export const Sidebar: FC<SidebarProps> = ({
                                         </Typography>
                                     </Box>
 
-                                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 0.5 }}>
+                                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.1 }}>
                                         <Typography variant="body2" sx={{
                                             opacity: contact.last_message_type === 'incoming_message' ? 1 : 0.65,
                                             fontWeight: contact.last_message_type === 'incoming_message' && contact.unread_count > 0 ? 'bold' : 'normal',
-                                            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 150,
+                                            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 180,
                                         }}>
                                             {contact.last_message_type === 'outgoing_automated_message' && (
                                                 <Box component="span" sx={{ opacity: 0.5, mr: 0.3 }}>🤖</Box>
                                             )}
                                             {contact.last_message}
                                         </Typography>
-                                        {contact.type === 'lead' || !contact.context.order?.name ? (
-                                            <Chip label="Lead" size="small" color="secondary"
-                                                sx={{ height: 18, fontSize: '0.6rem', fontWeight: 'bold', flexShrink: 0 }} />
-                                        ) : (
-                                            <Chip
-                                                label={`#${contact.context.order.name}`}
-                                                size="small" color="primary" variant="outlined"
-                                                sx={{ height: 18, fontSize: '0.6rem', fontWeight: 'bold', borderColor: 'currentColor', color: 'inherit', flexShrink: 0 }}
-                                            />
+
+                                        {contact.products_summary && (
+                                            <Typography variant="caption" sx={{ color: 'primary.main', fontWeight: 'bold', fontSize: '0.65rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                                🛒 {contact.products_summary}
+                                            </Typography>
                                         )}
+                                        
+                                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 0.2 }}>
+                                            {contact.total_ves > 0 && (
+                                                <Typography variant="caption" sx={{ fontWeight: 'bold', bgcolor: 'rgba(76,175,80,0.1)', color: '#2e7d32', px: 0.5, borderRadius: 1, fontSize: '0.65rem' }}>
+                                                    {new Intl.NumberFormat('es-VE', { style: 'currency', currency: 'VES' }).format(contact.total_ves)}
+                                                </Typography>
+                                            )}
+                                            
+                                            {contact.type === 'lead' || !contact.context.order?.name ? (
+                                                <Chip label="Lead" size="small" color="secondary"
+                                                    sx={{ height: 16, fontSize: '0.6rem', fontWeight: 'bold', flexShrink: 0 }} />
+                                            ) : (
+                                                <Chip
+                                                    label={`#${contact.context.order.name}`}
+                                                    size="small" color="primary" variant="outlined"
+                                                    sx={{ height: 16, fontSize: '0.6rem', fontWeight: 'bold', borderColor: 'currentColor', color: 'inherit', flexShrink: 0 }}
+                                                />
+                                            )}
+                                        </Box>
                                     </Box>
                                 </Box>
                             </Box>

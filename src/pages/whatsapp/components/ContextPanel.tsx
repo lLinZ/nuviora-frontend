@@ -155,9 +155,35 @@ export const ContextPanel: FC<ContextPanelProps> = ({ selectedContact, isMobileD
                                         color="primary" 
                                     />
                                 </Box>
-                                <Typography variant="h4" fontWeight="bold" color="primary.main" sx={{ mb: 2 }}>
+                                <Typography variant="h4" fontWeight="bold" color="primary.main" sx={{ mb: 0.5 }}>
                                     ${context.order.current_total_price}
                                 </Typography>
+                                {selectedContact.total_ves > 0 && (
+                                    <Typography variant="subtitle1" fontWeight="bold" color="success.main" sx={{ mb: 2 }}>
+                                        Bs. {new Intl.NumberFormat('es-VE').format(selectedContact.total_ves)}
+                                    </Typography>
+                                )}
+
+                                {context.order.products && (
+                                    <Box sx={{ mb: 2 }}>
+                                        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5, fontWeight: 'bold' }}>
+                                            Productos:
+                                        </Typography>
+                                        <Stack spacing={0.5}>
+                                            {context.order.products.map((p: any) => (
+                                                <Box key={p.id} sx={{ display: 'flex', justifyContent: 'space-between', bgcolor: 'rgba(0,0,0,0.02)', p: 0.5, borderRadius: 1 }}>
+                                                    <Typography variant="caption" noWrap sx={{ maxWidth: 180 }}>
+                                                        {p.product?.name || 'Producto'}
+                                                    </Typography>
+                                                    <Typography variant="caption" fontWeight="bold">
+                                                        x{p.quantity}
+                                                    </Typography>
+                                                </Box>
+                                            ))}
+                                        </Stack>
+                                    </Box>
+                                )}
+
                                 <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
                                     <Typography variant="caption" color="text.secondary">Fecha:</Typography>
                                     <Typography variant="caption" fontWeight="bold">{dayjs(context.order.created_at).format('DD/MM/YYYY')}</Typography>

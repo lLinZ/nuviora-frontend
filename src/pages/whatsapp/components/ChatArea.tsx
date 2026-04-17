@@ -106,6 +106,20 @@ export const ChatArea: FC<ChatAreaProps> = ({ selectedContact, onRefreshContacts
         }
     };
 
+    const handleMoveBucket = async (bucket: string) => {
+        if (!selectedContact) return;
+        try {
+            const { status } = await request(`/whatsapp-conversations/${selectedContact.id}/move`, 'POST', { bucket });
+            if (status) {
+                toast.success(`Chat movido a ${bucket === 'closed' ? 'Cerrados' : 'Seguimiento'}`);
+                onRefreshContacts();
+            }
+        } catch (error) {
+            console.error(error);
+            toast.error("Error al mover el chat");
+        }
+    };
+
     useEffect(() => {
         if (selectedContact) {
             fetchMessages();
@@ -373,6 +387,29 @@ export const ChatArea: FC<ChatAreaProps> = ({ selectedContact, onRefreshContacts
                             size="small" 
                             sx={{ height: 18, fontSize: '0.6rem', fontWeight: 'bold', opacity: 0.8 }} 
                         />
+                        <Box sx={{ ml: 2, display: { xs: 'none', lg: 'flex' }, gap: 0.5 }}>
+                            {selectedContact.conversation_bucket !== 'follow_up' && (
+                                <Button 
+                                    size="small" 
+                                    variant="outlined" 
+                                    sx={{ borderRadius: 10, fontSize: '0.65rem', px: 1.5, py: 0.2, fontWeight: 'bold', textTransform: 'none' }}
+                                    onClick={() => handleMoveBucket('follow_up')}
+                                >
+                                    Pasar a Seguimiento
+                                </Button>
+                            )}
+                            {selectedContact.conversation_bucket !== 'closed' && (
+                                <Button 
+                                    size="small" 
+                                    variant="outlined" 
+                                    color="success"
+                                    sx={{ borderRadius: 10, fontSize: '0.65rem', px: 1.5, py: 0.2, fontWeight: 'bold', textTransform: 'none' }}
+                                    onClick={() => handleMoveBucket('closed')}
+                                >
+                                    Limpiar/Cerrar
+                                </Button>
+                            )}
+                        </Box>
                     </Box>
                 </Box>
                 <IconButton onClick={onOpenContext} sx={{ display: { xs: 'block', lg: 'none' } }}><InfoRounded /></IconButton>
