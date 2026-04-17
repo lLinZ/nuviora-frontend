@@ -158,9 +158,9 @@ export const ContextPanel: FC<ContextPanelProps> = ({ selectedContact, isMobileD
                                 <Typography variant="h4" fontWeight="bold" color="primary.main" sx={{ mb: 0.5 }}>
                                     ${context.order.current_total_price}
                                 </Typography>
-                                {selectedContact.total_ves > 0 && (
+                                {(selectedContact.total_ves ?? 0) > 0 && (
                                     <Typography variant="subtitle1" fontWeight="bold" color="success.main" sx={{ mb: 2 }}>
-                                        Bs. {new Intl.NumberFormat('es-VE').format(selectedContact.total_ves)}
+                                        Bs. {new Intl.NumberFormat('es-VE').format(selectedContact.total_ves ?? 0)}
                                     </Typography>
                                 )}
 

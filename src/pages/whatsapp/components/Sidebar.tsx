@@ -442,9 +442,9 @@ export const Sidebar: FC<SidebarProps> = ({
                                         )}
                                         
                                         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 0.2 }}>
-                                            {contact.total_ves > 0 && (
+                                            {(contact.total_ves ?? 0) > 0 && (
                                                 <Typography variant="caption" sx={{ fontWeight: 'bold', bgcolor: 'rgba(76,175,80,0.1)', color: '#2e7d32', px: 0.5, borderRadius: 1, fontSize: '0.65rem' }}>
-                                                    {new Intl.NumberFormat('es-VE', { style: 'currency', currency: 'VES' }).format(contact.total_ves)}
+                                                    {new Intl.NumberFormat('es-VE', { style: 'currency', currency: 'VES' }).format(contact.total_ves ?? 0)}
                                                 </Typography>
                                             )}
                                             
