@@ -304,39 +304,40 @@ export const WhatsAppPage = () => {
                 setTotalUnread(n => n + 1);
             }
 
-            // 1. Actualizar sidebar — solo si el contacto pertenece al bucket activo
+            // 1. Actualizar sidebar — SIN re-ordenar la lista completa
             setContacts(prev => {
                 const currentBucket = bucketRef.current;
                 const index = prev.findIndex(c => Number(c.id) === Number(client_id));
 
-                // Si el contacto ya estaba en la lista, actualizar siempre
                 if (index !== -1) {
-                    const oldContact = prev[index];
-                    const updatedContact: ContactData = {
-                        ...oldContact,
-                        last_message: message.body,
-                        last_message_date: message.sent_at || new Date().toISOString(),
-                        last_message_type: message.message_type ?? 'outgoing_agent_message',
-                        conversation_bucket: newBucket,
-                        unread_count: isIncoming && !isActiveChat
-                            ? (oldContact.unread_count || 0) + 1
-                            : oldContact.unread_count,
-                    };
+                    // El contacto ya esta en la lista: actualizar sus datos EN SU LUGAR
+                    // NO re-ordenar toda la lista (eso mueve otros chats)
 
-                    // Si hay un filtro de bucket activo y el contacto ya no pertenece a ese bucket,
-                    // eliminarlo de la lista (se movio a otro bucket)
+                    // Si hay filtro de bucket y el contacto cambio de bucket, sacarlo de la vista
                     if (currentBucket !== 'all' && newBucket !== currentBucket) {
                         return prev.filter(c => Number(c.id) !== Number(client_id));
                     }
 
-                    const without = prev.filter(c => Number(c.id) !== Number(client_id));
-                    return insertContactSorted(without, updatedContact);
+                    // Actualizar solo los campos que cambiaron, sin mover el contacto de posicion
+                    return prev.map(c => {
+                        if (Number(c.id) !== Number(client_id)) return c;
+                        return {
+                            ...c,
+                            last_message: message.body,
+                            last_message_date: message.sent_at || new Date().toISOString(),
+                            last_message_type: message.message_type ?? 'outgoing_agent_message',
+                            conversation_bucket: newBucket,
+                            unread_count: isIncoming && !isActiveChat
+                                ? (c.unread_count || 0) + 1
+                                : c.unread_count,
+                        };
+                    });
                 } else {
                     // Contacto nuevo en la vista — solo agregar si pertenece al bucket activo
                     if (currentBucket !== 'all' && newBucket !== currentBucket) {
-                        return prev; // No pertenece al filtro actual, ignorar
+                        return prev;
                     }
-                    // Si pertenece, recargar la lista completa
+                    // Si pertenece, recargar la lista completa desde el servidor
                     const isAdmin = ['Admin', 'Manager', 'Gerente', 'Master'].includes(user?.role?.description || '');
                     if (isAdmin || message.agent_id === user?.id || message.order?.agent_id === user?.id) {
                         fetchContacts(false);
