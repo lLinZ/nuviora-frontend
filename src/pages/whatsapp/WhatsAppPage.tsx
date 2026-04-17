@@ -163,6 +163,10 @@ export const WhatsAppPage = () => {
         filtersRef.current = { sortBy, agentId, startDate, endDate }; 
     }, [sortBy, agentId, startDate, endDate]);
 
+    // Ref de contacts para evitar stale closure dentro del WebSocket listener
+    const contactsRef = useRef<ContactData[]>([]);
+    useEffect(() => { contactsRef.current = contacts; }, [contacts]);
+
     // Pedir permiso de notificaciones al abrir la pagina
     useEffect(() => {
         requestNotificationPermission();
@@ -280,14 +284,12 @@ export const WhatsAppPage = () => {
             const newBucket: ConversationBucket = message.conversation_bucket ?? 'follow_up';
             const isActiveChat = selectedContactRef.current?.id == client_id;
 
-            // ─── NOTIFICACIONES ───────────────────────────────────────────────
-            // Regla: SOLO mensajes del cliente activan sonido/notificacion,
-            // y solo si el chat le corresponde a esta vendedora (o es admin).
+            // ─── NOTIFICACIONES ─────────────────────────────────────────────
             const isAdmin = ['Admin', 'Manager', 'Gerente', 'Master'].includes(user?.role?.description || '');
             const isMineChat = isAdmin
-                || message.agent_id === user?.id
-                || message.order?.agent_id === user?.id
-                || contacts.some(c => Number(c.id) === Number(client_id)); // ya esta en su lista
+                || Number(message.agent_id) === Number(user?.id)
+                || Number(message.order?.agent_id) === Number(user?.id)
+                || contactsRef.current.some(c => Number(c.id) === Number(client_id));
 
             if (isIncoming && !isActiveChat && isMineChat) {
                 playNotificationSound();
@@ -349,8 +351,10 @@ export const WhatsAppPage = () => {
                         return prev;
                     }
                     // Recargar la lista desde el servidor para que aparezca de primero
-                    const isAdmin = ['Admin', 'Manager', 'Gerente', 'Master'].includes(user?.role?.description || '');
-                    if (isAdmin || message.agent_id === user?.id || message.order?.agent_id === user?.id) {
+                    const isAdminElse = ['Admin', 'Manager', 'Gerente', 'Master'].includes(user?.role?.description || '');
+                    if (isAdminElse
+                        || Number(message.agent_id) === Number(user?.id)
+                        || Number(message.order?.agent_id) === Number(user?.id)) {
                         fetchContacts(false);
                     }
                     return prev;
