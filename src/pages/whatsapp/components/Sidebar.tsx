@@ -255,7 +255,7 @@ export const Sidebar: FC<SidebarProps> = ({
                             >
                                 <option value="">Todas</option>
                                 {agents.map((a: any) => (
-                                    <option key={a.id} value={a.id}>{a.name}</option>
+                                    <option key={a.id} value={a.id}>{a.names}</option>
                                 ))}
                             </TextField>
                         </Box>

@@ -206,8 +206,8 @@ export const WhatsAppPage = () => {
     const fetchAgents = async () => {
         const { status, response } = await request('/users/agents', 'GET');
         if (status) {
-            const data = await response.json();
-            setAgents(data);
+            const json = await response.json();
+            setAgents(json.data || []);
         }
     }
 
