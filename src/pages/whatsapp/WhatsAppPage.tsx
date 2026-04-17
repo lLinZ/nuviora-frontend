@@ -272,6 +272,13 @@ export const WhatsAppPage = () => {
             pusher.connection.bind('failed',      () => setConnectionStatus('disconnected'));
         }
 
+        // Debounce ref — refresca desde el servidor 1.5s despues del ultimo mensaje
+        let refreshTimer: ReturnType<typeof setTimeout> | null = null;
+        const scheduleRefresh = () => {
+            if (refreshTimer) clearTimeout(refreshTimer);
+            refreshTimer = setTimeout(() => fetchContacts(false), 1500);
+        };
+
         // Mensaje nuevo (entrante del cliente O saliente del agente/n8n)
         channel.listen('WhatsappMessageReceived', (data: any) => {
             const { message } = data;
@@ -284,21 +291,21 @@ export const WhatsAppPage = () => {
             const newBucket: ConversationBucket = message.conversation_bucket ?? 'follow_up';
             const isActiveChat = selectedContactRef.current?.id == client_id;
 
-            // ─── NOTIFICACIONES ─────────────────────────────────────────────
+            // ─── Solo procesar mensajes que pertenecen a este usuario ────────
             const isAdmin = ['Admin', 'Manager', 'Gerente', 'Master'].includes(user?.role?.description || '');
             const isMineChat = isAdmin
                 || Number(message.agent_id) === Number(user?.id)
                 || Number(message.order?.agent_id) === Number(user?.id)
                 || contactsRef.current.some(c => Number(c.id) === Number(client_id));
 
-            if (isIncoming && !isActiveChat && isMineChat) {
-                playNotificationSound();
+            if (!isMineChat) return;
 
+            // ─── NOTIFICACIONES ──────────────────────────────────────────────
+            if (isIncoming && !isActiveChat) {
+                playNotificationSound();
                 const clientName = message.client?.names || message.client?.first_name || 'Cliente';
                 const bodyPreview = message.body?.slice(0, 80) ?? 'Nuevo mensaje';
-
                 showBrowserNotification(`Nuevo mensaje de ${clientName}`, bodyPreview);
-
                 toast.info(`📩 ${clientName}: ${bodyPreview}`, {
                     position: "top-right",
                     autoClose: 3500,
@@ -307,61 +314,47 @@ export const WhatsAppPage = () => {
                     pauseOnHover: true,
                     draggable: true,
                 });
-
                 setTotalUnread(n => n + 1);
             }
 
-            // 1. Actualizar sidebar
+            // ─── ACTUALIZACIÓN OPTIMISTA ──────────────────────────────────────
+            // Actualiza la pantalla al instante. El servidor confirma en 1.5s.
             setContacts(prev => {
                 const currentBucket = bucketRef.current;
                 const index = prev.findIndex(c => Number(c.id) === Number(client_id));
 
-                if (index !== -1) {
-                    // ─── Contacto YA está en la lista ──────────────────────────
-                    // Si cambio de bucket y hay filtro activo, sacarlo de la vista
-                    if (currentBucket !== 'all' && newBucket !== currentBucket) {
-                        return prev.filter(c => Number(c.id) !== Number(client_id));
-                    }
+                if (index === -1) return prev; // no está en lista, el refresh lo traerá
 
-                    const updatedContact: ContactData = {
-                        ...prev[index],
-                        last_message: message.body,
-                        last_message_date: message.sent_at || new Date().toISOString(),
-                        last_message_type: message.message_type ?? 'outgoing_agent_message',
-                        conversation_bucket: newBucket,
-                        unread_count: isIncoming && !isActiveChat
-                            ? (prev[index].unread_count || 0) + 1
-                            : prev[index].unread_count,
-                    };
+                const updatedContact: ContactData = {
+                    ...prev[index],
+                    last_message: message.body ?? prev[index].last_message,
+                    last_message_date: message.sent_at || new Date().toISOString(),
+                    last_message_type: message.message_type ?? 'outgoing_agent_message',
+                    conversation_bucket: newBucket,
+                    unread_count: isIncoming && !isActiveChat
+                        ? (prev[index].unread_count || 0) + 1
+                        : prev[index].unread_count,
+                };
 
-                    if (isIncoming) {
-                        // Si llego un mensaje del cliente: subir el chat al tope de la lista
-                        // (sin tocar el orden del resto)
-                        const without = prev.filter(c => Number(c.id) !== Number(client_id));
-                        return [updatedContact, ...without];
-                    } else {
-                        // Si fue un mensaje de salida (agente/bot): actualizar en su lugar sin mover
-                        return prev.map(c => Number(c.id) === Number(client_id) ? updatedContact : c);
-                    }
-
-                } else {
-                    // ─── Contacto NUEVO en la vista ────────────────────────────
-                    // Si hay filtro de bucket y el nuevo contacto no pertenece, ignorar
-                    if (currentBucket !== 'all' && newBucket !== currentBucket) {
-                        return prev;
-                    }
-                    // Recargar la lista desde el servidor para que aparezca de primero
-                    const isAdminElse = ['Admin', 'Manager', 'Gerente', 'Master'].includes(user?.role?.description || '');
-                    if (isAdminElse
-                        || Number(message.agent_id) === Number(user?.id)
-                        || Number(message.order?.agent_id) === Number(user?.id)) {
-                        fetchContacts(false);
-                    }
-                    return prev;
+                // Si hay filtro de bucket Y el chat cambió → sacarlo de la vista
+                if (currentBucket !== 'all' && newBucket !== currentBucket) {
+                    return prev.filter(c => Number(c.id) !== Number(client_id));
                 }
+
+                // Mensaje entrante: subir al tope
+                if (isIncoming) {
+                    return [updatedContact, ...prev.filter(c => Number(c.id) !== Number(client_id))];
+                }
+
+                // Mensaje saliente: actualizar en su lugar
+                return prev.map(c => Number(c.id) === Number(client_id) ? updatedContact : c);
             });
 
-            // 2. Si es el chat activo, enviar mensaje al ChatArea
+            // ─── REFRESH DEL SERVIDOR ────────────────────────────────────────
+            // Corrige cualquier inconsistencia 1.5s despues (bucket, orden, etc.)
+            scheduleRefresh();
+
+            // ─── Pasar mensaje al chat activo ────────────────────────────────
             if (isActiveChat) {
                 setIncomingMessage(message);
             }
