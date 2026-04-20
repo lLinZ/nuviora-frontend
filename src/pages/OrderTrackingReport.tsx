@@ -24,14 +24,20 @@ import {
     IconButton,
     LinearProgress,
     alpha,
-    useTheme
+    useTheme,
+    Tabs,
+    Tab,
+    Divider,
+    Card,
+    CardContent
 } from '@mui/material';
 import {
     RefreshRounded,
     HistoryRounded,
     AssignmentIndRounded,
     FilterAltRounded,
-    VisibilityRounded
+    VisibilityRounded,
+    AssessmentRounded
 } from '@mui/icons-material';
 import dayjs from 'dayjs';
 import { request } from '../common/request';
@@ -62,6 +68,12 @@ export const OrderTrackingReport: React.FC = () => {
         agency_rate: '0%',
         novelty_stats: { total: 0, resolved: 0, rate: '0%' }
     });
+    
+    // Cohorts Data
+    const [cohortData, setCohortData] = useState<any>(null);
+    const [cohortLoading, setCohortLoading] = useState(false);
+    const [cohortTab, setCohortTab] = useState(0); // 0: Nuevos, 1: Reprogramados
+    const [cohortViewTab, setCohortViewTab] = useState(0); // 0: General, 1: Vendedora, 2: Tienda, 3: Agencia, 4: Producto
 
     // Sockets
     const echo = useSocketStore((s) => s.echo);
@@ -118,10 +130,32 @@ export const OrderTrackingReport: React.FC = () => {
         }
     };
 
+    const fetchCohorts = async () => {
+        setCohortLoading(true);
+        try {
+            const query = new URLSearchParams({
+                start_date: startDate,
+                end_date: endDate
+            });
+            const { status, response }: IResponse = await request(`/reports/tracking-comprehensive/cohort-metrics?${query.toString()}`, 'GET');
+            if (status === 200) {
+                const json = await response.json();
+                if (json.data) {
+                    setCohortData(json.data);
+                }
+            }
+        } catch (error) {
+            console.error("Error fetching cohorts", error);
+        } finally {
+            setCohortLoading(false);
+        }
+    };
+
     // 1. Carga inicial (Solo al montar)
     useEffect(() => {
         fetchFilters();
         fetchLogs(1);
+        fetchCohorts();
     }, []);
 
     // 2. Escucha de Sockets (Refresca con filtros actuales)
@@ -157,6 +191,7 @@ export const OrderTrackingReport: React.FC = () => {
     const handleSearch = () => {
         setPage(1);
         fetchLogs(1);
+        fetchCohorts();
     };
 
     const statusFlowOrder = [
@@ -403,6 +438,141 @@ export const OrderTrackingReport: React.FC = () => {
                         </Grid>
                     </Grid>
                 )}
+
+                {/* --- RENDER COHORTS --- */}
+                <Paper sx={{ p: 3, mb: 3, borderRadius: 4 }}>
+                    <Stack direction={{ xs: 'column', md: 'row' }} justifyContent="space-between" alignItems="center" mb={2}>
+                        <Stack direction="row" spacing={2} alignItems="center">
+                            <AssessmentRounded color="secondary" />
+                            <Typography variant="h6" fontWeight="bold">Análisis de Cohortes (Efectividad Real)</Typography>
+                        </Stack>
+                        <Tabs 
+                            value={cohortTab} 
+                            onChange={(_, val) => setCohortTab(val)} 
+                            textColor="secondary" 
+                            indicatorColor="secondary"
+                        >
+                            <Tab label="Pedidos Nuevos En Periodo" />
+                            <Tab label="Pedidos Reprogramados para Hoy" />
+                        </Tabs>
+                    </Stack>
+                    <Divider sx={{ mb: 2 }} />
+                    
+                    {cohortLoading ? (
+                        <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}><CircularProgress /></Box>
+                    ) : cohortData ? (
+                        <Box>
+                            <Tabs 
+                                value={cohortViewTab} 
+                                onChange={(_, val) => setCohortViewTab(val)} 
+                                variant="scrollable"
+                                scrollButtons="auto"
+                                sx={{ mb: 3 }}
+                            >
+                                <Tab label="General" />
+                                <Tab label="Por Vendedora" />
+                                <Tab label="Por Tienda" />
+                                <Tab label="Por Agencia" />
+                                <Tab label="Por Producto" />
+                            </Tabs>
+
+                            {(() => {
+                                const currentData = cohortTab === 0 ? cohortData.new_orders : cohortData.rescheduled;
+                                if (!currentData) return <Typography>No data</Typography>;
+
+                                // General View
+                                if (cohortViewTab === 0) {
+                                    const { total, delivered, canceled, delivered_rate, canceled_rate } = currentData.general;
+                                    return (
+                                        <Grid container spacing={2}>
+                                            <Grid size={{ xs: 12, md: 4 }}>
+                                                <Card sx={{ bgcolor: 'rgba(25, 118, 210, 0.05)', height: '100%' }}>
+                                                    <CardContent>
+                                                        <Typography color="text.secondary" gutterBottom>Total Pedidos</Typography>
+                                                        <Typography variant="h3" fontWeight="bold" color="primary">{total}</Typography>
+                                                    </CardContent>
+                                                </Card>
+                                            </Grid>
+                                            <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+                                                <Card sx={{ bgcolor: 'rgba(46, 125, 50, 0.05)', height: '100%' }}>
+                                                    <CardContent>
+                                                        <Typography color="text.secondary" gutterBottom>Entregados</Typography>
+                                                        <Stack direction="row" alignItems="baseline" spacing={2}>
+                                                            <Typography variant="h3" fontWeight="bold" color="success.main">{delivered}</Typography>
+                                                            <Typography variant="h6" color="success.light">{delivered_rate}%</Typography>
+                                                        </Stack>
+                                                    </CardContent>
+                                                </Card>
+                                            </Grid>
+                                            <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+                                                <Card sx={{ bgcolor: 'rgba(211, 47, 47, 0.05)', height: '100%' }}>
+                                                    <CardContent>
+                                                        <Typography color="text.secondary" gutterBottom>Cancelados</Typography>
+                                                        <Stack direction="row" alignItems="baseline" spacing={2}>
+                                                            <Typography variant="h3" fontWeight="bold" color="error.main">{canceled}</Typography>
+                                                            <Typography variant="h6" color="error.light">{canceled_rate}%</Typography>
+                                                        </Stack>
+                                                    </CardContent>
+                                                </Card>
+                                            </Grid>
+                                        </Grid>
+                                    );
+                                }
+
+                                // List Views (Vendedora, Tienda, Agencia, Producto)
+                                let listData: any[] = [];
+                                let labelColumn = '';
+                                if (cohortViewTab === 1) { listData = currentData.by_agent; labelColumn = 'Vendedora'; }
+                                if (cohortViewTab === 2) { listData = currentData.by_shop; labelColumn = 'Tienda'; }
+                                if (cohortViewTab === 3) { listData = currentData.by_agency; labelColumn = 'Agencia'; }
+                                if (cohortViewTab === 4) { listData = currentData.by_product; labelColumn = 'Producto'; }
+
+                                return (
+                                    <TableContainer component={Paper} elevation={0} sx={{ border: '1px solid rgba(255,255,255,0.1)' }}>
+                                        <Table size="small">
+                                            <TableHead sx={{ bgcolor: 'action.hover' }}>
+                                                <TableRow>
+                                                    <TableCell><b>{labelColumn}</b></TableCell>
+                                                    <TableCell align="center"><b>Total</b></TableCell>
+                                                    <TableCell align="center"><b>Entregados</b></TableCell>
+                                                    <TableCell align="center"><b>% Entregado</b></TableCell>
+                                                    <TableCell align="center"><b>Cancelados</b></TableCell>
+                                                    <TableCell align="center"><b>% Cancelado</b></TableCell>
+                                                </TableRow>
+                                            </TableHead>
+                                            <TableBody>
+                                                {listData.length === 0 ? (
+                                                    <TableRow><TableCell colSpan={6} align="center" sx={{py:3}}>Sin datos en esta categoría</TableCell></TableRow>
+                                                ) : listData.map((row: any, idx: number) => {
+                                                    const key = row.agent || row.shop || row.agency || row.product;
+                                                    return (
+                                                        <TableRow key={idx}>
+                                                            <TableCell><Typography fontWeight="bold">{key}</Typography></TableCell>
+                                                            <TableCell align="center">{row.total}</TableCell>
+                                                            <TableCell align="center">
+                                                                <Typography color="success.main" fontWeight="bold">{row.delivered}</Typography>
+                                                            </TableCell>
+                                                            <TableCell align="center">
+                                                                <Chip size="small" label={`${row.delivered_rate}%`} color="success" sx={{fontWeight:'bold'}} />
+                                                            </TableCell>
+                                                            <TableCell align="center">
+                                                                <Typography color="error.main" fontWeight="bold">{row.canceled}</Typography>
+                                                            </TableCell>
+                                                            <TableCell align="center">
+                                                                <Chip size="small" label={`${row.canceled_rate}%`} color="error" variant="outlined" />
+                                                            </TableCell>
+                                                        </TableRow>
+                                                    );
+                                                })}
+                                            </TableBody>
+                                        </Table>
+                                    </TableContainer>
+                                );
+                            })()}
+                        </Box>
+                    ) : null}
+                </Paper>
+                {/* --- MESA DE REGISTROS --- */}
 
                 <TableContainer component={Paper} sx={{ borderRadius: 4, overflow: 'hidden' }}>
                     {loading && <Box sx={{ width: '100%', position: 'absolute' }}><CircularProgress size={24} sx={{ m: 2 }} /></Box>}

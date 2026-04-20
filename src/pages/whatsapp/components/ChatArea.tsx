@@ -214,7 +214,7 @@ export const ChatArea: FC<ChatAreaProps> = ({ selectedContact, onRefreshContacts
                 >
                     <Box sx={{ fontSize: '2rem' }}>📄</Box>
                     <Box sx={{ overflow: 'hidden' }}>
-                        <Typography variant="body2" sx={{ fontWeight: 'bold', textDecoration: 'underline', noWrap: true, textOverflow: 'ellipsis' }}>
+                        <Typography variant="body2" noWrap sx={{ fontWeight: 'bold', textDecoration: 'underline', textOverflow: 'ellipsis' }}>
                             Documento PDF
                         </Typography>
                         <Typography variant="caption" sx={{ opacity: 0.7, display: 'block' }}>
