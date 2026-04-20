@@ -165,6 +165,7 @@ export const ChatArea: FC<ChatAreaProps> = ({ selectedContact, onRefreshContacts
             urlLower.endsWith('.ogg') || urlLower.endsWith('.mp3') || urlLower.endsWith('.wav') || urlLower.endsWith('.m4a') ||
             urlLower.includes('wa_audio_') || (urlLower.endsWith('.webm') && mediaType !== 'video')
         );
+        const isPdf = urlLower.endsWith('.pdf') || mediaType === 'document' && urlLower.includes('.pdf');
 
         if (isSticker) {
             return <Box component="img" src={mediaUrl} alt="Sticker" onClick={() => window.open(mediaUrl, '_blank')} sx={{ width: 150, height: 150, objectFit: 'contain', display: 'block', cursor: 'pointer', mb: 1, bgcolor: 'transparent' }} />;
@@ -190,8 +191,38 @@ export const ChatArea: FC<ChatAreaProps> = ({ selectedContact, onRefreshContacts
             );
         }
 
-        if (mediaType === 'image' || urlLower.match(/\.(jpg|jpeg|png|gif|webp)$/) || mediaType === 'unknown') {
+        if (mediaType === 'image' || urlLower.match(/\.(jpg|jpeg|png|gif|webp)$/) || (mediaType === 'unknown' && !isPdf)) {
             return <Box component="img" src={mediaUrl} sx={{ maxWidth: 320, width: '100%', maxHeight: 400, objectFit: 'cover', borderRadius: 2, mb: 1, cursor: 'pointer' }} onClick={() => window.open(mediaUrl, '_blank')} />;
+        }
+
+        if (isPdf) {
+            return (
+                <Box 
+                    onClick={() => window.open(mediaUrl, '_blank')}
+                    sx={{ 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        gap: 1.5, 
+                        p: 1.5, 
+                        bgcolor: 'rgba(255,255,255,0.1)', 
+                        borderRadius: 2, 
+                        cursor: 'pointer',
+                        mb: 1,
+                        border: '1px solid rgba(255,255,255,0.2)',
+                        '&:hover': { bgcolor: 'rgba(255,255,255,0.15)' }
+                    }}
+                >
+                    <Box sx={{ fontSize: '2rem' }}>📄</Box>
+                    <Box sx={{ overflow: 'hidden' }}>
+                        <Typography variant="body2" sx={{ fontWeight: 'bold', textDecoration: 'underline', noWrap: true, textOverflow: 'ellipsis' }}>
+                            Documento PDF
+                        </Typography>
+                        <Typography variant="caption" sx={{ opacity: 0.7, display: 'block' }}>
+                            Click para abrir o descargar
+                        </Typography>
+                    </Box>
+                </Box>
+            );
         }
 
         return <a href={mediaUrl} target="_blank" rel="noopener noreferrer" style={{ color: '#000', textDecoration: 'underline', fontSize: '0.75rem', display: 'block', marginBottom: '4px' }}>📦 Archivo Adjunto ({mediaType || 'Archivo'})</a>;
@@ -576,9 +607,9 @@ export const ChatArea: FC<ChatAreaProps> = ({ selectedContact, onRefreshContacts
                                 if (file) handleUpload(file);
                                 e.target.value = '';
                             }}
-                            accept="image/*,video/*"
+                            accept="image/*,video/*,application/pdf,.pdf,.doc,.docx"
                         />
-                        <Tooltip title="Adjuntar foto o video">
+                        <Tooltip title="Adjuntar foto, video o PDF">
                             <IconButton color="default" onClick={() => fileInputRef.current?.click()} disabled={uploading}>
                                 {uploading ? <CircularProgress size={24} /> : <AttachFileRounded />}
                             </IconButton>
