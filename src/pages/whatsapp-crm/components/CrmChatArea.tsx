@@ -1,9 +1,9 @@
 import { FC, useEffect, useRef, useState } from "react";
 import {
     Box, Typography, Avatar, IconButton, TextField, CircularProgress,
-    Paper, Chip, Tooltip, Button, Alert, Dialog, DialogTitle,
+    Chip, Tooltip, Button, Alert, Dialog, DialogTitle,
     DialogContent, DialogActions, List, ListItemButton, ListItemText, Divider,
-    Stack, ClickAwayListener,
+    Stack, ClickAwayListener, useTheme, alpha
 } from "@mui/material";
 import {
     SendRounded, AttachFileRounded, ArrowBackRounded,
@@ -56,6 +56,13 @@ const buildPreview = (tpl: ITemplate, vars: Record<string, string>) => {
     return full;
 };
 
+function stringToColor(str: string): string {
+    let hash = 0;
+    for (let i = 0; i < str.length; i++) hash = str.charCodeAt(i) + ((hash << 5) - hash);
+    const colors = ["#6366f1","#8b5cf6","#ec4899","#14b8a6","#f59e0b","#10b981","#3b82f6","#ef4444"];
+    return colors[Math.abs(hash) % colors.length];
+}
+
 const renderMedia = (media: any) => {
     if (!media) return null;
     const mediaUrl = typeof media === "string" ? media : media.link;
@@ -69,7 +76,7 @@ const renderMedia = (media: any) => {
 
     if (isAudio) return <Box component="audio" controls sx={{ width: "100%", height: 45 }}><source src={mediaUrl} /></Box>;
     if (isVideo) return <Box component="video" controls sx={{ width: "100%", maxHeight: 300, borderRadius: 2 }}><source src={mediaUrl} /></Box>;
-    if (isPdf) return <Box onClick={() => window.open(mediaUrl, "_blank")} sx={{ display: "flex", alignItems: "center", gap: 1, p: 1, borderRadius: 2, bgcolor: "rgba(0,0,0,0.06)", cursor: "pointer" }}>📄 <Typography variant="caption">Documento PDF — Click para abrir</Typography></Box>;
+    if (isPdf) return <Box onClick={() => window.open(mediaUrl, "_blank")} sx={{ display: "flex", alignItems: "center", gap: 1, p: 1.5, borderRadius: 2, bgcolor: "rgba(0,0,0,0.06)", cursor: "pointer", border: "1px solid rgba(0,0,0,0.1)" }}>📄 <Typography variant="caption" fontWeight={600}>Documento PDF — Click para abrir</Typography></Box>;
     if (isImage) return <Box component="img" src={mediaUrl} sx={{ maxWidth: 280, width: "100%", borderRadius: 2, cursor: "pointer" }} onClick={() => window.open(mediaUrl, "_blank")} />;
     return <a href={mediaUrl} target="_blank" rel="noopener noreferrer">📦 Archivo adjunto</a>;
 };
@@ -83,6 +90,7 @@ interface Props {
 }
 
 export const CrmChatArea: FC<Props> = ({ selected, incomingMessage, onRefresh, onBack }) => {
+    const theme = useTheme();
     const isLite = useUserStore((s) => s.user.is_lite_view);
 
     const [messages, setMessages] = useState<Message[]>([]);
@@ -241,55 +249,71 @@ export const CrmChatArea: FC<Props> = ({ selected, incomingMessage, onRefresh, o
     // ── Pantalla vacía ───────────────────────────────────────────────────────
     if (!selected) {
         return (
-            <Box sx={{ flexGrow: 1, display: { xs: "none", md: "flex" }, alignItems: "center", justifyContent: "center", flexDirection: "column", gap: 1, bgcolor: "background.default" }}>
-                <Typography variant="h6" color="text.secondary" fontWeight={700}>WhatsApp CRM v2</Typography>
-                <Typography variant="body2" color="text.disabled">Selecciona un chat para comenzar</Typography>
+            <Box sx={{ flexGrow: 1, display: { xs: "none", md: "flex" }, alignItems: "center", justifyContent: "center", flexDirection: "column", gap: 2, bgcolor: alpha(theme.palette.background.default, 0.5) }}>
+                <Box sx={{ p: 3, borderRadius: "50%", bgcolor: alpha(theme.palette.primary.main, 0.1) }}>
+                    <MessageRounded sx={{ fontSize: 48, color: "primary.main" }} />
+                </Box>
+                <Box sx={{ textAlign: "center" }}>
+                    <Typography variant="h6" color="text.primary" fontWeight={800} sx={{ letterSpacing: "-0.5px" }}>WhatsApp CRM</Typography>
+                    <Typography variant="body2" color="text.secondary">Selecciona un chat en el menú lateral para conversar</Typography>
+                </Box>
             </Box>
         );
     }
 
     const isWindowOpen = selected.is_window_open;
     const orderId = selected.order?.id;
+    const avatarColor = stringToColor(selected.client_name || selected.client_phone);
+
+    // Dynamic background based on theme
+    const bgPattern = theme.palette.mode === "dark" 
+        ? "radial-gradient(circle at center, #1e293b 0%, #0f172a 100%)" 
+        : "#efeae2 url('https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png')";
 
     return (
-        <Box sx={{ flexGrow: 1, display: "flex", flexDirection: "column", bgcolor: "#efeae2", overflow: "hidden" }}>
+        <Box sx={{ flexGrow: 1, display: "flex", flexDirection: "column", background: bgPattern, overflow: "hidden" }}>
 
             {/* ── HEADER DEL CHAT ────────────────────────────────────────────── */}
-            <Paper elevation={1} sx={{ p: 1.5, display: "flex", alignItems: "center", gap: 1.5, borderRadius: 0, zIndex: 2, flexShrink: 0 }}>
+            <Box sx={{ p: 1.5, px: 2.5, display: "flex", alignItems: "center", gap: 2, zIndex: 2, flexShrink: 0, bgcolor: "background.paper", borderBottom: "1px solid", borderColor: "divider" }}>
                 <IconButton onClick={onBack} sx={{ display: { xs: "flex", md: "none" } }}>
                     <ArrowBackRounded />
                 </IconButton>
 
-                <Avatar sx={{ bgcolor: selected.is_lead ? "secondary.main" : "primary.main", fontWeight: 700, width: 38, height: 38, fontSize: "0.85rem" }}>
+                <Avatar sx={{ bgcolor: avatarColor, fontWeight: 800, width: 42, height: 42, fontSize: "1rem" }}>
                     {selected.client_name.charAt(0).toUpperCase()}
                 </Avatar>
 
                 <Box sx={{ flexGrow: 1, minWidth: 0 }}>
                     <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                        <Typography variant="subtitle2" fontWeight={700} noWrap>{selected.client_name}</Typography>
-                        <Chip label={isWindowOpen ? "Sesión activa" : "24h vencida"} color={isWindowOpen ? "success" : "default"} size="small" sx={{ height: 16, fontSize: "0.55rem", fontWeight: 700 }} />
+                        <Typography variant="subtitle1" fontWeight={800} sx={{ letterSpacing: "-0.2px" }} noWrap>{selected.client_name}</Typography>
+                        <Chip label={isWindowOpen ? "Sesión activa" : "24h vencida"} size="small" sx={{ height: 20, fontSize: "0.65rem", fontWeight: 700, bgcolor: isWindowOpen ? alpha("#10b981", 0.15) : alpha(theme.palette.text.primary, 0.1), color: isWindowOpen ? "#10b981" : "text.secondary" }} />
                     </Box>
-                    <Typography variant="caption" color="text.secondary">{selected.client_phone}</Typography>
-                    {selected.order && (
-                        <Typography variant="caption" color="text.disabled" sx={{ ml: 1 }}>
-                            · {selected.order.products_summary || selected.order.order_number}
-                        </Typography>
-                    )}
+                    <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                        <Typography variant="caption" color="text.secondary" fontWeight={500}>{selected.client_phone}</Typography>
+                        {selected.order && (
+                            <>
+                                <Typography variant="caption" color="divider">•</Typography>
+                                <Typography variant="caption" color="text.secondary" sx={{ opacity: 0.8 }} noWrap>
+                                    {selected.order.products_summary || `Orden #${selected.order.order_number}`}
+                                </Typography>
+                            </>
+                        )}
+                    </Box>
                 </Box>
 
                 {/* Acciones del header */}
-                <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, flexShrink: 0 }}>
+                <Box sx={{ display: "flex", alignItems: "center", gap: 1, flexShrink: 0 }}>
                     {selected.conversation_bucket !== "follow_up" && (
-                        <Button size="small" variant="outlined" onClick={() => handleMoveBucket("follow_up")} sx={{ fontSize: "0.65rem", borderRadius: 10, py: 0.2, px: 1, textTransform: "none", display: { xs: "none", lg: "flex" } }}>
+                        <Button size="small" variant="outlined" color="inherit" onClick={() => handleMoveBucket("follow_up")} sx={{ fontSize: "0.75rem", borderRadius: "8px", py: 0.5, px: 1.5, textTransform: "none", display: { xs: "none", lg: "flex" }, borderColor: "divider" }}>
                             Seguimiento
                         </Button>
                     )}
                     {selected.conversation_bucket !== "closed" && (
-                        <Button size="small" variant="outlined" color="success" onClick={() => handleMoveBucket("closed")} sx={{ fontSize: "0.65rem", borderRadius: 10, py: 0.2, px: 1, textTransform: "none", display: { xs: "none", lg: "flex" } }}>
+                        <Button size="small" variant="outlined" color="inherit" onClick={() => handleMoveBucket("closed")} sx={{ fontSize: "0.75rem", borderRadius: "8px", py: 0.5, px: 1.5, textTransform: "none", display: { xs: "none", lg: "flex" }, borderColor: "divider" }}>
                             Cerrar
                         </Button>
                     )}
-                    {/* BOTÓN VER ORDEN — la única diferencia lite/pro */}
+                    {/* BOTÓN VER ORDEN */}
                     {orderId && (
                         <Tooltip title={`Ver Orden #${selected.order?.order_number}`}>
                             <Button
@@ -297,80 +321,90 @@ export const CrmChatArea: FC<Props> = ({ selected, incomingMessage, onRefresh, o
                                 variant="contained"
                                 startIcon={<OpenInNewRoundedIcon fontSize="small" />}
                                 onClick={() => setOrderOpen(true)}
-                                sx={{ borderRadius: 2, fontSize: "0.7rem", textTransform: "none", py: 0.4, fontWeight: 700 }}
+                                sx={{ borderRadius: "8px", fontSize: "0.75rem", textTransform: "none", py: 0.6, px: 2, fontWeight: 700, boxShadow: "none" }}
                             >
-                                Orden
+                                Ver Orden
                             </Button>
                         </Tooltip>
                     )}
                 </Box>
-            </Paper>
+            </Box>
 
             {/* ── ÁREA DE MENSAJES ───────────────────────────────────────────── */}
-            <Box sx={{ flexGrow: 1, overflowY: "auto", p: 2, display: "flex", flexDirection: "column", gap: 0.8 }}>
+            <Box sx={{ flexGrow: 1, overflowY: "auto", p: { xs: 1.5, md: 3 }, display: "flex", flexDirection: "column", gap: 1 }}>
                 {loading && messages.length === 0 ? (
-                    <Box sx={{ m: "auto" }}><CircularProgress size={28} /></Box>
-                ) : messages.map((msg) => (
-                    <Box key={msg.id} sx={{ alignSelf: msg.is_from_client ? "flex-start" : "flex-end", maxWidth: "82%", minWidth: 80 }}>
-                        <Paper elevation={0} sx={{ p: 1.2, bgcolor: msg.is_from_client ? "white" : "#d9fdd3", borderRadius: 3, borderTopLeftRadius: msg.is_from_client ? 0 : 12, borderTopRightRadius: msg.is_from_client ? 12 : 0 }}>
-                            {msg.media && <Box sx={{ mb: 0.5 }}>{renderMedia(msg.media)}</Box>}
-                            <Typography variant="body2" sx={{ whiteSpace: "pre-wrap", wordBreak: "break-word", color: "#000", fontSize: "0.875rem" }}>
-                                {(msg.body || "").split(/(https?:\/\/[^\s]+)/g).map((part, i) =>
-                                    part.match(/^https?:\/\//) ? <a key={i} href={part} target="_blank" rel="noopener noreferrer" style={{ color: "#007bff" }}>{part}</a> : part
-                                )}
-                            </Typography>
-                            <Typography variant="caption" sx={{ display: "flex", justifyContent: "flex-end", opacity: 0.55, fontSize: "0.62rem", mt: 0.3, color: "#000" }}>
-                                {dayjs(msg.sent_at).format("HH:mm")}
-                                {!msg.is_from_client && <Box component="span" sx={{ ml: 0.4 }}>{msg.status === "read" ? "✓✓" : msg.status === "sent" ? "✓" : "⌚"}</Box>}
-                            </Typography>
-                        </Paper>
+                    <Box sx={{ m: "auto", bgcolor: "background.paper", p: 2, borderRadius: 2, display: "flex", gap: 1, alignItems: "center" }}>
+                        <CircularProgress size={20} /> <Typography variant="body2" fontWeight={600}>Cargando mensajes...</Typography>
                     </Box>
-                ))}
+                ) : messages.map((msg) => {
+                    const isClient = msg.is_from_client;
+                    // Colors adaptable to dark mode
+                    const bubbleBg = isClient ? theme.palette.background.paper : (theme.palette.mode === "dark" ? "#064e3b" : "#d9fdd3");
+                    const textColor = theme.palette.text.primary;
+                    const metaColor = alpha(theme.palette.text.primary, 0.6);
+                    
+                    return (
+                        <Box key={msg.id} sx={{ alignSelf: isClient ? "flex-start" : "flex-end", maxWidth: { xs: "90%", md: "75%" }, minWidth: 100 }}>
+                            <Box sx={{ p: 1.2, px: 1.5, bgcolor: bubbleBg, borderRadius: "12px", borderTopLeftRadius: isClient ? 0 : "12px", borderTopRightRadius: isClient ? "12px" : 0, boxShadow: "0 1px 2px rgba(0,0,0,0.1)" }}>
+                                {msg.media && <Box sx={{ mb: 1 }}>{renderMedia(msg.media)}</Box>}
+                                <Typography variant="body2" sx={{ whiteSpace: "pre-wrap", wordBreak: "break-word", color: textColor, fontSize: "0.9rem", lineHeight: 1.4 }}>
+                                    {(msg.body || "").split(/(https?:\/\/[^\s]+)/g).map((part, i) =>
+                                        part.match(/^https?:\/\//) ? <a key={i} href={part} target="_blank" rel="noopener noreferrer" style={{ color: theme.palette.primary.main, textDecoration: "none", fontWeight: 600 }}>{part}</a> : part
+                                    )}
+                                </Typography>
+                                <Typography variant="caption" sx={{ display: "flex", justifyContent: "flex-end", color: metaColor, fontSize: "0.65rem", mt: 0.5, fontWeight: 500 }}>
+                                    {dayjs(msg.sent_at).format("HH:mm")}
+                                    {!isClient && <Box component="span" sx={{ ml: 0.5, color: msg.status === "read" ? "#3b82f6" : "inherit" }}>{msg.status === "read" ? "✓✓" : msg.status === "sent" ? "✓" : "⌚"}</Box>}
+                                </Typography>
+                            </Box>
+                        </Box>
+                    );
+                })}
                 <div ref={bottomRef} />
             </Box>
 
             {/* ── INPUT AREA ─────────────────────────────────────────────────── */}
-            <Paper component="form" onSubmit={handleSend} elevation={2} sx={{ p: 1.5, display: "flex", alignItems: "center", gap: 1, borderRadius: 0, flexShrink: 0 }}>
+            <Box component="form" onSubmit={handleSend} sx={{ p: 2, display: "flex", alignItems: "center", gap: 1.5, bgcolor: "background.paper", zIndex: 2, flexShrink: 0, borderTop: "1px solid", borderColor: "divider" }}>
                 {!isWindowOpen ? (
-                    <Box sx={{ flexGrow: 1, display: "flex", alignItems: "center", gap: 1 }}>
-                        <Box sx={{ flexGrow: 1, p: 1, bgcolor: "#fff3e0", border: "1px solid #ffe0b2", borderRadius: 2, textAlign: "center" }}>
-                            <Typography variant="caption" color="warning.dark" fontWeight={700}>⚠️ Ventana de 24h cerrada. Usa una plantilla oficial.</Typography>
+                    <Box sx={{ flexGrow: 1, display: "flex", alignItems: "center", gap: 1.5 }}>
+                        <Box sx={{ flexGrow: 1, p: 1.5, bgcolor: alpha(theme.palette.warning.main, 0.1), border: "1px dashed", borderColor: alpha(theme.palette.warning.main, 0.3), borderRadius: "10px", textAlign: "center" }}>
+                            <Typography variant="body2" color="warning.main" fontWeight={700}>⚠️ Ventana de 24h cerrada. Para hablar con el cliente debes usar una plantilla oficial.</Typography>
                         </Box>
-                        <IconButton onClick={openTemplates} sx={{ bgcolor: "secondary.main", color: "white", "&:hover": { bgcolor: "secondary.dark" } }}>
-                            <VerifiedRounded />
-                        </IconButton>
+                        <Button variant="contained" color="primary" onClick={openTemplates} startIcon={<VerifiedRounded />} sx={{ borderRadius: "10px", textTransform: "none", fontWeight: 700, py: 1 }}>
+                            Enviar Plantilla
+                        </Button>
                     </Box>
                 ) : isRecording ? (
-                    <Box sx={{ flexGrow: 1, display: "flex", alignItems: "center", bgcolor: "action.hover", p: 0.5, px: 2, borderRadius: 10, gap: 2 }}>
-                        <Box sx={{ width: 8, height: 8, bgcolor: "error.main", borderRadius: "50%", animation: "blink 1s infinite", "@keyframes blink": { "0%,100%": { opacity: 1 }, "50%": { opacity: 0.2 } } }} />
-                        <Typography variant="body2" fontWeight={700}>{Math.floor(recDuration / 60)}:{String(recDuration % 60).padStart(2, "0")}</Typography>
+                    <Box sx={{ flexGrow: 1, display: "flex", alignItems: "center", bgcolor: alpha(theme.palette.error.main, 0.1), p: 1, px: 3, borderRadius: "12px", gap: 2 }}>
+                        <Box sx={{ width: 10, height: 10, bgcolor: "error.main", borderRadius: "50%", animation: "blink 1s infinite", "@keyframes blink": { "0%,100%": { opacity: 1 }, "50%": { opacity: 0.2 } } }} />
+                        <Typography variant="body1" fontWeight={800} color="error.main">{Math.floor(recDuration / 60)}:{String(recDuration % 60).padStart(2, "0")}</Typography>
                         <Box sx={{ flexGrow: 1 }} />
-                        <IconButton color="error" size="small" onClick={() => stopRecording(false)}><DeleteRounded /></IconButton>
-                        <IconButton color="primary" size="small" onClick={() => stopRecording(true)} sx={{ bgcolor: "primary.main", color: "white" }}><SendRounded /></IconButton>
+                        <Button color="error" onClick={() => stopRecording(false)} sx={{ textTransform: "none", fontWeight: 700 }}>Cancelar</Button>
+                        <Button variant="contained" color="error" onClick={() => stopRecording(true)} endIcon={<SendRounded />} sx={{ borderRadius: "8px", textTransform: "none", fontWeight: 700 }}>Enviar</Button>
                     </Box>
                 ) : (
                     <>
                         <input type="file" hidden ref={fileInputRef} accept="image/*,video/*,application/pdf" onChange={(e) => { const f = e.target.files?.[0]; if (f) handleUpload(f); e.target.value = ""; }} />
                         <Tooltip title="Adjuntar archivo">
-                            <IconButton size="small" onClick={() => fileInputRef.current?.click()} disabled={uploading}>
-                                {uploading ? <CircularProgress size={20} /> : <AttachFileRounded fontSize="small" />}
+                            <IconButton onClick={() => fileInputRef.current?.click()} disabled={uploading} sx={{ bgcolor: alpha(theme.palette.text.primary, 0.05) }}>
+                                {uploading ? <CircularProgress size={24} /> : <AttachFileRounded />}
                             </IconButton>
                         </Tooltip>
-                        <Tooltip title="Enviar plantilla">
-                            <IconButton size="small" onClick={openTemplates} sx={{ color: "secondary.main" }}><VerifiedRounded fontSize="small" /></IconButton>
-                        </Tooltip>
-
+                        
                         {/* Emoji picker */}
                         <ClickAwayListener onClickAway={() => setShowEmoji(false)}>
                             <Box sx={{ position: "relative" }}>
-                                <IconButton size="small" onClick={() => setShowEmoji((v) => !v)} sx={{ color: showEmoji ? "primary.main" : "text.secondary" }}>
-                                    <EmojiEmotionsRoundedIcon fontSize="small" />
-                                </IconButton>
+                                <Tooltip title="Emojis">
+                                    <IconButton onClick={() => setShowEmoji((v) => !v)} sx={{ bgcolor: showEmoji ? alpha(theme.palette.primary.main, 0.1) : alpha(theme.palette.text.primary, 0.05), color: showEmoji ? "primary.main" : "inherit" }}>
+                                        <EmojiEmotionsRoundedIcon />
+                                    </IconButton>
+                                </Tooltip>
                                 {showEmoji && (
-                                    <Box sx={{ position: "absolute", bottom: 44, left: 0, zIndex: 1300, bgcolor: "background.paper", border: "1px solid", borderColor: "divider", borderRadius: 3, p: 1.5, boxShadow: 4, width: 260 }}>
+                                    <Box sx={{ position: "absolute", bottom: 60, left: 0, zIndex: 1300, bgcolor: "background.paper", border: "1px solid", borderColor: "divider", borderRadius: "16px", p: 2, boxShadow: theme.shadows[8], width: 280 }}>
+                                        <Typography variant="caption" fontWeight={700} color="text.secondary" sx={{ display: "block", mb: 1 }}>Emojis rápidos</Typography>
                                         <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}>
                                             {EMOJIS.map((em) => (
-                                                <Box key={em} onClick={() => { setInputText((p) => p + em); setShowEmoji(false); }} sx={{ fontSize: "1.3rem", cursor: "pointer", p: 0.3, borderRadius: 1, "&:hover": { bgcolor: "action.hover" } }}>{em}</Box>
+                                                <Box key={em} onClick={() => { setInputText((p) => p + em); setShowEmoji(false); }} sx={{ fontSize: "1.4rem", cursor: "pointer", p: 0.5, borderRadius: "8px", "&:hover": { bgcolor: alpha(theme.palette.text.primary, 0.08) }, transition: "background 0.1s" }}>{em}</Box>
                                             ))}
                                         </Box>
                                     </Box>
@@ -379,67 +413,84 @@ export const CrmChatArea: FC<Props> = ({ selected, incomingMessage, onRefresh, o
                         </ClickAwayListener>
 
                         <TextField
-                            fullWidth size="small" placeholder="Escribe un mensaje..."
-                            value={inputText} onChange={(e) => setInputText(e.target.value)}
+                            fullWidth
+                            placeholder="Escribe un mensaje..."
+                            value={inputText}
+                            onChange={(e) => setInputText(e.target.value)}
                             disabled={uploading}
                             onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(e as any); } }}
-                            sx={{ "& fieldset": { borderRadius: 4 } }}
+                            sx={{ 
+                                "& fieldset": { borderColor: "transparent" },
+                                "& .MuiOutlinedInput-root": { 
+                                    bgcolor: alpha(theme.palette.background.default, 0.8),
+                                    borderRadius: "12px",
+                                    "&:hover fieldset": { borderColor: "divider" },
+                                    "&.Mui-focused fieldset": { borderColor: "primary.main" }
+                                }
+                            }}
                         />
+                        
                         {inputText.trim() ? (
-                            <IconButton color="primary" type="submit" disabled={sending}>
-                                {sending ? <CircularProgress size={22} /> : <SendRounded />}
-                            </IconButton>
+                            <Button type="submit" variant="contained" disabled={sending} sx={{ minWidth: 50, width: 50, height: 50, borderRadius: "12px", p: 0 }}>
+                                {sending ? <CircularProgress size={24} color="inherit" /> : <SendRounded />}
+                            </Button>
                         ) : (
-                            <IconButton color="primary" onClick={startRecording} disabled={uploading}>
-                                <MicRounded />
-                            </IconButton>
+                            <Tooltip title="Nota de voz">
+                                <Button variant="contained" color="secondary" onClick={startRecording} disabled={uploading} sx={{ minWidth: 50, width: 50, height: 50, borderRadius: "12px", p: 0, bgcolor: theme.palette.mode === "dark" ? "#14b8a6" : "#0d9488" }}>
+                                    <MicRounded />
+                                </Button>
+                            </Tooltip>
                         )}
                     </>
                 )}
-            </Paper>
+            </Box>
 
             {/* ── TEMPLATE DIALOG ─────────────────────────────────────────────── */}
-            <Dialog open={tplOpen} onClose={() => setTplOpen(false)} maxWidth="sm" fullWidth PaperProps={{ sx: { borderRadius: 4 } }}>
-                <DialogTitle sx={{ fontWeight: 700, display: "flex", alignItems: "center", gap: 1 }}>
-                    <VerifiedRounded color="success" /> Enviar Plantilla
+            <Dialog open={tplOpen} onClose={() => setTplOpen(false)} maxWidth="sm" fullWidth PaperProps={{ sx: { borderRadius: "16px", backgroundImage: "none" } }}>
+                <DialogTitle sx={{ fontWeight: 800, display: "flex", alignItems: "center", gap: 1.5, borderBottom: "1px solid", borderColor: "divider" }}>
+                    <VerifiedRounded color="primary" /> Enviar Plantilla
                 </DialogTitle>
-                <DialogContent dividers sx={{ p: 0 }}>
+                <DialogContent sx={{ p: 0 }}>
                     {tplLoading ? (
-                        <Box sx={{ display: "flex", justifyContent: "center", p: 4 }}><CircularProgress /></Box>
+                        <Box sx={{ display: "flex", justifyContent: "center", p: 6 }}><CircularProgress /></Box>
                     ) : !selectedTpl ? (
                         <List disablePadding>
-                            {templates.length === 0 && <Box sx={{ p: 3, textAlign: "center" }}><Typography color="text.secondary">No hay plantillas registradas.</Typography></Box>}
+                            {templates.length === 0 && <Box sx={{ p: 6, textAlign: "center" }}><Typography color="text.secondary">No hay plantillas registradas.</Typography></Box>}
                             {templates.map((tpl, i) => (
                                 <Box key={tpl.id}>
-                                    <ListItemButton onClick={() => { setSelectedTpl(tpl); const nums = extractVars(tpl); const defs: Record<string, string> = {}; if (nums[0]) defs[nums[0]] = selected?.client_name?.split(" ")[0] ?? ""; setTplVars(defs); }} sx={{ py: 1.5, px: 3 }}>
-                                        <Box sx={{ mr: 1.5, color: tpl.is_official ? "secondary.main" : "#25d366" }}>{tpl.is_official ? <VerifiedRounded fontSize="small" /> : <MessageRounded fontSize="small" />}</Box>
-                                        <ListItemText primary={tpl.label} secondary={tpl.body.slice(0, 80) + (tpl.body.length > 80 ? "…" : "")} />
+                                    <ListItemButton onClick={() => { setSelectedTpl(tpl); const nums = extractVars(tpl); const defs: Record<string, string> = {}; if (nums[0]) defs[nums[0]] = selected?.client_name?.split(" ")[0] ?? ""; setTplVars(defs); }} sx={{ py: 2, px: 3 }}>
+                                        <Box sx={{ mr: 2, color: tpl.is_official ? "primary.main" : "text.secondary" }}>{tpl.is_official ? <VerifiedRounded /> : <MessageRounded />}</Box>
+                                        <ListItemText 
+                                            primary={<Typography fontWeight={700}>{tpl.label}</Typography>} 
+                                            secondary={<Typography variant="body2" color="text.secondary" noWrap>{tpl.body}</Typography>} 
+                                        />
                                     </ListItemButton>
                                     {i < templates.length - 1 && <Divider />}
                                 </Box>
                             ))}
                         </List>
                     ) : (
-                        <Box sx={{ p: 3 }}>
-                            <Button size="small" onClick={() => setSelectedTpl(null)} sx={{ mb: 2 }}>← Volver</Button>
-                            <Typography fontWeight={700} sx={{ mb: 1 }}>{selectedTpl.label}</Typography>
+                        <Box sx={{ p: 4 }}>
+                            <Button size="small" onClick={() => setSelectedTpl(null)} sx={{ mb: 3, textTransform: "none", fontWeight: 700 }}>← Volver a la lista</Button>
+                            <Typography variant="h6" fontWeight={800} sx={{ mb: 2 }}>{selectedTpl.label}</Typography>
                             {extractVars(selectedTpl).length > 0 && (
-                                <Stack spacing={2} sx={{ mb: 2 }}>
+                                <Stack spacing={2} sx={{ mb: 3 }}>
                                     {extractVars(selectedTpl).map((num) => (
-                                        <TextField key={num} label={`Variable {{${num}}}`} size="small" fullWidth value={tplVars[num] ?? ""} onChange={(e) => setTplVars((p) => ({ ...p, [num]: e.target.value }))} />
+                                        <TextField key={num} label={`Variable {{${num}}}`} variant="outlined" fullWidth value={tplVars[num] ?? ""} onChange={(e) => setTplVars((p) => ({ ...p, [num]: e.target.value }))} sx={{ "& .MuiOutlinedInput-root": { borderRadius: "10px" } }} />
                                     ))}
                                 </Stack>
                             )}
-                            <Alert severity="info" icon={false} sx={{ borderRadius: 2, fontStyle: "italic", fontSize: 13, whiteSpace: "pre-wrap" }}>
-                                Vista previa:{"\n"}{buildPreview(selectedTpl, tplVars)}
-                            </Alert>
+                            <Box sx={{ p: 2, bgcolor: alpha(theme.palette.primary.main, 0.05), border: "1px solid", borderColor: alpha(theme.palette.primary.main, 0.1), borderRadius: "12px" }}>
+                                <Typography variant="caption" fontWeight={700} color="primary.main" sx={{ display: "block", mb: 1 }}>Vista previa del mensaje</Typography>
+                                <Typography variant="body2" sx={{ whiteSpace: "pre-wrap" }}>{buildPreview(selectedTpl, tplVars)}</Typography>
+                            </Box>
                         </Box>
                     )}
                 </DialogContent>
-                <DialogActions sx={{ p: 2 }}>
-                    <Button onClick={() => setTplOpen(false)} color="inherit">Cancelar</Button>
+                <DialogActions sx={{ p: 2.5, borderTop: "1px solid", borderColor: "divider" }}>
+                    <Button onClick={() => setTplOpen(false)} color="inherit" sx={{ fontWeight: 700, textTransform: "none" }}>Cancelar</Button>
                     {selectedTpl && (
-                        <Button variant="contained" onClick={handleSendTemplate} disabled={sending} startIcon={sending ? <CircularProgress size={14} color="inherit" /> : <SendRounded />} sx={{ bgcolor: "#25d366", "&:hover": { bgcolor: "#128c7e" }, borderRadius: 2 }}>
+                        <Button variant="contained" onClick={handleSendTemplate} disabled={sending} startIcon={sending ? <CircularProgress size={16} color="inherit" /> : <SendRounded />} sx={{ borderRadius: "8px", textTransform: "none", fontWeight: 700, px: 3 }}>
                             Enviar Plantilla
                         </Button>
                     )}

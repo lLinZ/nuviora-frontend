@@ -2,9 +2,12 @@ import { FC, useRef, useCallback } from "react";
 import {
     Box, Typography, TextField, InputAdornment, Divider,
     IconButton, Tooltip, CircularProgress, Button, Chip,
+    useTheme, alpha
 } from "@mui/material";
 import {
     SearchRounded, RefreshRounded, WifiOffRounded,
+    ErrorOutlineRounded, AccessTimeRounded, CheckCircleOutlineRounded,
+    AllInclusiveRounded
 } from "@mui/icons-material";
 import { CrmContactCard, CrmConversation } from "./CrmContactCard";
 
@@ -26,11 +29,11 @@ interface Props {
     onRefresh: () => void;
 }
 
-const BUCKET_TABS: { key: BucketFilter; label: string; color: string }[] = [
-    { key: "requires_attention", label: "🔴 Atención",    color: "#ef4444" },
-    { key: "follow_up",          label: "🟡 Seguimiento", color: "#f59e0b" },
-    { key: "closed",             label: "⚫ Cerrados",    color: "#6b7280" },
-    { key: "all",                label: "Todos",          color: "#3b82f6" },
+const BUCKET_TABS: { key: BucketFilter; label: string; color: string; icon: any }[] = [
+    { key: "requires_attention", label: "Atención", color: "#ef4444", icon: ErrorOutlineRounded },
+    { key: "follow_up",          label: "Seguimiento", color: "#f59e0b", icon: AccessTimeRounded },
+    { key: "closed",             label: "Cerrados",    color: "#64748b", icon: CheckCircleOutlineRounded },
+    { key: "all",                label: "Todos",       color: "#3b82f6", icon: AllInclusiveRounded },
 ];
 
 export const CrmSidebar: FC<Props> = ({
@@ -48,6 +51,7 @@ export const CrmSidebar: FC<Props> = ({
     isOffline,
     onRefresh,
 }) => {
+    const theme = useTheme();
     const listRef = useRef<HTMLDivElement>(null);
 
     const handleScroll = useCallback(() => {
@@ -63,7 +67,7 @@ export const CrmSidebar: FC<Props> = ({
     return (
         <Box
             sx={{
-                width: { xs: "100%", md: 320 },
+                width: { xs: "100%", md: 340 },
                 flexShrink: 0,
                 borderRight: "1px solid",
                 borderColor: "divider",
@@ -71,36 +75,36 @@ export const CrmSidebar: FC<Props> = ({
                 flexDirection: "column",
                 height: "100%",
                 bgcolor: "background.paper",
+                zIndex: 10,
             }}
         >
             {/* ── HEADER ───────────────────────────────────────────────── */}
             <Box
                 sx={{
-                    px: 2,
-                    py: 1.5,
+                    px: 2.5,
+                    py: 2,
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "space-between",
-                    bgcolor: "background.paper",
                     borderBottom: "1px solid",
                     borderColor: "divider",
                 }}
             >
-                <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                    <Typography variant="subtitle1" fontWeight={700}>
-                        💬 WhatsApp CRM
+                <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+                    <Typography variant="h6" fontWeight={800} sx={{ letterSpacing: "-0.5px" }}>
+                        WhatsApp CRM
                     </Typography>
                     {totalUnread > 0 && (
                         <Chip
                             label={totalUnread}
                             size="small"
                             sx={{
-                                height: 18,
-                                fontSize: "0.65rem",
-                                fontWeight: 700,
-                                bgcolor: "error.main",
+                                height: 22,
+                                fontSize: "0.75rem",
+                                fontWeight: 800,
+                                bgcolor: "#ef4444",
                                 color: "white",
-                                borderRadius: 1,
+                                borderRadius: "6px",
                             }}
                         />
                     )}
@@ -112,9 +116,9 @@ export const CrmSidebar: FC<Props> = ({
                         </Tooltip>
                     )}
                     <Tooltip title="Refrescar lista">
-                        <IconButton size="small" onClick={onRefresh} disabled={loading}>
+                        <IconButton size="small" onClick={onRefresh} disabled={loading} sx={{ bgcolor: alpha(theme.palette.text.primary, 0.05) }}>
                             {loading ? (
-                                <CircularProgress size={16} />
+                                <CircularProgress size={18} />
                             ) : (
                                 <RefreshRounded fontSize="small" />
                             )}
@@ -124,20 +128,28 @@ export const CrmSidebar: FC<Props> = ({
             </Box>
 
             {/* ── BÚSQUEDA ─────────────────────────────────────────────── */}
-            <Box sx={{ px: 1.5, py: 1, bgcolor: "background.paper" }}>
+            <Box sx={{ px: 2, py: 1.5 }}>
                 <TextField
                     fullWidth
                     size="small"
-                    placeholder="Buscar por nombre, teléfono o nº orden..."
+                    placeholder="Buscar por nombre, teléfono o nº ord"
                     value={searchTerm}
                     onChange={(e) => onSearchChange(e.target.value)}
+                    variant="outlined"
                     InputProps={{
                         startAdornment: (
                             <InputAdornment position="start">
                                 <SearchRounded fontSize="small" color="action" />
                             </InputAdornment>
                         ),
-                        sx: { borderRadius: 3, fontSize: "0.83rem" },
+                        sx: { 
+                            borderRadius: "10px", 
+                            fontSize: "0.85rem",
+                            bgcolor: alpha(theme.palette.background.default, 0.6),
+                            "& fieldset": { borderColor: "transparent" },
+                            "&:hover fieldset": { borderColor: "divider" },
+                            "&.Mui-focused fieldset": { borderColor: "primary.main" }
+                        },
                     }}
                 />
             </Box>
@@ -146,57 +158,68 @@ export const CrmSidebar: FC<Props> = ({
             <Box
                 sx={{
                     display: "flex",
+                    px: 1,
+                    pb: 1,
                     borderBottom: "1px solid",
                     borderColor: "divider",
-                    overflowX: "auto",
-                    "&::-webkit-scrollbar": { display: "none" },
+                    gap: 0.5,
                 }}
             >
                 {BUCKET_TABS.map((tab) => {
                     const count = tab.key !== "all" ? (bucketCounts[tab.key] ?? 0) : undefined;
                     const isActive = bucket === tab.key;
+                    const Icon = tab.icon;
+                    
                     return (
                         <Box
                             key={tab.key}
                             onClick={() => onBucketChange(tab.key)}
                             sx={{
                                 flex: 1,
-                                minWidth: 70,
                                 display: "flex",
                                 flexDirection: "column",
                                 alignItems: "center",
                                 justifyContent: "center",
-                                py: 0.8,
+                                py: 1,
                                 px: 0.5,
                                 cursor: "pointer",
-                                borderBottom: isActive ? "2px solid" : "2px solid transparent",
-                                borderColor: isActive ? tab.color : "transparent",
-                                bgcolor: isActive ? `${tab.color}12` : "transparent",
-                                transition: "all 0.15s",
-                                "&:hover": { bgcolor: `${tab.color}10` },
-                                gap: 0.2,
+                                borderRadius: "8px",
+                                bgcolor: isActive ? alpha(tab.color, 0.12) : "transparent",
+                                color: isActive ? tab.color : "text.secondary",
+                                transition: "all 0.2s ease",
+                                "&:hover": { 
+                                    bgcolor: isActive ? alpha(tab.color, 0.15) : alpha(theme.palette.text.primary, 0.04) 
+                                },
                             }}
                         >
+                            <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, mb: 0.2 }}>
+                                <Icon sx={{ fontSize: "1rem" }} />
+                                {count !== undefined && count > 0 && (
+                                    <Typography
+                                        sx={{
+                                            fontSize: "0.7rem",
+                                            fontWeight: 800,
+                                            lineHeight: 1,
+                                            bgcolor: isActive ? tab.color : alpha(theme.palette.text.primary, 0.2),
+                                            color: isActive ? "#fff" : "text.primary",
+                                            px: 0.6,
+                                            py: 0.2,
+                                            borderRadius: "10px",
+                                        }}
+                                    >
+                                        {count}
+                                    </Typography>
+                                )}
+                            </Box>
                             <Typography
-                                variant="caption"
-                                fontWeight={isActive ? 700 : 500}
-                                sx={{ fontSize: "0.65rem", color: isActive ? tab.color : "text.secondary", lineHeight: 1.2, textAlign: "center" }}
+                                sx={{ 
+                                    fontSize: "0.65rem", 
+                                    fontWeight: isActive ? 700 : 500,
+                                    letterSpacing: "-0.2px"
+                                }}
                             >
                                 {tab.label}
                             </Typography>
-                            {count !== undefined && (
-                                <Typography
-                                    variant="caption"
-                                    sx={{
-                                        fontSize: "0.6rem",
-                                        fontWeight: 700,
-                                        color: count > 0 ? tab.color : "text.disabled",
-                                        lineHeight: 1,
-                                    }}
-                                >
-                                    {count}
-                                </Typography>
-                            )}
                         </Box>
                     );
                 })}
@@ -209,11 +232,15 @@ export const CrmSidebar: FC<Props> = ({
                 sx={{
                     flexGrow: 1,
                     overflowY: "auto",
-                    "&::-webkit-scrollbar": { width: 4 },
+                    overflowX: "hidden", // Fix badges being cut off horizontally
+                    pt: 1,
+                    pb: 2,
+                    "&::-webkit-scrollbar": { width: 5 },
                     "&::-webkit-scrollbar-thumb": {
-                        bgcolor: "divider",
-                        borderRadius: 2,
+                        bgcolor: alpha(theme.palette.text.primary, 0.15),
+                        borderRadius: 4,
                     },
+                    "&::-webkit-scrollbar-track": { bgcolor: "transparent" },
                 }}
             >
                 {loading && conversations.length === 0 ? (
@@ -221,24 +248,24 @@ export const CrmSidebar: FC<Props> = ({
                         <CircularProgress size={28} />
                     </Box>
                 ) : conversations.length === 0 ? (
-                    <Box sx={{ p: 3, textAlign: "center" }}>
-                        <Typography variant="body2" color="text.secondary">
+                    <Box sx={{ p: 4, textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center", gap: 2 }}>
+                        <Box sx={{ p: 2, borderRadius: "50%", bgcolor: alpha(theme.palette.text.primary, 0.05) }}>
+                            <SearchRounded sx={{ fontSize: 32, color: "text.disabled" }} />
+                        </Box>
+                        <Typography variant="body2" color="text.secondary" fontWeight={500}>
                             {searchTerm
                                 ? "Sin resultados para esa búsqueda."
-                                : "No hay conversaciones en este bucket."}
+                                : "No hay conversaciones en esta pestaña."}
                         </Typography>
                     </Box>
                 ) : (
                     conversations.map((conv, idx) => (
-                        <Box key={conv.client_id}>
+                        <Box key={conv.client_id} sx={{ px: 1, mb: 0.5 }}>
                             <CrmContactCard
                                 conv={conv}
                                 isSelected={selected?.client_id === conv.client_id}
                                 onClick={() => onSelect(conv)}
                             />
-                            {idx < conversations.length - 1 && (
-                                <Divider sx={{ mx: 2, opacity: 0.4 }} />
-                            )}
                         </Box>
                     ))
                 )}
@@ -249,15 +276,15 @@ export const CrmSidebar: FC<Props> = ({
                             size="small"
                             variant="outlined"
                             onClick={onLoadMore}
-                            sx={{ borderRadius: 3, fontSize: "0.75rem" }}
+                            sx={{ borderRadius: "8px", fontSize: "0.75rem", textTransform: "none", fontWeight: 600 }}
                         >
-                            Cargar más
+                            Cargar más chats
                         </Button>
                     </Box>
                 )}
                 {loading && conversations.length > 0 && (
                     <Box sx={{ display: "flex", justifyContent: "center", py: 2 }}>
-                        <CircularProgress size={20} />
+                        <CircularProgress size={22} />
                     </Box>
                 )}
             </Box>

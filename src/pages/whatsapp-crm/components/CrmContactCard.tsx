@@ -1,5 +1,5 @@
 import { FC } from "react";
-import { Box, Typography, Avatar, Badge, Chip } from "@mui/material";
+import { Box, Typography, Avatar, Badge, Chip, useTheme, alpha } from "@mui/material";
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
 import "dayjs/locale/es";
@@ -45,14 +45,14 @@ const BUCKET_ACCENT: Record<string, string> = {
     closed: "#64748b",
 };
 
-const STATUS_BG: Record<string, { bg: string; color: string }> = {
-    "Nuevo":              { bg: "#dbeafe", color: "#1d4ed8" },
-    "En proceso":         { bg: "#ede9fe", color: "#6d28d9" },
-    "Entregado":          { bg: "#dcfce7", color: "#15803d" },
-    "Cancelado":          { bg: "#fee2e2", color: "#b91c1c" },
-    "En ruta":            { bg: "#fef9c3", color: "#92400e" },
-    "Sin Stock":          { bg: "#ffedd5", color: "#c2410c" },
-    "Novedades":          { bg: "#fce7f3", color: "#be185d" },
+const STATUS_BG: Record<string, { bg: string; color: string; darkBg: string; darkColor: string }> = {
+    "Nuevo":              { bg: "#dbeafe", color: "#1d4ed8", darkBg: "#1e3a8a", darkColor: "#bfdbfe" },
+    "En proceso":         { bg: "#ede9fe", color: "#6d28d9", darkBg: "#4c1d95", darkColor: "#ddd6fe" },
+    "Entregado":          { bg: "#dcfce7", color: "#15803d", darkBg: "#14532d", darkColor: "#bbf7d0" },
+    "Cancelado":          { bg: "#fee2e2", color: "#b91c1c", darkBg: "#7f1d1d", darkColor: "#fecaca" },
+    "En ruta":            { bg: "#fef9c3", color: "#92400e", darkBg: "#713f12", darkColor: "#fef08a" },
+    "Sin Stock":          { bg: "#ffedd5", color: "#c2410c", darkBg: "#7c2d12", darkColor: "#fed7aa" },
+    "Novedades":          { bg: "#fce7f3", color: "#be185d", darkBg: "#831843", darkColor: "#fbcfe8" },
 };
 
 function stringToColor(str: string): string {
@@ -63,6 +63,9 @@ function stringToColor(str: string): string {
 }
 
 export const CrmContactCard: FC<Props> = ({ conv, isSelected, onClick }) => {
+    const theme = useTheme();
+    const isDark = theme.palette.mode === "dark";
+    
     const initials = conv.client_name
         .split(" ").slice(0, 2).map((w) => w[0]?.toUpperCase() ?? "").join("") || "?";
 
@@ -81,18 +84,18 @@ export const CrmContactCard: FC<Props> = ({ conv, isSelected, onClick }) => {
                 alignItems: "center",
                 gap: 1.5,
                 px: 1.5,
-                py: 1.2,
+                py: 1.5,
                 cursor: "pointer",
                 position: "relative",
-                overflow: "hidden",
-                transition: "background 0.18s ease",
+                borderRadius: "12px",
+                transition: "all 0.2s ease",
                 bgcolor: isSelected
-                    ? "rgba(99,102,241,0.08)"
+                    ? alpha(theme.palette.primary.main, 0.1)
                     : "transparent",
                 "&:hover": {
                     bgcolor: isSelected
-                        ? "rgba(99,102,241,0.10)"
-                        : "rgba(0,0,0,0.025)",
+                        ? alpha(theme.palette.primary.main, 0.15)
+                        : alpha(theme.palette.text.primary, 0.04),
                 },
                 // Borde izquierdo de bucket
                 "&::before": {
@@ -101,11 +104,11 @@ export const CrmContactCard: FC<Props> = ({ conv, isSelected, onClick }) => {
                     left: 0,
                     top: "15%",
                     height: "70%",
-                    width: isSelected || hasUnread ? 3 : 2,
-                    borderRadius: "0 3px 3px 0",
+                    width: isSelected || hasUnread ? 4 : 3,
+                    borderRadius: "0 4px 4px 0",
                     bgcolor: accent,
-                    opacity: isSelected || hasUnread ? 1 : 0.35,
-                    transition: "all 0.18s",
+                    opacity: isSelected || hasUnread ? 1 : (isDark ? 0.5 : 0.3),
+                    transition: "all 0.2s",
                 },
             }}
         >
@@ -118,24 +121,26 @@ export const CrmContactCard: FC<Props> = ({ conv, isSelected, onClick }) => {
                     "& .MuiBadge-badge": {
                         bgcolor: "#ef4444",
                         color: "#fff",
-                        fontSize: "0.58rem",
-                        height: 17,
-                        minWidth: 17,
+                        fontSize: "0.6rem",
+                        height: 18,
+                        minWidth: 18,
                         fontWeight: 800,
-                        boxShadow: "0 0 0 2px white",
+                        boxShadow: `0 0 0 2px ${theme.palette.background.paper}`,
+                        right: 2, // Adjusted for proper alignment
+                        top: 2,
                     },
                 }}
             >
                 <Avatar
                     sx={{
-                        width: 46,
-                        height: 46,
-                        fontSize: "0.9rem",
+                        width: 48,
+                        height: 48,
+                        fontSize: "1rem",
                         fontWeight: 700,
                         bgcolor: avatarColor,
                         boxShadow: hasUnread
-                            ? `0 0 0 2.5px ${accent}, 0 2px 8px rgba(0,0,0,0.12)`
-                            : "0 1px 4px rgba(0,0,0,0.10)",
+                            ? `0 0 0 2px ${theme.palette.background.paper}, 0 0 0 4px ${accent}`
+                            : "none",
                         transition: "box-shadow 0.2s",
                         letterSpacing: "-0.5px",
                     }}
@@ -145,28 +150,28 @@ export const CrmContactCard: FC<Props> = ({ conv, isSelected, onClick }) => {
             </Badge>
 
             {/* Contenido principal */}
-            <Box sx={{ flexGrow: 1, minWidth: 0 }}>
+            <Box sx={{ flexGrow: 1, minWidth: 0, ml: 0.5 }}>
                 {/* Fila 1: nombre + tiempo */}
-                <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", mb: 0.15 }}>
+                <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", mb: 0.3 }}>
                     <Typography
                         noWrap
                         sx={{
-                            fontSize: "0.83rem",
-                            fontWeight: hasUnread ? 700 : 500,
-                            color: hasUnread ? "text.primary" : "text.primary",
-                            maxWidth: "62%",
-                            letterSpacing: "-0.1px",
+                            fontSize: "0.9rem",
+                            fontWeight: hasUnread ? 800 : 600,
+                            color: "text.primary",
+                            maxWidth: "70%",
+                            letterSpacing: "-0.2px",
                         }}
                     >
                         {conv.client_name || conv.client_phone}
                     </Typography>
                     <Typography
                         sx={{
-                            fontSize: "0.62rem",
-                            color: hasUnread ? accent : "text.disabled",
-                            fontWeight: hasUnread ? 700 : 400,
+                            fontSize: "0.65rem",
+                            color: hasUnread ? accent : "text.secondary",
+                            fontWeight: hasUnread ? 800 : 500,
                             flexShrink: 0,
-                            ml: 0.5,
+                            ml: 1,
                         }}
                     >
                         {timeAgo}
@@ -177,17 +182,18 @@ export const CrmContactCard: FC<Props> = ({ conv, isSelected, onClick }) => {
                 <Typography
                     noWrap
                     sx={{
-                        fontSize: "0.76rem",
+                        fontSize: "0.78rem",
                         color: hasUnread ? "text.primary" : "text.secondary",
                         fontWeight: hasUnread ? 600 : 400,
-                        mb: 0.4,
+                        mb: 0.8,
                         display: "flex",
                         alignItems: "center",
-                        gap: 0.3,
+                        gap: 0.5,
+                        opacity: hasUnread ? 1 : 0.8,
                     }}
                 >
                     {!isIncoming && (
-                        <Box component="span" sx={{ color: "text.disabled", fontSize: "0.72rem", flexShrink: 0 }}>Tú: </Box>
+                        <Box component="span" sx={{ color: "text.disabled", fontSize: "0.75rem", flexShrink: 0, fontWeight: 500 }}>Tú:</Box>
                     )}
                     <Box component="span" sx={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                         {conv.last_message || "Sin mensajes"}
@@ -195,31 +201,33 @@ export const CrmContactCard: FC<Props> = ({ conv, isSelected, onClick }) => {
                 </Typography>
 
                 {/* Fila 3: chips de estado */}
-                <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, flexWrap: "nowrap", overflow: "hidden" }}>
+                <Box sx={{ display: "flex", alignItems: "center", gap: 0.8, flexWrap: "nowrap", overflow: "hidden" }}>
                     {conv.is_lead ? (
                         <Chip
                             label="Lead"
                             size="small"
-                            sx={{ height: 15, fontSize: "0.55rem", fontWeight: 700, bgcolor: "#ede9fe", color: "#6d28d9", borderRadius: 0.8, "& .MuiChip-label": { px: 0.7 } }}
+                            sx={{ height: 18, fontSize: "0.6rem", fontWeight: 800, bgcolor: isDark ? "#4c1d95" : "#ede9fe", color: isDark ? "#ddd6fe" : "#6d28d9", borderRadius: "6px" }}
                         />
                     ) : statusStyle ? (
                         <Chip
                             label={conv.order!.status}
                             size="small"
-                            sx={{ height: 15, fontSize: "0.55rem", fontWeight: 700, bgcolor: statusStyle.bg, color: statusStyle.color, borderRadius: 0.8, "& .MuiChip-label": { px: 0.7 } }}
+                            sx={{ height: 18, fontSize: "0.6rem", fontWeight: 800, bgcolor: isDark ? statusStyle.darkBg : statusStyle.bg, color: isDark ? statusStyle.darkColor : statusStyle.color, borderRadius: "6px" }}
                         />
                     ) : conv.order ? (
                         <Chip
                             label={conv.order.status}
                             size="small"
-                            sx={{ height: 15, fontSize: "0.55rem", fontWeight: 700, bgcolor: "action.hover", borderRadius: 0.8, "& .MuiChip-label": { px: 0.7 } }}
+                            sx={{ height: 18, fontSize: "0.6rem", fontWeight: 800, bgcolor: alpha(theme.palette.text.primary, 0.1), borderRadius: "6px" }}
                         />
                     ) : null}
 
                     {!conv.is_window_open && (
-                        <Typography sx={{ fontSize: "0.58rem", color: "#f59e0b", fontWeight: 700, flexShrink: 0 }}>
-                            ⏱ 24h
-                        </Typography>
+                        <Box sx={{ display: "flex", alignItems: "center", gap: 0.3, bgcolor: alpha(theme.palette.warning.main, 0.1), px: 0.8, py: 0.2, borderRadius: "6px" }}>
+                            <Typography sx={{ fontSize: "0.6rem", color: "warning.main", fontWeight: 800, flexShrink: 0, letterSpacing: "-0.2px" }}>
+                                ⏱ 24h
+                            </Typography>
+                        </Box>
                     )}
                 </Box>
             </Box>
