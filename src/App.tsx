@@ -13,6 +13,7 @@ import { RequireRole } from './components/auth/RequireRole';
 import { Dashboard } from './pages/Dashboard';
 import { Profile } from './pages/auth/Profile';
 import { WhatsAppPage } from './pages/whatsapp/WhatsAppPage';
+import { WhatsAppCrmPage } from './pages/whatsapp-crm/WhatsAppCrmPage';
 import { Orders } from './pages/Orders';
 import { Currency } from './pages/currency/Currency';
 import { Users } from './pages/users/Users';
@@ -85,6 +86,9 @@ function App() {
           
           {/* Vistas Centralizadas */}
           <Route path="/whatsapp" element={<RequireRole allowedRoles={['Admin', 'Gerente', 'Vendedor']}><WhatsAppPage /></RequireRole>} />
+
+          {/* WhatsApp CRM v2 — Lógica de permisos nueva */}
+          <Route path="/whatsapp-crm" element={<RequireRole allowedRoles={['Admin', 'Gerente', 'Vendedor']}><WhatsAppCrmPage /></RequireRole>} />
 
           <Route path="/deliverers" element={<RequireRole allowedRoles={['Admin']}><DeliverersPage /></RequireRole>} />
           <Route path="/currency" element={<RequireRole allowedRoles={['Admin']}><Currency /></RequireRole>} />
