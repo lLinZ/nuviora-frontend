@@ -303,16 +303,6 @@ export const CrmChatArea: FC<Props> = ({ selected, incomingMessage, onRefresh, o
 
                 {/* Acciones del header */}
                 <Box sx={{ display: "flex", alignItems: "center", gap: 1, flexShrink: 0 }}>
-                    {selected.conversation_bucket !== "follow_up" && (
-                        <Button size="small" variant="outlined" color="inherit" onClick={() => handleMoveBucket("follow_up")} sx={{ fontSize: "0.75rem", borderRadius: "8px", py: 0.5, px: 1.5, textTransform: "none", display: { xs: "none", lg: "flex" }, borderColor: "divider" }}>
-                            Seguimiento
-                        </Button>
-                    )}
-                    {selected.conversation_bucket !== "closed" && (
-                        <Button size="small" variant="outlined" color="inherit" onClick={() => handleMoveBucket("closed")} sx={{ fontSize: "0.75rem", borderRadius: "8px", py: 0.5, px: 1.5, textTransform: "none", display: { xs: "none", lg: "flex" }, borderColor: "divider" }}>
-                            Cerrar
-                        </Button>
-                    )}
                     {/* BOTÓN VER ORDEN */}
                     {orderId && (
                         <Tooltip title={`Ver Orden #${selected.order?.order_number}`}>
