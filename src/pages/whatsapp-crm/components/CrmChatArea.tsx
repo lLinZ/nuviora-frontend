@@ -344,7 +344,7 @@ export const CrmChatArea: FC<Props> = ({ selected, incomingMessage, onRefresh, o
                         </Box>
                         <Box>
                             <Typography variant="caption" color="text.secondary" fontWeight={700} display="block">Agente Asignado</Typography>
-                            <Typography variant="body2" fontWeight={600}>{selected.order?.agent_name || "Sin asignar"}</Typography>
+                            <Typography variant="body2" fontWeight={600}>{selected.order?.agent_name || selected.agent_name || "Sin asignar"}</Typography>
                         </Box>
                         <Box>
                             <Typography variant="caption" color="text.secondary" fontWeight={700} display="block">Estado</Typography>
@@ -364,11 +364,11 @@ export const CrmChatArea: FC<Props> = ({ selected, incomingMessage, onRefresh, o
                             </Typography>
                         </Box>
                         <Box>
-                            <Typography variant="caption" color="text.secondary" fontWeight={700} display="block">Localidad</Typography>
+                            <Typography variant="caption" color="text.secondary" fontWeight={700} display="block">Ciudad</Typography>
                             <Typography variant="body2" fontWeight={600}>{selected.order?.location || "-"}</Typography>
                         </Box>
                         <Box>
-                            <Typography variant="caption" color="text.secondary" fontWeight={700} display="block">Reseteos de Orden</Typography>
+                            <Typography variant="caption" color="text.secondary" fontWeight={700} display="block">Veces atendido</Typography>
                             <Typography variant="body2" fontWeight={600} color={selected.order?.reset_count && selected.order.reset_count > 0 ? "error.main" : "text.primary"}>{selected.order?.reset_count || 0}</Typography>
                         </Box>
                     </Box>
