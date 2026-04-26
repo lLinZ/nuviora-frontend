@@ -202,6 +202,14 @@ export const CrmContactCard: FC<Props> = ({ conv, isSelected, onClick }) => {
 
                 {/* Fila 3: chips de estado */}
                 <Box sx={{ display: "flex", alignItems: "center", gap: 0.8, flexWrap: "nowrap", overflow: "hidden" }}>
+                    {conv.agent_name && (
+                        <Box sx={{ display: "flex", alignItems: "center", gap: 0.3, bgcolor: alpha(theme.palette.info.main, 0.1), px: 0.8, py: 0.2, borderRadius: "6px" }}>
+                            <Typography sx={{ fontSize: "0.6rem", color: "info.main", fontWeight: 800, flexShrink: 0, letterSpacing: "-0.2px" }}>
+                                👤 {conv.agent_name.split(" ")[0]}
+                            </Typography>
+                        </Box>
+                    )}
+                    
                     {conv.is_lead ? (
                         <Chip
                             label="Lead"
