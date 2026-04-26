@@ -95,7 +95,10 @@ export const WhatsAppCrmPage = () => {
         const loadAgents = async () => {
             try {
                 const { status, response } = await request('/users/agents', 'GET');
-                if (status === 200) setAgents(await response.json());
+                if (status === 200) {
+                    const data = await response.json();
+                    setAgents(Array.isArray(data) ? data : (data.data || []));
+                }
             } catch (e) {
                 console.error("Error fetching agents", e);
             }

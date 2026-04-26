@@ -182,7 +182,7 @@ export const CrmSidebar: FC<Props> = ({
                                     Todos los agentes
                                 </Typography>
                             </MenuItem>
-                            {agents.map((a) => (
+                            {Array.isArray(agents) && agents.map((a) => (
                                 <MenuItem key={a.id} value={a.id}>
                                     <Typography variant="body2" fontSize="0.8rem" fontWeight={700}>
                                         {a.names}
