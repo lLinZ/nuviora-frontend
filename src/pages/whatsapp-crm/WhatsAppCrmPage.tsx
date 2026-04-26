@@ -58,9 +58,11 @@ export const WhatsAppCrmPage = () => {
     const [isOffline, setIsOffline] = useState(false);
     const [bucketCounts, setBucketCounts] = useState<Record<string, number>>({});
     const [incomingMessage, setIncomingMessage] = useState<any>(null);
+    const [agents, setAgents] = useState<any[]>([]);
 
     const { echo } = useSocketStore();
     const user = useUserStore((s) => s.user);
+    const isAdmin = ["Admin", "Manager", "Gerente", "Master"].includes(user?.role?.description ?? "");
 
     // Refs para evitar stale closures en el WebSocket
     const selectedRef = useRef<CrmConversation | null>(null);
@@ -86,6 +88,20 @@ export const WhatsAppCrmPage = () => {
         document.title = totalUnread > 0 ? `(${totalUnread}) Mensajes — Nuviora` : "WhatsApp CRM — Nuviora";
         return () => { document.title = "Nuviora"; };
     }, [totalUnread]);
+
+    // Fetch agentes (solo admins)
+    useEffect(() => {
+        if (!isAdmin) return;
+        const loadAgents = async () => {
+            try {
+                const { status, response } = await request('/users/agents', 'GET');
+                if (status === 200) setAgents(await response.json());
+            } catch (e) {
+                console.error("Error fetching agents", e);
+            }
+        };
+        loadAgents();
+    }, [isAdmin]);
 
     // ── Fetch de conversaciones ───────────────────────────────────────────────
     const fetchConversations = useCallback(async (isLoadMore = false) => {
@@ -253,21 +269,25 @@ export const WhatsAppCrmPage = () => {
                     <>
                         {/* Sidebar — visible en desktop, ocupa pantalla completa en mobile sin chat activo */}
                         <Box sx={{ display: { xs: selected ? "none" : "flex", md: "flex" }, flexDirection: "column", height: "100%" }}>
-                            <CrmSidebar
-                                conversations={conversations}
-                                selected={selected}
-                                onSelect={handleSelect}
-                                loading={loading}
-                                searchTerm={searchTerm}
-                                onSearchChange={(v) => { setSearchTerm(v); }}
-                                bucket={bucket}
-                                onBucketChange={(b) => { setBucket(b); }}
-                                bucketCounts={bucketCounts}
-                                hasMore={hasMore}
-                                onLoadMore={handleLoadMore}
-                                isOffline={isOffline}
-                                onRefresh={() => fetchConversations(false)}
-                            />
+                                <CrmSidebar
+                                    conversations={conversations}
+                                    selected={selected}
+                                    onSelect={handleSelect}
+                                    loading={loading}
+                                    searchTerm={searchTerm}
+                                    onSearchChange={(v) => { setSearchTerm(v); }}
+                                    bucket={bucket}
+                                    onBucketChange={(b) => { setBucket(b); }}
+                                    bucketCounts={bucketCounts}
+                                    hasMore={hasMore}
+                                    onLoadMore={handleLoadMore}
+                                    isOffline={isOffline}
+                                    onRefresh={() => fetchConversations(false)}
+                                    isAdmin={isAdmin}
+                                    agents={agents}
+                                    agentId={agentId}
+                                    onAgentChange={(id) => setAgentId(id)}
+                                />
                         </Box>
 
                         {/* Área de chat */}

@@ -2,7 +2,7 @@ import { FC, useRef, useCallback } from "react";
 import {
     Box, Typography, TextField, InputAdornment, Divider,
     IconButton, Tooltip, CircularProgress, Button, Chip,
-    useTheme, alpha
+    useTheme, alpha, Select, MenuItem, FormControl
 } from "@mui/material";
 import {
     SearchRounded, RefreshRounded, WifiOffRounded,
@@ -27,6 +27,10 @@ interface Props {
     onLoadMore: () => void;
     isOffline: boolean;
     onRefresh: () => void;
+    isAdmin?: boolean;
+    agents?: any[];
+    agentId?: string;
+    onAgentChange?: (id: string) => void;
 }
 
 const BUCKET_TABS: { key: BucketFilter; label: string; color: string; icon: any }[] = [
@@ -50,6 +54,10 @@ export const CrmSidebar: FC<Props> = ({
     onLoadMore,
     isOffline,
     onRefresh,
+    isAdmin,
+    agents,
+    agentId,
+    onAgentChange,
 }) => {
     const theme = useTheme();
     const listRef = useRef<HTMLDivElement>(null);
@@ -127,8 +135,8 @@ export const CrmSidebar: FC<Props> = ({
                 </Box>
             </Box>
 
-            {/* ── BÚSQUEDA ─────────────────────────────────────────────── */}
-            <Box sx={{ px: 2, py: 1.5 }}>
+            {/* ── BÚSQUEDA Y FILTROS ───────────────────────────────────── */}
+            <Box sx={{ px: 2, py: 1.5, display: "flex", flexDirection: "column", gap: 1 }}>
                 <TextField
                     fullWidth
                     size="small"
@@ -152,6 +160,38 @@ export const CrmSidebar: FC<Props> = ({
                         },
                     }}
                 />
+                
+                {isAdmin && agents && onAgentChange && (
+                    <FormControl size="small" fullWidth>
+                        <Select
+                            displayEmpty
+                            value={agentId || ""}
+                            onChange={(e) => onAgentChange(e.target.value)}
+                            sx={{
+                                borderRadius: "10px",
+                                fontSize: "0.8rem",
+                                bgcolor: alpha(theme.palette.background.default, 0.6),
+                                "& fieldset": { borderColor: "transparent" },
+                                "&:hover fieldset": { borderColor: "divider" },
+                                "&.Mui-focused fieldset": { borderColor: "primary.main" },
+                                "& .MuiSelect-select": { py: 1 }
+                            }}
+                        >
+                            <MenuItem value="">
+                                <Typography variant="body2" fontSize="0.8rem" color="text.secondary" fontWeight={600}>
+                                    Todos los agentes
+                                </Typography>
+                            </MenuItem>
+                            {agents.map((a) => (
+                                <MenuItem key={a.id} value={a.id}>
+                                    <Typography variant="body2" fontSize="0.8rem" fontWeight={700}>
+                                        {a.names}
+                                    </Typography>
+                                </MenuItem>
+                            ))}
+                        </Select>
+                    </FormControl>
+                )}
             </Box>
 
             {/* ── TABS DE BUCKET ───────────────────────────────────────── */}
