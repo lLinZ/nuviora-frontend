@@ -3,7 +3,7 @@ import {
     Box, Typography, Avatar, IconButton, TextField, CircularProgress,
     Chip, Tooltip, Button, Alert, Dialog, DialogTitle,
     DialogContent, DialogActions, List, ListItemButton, ListItemText, Divider,
-    Stack, ClickAwayListener, useTheme, alpha
+    Stack, ClickAwayListener, useTheme, alpha, Collapse
 } from "@mui/material";
 import {
     SendRounded, AttachFileRounded, ArrowBackRounded,
@@ -11,6 +11,7 @@ import {
 } from "@mui/icons-material";
 import EmojiEmotionsRoundedIcon from "@mui/icons-material/EmojiEmotionsRounded";
 import OpenInNewRoundedIcon from "@mui/icons-material/OpenInNewRounded";
+import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import dayjs from "dayjs";
 import { toast } from "react-toastify";
 import { request } from "../../../common/request";
@@ -109,8 +110,9 @@ export const CrmChatArea: FC<Props> = ({ selected, incomingMessage, onRefresh, o
     const audioChunksRef = useRef<Blob[]>([]);
     const recIntervalRef = useRef<any>(null);
 
-    // Order dialog
+    // Order dialog and info
     const [orderOpen, setOrderOpen] = useState(false);
+    const [showInfo, setShowInfo] = useState(false);
 
     // Template picker
     const [tplOpen, setTplOpen] = useState(false);
@@ -305,22 +307,73 @@ export const CrmChatArea: FC<Props> = ({ selected, incomingMessage, onRefresh, o
 
                 {/* Acciones del header */}
                 <Box sx={{ display: "flex", alignItems: "center", gap: 1, flexShrink: 0 }}>
-                    {/* BOTÓN VER ORDEN */}
+                    {/* BOTÓN VER ORDEN E INFO */}
                     {orderId && (
-                        <Tooltip title={`Ver Orden #${selected.order?.order_number}`}>
-                            <Button
-                                size="small"
-                                variant="contained"
-                                startIcon={<OpenInNewRoundedIcon fontSize="small" />}
-                                onClick={() => setOrderOpen(true)}
-                                sx={{ borderRadius: "8px", fontSize: "0.75rem", textTransform: "none", py: 0.6, px: 2, fontWeight: 700, boxShadow: "none" }}
-                            >
-                                Ver Orden
-                            </Button>
-                        </Tooltip>
+                        <>
+                            <Tooltip title="Información de la Orden">
+                                <IconButton onClick={() => setShowInfo(!showInfo)} size="small" sx={{ bgcolor: showInfo ? alpha(theme.palette.primary.main, 0.1) : "transparent", color: showInfo ? "primary.main" : "text.secondary" }}>
+                                    <InfoOutlinedIcon fontSize="small" />
+                                </IconButton>
+                            </Tooltip>
+                            <Tooltip title={`Ver Orden #${selected.order?.order_number}`}>
+                                <Button
+                                    size="small"
+                                    variant="contained"
+                                    startIcon={<OpenInNewRoundedIcon fontSize="small" />}
+                                    onClick={() => setOrderOpen(true)}
+                                    sx={{ borderRadius: "8px", fontSize: "0.75rem", textTransform: "none", py: 0.6, px: 2, fontWeight: 700, boxShadow: "none" }}
+                                >
+                                    Ver Orden
+                                </Button>
+                            </Tooltip>
+                        </>
                     )}
                 </Box>
             </Box>
+
+            {/* ── INFO PANEL ─────────────────────────────────────────────────── */}
+            <Collapse in={showInfo && !!selected.order} unmountOnExit>
+                <Box sx={{ p: 2, bgcolor: alpha(theme.palette.primary.main, 0.03), borderBottom: "1px solid", borderColor: "divider" }}>
+                    <Typography variant="subtitle2" fontWeight={800} sx={{ mb: 1.5, color: "primary.main", display: "flex", alignItems: "center", gap: 1 }}>
+                        <InfoOutlinedIcon fontSize="small" /> Detalles de la Orden #{selected.order?.order_number}
+                    </Typography>
+                    <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr", md: "1fr 1fr 1fr" }, gap: 2 }}>
+                        <Box>
+                            <Typography variant="caption" color="text.secondary" fontWeight={700} display="block">Cliente</Typography>
+                            <Typography variant="body2" fontWeight={600}>{selected.client_name}</Typography>
+                        </Box>
+                        <Box>
+                            <Typography variant="caption" color="text.secondary" fontWeight={700} display="block">Agente Asignado</Typography>
+                            <Typography variant="body2" fontWeight={600}>{selected.order?.agent_name || "Sin asignar"}</Typography>
+                        </Box>
+                        <Box>
+                            <Typography variant="caption" color="text.secondary" fontWeight={700} display="block">Estado</Typography>
+                            <Chip label={selected.order?.status} size="small" sx={{ height: 20, fontSize: "0.7rem", fontWeight: 800, mt: 0.5, bgcolor: alpha(theme.palette.primary.main, 0.1), color: "primary.main" }} />
+                        </Box>
+                        <Box>
+                            <Typography variant="caption" color="text.secondary" fontWeight={700} display="block">Fecha de Creación</Typography>
+                            <Typography variant="body2" fontWeight={600}>{selected.order?.created_at ? dayjs(selected.order.created_at).format("DD/MM/YYYY hh:mm A") : "-"}</Typography>
+                        </Box>
+                        <Box>
+                            <Typography variant="caption" color="text.secondary" fontWeight={700} display="block">Monto</Typography>
+                            <Typography variant="body2" fontWeight={800} color="success.main">
+                                ${Number(selected.order?.total_usd || 0).toFixed(2)} USD 
+                                <Typography component="span" variant="caption" color="text.secondary" sx={{ ml: 1, fontWeight: 600 }}>
+                                    (Bs {Number(selected.order?.total_ves || 0).toFixed(2)} Binance | Bs {Number(selected.order?.bcv_equivalence || 0).toFixed(2)} BCV)
+                                </Typography>
+                            </Typography>
+                        </Box>
+                        <Box>
+                            <Typography variant="caption" color="text.secondary" fontWeight={700} display="block">Localidad</Typography>
+                            <Typography variant="body2" fontWeight={600}>{selected.order?.location || "-"}</Typography>
+                        </Box>
+                        <Box>
+                            <Typography variant="caption" color="text.secondary" fontWeight={700} display="block">Reseteos de Orden</Typography>
+                            <Typography variant="body2" fontWeight={600} color={selected.order?.reset_count && selected.order.reset_count > 0 ? "error.main" : "text.primary"}>{selected.order?.reset_count || 0}</Typography>
+                        </Box>
+                    </Box>
+                </Box>
+            </Collapse>
 
             {/* ── ÁREA DE MENSAJES ───────────────────────────────────────────── */}
             <Box sx={{ flexGrow: 1, overflowY: "auto", p: { xs: 1.5, md: 3 }, display: "flex", flexDirection: "column", gap: 1 }}>

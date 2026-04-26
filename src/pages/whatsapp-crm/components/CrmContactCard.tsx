@@ -29,7 +29,11 @@ export interface CrmConversation {
         products_summary: string;
         total_usd: number;
         total_ves: number;
+        bcv_equivalence: number;
         agent_name: string | null;
+        created_at: string;
+        reset_count: number;
+        location: string;
     } | null;
 }
 
