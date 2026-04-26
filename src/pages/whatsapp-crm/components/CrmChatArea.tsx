@@ -72,11 +72,13 @@ const renderMedia = (media: any) => {
     const isAudio = mType === "audio" || mType === "voice" || urlLower.match(/\.(ogg|mp3|wav|m4a)$/);
     const isVideo = mType === "video" || urlLower.match(/\.(mp4|webm|mov|3gp)$/);
     const isPdf = urlLower.endsWith(".pdf");
-    const isImage = mType === "image" || urlLower.match(/\.(jpg|jpeg|png|gif|webp)$/);
+    const isSticker = mType === "sticker" || urlLower.match(/\.(webp)$/);
+    const isImage = mType === "image" || urlLower.match(/\.(jpg|jpeg|png|gif)$/);
 
-    if (isAudio) return <Box component="audio" controls sx={{ width: "100%", height: 45 }}><source src={mediaUrl} /></Box>;
+    if (isAudio) return <Box component="audio" controls sx={{ width: "100%", minWidth: 250, height: 45, outline: "none", borderRadius: "24px" }}><source src={mediaUrl} /></Box>;
     if (isVideo) return <Box component="video" controls sx={{ width: "100%", maxHeight: 300, borderRadius: 2 }}><source src={mediaUrl} /></Box>;
     if (isPdf) return <Box onClick={() => window.open(mediaUrl, "_blank")} sx={{ display: "flex", alignItems: "center", gap: 1, p: 1.5, borderRadius: 2, bgcolor: "rgba(0,0,0,0.06)", cursor: "pointer", border: "1px solid rgba(0,0,0,0.1)" }}>📄 <Typography variant="caption" fontWeight={600}>Documento PDF — Click para abrir</Typography></Box>;
+    if (isSticker) return <Box component="img" src={mediaUrl} sx={{ maxWidth: 140, width: "100%", objectFit: "contain", cursor: "pointer", dropShadow: "0 2px 4px rgba(0,0,0,0.1)" }} onClick={() => window.open(mediaUrl, "_blank")} />;
     if (isImage) return <Box component="img" src={mediaUrl} sx={{ maxWidth: 280, width: "100%", borderRadius: 2, cursor: "pointer" }} onClick={() => window.open(mediaUrl, "_blank")} />;
     return <a href={mediaUrl} target="_blank" rel="noopener noreferrer">📦 Archivo adjunto</a>;
 };
