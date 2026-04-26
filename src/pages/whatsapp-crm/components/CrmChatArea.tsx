@@ -333,7 +333,7 @@ export const CrmChatArea: FC<Props> = ({ selected, incomingMessage, onRefresh, o
 
             {/* ── INFO PANEL ─────────────────────────────────────────────────── */}
             <Collapse in={showInfo && !!selected.order} unmountOnExit>
-                <Box sx={{ p: 2, bgcolor: alpha(theme.palette.primary.main, 0.03), borderBottom: "1px solid", borderColor: "divider" }}>
+                <Box sx={{ p: 2, bgcolor: theme.palette.mode === "dark" ? "#1e293b" : "#f8fafc", borderBottom: "1px solid", borderColor: "divider", boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1)", position: "relative", zIndex: 1 }}>
                     <Typography variant="subtitle2" fontWeight={800} sx={{ mb: 1.5, color: "primary.main", display: "flex", alignItems: "center", gap: 1 }}>
                         <InfoOutlinedIcon fontSize="small" /> Detalles de la Orden #{selected.order?.order_number}
                     </Typography>
