@@ -85,10 +85,10 @@ function App() {
           <Route path="/orders/cancelled" element={<RequireRole allowedRoles={['Admin', 'Gerente']}><CancellationsReview /></RequireRole>} />
           
           {/* Vistas Centralizadas */}
-          <Route path="/whatsapp" element={<RequireRole allowedRoles={['Admin', 'Gerente', 'Vendedor']}><WhatsAppPage /></RequireRole>} />
+          <Route path="/whatsapp-old" element={<RequireRole allowedRoles={['Admin', 'Gerente', 'Vendedor']}><WhatsAppPage /></RequireRole>} />
 
           {/* WhatsApp CRM v2 — Lógica de permisos nueva */}
-          <Route path="/whatsapp-crm" element={<RequireRole allowedRoles={['Admin', 'Gerente', 'Vendedor']}><WhatsAppCrmPage /></RequireRole>} />
+          <Route path="/whatsapp" element={<RequireRole allowedRoles={['Admin', 'Gerente', 'Vendedor']}><WhatsAppCrmPage /></RequireRole>} />
 
           <Route path="/deliverers" element={<RequireRole allowedRoles={['Admin']}><DeliverersPage /></RequireRole>} />
           <Route path="/currency" element={<RequireRole allowedRoles={['Admin']}><Currency /></RequireRole>} />

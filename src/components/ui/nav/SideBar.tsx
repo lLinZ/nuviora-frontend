@@ -114,6 +114,11 @@ export const SideBar = () => {
                 link: "/whatsapp",
                 roles: ["Admin", "Gerente", "Vendedor"],
             },
+            /**             {                text: "WhatsApp (Anterior)",
+                icon: <HistoryRounded />,
+                link: "/whatsapp-old",
+                roles: ["Admin", "Gerente", "Vendedor"],
+            }, */
             {
                 text: "Plantillas WhatsApp",
                 icon: <EditNoteRounded />,
@@ -379,7 +384,7 @@ const SideBarLink: FC<SideBarLinkProps> = ({ icon, text, link, open, matches }) 
     const user = useUserStore((state) => state.user);
 
     const onClick = (link: string) => {
-        if (link === "/whatsapp") {
+        if (link === "/whatsapp" || link === "/whatsapp-old") {
             window.open(link, "_blank");
         } else {
             navigate(link);
