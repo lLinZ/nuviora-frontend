@@ -14,6 +14,7 @@ import OpenInNewRoundedIcon from "@mui/icons-material/OpenInNewRounded";
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import dayjs from "dayjs";
 import { toast } from "react-toastify";
+import { useNavigate } from "react-router-dom";
 import { request } from "../../../common/request";
 import { CrmConversation } from "./CrmContactCard";
 import { OrderDialog } from "../../../components/orders/OrderDialog";
@@ -94,6 +95,7 @@ interface Props {
 
 export const CrmChatArea: FC<Props> = ({ selected, incomingMessage, onRefresh, onBack }) => {
     const theme = useTheme();
+    const navigate = useNavigate();
     const isLite = useUserStore((s) => s.user.is_lite_view);
 
     const [messages, setMessages] = useState<Message[]>([]);
@@ -328,6 +330,40 @@ export const CrmChatArea: FC<Props> = ({ selected, incomingMessage, onRefresh, o
                             </Tooltip>
                         </>
                     )}
+                    <Tooltip title="Ir a la lista de pedidos">
+                        <Button
+                            size="small"
+                            variant="outlined"
+                            startIcon={<ArrowBackRounded fontSize="small" />}
+                            onClick={() => navigate("/orders")}
+                            sx={{ 
+                                borderRadius: "8px", 
+                                fontSize: "0.75rem", 
+                                textTransform: "none", 
+                                py: 0.6, 
+                                px: 1.5, 
+                                fontWeight: 700, 
+                                borderColor: "divider",
+                                color: "text.primary",
+                                display: { xs: "none", sm: "flex" } // Ocultar en mobile muy pequeño para no romper el header
+                            }}
+                        >
+                            Pedidos
+                        </Button>
+                    </Tooltip>
+                    <Tooltip title="Ir a la lista de pedidos">
+                        <IconButton 
+                            size="small" 
+                            onClick={() => navigate("/orders")}
+                            sx={{ 
+                                display: { xs: "flex", sm: "none" },
+                                bgcolor: alpha(theme.palette.text.primary, 0.05),
+                                borderRadius: "8px"
+                            }}
+                        >
+                            <ArrowBackRounded fontSize="small" />
+                        </IconButton>
+                    </Tooltip>
                 </Box>
             </Box>
 

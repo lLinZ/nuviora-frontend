@@ -7,8 +7,9 @@ import {
 import {
     SearchRounded, RefreshRounded, WifiOffRounded,
     ErrorOutlineRounded, AccessTimeRounded, CheckCircleOutlineRounded,
-    AllInclusiveRounded
+    AllInclusiveRounded, ArrowBackRounded
 } from "@mui/icons-material";
+import { useNavigate } from "react-router-dom";
 import { CrmContactCard, CrmConversation } from "./CrmContactCard";
 
 type BucketFilter = "all" | "requires_attention" | "follow_up" | "closed";
@@ -60,6 +61,7 @@ export const CrmSidebar: FC<Props> = ({
     onAgentChange,
 }) => {
     const theme = useTheme();
+    const navigate = useNavigate();
     const listRef = useRef<HTMLDivElement>(null);
 
     const handleScroll = useCallback(() => {
@@ -131,6 +133,25 @@ export const CrmSidebar: FC<Props> = ({
                                 <RefreshRounded fontSize="small" />
                             )}
                         </IconButton>
+                    </Tooltip>
+                    <Tooltip title="Volver a Pedidos">
+                        <Button 
+                            variant="outlined" 
+                            size="small" 
+                            onClick={() => navigate("/orders")}
+                            startIcon={<ArrowBackRounded fontSize="small" />}
+                            sx={{ 
+                                borderRadius: "8px", 
+                                fontSize: "0.7rem", 
+                                fontWeight: 700, 
+                                textTransform: "none",
+                                py: 0.5,
+                                borderColor: "divider",
+                                color: "text.primary"
+                            }}
+                        >
+                            Pedidos
+                        </Button>
                     </Tooltip>
                 </Box>
             </Box>
