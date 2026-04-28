@@ -18,7 +18,8 @@ import {
     Add as AddIcon,
     Edit as EditIcon,
     Inventory as InventoryIcon,
-    Search as SearchIcon
+    Search as SearchIcon,
+    SwapHoriz as SwapHorizIcon
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { Layout } from '../../components/ui/Layout';
@@ -28,6 +29,7 @@ import { IResponse } from '../../interfaces/response-type';
 import { IWarehouse } from '../../interfaces/inventory.types';
 import { ButtonCustom, TextFieldCustom } from '../../components/custom';
 import { CreateWarehouseDialog } from '../../components/inventory/CreateWarehouseDialog';
+import { TransferStockDialog } from '../../components/inventory/TransferStockDialog';
 import { useValidateSession } from '../../hooks/useValidateSession';
 import { Loading } from '../../components/ui/content/Loading';
 
@@ -39,6 +41,7 @@ export const Warehouses: React.FC<Props> = ({ isEmbedded }) => {
     const [warehouses, setWarehouses] = useState<IWarehouse[]>([]);
     const [loading, setLoading] = useState(false);
     const [createDialogOpen, setCreateDialogOpen] = useState(false);
+    const [transferDialogOpen, setTransferDialogOpen] = useState(false);
     const [selectedWarehouse, setSelectedWarehouse] = useState<IWarehouse | undefined>(undefined);
     const navigate = useNavigate();
     const { loadingSession, isValid, user } = useValidateSession();
@@ -150,6 +153,15 @@ export const Warehouses: React.FC<Props> = ({ isEmbedded }) => {
                             />
                             <ButtonCustom
                                 variant='contained'
+                                color='secondary'
+                                startIcon={<SwapHorizIcon />}
+                                onClick={() => setTransferDialogOpen(true)}
+                                sx={{ ml: 1, display: user.role?.description === 'Agencia' ? 'none' : 'inline-flex' }}
+                            >
+                                Transferir Stock
+                            </ButtonCustom>
+                            <ButtonCustom
+                                variant='contained'
                                 startIcon={<AddIcon />}
                                 onClick={() => {
                                     setSelectedWarehouse(undefined);
@@ -253,6 +265,15 @@ export const Warehouses: React.FC<Props> = ({ isEmbedded }) => {
                     onClose={() => setCreateDialogOpen(false)}
                     onSuccess={loadWarehouses}
                     warehouse={selectedWarehouse}
+                />
+            )}
+
+            {transferDialogOpen && (
+                <TransferStockDialog
+                    open={transferDialogOpen}
+                    onClose={() => setTransferDialogOpen(false)}
+                    onSuccess={loadWarehouses}
+                    warehouses={warehouses}
                 />
             )}
         </Box>

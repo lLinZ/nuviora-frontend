@@ -17,13 +17,16 @@ import {
 import {
     Search as SearchIcon,
     ArrowBack as BackIcon,
-    Refresh as RefreshIcon
+    Refresh as RefreshIcon,
+    SwapHoriz as SwapHorizIcon
 } from '@mui/icons-material';
 import { Layout } from '../../components/ui/Layout';
 import { DescripcionDeVista } from '../../components/ui/content/DescripcionDeVista';
 import { request } from '../../common/request';
 import { IResponse } from '../../interfaces/response-type';
 import { IWarehouse, IInventory } from '../../interfaces/inventory.types';
+import { TransferStockDialog } from '../../components/inventory/TransferStockDialog';
+import { ButtonCustom } from '../../components/custom';
 import { Loading } from '../../components/ui/content/Loading';
 import { useValidateSession } from '../../hooks/useValidateSession';
 
@@ -34,6 +37,7 @@ export const WarehouseInventory: React.FC = () => {
     const [inventory, setInventory] = useState<IInventory[]>([]);
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState('');
+    const [transferDialogOpen, setTransferDialogOpen] = useState(false);
     const { loadingSession, isValid, user } = useValidateSession();
 
     useEffect(() => {
@@ -81,10 +85,19 @@ export const WarehouseInventory: React.FC = () => {
                     <IconButton onClick={() => navigate('/inventory/warehouses')} sx={{ mr: 1 }}>
                         <BackIcon />
                     </IconButton>
-                    <Box>
+                    <Box sx={{ flex: 1 }}>
                         <Typography variant="h5" fontWeight="bold">{warehouse.name}</Typography>
                         <Typography variant="body2" color="text.secondary">Inventario detallado</Typography>
                     </Box>
+                    <ButtonCustom
+                        variant='contained'
+                        color='secondary'
+                        startIcon={<SwapHorizIcon />}
+                        onClick={() => setTransferDialogOpen(true)}
+                        sx={{ display: user.role?.description === 'Agencia' ? 'none' : 'inline-flex' }}
+                    >
+                        Transferir Stock
+                    </ButtonCustom>
                 </Box>
 
                 <Paper sx={{ p: 2 }}>
@@ -143,6 +156,15 @@ export const WarehouseInventory: React.FC = () => {
                     </TableContainer>
                 </Paper>
             </Box>
+
+            {transferDialogOpen && (
+                <TransferStockDialog
+                    open={transferDialogOpen}
+                    onClose={() => setTransferDialogOpen(false)}
+                    onSuccess={loadData}
+                    initialFromWarehouseId={parseInt(id || '0')}
+                />
+            )}
         </Layout>
     );
 };
