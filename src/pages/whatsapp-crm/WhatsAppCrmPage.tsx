@@ -32,15 +32,21 @@ function showDesktopNotif(title: string, body: string) {
     }
 }
 
-// ── Ordenar conversaciones: no-leídas arriba, luego por fecha ────────────────
-function sortConversations(list: CrmConversation[]): CrmConversation[] {
+// ── Ordenar conversaciones: opcionalmente por bucket o estrictamente por fecha ──
+function sortConversations(list: CrmConversation[], sortBy: "latency" | "unread"): CrmConversation[] {
     return [...list].sort((a, b) => {
-        const BUCKET_P: Record<string, number> = { requires_attention: 1, follow_up: 2, closed: 3 };
-        const pa = BUCKET_P[a.conversation_bucket] ?? 2;
-        const pb = BUCKET_P[b.conversation_bucket] ?? 2;
-        if (pa !== pb) return pa - pb;
-        if (a.unread_count !== b.unread_count) return b.unread_count - a.unread_count;
-        return new Date(b.last_message_at || 0).getTime() - new Date(a.last_message_at || 0).getTime();
+        if (sortBy === "unread") {
+            const BUCKET_P: Record<string, number> = { requires_attention: 1, follow_up: 2, closed: 3 };
+            const pa = BUCKET_P[a.conversation_bucket] ?? 2;
+            const pb = BUCKET_P[b.conversation_bucket] ?? 2;
+            if (pa !== pb) return pa - pb;
+            if (a.unread_count !== b.unread_count) return b.unread_count - a.unread_count;
+        }
+        
+        // Orden de llegada (Latency) o fallback
+        const dateA = new Date(a.last_message_at || 0).getTime();
+        const dateB = new Date(b.last_message_at || 0).getTime();
+        return dateB - dateA;
     });
 }
 
@@ -112,8 +118,8 @@ export const WhatsAppCrmPage = () => {
         const currentPage = isLoadMore ? page + 1 : 1;
         const params = new URLSearchParams({
             page: String(currentPage),
-            bucket: bucketRef.current,
-            search: searchRef.current,
+            bucket: bucket,
+            search: searchTerm,
             sort_by: sortBy,
         });
         if (agentId) params.set("agent_id", agentId);
@@ -127,13 +133,12 @@ export const WhatsAppCrmPage = () => {
                 setConversations((prev) => {
                     const merged = isLoadMore ? [...prev, ...newItems] : newItems;
                     // Si el chat activo está en la lista, mantener unread_count = 0
-                    return sortConversations(
-                        merged.map((c) =>
-                            selectedRef.current?.client_id === c.client_id
-                                ? { ...c, unread_count: 0 }
-                                : c
-                        )
+                    const updatedList = merged.map((c) =>
+                        selectedRef.current?.client_id === c.client_id
+                            ? { ...c, unread_count: 0 }
+                            : c
                     );
+                    return sortConversations(updatedList, sortBy);
                 });
 
                 if (isLoadMore) setPage(currentPage);
@@ -153,7 +158,7 @@ export const WhatsAppCrmPage = () => {
         } finally {
             setLoading(false);
         }
-    }, [agentId, page]);
+    }, [agentId, page, bucket, searchTerm, sortBy]);
 
     // ── Triggers de re-fetch ──────────────────────────────────────────────────
     useEffect(() => {
@@ -228,9 +233,9 @@ export const WhatsAppCrmPage = () => {
                 // Si hay filtro de bucket activo y el chat salió → removerlo
                 const activeBucket = bucketRef.current;
                 if (activeBucket !== "all" && newBucket !== activeBucket) {
-                    return sortConversations(prev.filter((c) => c.client_id != clientId));
+                    return sortConversations(prev.filter((c) => c.client_id != clientId), sortBy);
                 }
-                return sortConversations(prev.map((c) => c.client_id == clientId ? updated : c));
+                return sortConversations(prev.map((c) => c.client_id == clientId ? updated : c), sortBy);
             });
 
             scheduleRefresh();
