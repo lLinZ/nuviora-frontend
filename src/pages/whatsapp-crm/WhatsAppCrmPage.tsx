@@ -135,7 +135,7 @@ export const WhatsAppCrmPage = () => {
                     
                     // Deduplicar por ID de cliente
                     const uniqueMap = new Map();
-                    merged.forEach(c => uniqueMap.set(c.id || c.client_id, c));
+                    merged.forEach(c => uniqueMap.set(c.client_id, c));
                     const uniqueList = Array.from(uniqueMap.values());
 
                     // Si el chat activo está en la lista, mantener unread_count = 0
