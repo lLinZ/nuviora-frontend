@@ -59,6 +59,7 @@ export const WhatsAppCrmPage = () => {
     const [bucketCounts, setBucketCounts] = useState<Record<string, number>>({});
     const [incomingMessage, setIncomingMessage] = useState<any>(null);
     const [agents, setAgents] = useState<any[]>([]);
+    const [sortBy, setSortBy] = useState<"latency" | "unread">("latency");
 
     const { echo } = useSocketStore();
     const user = useUserStore((s) => s.user);
@@ -113,6 +114,7 @@ export const WhatsAppCrmPage = () => {
             page: String(currentPage),
             bucket: bucketRef.current,
             search: searchRef.current,
+            sort_by: sortBy,
         });
         if (agentId) params.set("agent_id", agentId);
 
@@ -158,7 +160,7 @@ export const WhatsAppCrmPage = () => {
         setLoading(true);
         const timer = setTimeout(() => fetchConversations(false), searchTerm ? 400 : 0);
         return () => clearTimeout(timer);
-    }, [searchTerm, bucket, agentId]);
+    }, [searchTerm, bucket, agentId, sortBy]);
 
     // ── WebSocket hub ─────────────────────────────────────────────────────────
     useEffect(() => {
@@ -290,6 +292,8 @@ export const WhatsAppCrmPage = () => {
                                     agents={agents}
                                     agentId={agentId}
                                     onAgentChange={(id) => setAgentId(id)}
+                                    sortBy={sortBy}
+                                    onSortChange={(s) => setSortBy(s)}
                                 />
                         </Box>
 
@@ -300,6 +304,8 @@ export const WhatsAppCrmPage = () => {
                                 incomingMessage={incomingMessage}
                                 onRefresh={() => fetchConversations(false)}
                                 onBack={() => setSelected(null)}
+                                isAdmin={isAdmin}
+                                agents={agents}
                             />
                         </Box>
                     </>

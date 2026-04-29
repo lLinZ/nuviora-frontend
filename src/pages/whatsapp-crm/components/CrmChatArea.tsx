@@ -3,11 +3,14 @@ import {
     Box, Typography, Avatar, IconButton, TextField, CircularProgress,
     Chip, Tooltip, Button, Alert, Dialog, DialogTitle,
     DialogContent, DialogActions, List, ListItemButton, ListItemText, Divider,
-    Stack, ClickAwayListener, useTheme, alpha, Collapse
+    Stack, ClickAwayListener, useTheme, alpha, Collapse,
+    Menu, MenuItem
 } from "@mui/material";
 import {
     SendRounded, AttachFileRounded, ArrowBackRounded,
     VerifiedRounded, MicRounded, DeleteRounded, MessageRounded,
+    MoreVertRounded, CheckCircleOutlineRounded, AccessTimeRounded, ErrorOutlineRounded,
+    PersonAddRounded
 } from "@mui/icons-material";
 import EmojiEmotionsRoundedIcon from "@mui/icons-material/EmojiEmotionsRounded";
 import OpenInNewRoundedIcon from "@mui/icons-material/OpenInNewRounded";
@@ -91,9 +94,11 @@ interface Props {
     incomingMessage: any;
     onRefresh: () => void;
     onBack: () => void;
+    isAdmin?: boolean;
+    agents?: any[];
 }
 
-export const CrmChatArea: FC<Props> = ({ selected, incomingMessage, onRefresh, onBack }) => {
+export const CrmChatArea: FC<Props> = ({ selected, incomingMessage, onRefresh, onBack, isAdmin, agents }) => {
     const theme = useTheme();
     const navigate = useNavigate();
     const isLite = useUserStore((s) => s.user.is_lite_view);
@@ -125,6 +130,14 @@ export const CrmChatArea: FC<Props> = ({ selected, incomingMessage, onRefresh, o
 
     const fileInputRef = useRef<HTMLInputElement>(null);
     const bottomRef = useRef<HTMLDivElement>(null);
+
+    // Bucket Menu
+    const [bucketAnchorEl, setBucketAnchorEl] = useState<null | HTMLElement>(null);
+    const openBucketMenu = Boolean(bucketAnchorEl);
+
+    // Agent Menu
+    const [agentAnchorEl, setAgentAnchorEl] = useState<null | HTMLElement>(null);
+    const openAgentMenu = Boolean(agentAnchorEl);
 
     const scrollToBottom = () => setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: "smooth" }), 80);
 
@@ -167,8 +180,24 @@ export const CrmChatArea: FC<Props> = ({ selected, incomingMessage, onRefresh, o
     // ── Mover bucket ─────────────────────────────────────────────────────────
     const handleMoveBucket = async (bucket: string) => {
         if (!selected) return;
+        setBucketAnchorEl(null);
         const { status } = await request(`/whatsapp-crm/conversations/${selected.client_id}/move`, "POST", { bucket });
-        if (status === 200) { toast.success(`Chat movido a ${bucket === "closed" ? "Cerrados" : "Seguimiento"}`); onRefresh(); }
+        if (status === 200) { 
+            toast.success(`Chat movido a ${bucket === "closed" ? "Cerrados" : bucket === "requires_attention" ? "Atención" : "Seguimiento"}`); 
+            onRefresh(); 
+        }
+    };
+
+    const handleAssignAgent = async (agentId: number) => {
+        if (!selected) return;
+        setAgentAnchorEl(null);
+        const { status } = await request(`/whatsapp-crm/conversations/${selected.client_id}/assign`, "POST", { agent_id: agentId });
+        if (status === 200) {
+            toast.success("Agente reasignado ✅");
+            onRefresh();
+        } else {
+            toast.error("Error al reasignar agente");
+        }
     };
 
     // ── Enviar texto ─────────────────────────────────────────────────────────
@@ -296,6 +325,14 @@ export const CrmChatArea: FC<Props> = ({ selected, incomingMessage, onRefresh, o
                     </Box>
                     <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                         <Typography variant="caption" color="text.secondary" fontWeight={500}>{selected.client_phone}</Typography>
+                    {isAdmin && (selected.order?.agent_name || selected.agent_name) && (
+                        <>
+                            <Typography variant="caption" color="divider">•</Typography>
+                            <Typography variant="caption" color="info.main" sx={{ fontWeight: 800 }}>
+                                👤 {selected.order?.agent_name || selected.agent_name}
+                            </Typography>
+                        </>
+                    )}
                         {selected.order && (
                             <>
                                 <Typography variant="caption" color="divider">•</Typography>
@@ -330,6 +367,66 @@ export const CrmChatArea: FC<Props> = ({ selected, incomingMessage, onRefresh, o
                             </Tooltip>
                         </>
                     )}
+                    <Tooltip title="Mover a...">
+                        <IconButton onClick={(e) => setBucketAnchorEl(e.currentTarget)} size="small" sx={{ bgcolor: alpha(theme.palette.text.primary, 0.05) }}>
+                            <MoreVertRounded fontSize="small" />
+                        </IconButton>
+                    </Tooltip>
+
+                    <Menu
+                        anchorEl={bucketAnchorEl}
+                        open={openBucketMenu}
+                        onClose={() => setBucketAnchorEl(null)}
+                        PaperProps={{ sx: { borderRadius: "12px", minWidth: 180, boxShadow: theme.shadows[10] } }}
+                    >
+                        <Typography variant="caption" sx={{ px: 2, py: 1, display: "block", fontWeight: 800, color: "text.secondary", textTransform: "uppercase" }}>
+                            Mover a:
+                        </Typography>
+                        <MenuItem onClick={() => handleMoveBucket("requires_attention")} sx={{ py: 1.2 }}>
+                            <ListItemIcon><ErrorOutlineRounded fontSize="small" sx={{ color: "#ef4444" }} /></ListItemIcon>
+                            <ListItemText primary="Atención" primaryTypographyProps={{ variant: "body2", fontWeight: 600 }} />
+                        </MenuItem>
+                        <MenuItem onClick={() => handleMoveBucket("follow_up")} sx={{ py: 1.2 }}>
+                            <ListItemIcon><AccessTimeRounded fontSize="small" sx={{ color: "#f59e0b" }} /></ListItemIcon>
+                            <ListItemText primary="Seguimiento" primaryTypographyProps={{ variant: "body2", fontWeight: 600 }} />
+                        </MenuItem>
+                        <MenuItem onClick={() => handleMoveBucket("closed")} sx={{ py: 1.2 }}>
+                            <ListItemIcon><CheckCircleOutlineRounded fontSize="small" sx={{ color: "#64748b" }} /></ListItemIcon>
+                            <ListItemText primary="Cerrado" primaryTypographyProps={{ variant: "body2", fontWeight: 600 }} />
+                        </MenuItem>
+                        
+                        {isAdmin && agents && (
+                            <>
+                                <Divider sx={{ my: 1 }} />
+                                <Typography variant="caption" sx={{ px: 2, py: 1, display: "block", fontWeight: 800, color: "text.secondary", textTransform: "uppercase" }}>
+                                    Administración:
+                                </Typography>
+                                <MenuItem onClick={(e) => { setBucketAnchorEl(null); setAgentAnchorEl(e.currentTarget); }} sx={{ py: 1.2 }}>
+                                    <ListItemIcon><PersonAddRounded fontSize="small" color="primary" /></ListItemIcon>
+                                    <ListItemText primary="Reasignar Agente" primaryTypographyProps={{ variant: "body2", fontWeight: 600 }} />
+                                </MenuItem>
+                            </>
+                        )}
+                    </Menu>
+
+                    {/* Menu de Agentes */}
+                    <Menu
+                        anchorEl={agentAnchorEl}
+                        open={openAgentMenu}
+                        onClose={() => setAgentAnchorEl(null)}
+                        PaperProps={{ sx: { borderRadius: "12px", minWidth: 200, maxHeight: 400, boxShadow: theme.shadows[10] } }}
+                    >
+                        <Typography variant="caption" sx={{ px: 2, py: 1, display: "block", fontWeight: 800, color: "text.secondary", textTransform: "uppercase" }}>
+                            Seleccionar Agente:
+                        </Typography>
+                        {agents?.map((agent) => (
+                            <MenuItem key={agent.id} onClick={() => handleAssignAgent(agent.id)} sx={{ py: 1.2 }}>
+                                <Avatar sx={{ width: 24, height: 24, fontSize: "0.7rem", mr: 1.5, bgcolor: stringToColor(agent.names) }}>{agent.names[0]}</Avatar>
+                                <ListItemText primary={`${agent.names} ${agent.surnames ?? ""}`} primaryTypographyProps={{ variant: "body2", fontWeight: 700 }} />
+                            </MenuItem>
+                        ))}
+                    </Menu>
+
                     <Tooltip title="Ir a la lista de pedidos">
                         <Button
                             size="small"

@@ -1,13 +1,15 @@
-import { FC, useRef, useCallback } from "react";
+import { FC, useRef, useCallback, useState } from "react";
 import {
     Box, Typography, TextField, InputAdornment, Divider,
     IconButton, Tooltip, CircularProgress, Button, Chip,
-    useTheme, alpha, Select, MenuItem, FormControl
+    useTheme, alpha, Select, MenuItem, FormControl,
+    Menu, ListItemIcon, ListItemText
 } from "@mui/material";
 import {
     SearchRounded, RefreshRounded, WifiOffRounded,
     ErrorOutlineRounded, AccessTimeRounded, CheckCircleOutlineRounded,
-    AllInclusiveRounded, ArrowBackRounded
+    AllInclusiveRounded, ArrowBackRounded, SortRounded,
+    MarkChatUnreadRounded, ScheduleRounded
 } from "@mui/icons-material";
 import { useNavigate } from "react-router-dom";
 import { CrmContactCard, CrmConversation } from "./CrmContactCard";
@@ -30,8 +32,9 @@ interface Props {
     onRefresh: () => void;
     isAdmin?: boolean;
     agents?: any[];
-    agentId?: string;
     onAgentChange?: (id: string) => void;
+    sortBy: "latency" | "unread";
+    onSortChange: (s: "latency" | "unread") => void;
 }
 
 const BUCKET_TABS: { key: BucketFilter; label: string; color: string; icon: any }[] = [
@@ -56,13 +59,15 @@ export const CrmSidebar: FC<Props> = ({
     isOffline,
     onRefresh,
     isAdmin,
-    agents,
-    agentId,
     onAgentChange,
+    sortBy,
+    onSortChange,
 }) => {
     const theme = useTheme();
     const navigate = useNavigate();
     const listRef = useRef<HTMLDivElement>(null);
+
+    const [sortMenuAnchor, setSortMenuAnchor] = useState<null | HTMLElement>(null);
 
     const handleScroll = useCallback(() => {
         const el = listRef.current;
@@ -125,6 +130,23 @@ export const CrmSidebar: FC<Props> = ({
                             <WifiOffRounded fontSize="small" color="warning" />
                         </Tooltip>
                     )}
+                    
+                    {isAdmin && (
+                        <Tooltip title="Gestionar Turnos / Roster">
+                            <IconButton 
+                                size="small" 
+                                onClick={() => navigate("/roster")} 
+                                sx={{ 
+                                    bgcolor: alpha(theme.palette.secondary.main, 0.1),
+                                    color: "secondary.main",
+                                    "&:hover": { bgcolor: alpha(theme.palette.secondary.main, 0.2) }
+                                }}
+                            >
+                                <AccessTimeRounded fontSize="small" />
+                            </IconButton>
+                        </Tooltip>
+                    )}
+
                     <Tooltip title="Refrescar lista">
                         <IconButton size="small" onClick={onRefresh} disabled={loading} sx={{ bgcolor: alpha(theme.palette.text.primary, 0.05) }}>
                             {loading ? (
@@ -183,35 +205,80 @@ export const CrmSidebar: FC<Props> = ({
                 />
                 
                 {isAdmin && agents && onAgentChange && (
-                    <FormControl size="small" fullWidth>
-                        <Select
-                            displayEmpty
-                            value={agentId || ""}
-                            onChange={(e) => onAgentChange(e.target.value)}
-                            sx={{
-                                borderRadius: "10px",
-                                fontSize: "0.8rem",
-                                bgcolor: alpha(theme.palette.background.default, 0.6),
-                                "& fieldset": { borderColor: "transparent" },
-                                "&:hover fieldset": { borderColor: "divider" },
-                                "&.Mui-focused fieldset": { borderColor: "primary.main" },
-                                "& .MuiSelect-select": { py: 1 }
-                            }}
-                        >
-                            <MenuItem value="">
-                                <Typography variant="body2" fontSize="0.8rem" color="text.secondary" fontWeight={600}>
-                                    Todos los agentes
-                                </Typography>
-                            </MenuItem>
-                            {Array.isArray(agents) && agents.map((a) => (
-                                <MenuItem key={a.id} value={a.id}>
-                                    <Typography variant="body2" fontSize="0.8rem" fontWeight={700}>
-                                        {a.names}
+                    <Box sx={{ display: "flex", gap: 1 }}>
+                        <FormControl size="small" fullWidth>
+                            <Select
+                                displayEmpty
+                                value={agentId || ""}
+                                onChange={(e) => onAgentChange(e.target.value)}
+                                sx={{
+                                    borderRadius: "10px",
+                                    fontSize: "0.8rem",
+                                    bgcolor: alpha(theme.palette.background.default, 0.6),
+                                    "& fieldset": { borderColor: "transparent" },
+                                    "&:hover fieldset": { borderColor: "divider" },
+                                    "&.Mui-focused fieldset": { borderColor: "primary.main" },
+                                    "& .MuiSelect-select": { py: 1 }
+                                }}
+                            >
+                                <MenuItem value="">
+                                    <Typography variant="body2" fontSize="0.8rem" color="text.secondary" fontWeight={600}>
+                                        Todos los agentes
                                     </Typography>
                                 </MenuItem>
-                            ))}
-                        </Select>
-                    </FormControl>
+                                {Array.isArray(agents) && agents.map((a) => (
+                                    <MenuItem key={a.id} value={a.id}>
+                                        <Typography variant="body2" fontSize="0.8rem" fontWeight={700}>
+                                            {a.names}
+                                        </Typography>
+                                    </MenuItem>
+                                ))}
+                            </Select>
+                        </FormControl>
+
+                        <Tooltip title="Ordenar por...">
+                            <IconButton 
+                                size="small" 
+                                onClick={(e) => setSortMenuAnchor(e.currentTarget)}
+                                sx={{ 
+                                    borderRadius: "10px", 
+                                    bgcolor: alpha(theme.palette.background.default, 0.6),
+                                    border: "1px solid",
+                                    borderColor: sortBy !== "latency" ? "primary.main" : "transparent",
+                                    "&:hover": { bgcolor: alpha(theme.palette.text.primary, 0.05) }
+                                }}
+                            >
+                                <SortRounded fontSize="small" color={sortBy !== "latency" ? "primary" : "inherit"} />
+                            </IconButton>
+                        </Tooltip>
+
+                        <Menu
+                            anchorEl={sortMenuAnchor}
+                            open={Boolean(sortMenuAnchor)}
+                            onClose={() => setSortMenuAnchor(null)}
+                            PaperProps={{ sx: { borderRadius: "12px", minWidth: 200, boxShadow: theme.shadows[10], mt: 1 } }}
+                        >
+                            <Typography variant="caption" sx={{ px: 2, py: 1, display: "block", fontWeight: 800, color: "text.secondary", textTransform: "uppercase" }}>
+                                Ordenar chats por:
+                            </Typography>
+                            <MenuItem 
+                                onClick={() => { onSortChange("latency"); setSortMenuAnchor(null); }} 
+                                selected={sortBy === "latency"}
+                                sx={{ py: 1.2 }}
+                            >
+                                <ListItemIcon><ScheduleRounded fontSize="small" /></ListItemIcon>
+                                <ListItemText primary="Orden de llegada" secondary="Más recientes primero" primaryTypographyProps={{ variant: "body2", fontWeight: 700 }} secondaryTypographyProps={{ variant: "caption" }} />
+                            </MenuItem>
+                            <MenuItem 
+                                onClick={() => { onSortChange("unread"); setSortMenuAnchor(null); }} 
+                                selected={sortBy === "unread"}
+                                sx={{ py: 1.2 }}
+                            >
+                                <ListItemIcon><MarkChatUnreadRounded fontSize="small" color="error" /></ListItemIcon>
+                                <ListItemText primary="No leídos" secondary="Más urgentes primero" primaryTypographyProps={{ variant: "body2", fontWeight: 700 }} secondaryTypographyProps={{ variant: "caption" }} />
+                            </MenuItem>
+                        </Menu>
+                    </Box>
                 )}
             </Box>
 
