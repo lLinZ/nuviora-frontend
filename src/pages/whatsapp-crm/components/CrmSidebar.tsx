@@ -32,6 +32,7 @@ interface Props {
     onRefresh: () => void;
     isAdmin?: boolean;
     agents?: any[];
+    agentId?: string;
     onAgentChange?: (id: string) => void;
     sortBy: "latency" | "unread";
     onSortChange: (s: "latency" | "unread") => void;
@@ -59,6 +60,8 @@ export const CrmSidebar: FC<Props> = ({
     isOffline,
     onRefresh,
     isAdmin,
+    agents,
+    agentId,
     onAgentChange,
     sortBy,
     onSortChange,
@@ -226,7 +229,7 @@ export const CrmSidebar: FC<Props> = ({
                                         Todos los agentes
                                     </Typography>
                                 </MenuItem>
-                                {Array.isArray(agents) && agents.map((a) => (
+                                {Array.isArray(agents) && (agents as any[]).map((a: any) => (
                                     <MenuItem key={a.id} value={a.id}>
                                         <Typography variant="body2" fontSize="0.8rem" fontWeight={700}>
                                             {a.names}

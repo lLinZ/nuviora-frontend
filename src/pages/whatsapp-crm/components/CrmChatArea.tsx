@@ -4,7 +4,7 @@ import {
     Chip, Tooltip, Button, Alert, Dialog, DialogTitle,
     DialogContent, DialogActions, List, ListItemButton, ListItemText, Divider,
     Stack, ClickAwayListener, useTheme, alpha, Collapse,
-    Menu, MenuItem
+    Menu, MenuItem, ListItemIcon
 } from "@mui/material";
 import {
     SendRounded, AttachFileRounded, ArrowBackRounded,
