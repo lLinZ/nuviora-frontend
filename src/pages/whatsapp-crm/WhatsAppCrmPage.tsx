@@ -272,6 +272,25 @@ export const WhatsAppCrmPage = () => {
         setSelected(conv);
     };
 
+    const handleBucketUpdate = (clientId: number, newBucket: string) => {
+        setConversations((prev) => {
+            const idx = prev.findIndex((c) => c.client_id === clientId);
+            if (idx === -1) return prev;
+            
+            const cur = prev[idx];
+            if (cur.conversation_bucket === newBucket) return prev;
+
+            const updated = { ...cur, conversation_bucket: newBucket, unread_count: 0 };
+            
+            // Si el bucket cambió y hay filtro, remover de la vista
+            const activeBucket = bucketRef.current;
+            if (activeBucket !== "all" && newBucket !== activeBucket) {
+                return sortConversations(prev.filter((c) => c.client_id !== clientId), sortBy);
+            }
+            return sortConversations(prev.map((c) => c.client_id === clientId ? updated : c), sortBy);
+        });
+    };
+
     const handleLoadMore = () => fetchConversations(true);
 
     return (
@@ -310,14 +329,15 @@ export const WhatsAppCrmPage = () => {
 
                         {/* Área de chat */}
                         <Box sx={{ display: { xs: selected ? "flex" : "none", md: "flex" }, flexGrow: 1, flexDirection: "column", height: "100%", overflow: "hidden" }}>
-                            <CrmChatArea
-                                selected={selected}
-                                incomingMessage={incomingMessage}
-                                onRefresh={() => fetchConversations(false)}
-                                onBack={() => setSelected(null)}
-                                isAdmin={isAdmin}
-                                agents={agents}
-                            />
+                                <CrmChatArea
+                                    selected={selected}
+                                    incomingMessage={incomingMessage}
+                                    onRefresh={() => fetchConversations(false)}
+                                    onBucketUpdate={handleBucketUpdate}
+                                    onBack={() => setSelected(null)}
+                                    isAdmin={isAdmin}
+                                    agents={agents}
+                                />
                         </Box>
                     </>
                 )}

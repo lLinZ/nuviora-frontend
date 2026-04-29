@@ -93,12 +93,13 @@ interface Props {
     selected: CrmConversation | null;
     incomingMessage: any;
     onRefresh: () => void;
+    onBucketUpdate?: (clientId: number, bucket: string) => void;
     onBack: () => void;
     isAdmin?: boolean;
     agents?: any[];
 }
 
-export const CrmChatArea: FC<Props> = ({ selected, incomingMessage, onRefresh, onBack, isAdmin, agents }) => {
+export const CrmChatArea: FC<Props> = ({ selected, incomingMessage, onRefresh, onBucketUpdate, onBack, isAdmin, agents }) => {
     const theme = useTheme();
     const navigate = useNavigate();
     const isLite = useUserStore((s) => s.user.is_lite_view);
@@ -159,7 +160,13 @@ export const CrmChatArea: FC<Props> = ({ selected, incomingMessage, onRefresh, o
 
     const markAsRead = async () => {
         if (!selected) return;
-        await request(`/whatsapp-crm/conversations/${selected.client_id}/read`, "POST");
+        const { status, response } = await request(`/whatsapp-crm/conversations/${selected.client_id}/read`, "POST");
+        if (status === 200) {
+            const json = await response.json();
+            if (json.conversation_bucket && onBucketUpdate) {
+                onBucketUpdate(selected.client_id, json.conversation_bucket);
+            }
+        }
     };
 
     useEffect(() => {
