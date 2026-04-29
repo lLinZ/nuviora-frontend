@@ -132,8 +132,14 @@ export const WhatsAppCrmPage = () => {
 
                 setConversations((prev) => {
                     const merged = isLoadMore ? [...prev, ...newItems] : newItems;
+                    
+                    // Deduplicar por ID de cliente
+                    const uniqueMap = new Map();
+                    merged.forEach(c => uniqueMap.set(c.id || c.client_id, c));
+                    const uniqueList = Array.from(uniqueMap.values());
+
                     // Si el chat activo está en la lista, mantener unread_count = 0
-                    const updatedList = merged.map((c) =>
+                    const updatedList = uniqueList.map((c) =>
                         selectedRef.current?.client_id === c.client_id
                             ? { ...c, unread_count: 0 }
                             : c
