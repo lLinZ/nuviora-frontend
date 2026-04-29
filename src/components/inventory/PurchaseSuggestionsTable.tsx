@@ -16,6 +16,7 @@ import {
 } from '@mui/icons-material';
 import { request } from '../../common/request';
 import dayjs from 'dayjs';
+import * as XLSX from 'xlsx';
 
 interface ScmProduct {
     product_id: number;
@@ -80,28 +81,40 @@ export const PurchaseSuggestionsTable: React.FC = () => {
         )
         .sort((a, b) => (PRIORITY_ORDER[a.priority] ?? 5) - (PRIORITY_ORDER[b.priority] ?? 5));
 
-    const exportCsv = () => {
-        const headers = ['Producto', 'SKU', 'Almacén', 'Prioridad', 'Stock Útil', 'Demanda/día', 'Días Cobertura', 'Stock Seguridad', 'Stock Objetivo', 'Sugerido Comprar'];
-        const rows = filtered.map(d => [
-            `"${d.product_name}"`,
-            d.sku,
-            d.warehouse_name,
-            PRIORITY_CONFIG[d.priority].label,
-            d.stock_useful,
-            d.daily_demand,
-            d.days_coverage ?? 'Sin data',
-            d.safety_stock,
-            d.target_stock,
-            d.purchase_suggested
-        ]);
-        const csv = [headers, ...rows].map(r => r.join(',')).join('\n');
-        const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = `compras_sugeridas_${dayjs().format('YYYY-MM-DD')}.csv`;
-        link.click();
-        URL.revokeObjectURL(url);
+    const exportToExcel = () => {
+        const worksheetData = filtered.map(d => ({
+            'Producto': d.product_name,
+            'SKU': d.sku || '—',
+            'Almacén': d.warehouse_name,
+            'Prioridad': PRIORITY_CONFIG[d.priority].label,
+            'Stock Útil': d.stock_useful,
+            'Demanda Diaria': d.daily_demand,
+            'Días de Cobertura': d.days_coverage ?? 'Sin data',
+            'Stock Seguridad': d.safety_stock,
+            'Stock Objetivo': d.target_stock,
+            'Sugerido a Comprar': d.purchase_suggested
+        }));
+
+        const worksheet = XLSX.utils.json_to_sheet(worksheetData);
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, "Sugerencias de Compra");
+
+        // Ajustar anchos de columna automáticamente
+        const columnWidths = [
+            { wch: 35 }, // Producto
+            { wch: 15 }, // SKU
+            { wch: 20 }, // Almacén
+            { wch: 15 }, // Prioridad
+            { wch: 12 }, // Stock Útil
+            { wch: 15 }, // Demanda
+            { wch: 15 }, // Cobertura
+            { wch: 15 }, // Stock Seguridad
+            { wch: 15 }, // Stock Objetivo
+            { wch: 18 }, // Sugerido a Comprar
+        ];
+        worksheet['!cols'] = columnWidths;
+
+        XLSX.writeFile(workbook, `Reporte_Compras_Nuviora_${dayjs().format('YYYY-MM-DD')}.xlsx`);
     };
 
     const priorities: { value: string; label: string }[] = [
@@ -130,13 +143,15 @@ export const PurchaseSuggestionsTable: React.FC = () => {
                         </IconButton>
                     </Tooltip>
                     <Button
-                        variant="outlined"
+                        variant="contained"
                         size="small"
                         startIcon={<DownloadRounded />}
-                        onClick={exportCsv}
+                        onClick={exportToExcel}
                         disabled={filtered.length === 0}
+                        color="primary"
+                        sx={{ borderRadius: 2, textTransform: 'none', fontWeight: 'bold' }}
                     >
-                        Exportar CSV
+                        Exportar Excel (.xlsx)
                     </Button>
                 </Stack>
             </Stack>
