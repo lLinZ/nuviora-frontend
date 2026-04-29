@@ -31,6 +31,7 @@ import { request } from "../common/request";
 import { IResponse } from "../interfaces/response-type";
 import { OrderDialog } from "../components/orders/OrderDialog";
 import { PaymentMethodsReport } from "../components/reports/PaymentMethodsReport";
+import { StockAlertWidget } from "../components/inventory/StockAlertWidget";
 
 interface DashboardStats {
     total_sales?: number;
@@ -318,6 +319,13 @@ export const Dashboard = () => {
                                 ))}
                             </Grid>
                         </Grid>
+
+                        {/* 📦 SCM STOCK ALERT WIDGET */}
+                        {role === 'Admin' && (
+                            <Grid size={{ xs: 12 }}>
+                                <StockAlertWidget />
+                            </Grid>
+                        )}
 
                         {/* ⚠️ ACTION CENTER (ALERTS) */}
                         <Grid size={{ xs: 12, md: 5 }}>

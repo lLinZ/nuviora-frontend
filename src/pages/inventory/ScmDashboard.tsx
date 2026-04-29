@@ -3,8 +3,10 @@ import {
     Box, Typography, Grid, Card, CardContent, Chip, LinearProgress,
     Stack, Avatar, Tooltip, IconButton, Paper, Dialog, DialogTitle,
     DialogContent, DialogActions, Button, TextField, InputAdornment, Alert,
-    CircularProgress,
+    CircularProgress, Tabs, Tab,
 } from '@mui/material';
+import { PurchaseSuggestionsTable } from '../../components/inventory/PurchaseSuggestionsTable';
+import { ShoppingCartRounded as CartTabIcon, QueryStatsRounded as ScmTabIcon } from '@mui/icons-material';
 import {
     TrendingDown as DangerIcon,
     Warning as WarningIcon,
@@ -65,6 +67,7 @@ export const ScmDashboard: React.FC = () => {
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState('');
     const [apiError, setApiError] = useState<string | null>(null);
+    const [activeTab, setActiveTab] = useState(0);
 
     // Edit dialog
     const [editTarget, setEditTarget] = useState<ScmProduct | null>(null);
@@ -160,6 +163,24 @@ export const ScmDashboard: React.FC = () => {
 
     return (
         <Box>
+            {/* Tab Navigation */}
+            <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
+                <Tabs value={activeTab} onChange={(_, v) => setActiveTab(v)} aria-label="scm tabs">
+                    <Tab icon={<ScmTabIcon />} iconPosition="start" label="Análisis de Stock" />
+                    <Tab
+                        icon={<CartTabIcon />}
+                        iconPosition="start"
+                        label="Compras Sugeridas"
+                    />
+                </Tabs>
+            </Box>
+
+            {/* ── TAB 1: Compras sugeridas ─────────────────────────────── */}
+            {activeTab === 1 && <PurchaseSuggestionsTable />}
+
+            {/* ── TAB 0: Análisis SCM ──────────────────────────────────── */}
+            {activeTab === 0 && <>
+
             {/* Header KPIs */}
             {meta && (
                 <Grid container spacing={2} sx={{ mb: 3 }}>
@@ -344,6 +365,7 @@ export const ScmDashboard: React.FC = () => {
                     </Button>
                 </DialogActions>
             </Dialog>
+            </>}
         </Box>
     );
 };
