@@ -280,7 +280,7 @@ export const WhatsAppCrmPage = () => {
             const cur = prev[idx];
             if (cur.conversation_bucket === newBucket) return prev;
 
-            const updated = { ...cur, conversation_bucket: newBucket, unread_count: 0 };
+            const updated = { ...cur, conversation_bucket: newBucket as any, unread_count: 0 };
             
             // Si el bucket cambió y hay filtro, remover de la vista
             const activeBucket = bucketRef.current;
