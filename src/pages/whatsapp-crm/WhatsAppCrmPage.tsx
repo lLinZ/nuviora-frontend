@@ -76,11 +76,13 @@ export const WhatsAppCrmPage = () => {
     const bucketRef = useRef<BucketFilter>("all");
     const conversationsRef = useRef<CrmConversation[]>([]);
     const searchRef = useRef("");
+    const sortByRef = useRef<"latency" | "unread">("latency");
 
     useEffect(() => { selectedRef.current = selected; }, [selected]);
     useEffect(() => { bucketRef.current = bucket; }, [bucket]);
     useEffect(() => { conversationsRef.current = conversations; }, [conversations]);
     useEffect(() => { searchRef.current = searchTerm; }, [searchTerm]);
+    useEffect(() => { sortByRef.current = sortBy; }, [sortBy]);
 
     // Solicitar permisos de notificación al montar
     useEffect(() => {
@@ -266,10 +268,10 @@ export const WhatsAppCrmPage = () => {
 
                 // Si el bucket cambió y NO coincide con el filtro -> Remover (excepto si es el activo)
                 if (activeBucket !== "all" && newBucket !== activeBucket && !isActiveChat) {
-                    return sortConversations(prev.filter((c) => c.client_id != clientId), sortBy);
+                    return sortConversations(prev.filter((c) => c.client_id != clientId), sortByRef.current);
                 }
                 
-                return sortConversations(prev.map((c) => c.client_id == clientId ? updated : c), sortBy);
+                return sortConversations(prev.map((c) => c.client_id == clientId ? updated : c), sortByRef.current);
             });
 
             // 3. Actualización de ÁREA DE CHAT
@@ -308,10 +310,10 @@ export const WhatsAppCrmPage = () => {
 
                 // Si cambió de bucket y no coincide con el filtro -> Remover (excepto si es el activo)
                 if (activeBucket !== "all" && finalBucket !== activeBucket && !isActiveChat) {
-                    return sortConversations(prev.filter((c) => c.client_id != client_id), sortBy);
+                    return sortConversations(prev.filter((c) => c.client_id != client_id), sortByRef.current);
                 }
 
-                return prev.map((c) => c.client_id == client_id ? updated : c);
+                return sortConversations(prev.map((c) => c.client_id == client_id ? updated : c), sortByRef.current);
             });
         });
 
