@@ -203,8 +203,7 @@ export const WhatsAppCrmPage = () => {
             const isIncoming = message.message_type === "incoming_message";
             const isActiveChat = selectedRef.current?.client_id == clientId;
 
-            // Filtrar mensajes que no me pertenecen (solo en cliente, el servidor ya filtra en fetch)
-            const isAdmin = ["Admin", "Manager", "Gerente", "Master"].includes(user?.role?.description ?? "");
+            // Filtrar mensajes que no me pertenecen
             const isMine = isAdmin
                 || Number(message.agent_id) === Number(user?.id)
                 || Number(message.order?.agent_id) === Number(user?.id)
@@ -214,19 +213,48 @@ export const WhatsAppCrmPage = () => {
             // Notificaciones
             if (isIncoming && !isActiveChat) {
                 playPing();
-                const name = message.client?.first_name || "Cliente";
+                const name = message.client?.names || "Cliente";
                 const preview = (message.body || "Nuevo mensaje").slice(0, 80);
                 showDesktopNotif(`📩 ${name}`, preview);
                 toast.info(`📩 ${name}: ${preview}`, { autoClose: 3500 });
             }
 
-            // Actualización optimista
+            const newBucket = message.conversation_bucket;
+
+            // 1. Actualización de CONTADORES (Badges)
+            setBucketCounts((prev) => {
+                const updated = { ...prev };
+                const prevList = conversationsRef.current;
+                const existing = prevList.find(c => c.client_id == clientId);
+                
+                const oldBucket = existing?.conversation_bucket;
+
+                if (oldBucket && oldBucket !== newBucket) {
+                    // Si ya estaba en la lista y cambió de bucket
+                    updated[oldBucket] = Math.max(0, (updated[oldBucket] || 1) - 1);
+                    updated[newBucket] = (updated[newBucket] || 0) + 1;
+                } else if (!existing) {
+                    // Si NO estaba en la lista (chat nuevo o de otro bucket/página)
+                    // Solo incrementamos el nuevo si es pertinente
+                    updated[newBucket] = (updated[newBucket] || 0) + 1;
+                }
+                return updated;
+            });
+
+            // 2. Actualización de LISTA
             setConversations((prev) => {
                 const idx = prev.findIndex((c) => c.client_id == clientId);
-                if (idx === -1) return prev; // El refresh lo traerá
+                const activeBucket = bucketRef.current;
+
+                if (idx === -1) {
+                    // Si no está en la lista pero coincide con el filtro actual -> Recargar o agregar
+                    if (activeBucket === "all" || activeBucket === newBucket) {
+                        scheduleRefresh(); // Más seguro recargar para traer datos completos
+                    }
+                    return prev;
+                }
 
                 const cur = prev[idx];
-                const newBucket = message.conversation_bucket ?? cur.conversation_bucket;
                 const updated: CrmConversation = {
                     ...cur,
                     last_message: message.body ?? cur.last_message,
@@ -236,26 +264,55 @@ export const WhatsAppCrmPage = () => {
                     unread_count: isIncoming && !isActiveChat ? (cur.unread_count || 0) + 1 : cur.unread_count,
                 };
 
-                // Si hay filtro de bucket activo y el chat salió → removerlo
-                const activeBucket = bucketRef.current;
-                if (activeBucket !== "all" && newBucket !== activeBucket) {
+                // Si el bucket cambió y NO coincide con el filtro -> Remover (excepto si es el activo)
+                if (activeBucket !== "all" && newBucket !== activeBucket && !isActiveChat) {
                     return sortConversations(prev.filter((c) => c.client_id != clientId), sortBy);
                 }
+                
                 return sortConversations(prev.map((c) => c.client_id == clientId ? updated : c), sortBy);
             });
 
-            scheduleRefresh();
-
-            // Pasar al área de chat activa
+            // 3. Actualización de ÁREA DE CHAT
             if (isActiveChat) setIncomingMessage(message);
         });
 
         channel.listen("WhatsappChatRead", (data: any) => {
-            const { client_id } = data;
+            const { client_id, conversation_bucket: newBucket } = data;
             if (!client_id) return;
-            setConversations((prev) =>
-                prev.map((c) => c.client_id == client_id ? { ...c, unread_count: 0 } : c)
-            );
+
+            // 1. Actualizar contadores si el bucket cambió
+            if (newBucket) {
+                setBucketCounts((prev) => {
+                    const updated = { ...prev };
+                    const existing = conversationsRef.current.find(c => c.client_id == client_id);
+                    const oldBucket = existing?.conversation_bucket;
+                    if (oldBucket && oldBucket !== newBucket) {
+                        updated[oldBucket] = Math.max(0, (updated[oldBucket] || 1) - 1);
+                        updated[newBucket] = (updated[newBucket] || 0) + 1;
+                    }
+                    return updated;
+                });
+            }
+
+            // 2. Actualizar lista (marcar como leído y mover si es necesario)
+            setConversations((prev) => {
+                const idx = prev.findIndex((c) => c.client_id == client_id);
+                if (idx === -1) return prev;
+
+                const cur = prev[idx];
+                const activeBucket = bucketRef.current;
+                const finalBucket = newBucket || cur.conversation_bucket;
+                const isActiveChat = selectedRef.current?.client_id == client_id;
+
+                const updated = { ...cur, unread_count: 0, conversation_bucket: finalBucket };
+
+                // Si cambió de bucket y no coincide con el filtro -> Remover (excepto si es el activo)
+                if (activeBucket !== "all" && finalBucket !== activeBucket && !isActiveChat) {
+                    return sortConversations(prev.filter((c) => c.client_id != client_id), sortBy);
+                }
+
+                return prev.map((c) => c.client_id == client_id ? updated : c);
+            });
         });
 
         return () => {
