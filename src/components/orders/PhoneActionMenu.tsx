@@ -10,7 +10,7 @@ interface PhoneActionMenuProps {
 
 export const PhoneActionMenu: React.FC<PhoneActionMenuProps> = ({ phone, sx }) => {
     const user = useUserStore((state) => state.user);
-    const isRestricted = user?.role?.description === 'Agencia' || user?.is_lite_view;
+    const isRestricted = user?.role?.description === 'Agencia';
     const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
     const open = Boolean(anchorEl);
 

@@ -6,7 +6,9 @@ import {
     CircularProgress, Tabs, Tab,
 } from '@mui/material';
 import { PurchaseSuggestionsTable } from '../../components/inventory/PurchaseSuggestionsTable';
-import { ShoppingCartRounded as CartTabIcon, QueryStatsRounded as ScmTabIcon } from '@mui/icons-material';
+import { TransferConfirmationTable } from '../../components/inventory/TransferConfirmationTable';
+import { ShoppingCartRounded as CartTabIcon, QueryStatsRounded as ScmTabIcon, AssignmentTurnedInRounded as ConfirmTabIcon } from '@mui/icons-material';
+import { useUserStore } from '../../store/user/UserStore';
 import {
     TrendingDown as DangerIcon,
     Warning as WarningIcon,
@@ -68,6 +70,8 @@ export const ScmDashboard: React.FC = () => {
     const [search, setSearch] = useState('');
     const [apiError, setApiError] = useState<string | null>(null);
     const [activeTab, setActiveTab] = useState(0);
+    const user = useUserStore(s => s.user);
+    const isAdmin = ['Admin', 'Gerente', 'Master'].includes(user.role?.description ?? '');
 
     // Edit dialog
     const [editTarget, setEditTarget] = useState<ScmProduct | null>(null);
@@ -172,8 +176,18 @@ export const ScmDashboard: React.FC = () => {
                         iconPosition="start"
                         label="Compras Sugeridas"
                     />
+                    {isAdmin && (
+                        <Tab 
+                            icon={<ConfirmTabIcon />} 
+                            iconPosition="start" 
+                            label="Formalización" 
+                        />
+                    )}
                 </Tabs>
             </Box>
+
+            {/* ── TAB 2: Formalización (Admin Only) ────────────────────── */}
+            {activeTab === 2 && isAdmin && <TransferConfirmationTable />}
 
             {/* ── TAB 1: Compras sugeridas ─────────────────────────────── */}
             {activeTab === 1 && <PurchaseSuggestionsTable />}
@@ -198,6 +212,23 @@ export const ScmDashboard: React.FC = () => {
                         </Grid>
                     ))}
                 </Grid>
+            )}
+
+            {/* Alert Section: Stock Crítico (Fase 4) */}
+            {isAdmin && meta && meta.red_count > 0 && (
+                <Alert 
+                    severity="error" 
+                    variant="filled"
+                    icon={<DangerIcon />}
+                    sx={{ mb: 3, borderRadius: 3, bgcolor: '#ef4444' }}
+                >
+                    <Typography variant="subtitle2" fontWeight="bold">
+                        🚨 ALERTA DE ABASTECIMIENTO: Tienes {meta.red_count} productos en quiebre técnico o con menos de 3 días de stock.
+                    </Typography>
+                    <Typography variant="caption">
+                        Revisa la pestaña de "Compras Sugeridas" para formalizar los pedidos al proveedor.
+                    </Typography>
+                </Alert>
             )}
 
             {/* Search + Refresh */}
