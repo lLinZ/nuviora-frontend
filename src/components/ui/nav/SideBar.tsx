@@ -22,7 +22,7 @@ import { InsertDriveFileRounded } from "@mui/icons-material";
 import moment from "moment";
 import { TypographyCustom } from "../../custom";
 import { useUserStore } from "../../../store/user/UserStore";
-import { AssignmentReturnRounded, StoreRounded, HistoryRounded, SwapHorizRounded, EditNoteRounded, StorefrontRounded, PollRounded, MapRounded, PaymentRounded, AccountBalanceRounded, ReceiptLongRounded, SettingsEthernetRounded } from "@mui/icons-material";
+import { AssignmentReturnRounded, StoreRounded, HistoryRounded, SwapHorizRounded, EditNoteRounded, StorefrontRounded, PollRounded, MapRounded, PaymentRounded, AccountBalanceRounded, ReceiptLongRounded, SettingsEthernetRounded, AccessTimeRounded } from "@mui/icons-material";
 import { NotificationBell } from "../notifications/NotificationBell";
 import { WhatsAppBell } from "../notifications/WhatsAppBell";
 
@@ -233,6 +233,12 @@ export const SideBar = () => {
                 icon: <HistoryRounded />,
                 link: "/tracking-report",
                 roles: ["Admin", "Gerente"],
+            },
+            {
+                text: "Reporte Horas Entregas",
+                icon: <AccessTimeRounded />,
+                link: "/admin/delivered-hours-report",
+                roles: ["Admin"],
             },
             {
                 text: "Biblioteca de Medios",

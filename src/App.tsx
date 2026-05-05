@@ -36,6 +36,7 @@ import { Javascript } from '@mui/icons-material';
 import { WhatsappTemplates } from './pages/admin/WhatsappTemplates';
 import { WebhooksPage } from './pages/admin/WebhooksPage';
 import { MediaExplorerPage } from './pages/admin/MediaExplorerPage';
+import { DeliveredHoursReport } from './pages/admin/DeliveredHoursReport';
 
 const useGetTheme = () => {
   const user = useUserStore((state) => state.user);
@@ -116,6 +117,7 @@ function App() {
           <Route path="/admin/webhooks" element={<RequireRole allowedRoles={['Admin']}><WebhooksPage /></RequireRole>} />
           <Route path="/admin/media-explorer" element={<RequireRole allowedRoles={['Admin', 'Gerente']}><MediaExplorerPage /></RequireRole>} />
           <Route path="/tracking-report" element={<RequireRole allowedRoles={['Admin', 'Gerente']}><OrderTrackingReport /></RequireRole>} />
+          <Route path="/admin/delivered-hours-report" element={<RequireRole allowedRoles={['Admin']}><DeliveredHoursReport /></RequireRole>} />
 
           {/* VISTA LITE DE VENTAS */}
           <Route path="/ordenes" element={
