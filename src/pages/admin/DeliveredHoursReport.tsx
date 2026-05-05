@@ -25,9 +25,9 @@ import DownloadIcon from '@mui/icons-material/Download';
 import SearchIcon from '@mui/icons-material/Search';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import LocalShippingIcon from '@mui/icons-material/LocalShipping';
-import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import ClearIcon from '@mui/icons-material/Clear';
 import RefreshIcon from '@mui/icons-material/Refresh';
+import ListAltIcon from '@mui/icons-material/ListAlt';
 import * as XLSX from 'xlsx';
 
 import { request } from '../../common/request';
@@ -37,9 +37,10 @@ import { Navigate, useNavigate } from 'react-router-dom';
 import { Layout } from '../../components/ui/Layout';
 import { grey, green, blue, orange } from '@mui/material/colors';
 
-interface DeliveredOrder {
+interface OrderRow {
     id: number;
     order_number: string;
+    status: string;
     client_name: string;
     client_phone: string;
     agent_name: string;
@@ -77,13 +78,28 @@ const getDurationLabel = (hours: number | null): string => {
     return `${hours.toFixed(1)} h`;
 };
 
+const STATUS_COLORS: Record<string, string> = {
+    'Entregado': green[600],
+    'En ruta': blue[500],
+    'Cancelado': '#d32f2f',
+    'Rechazado': '#b71c1c',
+    'Nuevo': '#1565c0',
+    'Sin Stock': '#e65100',
+    'Novedades': '#6a1b9a',
+    'Novedad Solucionada': '#2e7d32',
+    'Asignar a agencia': '#0277bd',
+    'Asignado a vendedor': '#00838f',
+};
+
+const getStatusColor = (status: string): string => STATUS_COLORS[status] ?? grey[600];
+
 export const DeliveredHoursReport: React.FC = () => {
     const user = useUserStore((state) => state.user);
     const theme = useTheme();
     const isDark = theme.palette.mode === 'dark';
     const navigate = useNavigate();
 
-    const [orders, setOrders] = useState<DeliveredOrder[]>([]);
+    const [orders, setOrders] = useState<OrderRow[]>([]);
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState('');
 
@@ -116,13 +132,15 @@ export const DeliveredHoursReport: React.FC = () => {
             o.order_number?.toLowerCase().includes(q) ||
             o.client_name?.toLowerCase().includes(q) ||
             o.agent_name?.toLowerCase().includes(q) ||
-            o.agency_name?.toLowerCase().includes(q)
+            o.agency_name?.toLowerCase().includes(q) ||
+            o.status?.toLowerCase().includes(q)
         );
     });
 
     const handleDownload = () => {
         const rows = filtered.map((o) => ({
             'N° Pedido': o.order_number,
+            'Estatus': o.status,
             'Cliente': o.client_name,
             'Teléfono': o.client_phone,
             'Vendedora': o.agent_name,
@@ -136,26 +154,26 @@ export const DeliveredHoursReport: React.FC = () => {
 
         const ws = XLSX.utils.json_to_sheet(rows);
         const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, 'Pedidos Entregados');
+        XLSX.utils.book_append_sheet(wb, ws, 'Reporte de Pedidos');
 
-        // Auto column width
         const colWidths = Object.keys(rows[0] ?? {}).map((key) => ({
             wch: Math.max(key.length, ...rows.map((r) => String((r as any)[key] ?? '').length)) + 2,
         }));
         ws['!cols'] = colWidths;
 
-        XLSX.writeFile(wb, `reporte_horas_entregas_${new Date().toISOString().slice(0, 10)}.xlsx`);
+        XLSX.writeFile(wb, `reporte_pedidos_${new Date().toISOString().slice(0, 10)}.xlsx`);
     };
 
     // Stats
     const totalOrders = filtered.length;
-    const avgHours = filtered.reduce((acc, o) => acc + (o.duration_hours ?? 0), 0) / (totalOrders || 1);
-    const under4h = filtered.filter((o) => o.duration_hours !== null && o.duration_hours <= 4).length;
+    const delivered = filtered.filter((o) => o.status === 'Entregado');
+    const avgHours = delivered.reduce((acc, o) => acc + (o.duration_hours ?? 0), 0) / (delivered.length || 1);
+    const under4h = delivered.filter((o) => o.duration_hours !== null && o.duration_hours <= 4).length;
 
     return (
         <Layout>
             <Toolbar />
-            <Box sx={{ p: { xs: 2, md: 4 }, maxWidth: 1400, mx: 'auto' }}>
+            <Box sx={{ p: { xs: 2, md: 4 }, maxWidth: 1500, mx: 'auto' }}>
 
                 {/* Header */}
                 <Paper
@@ -176,10 +194,10 @@ export const DeliveredHoursReport: React.FC = () => {
                         </IconButton>
                         <Box sx={{ flex: 1 }}>
                             <Typography variant="h4" fontWeight="black" gutterBottom sx={{ mb: 0 }}>
-                                ⏱️ Reporte de Horas de Entregas
+                                ⏱️ Reporte de Pedidos y Horas de Entrega
                             </Typography>
                             <Typography variant="body2" color="text.secondary">
-                                Fecha y hora de pedido vs. fecha y hora de entrega — Solo pedidos en estatus <strong>Entregado</strong>
+                                Todas las órdenes — fecha de pedido vs. fecha de entrega. El tiempo de entrega aplica solo a pedidos <strong>Entregado</strong>.
                             </Typography>
                         </Box>
                         <Stack direction="row" spacing={1.5}>
@@ -206,19 +224,10 @@ export const DeliveredHoursReport: React.FC = () => {
                 <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} mb={3}>
                     <Paper sx={{ flex: 1, p: 2.5, borderRadius: 3, borderLeft: `4px solid ${blue[500]}` }}>
                         <Stack direction="row" alignItems="center" spacing={1.5}>
-                            <CheckCircleIcon sx={{ color: blue[500], fontSize: 32 }} />
+                            <ListAltIcon sx={{ color: blue[500], fontSize: 32 }} />
                             <Box>
-                                <Typography variant="caption" color="text.secondary" fontWeight="bold">TOTAL ENTREGADOS</Typography>
+                                <Typography variant="caption" color="text.secondary" fontWeight="bold">TOTAL PEDIDOS</Typography>
                                 <Typography variant="h4" fontWeight="black" color="primary">{totalOrders}</Typography>
-                            </Box>
-                        </Stack>
-                    </Paper>
-                    <Paper sx={{ flex: 1, p: 2.5, borderRadius: 3, borderLeft: `4px solid ${orange[500]}` }}>
-                        <Stack direction="row" alignItems="center" spacing={1.5}>
-                            <AccessTimeIcon sx={{ color: orange[500], fontSize: 32 }} />
-                            <Box>
-                                <Typography variant="caption" color="text.secondary" fontWeight="bold">PROMEDIO DE ENTREGA</Typography>
-                                <Typography variant="h4" fontWeight="black">{isNaN(avgHours) ? '—' : getDurationLabel(Number(avgHours.toFixed(2)))}</Typography>
                             </Box>
                         </Stack>
                     </Paper>
@@ -226,8 +235,28 @@ export const DeliveredHoursReport: React.FC = () => {
                         <Stack direction="row" alignItems="center" spacing={1.5}>
                             <LocalShippingIcon sx={{ color: green[600], fontSize: 32 }} />
                             <Box>
+                                <Typography variant="caption" color="text.secondary" fontWeight="bold">ENTREGADOS</Typography>
+                                <Typography variant="h4" fontWeight="black" color="success.main">{delivered.length}</Typography>
+                            </Box>
+                        </Stack>
+                    </Paper>
+                    <Paper sx={{ flex: 1, p: 2.5, borderRadius: 3, borderLeft: `4px solid ${orange[500]}` }}>
+                        <Stack direction="row" alignItems="center" spacing={1.5}>
+                            <AccessTimeIcon sx={{ color: orange[500], fontSize: 32 }} />
+                            <Box>
+                                <Typography variant="caption" color="text.secondary" fontWeight="bold">PROMEDIO ENTREGA</Typography>
+                                <Typography variant="h4" fontWeight="black">
+                                    {delivered.length === 0 ? '—' : getDurationLabel(Number(avgHours.toFixed(2)))}
+                                </Typography>
+                            </Box>
+                        </Stack>
+                    </Paper>
+                    <Paper sx={{ flex: 1, p: 2.5, borderRadius: 3, borderLeft: `4px solid ${green[300]}` }}>
+                        <Stack direction="row" alignItems="center" spacing={1.5}>
+                            <AccessTimeIcon sx={{ color: green[300], fontSize: 32 }} />
+                            <Box>
                                 <Typography variant="caption" color="text.secondary" fontWeight="bold">ENTREGADOS EN ≤ 4 H</Typography>
-                                <Typography variant="h4" fontWeight="black" color="success.main">{under4h}</Typography>
+                                <Typography variant="h4" fontWeight="black">{under4h}</Typography>
                             </Box>
                         </Stack>
                     </Paper>
@@ -239,7 +268,7 @@ export const DeliveredHoursReport: React.FC = () => {
                         id="search-orders-input"
                         fullWidth
                         size="small"
-                        placeholder="Buscar por N° pedido, cliente, vendedora o agencia..."
+                        placeholder="Buscar por N° pedido, estatus, cliente, vendedora o agencia..."
                         value={search}
                         onChange={(e) => setSearch(e.target.value)}
                         InputProps={{
@@ -266,15 +295,16 @@ export const DeliveredHoursReport: React.FC = () => {
                         <Box display="flex" justifyContent="center" alignItems="center" p={8}>
                             <Stack alignItems="center" spacing={2}>
                                 <CircularProgress size={48} />
-                                <Typography color="text.secondary">Cargando pedidos entregados...</Typography>
+                                <Typography color="text.secondary">Cargando pedidos...</Typography>
                             </Stack>
                         </Box>
                     ) : (
                         <TableContainer>
-                            <Table stickyHeader>
+                            <Table stickyHeader size="small">
                                 <TableHead>
                                     <TableRow>
                                         <TableCell sx={{ fontWeight: 'bold', bgcolor: isDark ? grey[900] : grey[50] }}>N° Pedido</TableCell>
+                                        <TableCell sx={{ fontWeight: 'bold', bgcolor: isDark ? grey[900] : grey[50] }}>Estatus</TableCell>
                                         <TableCell sx={{ fontWeight: 'bold', bgcolor: isDark ? grey[900] : grey[50] }}>Cliente</TableCell>
                                         <TableCell sx={{ fontWeight: 'bold', bgcolor: isDark ? grey[900] : grey[50] }}>Vendedora</TableCell>
                                         <TableCell sx={{ fontWeight: 'bold', bgcolor: isDark ? grey[900] : grey[50] }}>Agencia</TableCell>
@@ -287,26 +317,34 @@ export const DeliveredHoursReport: React.FC = () => {
                                 <TableBody>
                                     {filtered.length === 0 ? (
                                         <TableRow>
-                                            <TableCell colSpan={8} align="center" sx={{ py: 6 }}>
+                                            <TableCell colSpan={9} align="center" sx={{ py: 6 }}>
                                                 <Typography color="text.secondary">
-                                                    {search ? 'No se encontraron resultados para la búsqueda.' : 'No hay pedidos entregados registrados.'}
+                                                    {search ? 'No se encontraron resultados.' : 'No hay pedidos registrados.'}
                                                 </Typography>
                                             </TableCell>
                                         </TableRow>
                                     ) : (
                                         filtered.map((order) => (
-                                            <TableRow
-                                                key={order.id}
-                                                hover
-                                                sx={{ '&:last-child td': { border: 0 } }}
-                                            >
+                                            <TableRow key={order.id} hover sx={{ '&:last-child td': { border: 0 } }}>
                                                 <TableCell>
                                                     <Typography variant="body2" fontWeight="bold" color="primary">
                                                         {order.order_number}
                                                     </Typography>
                                                 </TableCell>
                                                 <TableCell>
-                                                    <Typography variant="body2" fontWeight="medium">{order.client_name}</Typography>
+                                                    <Chip
+                                                        label={order.status}
+                                                        size="small"
+                                                        sx={{
+                                                            fontWeight: 'bold',
+                                                            color: '#fff',
+                                                            bgcolor: getStatusColor(order.status),
+                                                            fontSize: '0.7rem',
+                                                        }}
+                                                    />
+                                                </TableCell>
+                                                <TableCell>
+                                                    <Typography variant="body2">{order.client_name}</Typography>
                                                     {order.client_phone && (
                                                         <Typography variant="caption" color="text.secondary">{order.client_phone}</Typography>
                                                     )}
@@ -318,7 +356,7 @@ export const DeliveredHoursReport: React.FC = () => {
                                                     <Typography variant="body2" color="text.secondary">{order.agency_name}</Typography>
                                                 </TableCell>
                                                 <TableCell>
-                                                    <Typography variant="body2" fontFamily="monospace" fontSize="0.8rem">
+                                                    <Typography variant="body2" fontFamily="monospace" fontSize="0.78rem">
                                                         {formatDateTime(order.created_at)}
                                                     </Typography>
                                                 </TableCell>
@@ -326,7 +364,7 @@ export const DeliveredHoursReport: React.FC = () => {
                                                     <Typography
                                                         variant="body2"
                                                         fontFamily="monospace"
-                                                        fontSize="0.8rem"
+                                                        fontSize="0.78rem"
                                                         color={order.processed_at ? 'success.main' : 'text.disabled'}
                                                     >
                                                         {formatDateTime(order.processed_at)}
@@ -340,7 +378,7 @@ export const DeliveredHoursReport: React.FC = () => {
                                                             fontWeight: 'bold',
                                                             color: '#fff',
                                                             bgcolor: getDurationColor(order.duration_hours),
-                                                            minWidth: 64,
+                                                            minWidth: 60,
                                                         }}
                                                     />
                                                 </TableCell>
@@ -359,7 +397,7 @@ export const DeliveredHoursReport: React.FC = () => {
                     {!loading && filtered.length > 0 && (
                         <Box sx={{ p: 2, borderTop: '1px solid', borderColor: 'divider' }}>
                             <Typography variant="caption" color="text.secondary">
-                                Mostrando <strong>{filtered.length}</strong> de <strong>{orders.length}</strong> pedidos entregados
+                                Mostrando <strong>{filtered.length}</strong> de <strong>{orders.length}</strong> pedidos
                             </Typography>
                         </Box>
                     )}
