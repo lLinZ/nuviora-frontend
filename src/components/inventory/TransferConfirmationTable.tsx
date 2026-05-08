@@ -18,13 +18,14 @@ import dayjs from 'dayjs';
 
 interface Movement {
     id: number;
-    product: { name: string; sku: string };
-    from_warehouse: { name: string };
-    to_warehouse: { name: string };
+    product: { name?: string; title?: string; showable_name?: string; sku?: string };
+    from_warehouse: { name: string } | null;
+    to_warehouse: { name: string } | null;
     quantity: number;
     status: 'pending' | 'completed' | 'cancelled';
     created_at: string;
     notes?: string;
+    user?: { names?: string; name?: string };
 }
 
 export const TransferConfirmationTable: React.FC = () => {
@@ -110,16 +111,18 @@ export const TransferConfirmationTable: React.FC = () => {
                                         <Stack direction="row" spacing={1} alignItems="center">
                                             <ProductIcon fontSize="inherit" color="disabled" />
                                             <Box>
-                                                <Typography variant="body2" fontWeight="bold">{m.product?.name}</Typography>
+                                                <Typography variant="body2" fontWeight="bold">
+                                                    {m.product?.title || m.product?.showable_name || m.product?.name || '—'}
+                                                </Typography>
                                                 <Typography variant="caption" color="text.secondary">{m.product?.sku}</Typography>
                                             </Box>
                                         </Stack>
                                     </TableCell>
                                     <TableCell>
                                         <Stack direction="row" spacing={1} alignItems="center">
-                                            <Typography variant="caption" fontWeight="bold">{m.from_warehouse?.name}</Typography>
+                                            <Typography variant="caption" fontWeight="bold">{m.from_warehouse?.name ?? '—'}</Typography>
                                             <TransferIcon sx={{ fontSize: 14, color: 'text.disabled' }} />
-                                            <Typography variant="caption" fontWeight="bold" color="primary">{m.to_warehouse?.name}</Typography>
+                                            <Typography variant="caption" fontWeight="bold" color="primary">{m.to_warehouse?.name ?? '—'}</Typography>
                                         </Stack>
                                     </TableCell>
                                     <TableCell align="right">

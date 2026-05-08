@@ -46,11 +46,16 @@ export const TransferStockDialog: React.FC<Props> = ({ open, onClose, onSuccess,
             if (!warehouses || warehouses.length === 0) {
                 loadWarehouses();
             }
-            if (initialFromWarehouseId && form.from_warehouse_id === 0) {
-                setForm(prev => ({ ...prev, from_warehouse_id: initialFromWarehouseId }));
-            }
+            // Reset form when dialog opens
+            setForm({
+                product_id: 0,
+                from_warehouse_id: initialFromWarehouseId || 0,
+                to_warehouse_id: 0,
+                quantity: 1,
+                notes: ''
+            });
         }
-    }, [open, initialFromWarehouseId, warehouses]);
+    }, [open]);
 
     const loadWarehouses = async () => {
         setLoadingWarehouses(true);
@@ -111,20 +116,13 @@ export const TransferStockDialog: React.FC<Props> = ({ open, onClose, onSuccess,
 
             const { status, response }: IResponse = await request('/inventory-movements/transfer', 'POST', body);
             
-            if (status) {
-                toast.success('Transferencia exitosa');
+            if (status === 200 || status === 201) {
+                toast.success('✅ Transferencia completada. El stock fue movido al destino exitosamente.');
                 onSuccess();
                 onClose();
-                setForm({
-                    product_id: 0,
-                    from_warehouse_id: 0,
-                    to_warehouse_id: 0,
-                    quantity: 1,
-                    notes: ''
-                });
             } else {
-                const errorData = await response.json();
-                toast.error(errorData.message || 'Error al transferir');
+                const errorData = await response.json().catch(() => ({ message: 'Error desconocido' }));
+                toast.error(errorData.message || `Error ${status} al transferir`);
             }
         } catch (error) {
             console.error(error);
