@@ -13,8 +13,11 @@ import {
     CheckCircleRounded as OkIcon,
     HelpOutlineRounded as GrayIcon,
     ShoppingCartRounded as CartIcon,
+    AddShoppingCart as CreatePoIcon,
 } from '@mui/icons-material';
 import { request } from '../../common/request';
+import { CreatePurchaseOrderDialog } from './CreatePurchaseOrderDialog';
+import { ISupplier, IWarehouse } from '../../interfaces/inventory.types';
 import dayjs from 'dayjs';
 import * as XLSX from 'xlsx';
 
@@ -52,16 +55,33 @@ export const PurchaseSuggestionsTable: React.FC = () => {
     const [search, setSearch] = useState('');
     const [filterPriority, setFilterPriority] = useState<string>('all');
 
+    // Fase 5: Crear OC desde sugerencias
+    const [createPoOpen, setCreatePoOpen] = useState(false);
+    const [suppliers, setSuppliers] = useState<ISupplier[]>([]);
+    const [warehouses, setWarehouses] = useState<IWarehouse[]>([]);
+
     const fetch = async () => {
         setLoading(true);
         setError(null);
         try {
-            const { status, response } = await request('/scm/dashboard', 'GET');
-            if (status === 200) {
-                const json = await response.json();
+            const [scmRes, suppliersRes, warehousesRes] = await Promise.all([
+                request('/scm/dashboard', 'GET'),
+                request('/suppliers', 'GET'),
+                request('/warehouses', 'GET'),
+            ]);
+            if (scmRes.status === 200) {
+                const json = await scmRes.response.json();
                 setData(json.data ?? []);
             } else {
                 setError('No se pudo cargar el reporte de compras.');
+            }
+            if (suppliersRes.status === 200) {
+                const json = await suppliersRes.response.json();
+                setSuppliers(json.data ?? []);
+            }
+            if (warehousesRes.status === 200) {
+                const json = await warehousesRes.response.json();
+                setWarehouses(json.data?.data ?? json.data ?? []);
             }
         } catch {
             setError('Error de conexión.');
@@ -142,6 +162,17 @@ export const PurchaseSuggestionsTable: React.FC = () => {
                             <RefreshRounded />
                         </IconButton>
                     </Tooltip>
+                    <Button
+                        variant="outlined"
+                        size="small"
+                        startIcon={<CreatePoIcon />}
+                        onClick={() => setCreatePoOpen(true)}
+                        disabled={filtered.length === 0}
+                        color="secondary"
+                        sx={{ borderRadius: 2, textTransform: 'none', fontWeight: 'bold' }}
+                    >
+                        Crear OC
+                    </Button>
                     <Button
                         variant="contained"
                         size="small"
@@ -303,6 +334,21 @@ export const PurchaseSuggestionsTable: React.FC = () => {
                     </Box>
                 )}
             </Paper>
+
+            {/* Crear OC desde sugerencias */}
+            <CreatePurchaseOrderDialog
+                open={createPoOpen}
+                onClose={() => setCreatePoOpen(false)}
+                onSuccess={() => setCreatePoOpen(false)}
+                suppliers={suppliers}
+                warehouses={warehouses}
+                prefilledItems={filtered.map(d => ({
+                    product_id:       d.product_id,
+                    product_name:     d.product_name,
+                    sku:              d.sku,
+                    purchase_suggested: d.purchase_suggested,
+                }))}
+            />
         </Box>
     );
 };

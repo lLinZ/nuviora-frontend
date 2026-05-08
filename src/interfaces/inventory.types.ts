@@ -119,3 +119,79 @@ export interface IStockAdjustmentRequest {
     reference_type?: string;
     reference_id?: number;
 }
+
+// ── Fase 5: Proveedores y Órdenes de Compra ──────────────────────────────────
+
+export interface ISupplier {
+    id: number;
+    name: string;
+    contact_name?: string | null;
+    phone?: string | null;
+    email?: string | null;
+    address?: string | null;
+    currency: 'USD' | 'VES';
+    default_lead_time_days: number;
+    notes?: string | null;
+    is_active: boolean;
+    purchase_orders_count?: number;
+    created_at?: string;
+    updated_at?: string;
+}
+
+export type PurchaseOrderStatus = 'draft' | 'sent' | 'confirmed' | 'partial' | 'received' | 'cancelled';
+
+export interface IPurchaseOrderItem {
+    id: number;
+    purchase_order_id: number;
+    product_id: number;
+    product?: IProduct;
+    quantity_ordered: number;
+    quantity_received: number;
+    pending_quantity: number;
+    unit_cost_usd: number;
+    unit_cost_ves: number;
+    subtotal_usd: number;
+    notes?: string | null;
+}
+
+export interface IPurchaseOrder {
+    id: number;
+    supplier_id: number;
+    supplier?: ISupplier;
+    warehouse_id: number;
+    warehouse?: IWarehouse;
+    created_by: number;
+    reference_number: string;
+    status: PurchaseOrderStatus;
+    status_label: string;
+    expected_at?: string | null;
+    received_at?: string | null;
+    total_usd: number;
+    total_ves: number;
+    notes?: string | null;
+    items?: IPurchaseOrderItem[];
+    items_count?: number;
+    created_at?: string;
+    updated_at?: string;
+}
+
+export interface ICreatePurchaseOrderPayload {
+    supplier_id: number;
+    warehouse_id: number;
+    expected_at?: string;
+    notes?: string;
+    items: Array<{
+        product_id: number;
+        quantity_ordered: number;
+        unit_cost_usd?: number;
+        unit_cost_ves?: number;
+        notes?: string;
+    }>;
+}
+
+export interface IReceiveItemsPayload {
+    items: Array<{
+        purchase_order_item_id: number;
+        quantity_received: number;
+    }>;
+}

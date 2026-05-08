@@ -37,6 +37,7 @@ import { WhatsappTemplates } from './pages/admin/WhatsappTemplates';
 import { WebhooksPage } from './pages/admin/WebhooksPage';
 import { MediaExplorerPage } from './pages/admin/MediaExplorerPage';
 import { DeliveredHoursReport } from './pages/admin/DeliveredHoursReport';
+import { PurchaseOrders } from './pages/inventory/PurchaseOrders';
 
 const useGetTheme = () => {
   const user = useUserStore((state) => state.user);
@@ -103,6 +104,9 @@ function App() {
           <Route path="/inventory/transfer" element={<RequireRole allowedRoles={['Admin', 'Agencia']}><InventoryDashboard /></RequireRole>} />
           <Route path="/inventory/adjust" element={<RequireRole allowedRoles={['Admin', 'Agencia']}><InventoryDashboard /></RequireRole>} />
           <Route path="/deliverers/stock" element={<RequireRole allowedRoles={['Repartidor']}><InventoryDashboard /></RequireRole>} />
+
+          {/* ── Fase 5: Órdenes de Compra ──────────────────────────────────────── */}
+          <Route path="/inventory/purchase-orders" element={<RequireRole allowedRoles={['Admin', 'Gerente']}><PurchaseOrders /></RequireRole>} />
 
           <Route path="/earnings" element={<RequireRole allowedRoles={['Admin']}><EarningsAdmin /></RequireRole>} />
           <Route path="/me/earnings" element={<RequireRole allowedRoles={['Vendedor', 'Repartidor', 'Gerente']}><MyEarningsPage /></RequireRole>} />

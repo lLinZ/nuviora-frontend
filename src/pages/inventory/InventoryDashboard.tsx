@@ -11,6 +11,7 @@ import {
     SwapHoriz as OperationIcon,
     History as HistoryIcon,
     QueryStats as ScmIcon,
+    ShoppingCart as PurchaseOrderIcon,
 } from '@mui/icons-material';
 import { Layout } from '../../components/ui/Layout';
 import { DescripcionDeVista } from '../../components/ui/content/DescripcionDeVista';
@@ -26,6 +27,7 @@ import { StockTransfer } from './StockTransfer';
 import { StockAdjustment } from './StockAdjustment';
 import { InventoryMovements } from './InventoryMovements';
 import { ScmDashboard } from './ScmDashboard';
+import { PurchaseOrders } from './PurchaseOrders';
 
 interface TabPanelProps {
     children?: React.ReactNode;
@@ -75,6 +77,7 @@ export const InventoryDashboard: React.FC = () => {
         },
         { label: 'Historial', icon: <HistoryIcon />, component: <InventoryMovements isEmbedded />, roles: ['Admin', 'Agencia'], path: '/movements' },
         { label: 'Reabastecimiento SCM', icon: <ScmIcon />, component: <ScmDashboard />, roles: ['Admin', 'Gerente', 'Master'], path: '/scm' },
+        { label: 'Órdenes de Compra', icon: <PurchaseOrderIcon />, component: <PurchaseOrders />, roles: ['Admin', 'Gerente', 'Master'], path: '/purchase-orders' },
     ];
 
     const availableTabs = allTabs.filter(tab => tab.roles.includes(roleDesc));
