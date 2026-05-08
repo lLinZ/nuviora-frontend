@@ -79,7 +79,7 @@ export const InventoryDashboard: React.FC = () => {
         },
         { label: 'Historial', icon: <HistoryIcon />, component: <InventoryMovements isEmbedded />, roles: ['Admin', 'Agencia'], path: '/movements' },
         { label: 'Reabastecimiento SCM', icon: <ScmIcon />, component: <ScmDashboard />, roles: ['Admin', 'Gerente', 'Master'], path: '/scm' },
-        { label: 'Órdenes de Compra', icon: <PurchaseOrderIcon />, component: <PurchaseOrders />, roles: ['Admin', 'Gerente', 'Master'], path: '/purchase-orders' },
+        { label: 'Órdenes de Compra', icon: <PurchaseOrderIcon />, component: <PurchaseOrders isEmbedded />, roles: ['Admin', 'Gerente', 'Master'], path: '/purchase-orders' },
         { label: '🧪 Test SCM', icon: <BugIcon />, component: <ScmTestPanel />, roles: ['Admin', 'Gerente', 'Master'], path: '/test' },
     ];
 
