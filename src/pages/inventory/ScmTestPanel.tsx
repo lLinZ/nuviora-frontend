@@ -181,8 +181,19 @@ export const ScmTestPanel: React.FC = () => {
     };
 
     // ── STEP 6: Cleanup ───────────────────────────────────────────────────────
-    const step6_cleanup = async (qtyBefore: number, supplierId: number | null) => {
-        // Revert stock to original quantity
+    const step6_cleanup = async (qtyBefore: number, supplierId: number | null, poId: number | null) => {
+        // 1. Cancel the test PO so the supplier guard allows deletion
+        if (poId) {
+            const { status: cs } = await apiCall(`/purchase-orders/${poId}/cancel`, 'POST');
+            if (cs === 200 || cs === 201) {
+                log('✅ OC de prueba cancelada', 'ok');
+            } else {
+                // PO might already be received — that's fine, received OCs don't block supplier delete
+                log('ℹ️ OC ya no es cancelable (estado final)', 'info');
+            }
+        }
+
+        // 2. Revert stock to original quantity
         const { status: as } = await apiCall('/inventory-movements/adjust', 'POST', {
             product_id:   productId,
             warehouse_id: warehouseId,
@@ -192,16 +203,16 @@ export const ScmTestPanel: React.FC = () => {
         if (as === 200 || as === 201) {
             log(`✅ Stock revertido a ${qtyBefore} unidades`, 'ok');
         } else {
-            log(`⚠️ No se pudo revertir stock (${as}) — ajusta manualmente`, 'error');
+            log(`⚠️ No se pudo revertir stock (${as})`, 'error');
         }
 
-        // Try to delete test supplier
+        // 3. Delete test supplier (now safe since received OCs don't block deletion)
         if (supplierId) {
             const { status: ds } = await apiCall(`/suppliers/${supplierId}`, 'DELETE');
             if (ds === 200 || ds === 204) {
                 log('✅ Proveedor TEST eliminado', 'ok');
             } else {
-                log('⚠️ Proveedor TEST no eliminado (tiene OCs) — bórralo manualmente', 'info');
+                log('⚠️ Proveedor TEST no eliminado — tiene OCs de tests anteriores. Ve a la pestaña "Órdenes de Compra", cancélalas y luego borra el proveedor desde "Proveedores".', 'info');
             }
         }
         log('🧹 Limpieza completada', 'ok');
@@ -259,7 +270,7 @@ export const ScmTestPanel: React.FC = () => {
         } finally {
             setActiveStep(6);
             log('── PASO 7: Limpiar datos ──', 'info');
-            await step6_cleanup(qtyBefore, supplierId);
+            await step6_cleanup(qtyBefore, supplierId, poId);
             setActiveStep(-1);
             setBusy(false);
         }
