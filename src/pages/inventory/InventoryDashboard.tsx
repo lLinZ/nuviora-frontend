@@ -13,6 +13,7 @@ import {
     QueryStats as ScmIcon,
     ShoppingCart as PurchaseOrderIcon,
     BugReport as BugIcon,
+    AccountBalance as ValuationIcon,
 } from '@mui/icons-material';
 import { Layout } from '../../components/ui/Layout';
 import { DescripcionDeVista } from '../../components/ui/content/DescripcionDeVista';
@@ -30,6 +31,7 @@ import { InventoryMovements } from './InventoryMovements';
 import { ScmDashboard } from './ScmDashboard';
 import { PurchaseOrders } from './PurchaseOrders';
 import { ScmTestPanel } from './ScmTestPanel';
+import { InventoryValuation } from './InventoryValuation';
 
 interface TabPanelProps {
     children?: React.ReactNode;
@@ -80,6 +82,7 @@ export const InventoryDashboard: React.FC = () => {
         { label: 'Historial', icon: <HistoryIcon />, component: <InventoryMovements isEmbedded />, roles: ['Admin', 'Agencia'], path: '/movements' },
         { label: 'Reabastecimiento SCM', icon: <ScmIcon />, component: <ScmDashboard />, roles: ['Admin', 'Gerente', 'Master'], path: '/scm' },
         { label: 'Órdenes de Compra', icon: <PurchaseOrderIcon />, component: <PurchaseOrders isEmbedded />, roles: ['Admin', 'Gerente', 'Master'], path: '/purchase-orders' },
+        { label: 'Valoración', icon: <ValuationIcon />, component: <InventoryValuation />, roles: ['Admin', 'Gerente', 'Master'], path: '/valuation' },
         { label: '🧪 Test SCM', icon: <BugIcon />, component: <ScmTestPanel />, roles: ['Admin', 'Gerente', 'Master'], path: '/test' },
     ];
 
