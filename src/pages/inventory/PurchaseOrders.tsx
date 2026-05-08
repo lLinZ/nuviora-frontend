@@ -158,10 +158,6 @@ export const PurchaseOrders: React.FC<{ isEmbedded?: boolean }> = ({ isEmbedded 
 
     const content = (
         <Box>
-            <DescripcionDeVista
-                title="Órdenes de Compra"
-                description="Gestión de compras al proveedor y recepción de mercancía"
-            />
 
             {/* KPI Strip */}
             <Stack direction="row" spacing={2} sx={{ mb: 3, flexWrap: 'wrap' }}>
@@ -380,8 +376,10 @@ export const PurchaseOrders: React.FC<{ isEmbedded?: boolean }> = ({ isEmbedded 
         </Box>
         );
 
+    // When embedded inside InventoryDashboard — no extra layout or header
     if (isEmbedded) return content;
 
+    // Standalone route — wrap with Layout + title
     return (
         <Layout>
             <DescripcionDeVista
