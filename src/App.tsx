@@ -38,6 +38,7 @@ import { WebhooksPage } from './pages/admin/WebhooksPage';
 import { MediaExplorerPage } from './pages/admin/MediaExplorerPage';
 import { DeliveredHoursReport } from './pages/admin/DeliveredHoursReport';
 import { PurchaseOrders } from './pages/inventory/PurchaseOrders';
+import { QaSuitePage } from './pages/admin/QaSuitePage';
 
 const useGetTheme = () => {
   const user = useUserStore((state) => state.user);
@@ -122,6 +123,7 @@ function App() {
           <Route path="/admin/media-explorer" element={<RequireRole allowedRoles={['Admin', 'Gerente']}><MediaExplorerPage /></RequireRole>} />
           <Route path="/tracking-report" element={<RequireRole allowedRoles={['Admin', 'Gerente']}><OrderTrackingReport /></RequireRole>} />
           <Route path="/admin/delivered-hours-report" element={<RequireRole allowedRoles={['Admin']}><DeliveredHoursReport /></RequireRole>} />
+          <Route path="/admin/qa-suite" element={<RequireRole allowedRoles={['Admin']}><QaSuitePage /></RequireRole>} />
 
           {/* VISTA LITE DE VENTAS */}
           <Route path="/ordenes" element={

@@ -93,6 +93,25 @@ export const EarningsAdmin: React.FC = () => {
         setOpenDialog(true);
     };
 
+    const exportUserToExcel = (userRow: any) => {
+        if (!userRow.order_details || userRow.order_details.length === 0) {
+            toast.warning("No hay detalles para exportar");
+            return;
+        }
+        const worksheetData = userRow.order_details.map((d: any) => ({
+            "Orden": d.order_name,
+            "Fecha": dayjs(d.earning_date).format('DD/MM/YYYY HH:mm'),
+            "Tipo": d.role_type === 'upsell' ? 'Upsell' : (d.role_type === 'vendedor' ? 'Venta' : d.role_type),
+            "Monto USD": d.amount_usd,
+            "Monto VES": d.amount_local,
+        }));
+
+        const ws = XLSX.utils.json_to_sheet(worksheetData);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Comisiones");
+        XLSX.writeFile(wb, `Comisiones_${userRow.names.replace(/\s+/g, '_')}_${dayjs().format('YYYYMMDD')}.xlsx`);
+    };
+
     if (loadingSession || !isValid || !user.token) return <Loading />;
 
 
@@ -236,10 +255,10 @@ export const EarningsAdmin: React.FC = () => {
 
                             <Grid container spacing={3}>
                                 <Grid size={{ xs: 12, lg: 6 }}>
-                                    <EarningsTable title="Vendedoras ($1.00 / orden)" rows={data.vendors} icon={<GroupsRoundedIcon color="primary" />} />
+                                    <EarningsTable title="Vendedoras ($1.00 / orden)" rows={data.vendors} icon={<GroupsRoundedIcon color="primary" />} onDownload={exportUserToExcel} />
                                 </Grid>
                                 <Grid size={{ xs: 12, lg: 6 }}>
-                                    <EarningsTable title="Repartidores ($2.50 / orden)" rows={data.deliverers} icon={<GroupsRoundedIcon color="secondary" />} />
+                                    <EarningsTable title="Repartidores ($2.50 / orden)" rows={data.deliverers} icon={<GroupsRoundedIcon color="secondary" />} onDownload={exportUserToExcel} />
                                 </Grid>
 
                                 <Grid size={{ xs: 12, lg: 6 }}>
@@ -282,7 +301,7 @@ const TotalProjection = ({ title, amountUsd, rate }: any) => (
     </Grid>
 );
 
-const EarningsTable = ({ title, rows, icon }: { title: string, rows: any[], icon: React.ReactNode }) => (
+const EarningsTable = ({ title, rows, icon, onDownload }: { title: string, rows: any[], icon: React.ReactNode, onDownload?: (user: any) => void }) => (
     <Paper sx={{
         p: 4,
         borderRadius: 5,
@@ -303,6 +322,7 @@ const EarningsTable = ({ title, rows, icon }: { title: string, rows: any[], icon
                     <TableCell sx={{ fontWeight: 'bold' }}>Usuario</TableCell>
                     <TableCell align="center" sx={{ fontWeight: 'bold' }}>Cant.</TableCell>
                     <TableCell align="right" sx={{ fontWeight: 'bold' }}>Total (USD)</TableCell>
+                    {onDownload && <TableCell align="center" sx={{ fontWeight: 'bold', width: 50 }}>Acciones</TableCell>}
                 </TableRow>
             </TableHead>
             <TableBody>
@@ -325,9 +345,20 @@ const EarningsTable = ({ title, rows, icon }: { title: string, rows: any[], icon
                         <TableCell align="right">
                             <Typography variant="body1" fontWeight="bold" color="primary.main">{fmtMoney(r.amount_usd, "USD")}</Typography>
                         </TableCell>
+                        {onDownload && (
+                            <TableCell align="center">
+                                <Tooltip title="Descargar Detalle Excel">
+                                    <span>
+                                        <IconButton size="small" color="primary" onClick={() => onDownload(r)} disabled={!r.order_details || r.order_details.length === 0}>
+                                            <FileDownloadRoundedIcon fontSize="small" />
+                                        </IconButton>
+                                    </span>
+                                </Tooltip>
+                            </TableCell>
+                        )}
                     </TableRow>
                 ))}
-                {rows.length === 0 && <TableRow><TableCell colSpan={3} align="center"><Typography variant="body2" color="text.secondary" sx={{ py: 3 }}>Sin datos en este periodo</Typography></TableCell></TableRow>}
+                {rows.length === 0 && <TableRow><TableCell colSpan={onDownload ? 4 : 3} align="center"><Typography variant="body2" color="text.secondary" sx={{ py: 3 }}>Sin datos en este periodo</Typography></TableCell></TableRow>}
             </TableBody>
         </Table>
     </Paper>
