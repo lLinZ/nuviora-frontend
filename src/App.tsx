@@ -39,6 +39,8 @@ import { MediaExplorerPage } from './pages/admin/MediaExplorerPage';
 import { DeliveredHoursReport } from './pages/admin/DeliveredHoursReport';
 import { PurchaseOrders } from './pages/inventory/PurchaseOrders';
 import { QaSuitePage } from './pages/admin/QaSuitePage';
+import { OrdersExportPage } from './pages/admin/OrdersExportPage';
+import { StockExportPage } from './pages/admin/StockExportPage';
 
 const useGetTheme = () => {
   const user = useUserStore((state) => state.user);
@@ -124,6 +126,8 @@ function App() {
           <Route path="/tracking-report" element={<RequireRole allowedRoles={['Admin', 'Gerente']}><OrderTrackingReport /></RequireRole>} />
           <Route path="/admin/delivered-hours-report" element={<RequireRole allowedRoles={['Admin']}><DeliveredHoursReport /></RequireRole>} />
           <Route path="/admin/qa-suite" element={<RequireRole allowedRoles={['Admin']}><QaSuitePage /></RequireRole>} />
+          <Route path="/admin/orders-export" element={<RequireRole allowedRoles={['Admin', 'Gerente']}><OrdersExportPage /></RequireRole>} />
+          <Route path="/admin/stock-export" element={<RequireRole allowedRoles={['Admin', 'Gerente']}><StockExportPage /></RequireRole>} />
 
           {/* VISTA LITE DE VENTAS */}
           <Route path="/ordenes" element={
