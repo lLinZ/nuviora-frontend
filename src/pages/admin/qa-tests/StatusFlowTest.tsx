@@ -80,7 +80,7 @@ export const StatusFlowTest: React.FC = () => {
             const { status: gs, json: gj } = await apiCall(`/orders/${selectedOrderId}`, 'GET');
             if (gs !== 200) { log(`❌ No se pudo cargar la orden (${gs})`, 'error'); setFailed(true); return; }
             originalStatusId = gj.data?.status_id ?? gj.status_id ?? originalStatusId;
-            log(`✅ Orden cargada. Estado actual: ID ${originalStatusId} — "${gj.data?.status?.description ?? '?'}"`, 'ok');
+            log(`✅ Orden cargada. Estado actual: ID ${originalStatusId} — "${gj.data?.status?.description ?? gj.order?.status?.description ?? '?'}"`, 'ok');
 
             setActiveStep(1);
             log(`── PASO 2: Estado original registrado (ID ${originalStatusId}) ──`, 'info');
@@ -99,7 +99,8 @@ export const StatusFlowTest: React.FC = () => {
             setActiveStep(3);
             log('── PASO 4: Verificando cambio en BD ──', 'info');
             const { status: vs, json: vj } = await apiCall(`/orders/${selectedOrderId}`, 'GET');
-            const currentStatusId = vj.data?.status_id ?? vj.status_id;
+            const orderData = vj.data ?? vj.order ?? vj;
+            const currentStatusId = orderData.status_id ?? orderData.status?.id;
             if (vs === 200 && currentStatusId === targetStatusId) {
                 log(`✅ VERIFICACIÓN OK: status_id=${currentStatusId} coincide con target=${targetStatusId}`, 'ok');
                 testPassed = true;

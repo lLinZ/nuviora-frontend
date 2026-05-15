@@ -52,7 +52,7 @@ export const UpsellItemTest: React.FC = () => {
             const list = Array.isArray(j) ? j : (j.data?.data ?? j.data ?? j.orders ?? []);
             setOrders(list.slice(0, 60).map((o: any) => ({
                 id: o.id,
-                label: `#${o.id} — ${o.client_name ?? o.customer?.name ?? 'Sin nombre'} | ${o.status?.description ?? '?'}`,
+                label: `#${o.id} ${o.name ? '('+o.name+')' : ''} — ${o.client_name ?? o.customer?.name ?? o.client?.name ?? 'S/N'} (${o.status?.description ?? '?'})`,
                 itemCount: o.products?.length ?? o.items?.length ?? 0,
             })));
         }
