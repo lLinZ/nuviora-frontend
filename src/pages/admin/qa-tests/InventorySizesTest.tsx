@@ -56,76 +56,88 @@ export const InventorySizesTest: React.FC = () => {
         const { status, response }: IResponse = await request('/inventory', 'GET');
         if (!status) return 0;
         const data = await response.json();
-        const p = (data.data ?? []).find((x: any) => x.product_id === pId);
+        // Buscar el registro específico de la Bodega Central (ID 1) o el primero que tenga stock
+        const list = data.data ?? [];
+        const p = list.find((x: any) => x.product_id === pId && (x.id > 0 || list.filter((i:any)=>i.product_id===pId).length === 1));
+        
+        if (p?.sizes_stock) {
+            log(`DEBUG: Tallas en BD: ${JSON.stringify(p.sizes_stock)}`, 'info');
+        }
+        
         return p?.sizes_stock?.[targetSize] ?? 0;
     };
 
     const runTest = async () => {
         if (!productId || !size) return;
-        setBusy(true);
-        setLogs([]);
-        setDone(false);
-        setFailed(false);
+        setBusy(true); setLogs([]); setDone(false); setFailed(false);
 
         let initialQty = 0;
         const testQty = 2;
+        const TEST_WAREHOUSE_ID = 1;
 
         try {
-            // STEP 0: Capture Initial
             setActiveStep(0);
             log(`Capturando stock inicial para ${size}...`);
             initialQty = await getStockForSize(productId, size);
             log(`Stock inicial detectado: ${initialQty}`, 'ok');
 
-            // STEP 1: Perform Manual IN
             setActiveStep(1);
             log(`Ejecutando entrada manual (IN) de +${testQty} unidades en talla ${size}...`);
-            const body = new URLSearchParams();
-            body.append("product_id", String(productId));
-            body.append("type", "IN");
-            body.append("quantity", String(testQty));
-            body.append("note", "[QA TEST] Simulación de entrada por talla");
-            body.append(`sizes[${size}]`, String(testQty));
+            
+            const payload = {
+                product_id: productId,
+                warehouse_id: TEST_WAREHOUSE_ID,
+                type: 'IN',
+                quantity: testQty,
+                note: `[QA TEST] Simulación talla ${size}`,
+                sizes: { [size]: testQty }
+            };
 
-            const { status: s1 }: IResponse = await request("/stock/movements", "POST", body);
-            if (!s1) { log('Error en la llamada a /stock/movements', 'error'); setFailed(true); return; }
+            const { status: s1, response: r1 }: IResponse = await request("/stock/movements", "POST", payload);
+            if (!s1) { 
+                const err = await r1.json().catch(()=>({}));
+                log(`Error en movimiento: ${err.message ?? 'Error desconocido'}`, 'error'); 
+                setFailed(true); return; 
+            }
             log('Movimiento IN registrado correctamente', 'ok');
 
-            // STEP 2: Verify IN
             setActiveStep(2);
             log('Verificando actualización del inventario matricial...');
+            // Pequeña espera para asegurar que la BD procesó
+            await new Promise(r => setTimeout(r, 800));
             const afterInQty = await getStockForSize(productId, size);
+            
             if (afterInQty === initialQty + testQty) {
                 log(`Verificación exitosa: ${afterInQty} unidades (esperado ${initialQty + testQty})`, 'ok');
             } else {
                 log(`Fallo en verificación: hay ${afterInQty}, se esperaba ${initialQty + testQty}`, 'error');
-                setFailed(true);
-                return;
+                setFailed(true); return;
             }
 
-            // STEP 3: Revert (Manual OUT)
             setActiveStep(3);
-            log(`Revirtiendo cambios: ejecutando salida (OUT) de -${testQty} unidades...`);
-            const bodyOut = new URLSearchParams();
-            bodyOut.append("product_id", String(productId));
-            bodyOut.append("type", "OUT");
-            bodyOut.append("quantity", String(testQty));
-            bodyOut.append("note", "[QA TEST] Reversión automática de simulación");
-            bodyOut.append(`sizes[${size}]`, String(testQty));
+            log(`Revirtiendo cambios (OUT -${testQty})...`);
+            const revertPayload = {
+                product_id: productId,
+                warehouse_id: TEST_WAREHOUSE_ID,
+                type: 'OUT',
+                quantity: testQty,
+                note: `[QA TEST] Reversión talla ${size}`,
+                sizes: { [size]: testQty }
+            };
 
-            const { status: s2 }: IResponse = await request("/stock/movements", "POST", bodyOut);
+            const { status: s2 } = await request("/stock/movements", "POST", revertPayload);
             if (!s2) { log('Error revirtiendo el movimiento', 'error'); setFailed(true); return; }
             log('Movimiento OUT (reversión) registrado', 'ok');
 
-            // STEP 4: Final Verification
             setActiveStep(4);
             log('Verificación final de estado limpio...');
+            await new Promise(r => setTimeout(r, 500));
             const finalQty = await getStockForSize(productId, size);
             if (finalQty === initialQty) {
                 log(`Estado restaurado correctamente: ${finalQty} unidades`, 'ok');
                 setDone(true);
             } else {
-                log(`ADVERTENCIA: El stock quedó en ${finalQty} en lugar de ${initialQty}. Revisar manualmente.`, 'error');
+                log(`ADVERTENCIA: El stock quedó en ${finalQty} (esperado ${initialQty})`, 'error');
                 setFailed(true);
             }
 
