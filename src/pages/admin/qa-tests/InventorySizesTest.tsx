@@ -31,9 +31,21 @@ export const InventorySizesTest: React.FC = () => {
         const { status, response }: IResponse = await request('/inventory', 'GET');
         if (status) {
             const data = await response.json();
-            // Permitir ver todos los productos para poder testear incluso si no tienen tallas aún
-            const list = data.data ?? [];
-            setProducts(list);
+            const rawList = data.data ?? [];
+            
+            // 1. Eliminar duplicados (un registro por producto, sin importar el almacén)
+            const uniqueMap = new Map();
+            rawList.forEach((item: any) => {
+                if (!uniqueMap.has(item.product_id)) {
+                    uniqueMap.set(item.product_id, item);
+                }
+            });
+
+            // 2. Convertir a array y ordenar alfabéticamente
+            const cleanList = Array.from(uniqueMap.values())
+                .sort((a, b) => a.name.localeCompare(b.name));
+
+            setProducts(cleanList);
         }
     };
 
