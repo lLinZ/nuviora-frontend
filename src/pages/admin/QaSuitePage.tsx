@@ -14,6 +14,7 @@ import { CancellationFlowTest } from './qa-tests/CancellationFlowTest';
 import { AgentAssignmentTest } from './qa-tests/AgentAssignmentTest';
 import { UpsellItemTest } from './qa-tests/UpsellItemTest';
 import { AgencyAssignmentTest } from './qa-tests/AgencyAssignmentTest';
+import { InventorySizesTest } from './qa-tests/InventorySizesTest';
 
 interface TabPanelProps {
     children?: React.ReactNode;
@@ -69,6 +70,13 @@ const TABS = [
         description: 'Reasigna almacén/agencia y revierte',
         color: '#8b5cf6',
         risk: 'alto',
+    },
+    {
+        label: 'Inventario (Tallas)',
+        icon: <AddShoppingCartRounded fontSize="small" />,
+        description: 'Prueba entrada/salida manual por talla',
+        color: '#f43f5e',
+        risk: 'medio',
     },
 ];
 
@@ -235,6 +243,9 @@ export const QaSuitePage: FC = () => {
                         </TabPanel>
                         <TabPanel value={activeTab} index={5}>
                             <AgencyAssignmentTest />
+                        </TabPanel>
+                        <TabPanel value={activeTab} index={6}>
+                            <InventorySizesTest />
                         </TabPanel>
                     </Box>
                 </Paper>
