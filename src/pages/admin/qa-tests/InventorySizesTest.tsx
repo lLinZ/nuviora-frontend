@@ -162,9 +162,9 @@ export const InventorySizesTest: React.FC = () => {
                             const sizes = p?.available_sizes ?? [];
                             if (sizes.length === 1) {
                                 setSize(sizes[0]);
-                            } else if (sizes.length === 0 && p?.name?.includes('-')) {
-                                // Intento de inferir talla del nombre si no hay tallas definidas
-                                const inferred = p.name.split('-').pop().trim();
+                            } else if (sizes.length === 0 && p?.product?.name?.includes('-')) {
+                                // Intento de inferir talla del nombre original de Shopify si no hay tallas definidas
+                                const inferred = p.product.name.split('-').pop().trim();
                                 if (inferred.length <= 5) setSize(inferred);
                             } else {
                                 setSize('');
@@ -179,26 +179,39 @@ export const InventorySizesTest: React.FC = () => {
                         ))}
                     </TextField>
 
-                    <TextField
-                        select
-                        label="Talla a Testear"
-                        value={size}
-                        onChange={e => setSize(e.target.value)}
-                        sx={{ flex: 1 }}
-                        size="small"
-                        disabled={busy || !productId}
-                    >
-                        {(selectedProduct?.available_sizes ?? []).map((s: string) => (
-                            <MenuItem key={s} value={s}>{s}</MenuItem>
-                        ))}
-                    </TextField>
+                    { (selectedProduct?.available_sizes?.length > 0) ? (
+                        <TextField
+                            select
+                            label="Talla a Testear"
+                            value={size}
+                            onChange={e => setSize(e.target.value)}
+                            sx={{ flex: 1 }}
+                            size="small"
+                            disabled={busy || !productId}
+                        >
+                            {selectedProduct.available_sizes.map((s: string) => (
+                                <MenuItem key={s} value={s}>{s}</MenuItem>
+                            ))}
+                        </TextField>
+                    ) : (
+                        <TextField
+                            label="Talla (Escribe una)"
+                            value={size}
+                            onChange={e => setSize(e.target.value.toUpperCase())}
+                            sx={{ flex: 1 }}
+                            size="small"
+                            placeholder="Ej: S, M, L, XL..."
+                            disabled={busy || !productId}
+                            helperText="Producto sin tallas configuradas. Escribe una para probar."
+                        />
+                    )}
 
                     <Button
                         variant="contained"
                         startIcon={busy ? <CircularProgress size={20} color="inherit" /> : <PlayArrow />}
                         onClick={runTest}
                         disabled={busy || !productId || !size}
-                        sx={{ borderRadius: 2, px: 4 }}
+                        sx={{ borderRadius: 2, px: 4, height: 40 }}
                     >
                         Iniciar Test
                     </Button>
