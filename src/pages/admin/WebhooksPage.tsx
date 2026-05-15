@@ -46,6 +46,7 @@ export const WebhooksPage: FC = () => {
     const [newName, setNewName] = useState("");
     const [newUrl, setNewUrl] = useState("");
     const [selectedStatus, setSelectedStatus] = useState<number | "all">("all");
+    const [selectedEventType, setSelectedEventType] = useState("order.status_changed");
     const [isActive, setIsActive] = useState(true);
 
     const fetchData = async () => {
@@ -85,6 +86,7 @@ export const WebhooksPage: FC = () => {
         setNewName("");
         setNewUrl("");
         setSelectedStatus("all");
+        setSelectedEventType("order.status_changed");
         setIsActive(true);
         setOpenDialog(true);
     };
@@ -95,6 +97,8 @@ export const WebhooksPage: FC = () => {
         setNewName(webhook.name);
         setNewUrl(webhook.url);
         setSelectedStatus(webhook.status_id || "all");
+        // @ts-ignore - event_type might not be in the interface yet
+        setSelectedEventType(webhook.event_type || "order.status_changed");
         setIsActive(webhook.is_active);
         setOpenDialog(true);
     };
@@ -108,9 +112,9 @@ export const WebhooksPage: FC = () => {
             const body = {
                 name: newName,
                 url: newUrl,
-                status_id: selectedStatus === "all" ? null : selectedStatus,
+                status_id: selectedEventType === "order.status_changed" ? (selectedStatus === "all" ? null : selectedStatus) : null,
                 is_active: isActive,
-                event_type: "order.status_changed"
+                event_type: selectedEventType
             };
 
             let res;
@@ -290,23 +294,36 @@ export const WebhooksPage: FC = () => {
                                                 </Tooltip>
                                             </TableCell>
                                             <TableCell>
-                                                {webhook.status_id ? (
+                                                {/* @ts-ignore */}
+                                                {webhook.event_type === 'whatsapp.message_received' ? (
                                                     <Chip 
-                                                        label={`Cambio a: ${webhook.status?.description}`} 
+                                                        label="Mensaje de WhatsApp" 
                                                         size="small" 
                                                         sx={{ 
                                                             fontWeight: 600, 
-                                                            bgcolor: alpha('#10b981', 0.1),
-                                                            color: '#059669'
+                                                            bgcolor: alpha('#2563eb', 0.1),
+                                                            color: '#2563eb'
                                                         }} 
                                                     />
                                                 ) : (
-                                                    <Chip 
-                                                        label="Cualquier cambio de estado" 
-                                                        size="small" 
-                                                        variant="outlined" 
-                                                        sx={{ fontWeight: 500 }}
-                                                    />
+                                                    webhook.status_id ? (
+                                                        <Chip 
+                                                            label={`Estado: ${webhook.status?.description}`} 
+                                                            size="small" 
+                                                            sx={{ 
+                                                                fontWeight: 600, 
+                                                                bgcolor: alpha('#10b981', 0.1),
+                                                                color: '#059669'
+                                                            }} 
+                                                        />
+                                                    ) : (
+                                                        <Chip 
+                                                            label="Cualquier cambio de estado" 
+                                                            size="small" 
+                                                            variant="outlined" 
+                                                            sx={{ fontWeight: 500 }}
+                                                        />
+                                                    )
                                                 )}
                                             </TableCell>
                                             <TableCell>
@@ -449,18 +466,32 @@ export const WebhooksPage: FC = () => {
                             sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
                         />
                         <FormControl fullWidth sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}>
-                            <InputLabel>Disparar al cambiar a este estado...</InputLabel>
+                            <InputLabel>Evento que dispara la integración</InputLabel>
                             <Select
-                                value={selectedStatus}
-                                label="Disparar al cambiar a este estado..."
-                                onChange={(e) => setSelectedStatus(e.target.value as number | "all")}
+                                value={selectedEventType}
+                                label="Evento que dispara la integración"
+                                onChange={(e) => setSelectedEventType(e.target.value as string)}
                             >
-                                <MenuItem value="all"><strong>Cualquier cambio de estado</strong></MenuItem>
-                                {statuses.map((s) => (
-                                    <MenuItem key={s.id} value={s.id}>{s.description}</MenuItem>
-                                ))}
+                                <MenuItem value="order.status_changed">Cambio de estado de Orden</MenuItem>
+                                <MenuItem value="whatsapp.message_received"><strong>Recibir mensaje de WhatsApp</strong></MenuItem>
                             </Select>
                         </FormControl>
+
+                        {selectedEventType === "order.status_changed" && (
+                            <FormControl fullWidth sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}>
+                                <InputLabel>Disparar al cambiar a este estado...</InputLabel>
+                                <Select
+                                    value={selectedStatus}
+                                    label="Disparar al cambiar a este estado..."
+                                    onChange={(e) => setSelectedStatus(e.target.value as number | "all")}
+                                >
+                                    <MenuItem value="all"><strong>Cualquier cambio de estado</strong></MenuItem>
+                                    {statuses.map((s) => (
+                                        <MenuItem key={s.id} value={s.id}>{s.description}</MenuItem>
+                                    ))}
+                                </Select>
+                            </FormControl>
+                        )}
                         {editMode && (
                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, p: 2, bgcolor: alpha('#000', 0.02), borderRadius: 2 }}>
                                 <Switch 
