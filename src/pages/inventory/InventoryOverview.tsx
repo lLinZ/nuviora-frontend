@@ -115,8 +115,8 @@ export const InventoryOverview: React.FC<Props> = ({ isEmbedded }) => {
     };
 
     const filteredProducts = products.filter(p =>
-        p.product?.title.toLowerCase().includes(search.toLowerCase()) ||
-        p.product?.sku?.toLowerCase().includes(search.toLowerCase())
+        (p.product?.title || '').toLowerCase().includes(search.toLowerCase()) ||
+        (p.product?.sku || '').toLowerCase().includes(search.toLowerCase())
     );
 
     if (loadingSession || !isValid || !user.token) return <Loading />;
