@@ -277,8 +277,12 @@ export const OrderDialog: FC<OrderDialogProps> = ({ id, open, setOpen }) => {
             }
         }
 
+        let locationDetails = '';
+        if (order.client?.address1) locationDetails += `\n🏠 *Dirección:* ${order.client.address1}`;
+        if (order.client?.address2) locationDetails += `\n📍 *Referencia:* ${order.client.address2}`;
+        if (order.location) locationDetails += `\n🔗 *Link Maps:* ${order.location}`;
 
-        const message = `🚀 *ORDEN #${order.name}*\n📍 *Ubicación:* ${order.location || 'No asignada'}\n🏢 *Agencia:* ${agencyDisplay}\n👤 *Cliente:* ${order.client?.first_name} ${order.client?.last_name}\n📞 *Teléfono:* ${order.client?.phone}\n📦 *Productos:*\n${productsList}\n${paymentInfo}`;
+        const message = `🚀 *ORDEN #${order.name}*${locationDetails || '\n📍 *Ubicación:* No asignada'}\n🏢 *Agencia:* ${agencyDisplay}\n👤 *Cliente:* ${order.client?.first_name} ${order.client?.last_name}\n📞 *Teléfono:* ${order.client?.phone}\n📦 *Productos:*\n${productsList}\n${paymentInfo}`;
         navigator.clipboard.writeText(message);
         toast.info('📋 Información copiada');
     };

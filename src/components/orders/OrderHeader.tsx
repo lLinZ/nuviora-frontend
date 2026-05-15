@@ -59,6 +59,34 @@ export const OrderHeader: React.FC<OrderHeaderProps> = ({
                         </Box>
                     </Box>
 
+                    {order.client?.address1 && (
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                            <Paper elevation={0} sx={{ p: 1, bgcolor: 'info.main', color: 'white', borderRadius: 2 }}>
+                                <LocationOnIcon fontSize="small" />
+                            </Paper>
+                            <Box>
+                                <Typography variant="caption" color="text.secondary" display="block">Dirección de Envío</Typography>
+                                <Typography variant="body2" fontWeight="bold">
+                                    {order.client.address1}
+                                </Typography>
+                            </Box>
+                        </Box>
+                    )}
+
+                    {order.client?.address2 && (
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                            <Paper elevation={0} sx={{ p: 1, bgcolor: 'secondary.main', color: 'white', borderRadius: 2 }}>
+                                <MapIcon fontSize="small" />
+                            </Paper>
+                            <Box>
+                                <Typography variant="caption" color="text.secondary" display="block">Punto de Referencia</Typography>
+                                <Typography variant="body2" fontWeight="bold">
+                                    {order.client.address2}
+                                </Typography>
+                            </Box>
+                        </Box>
+                    )}
+
                     <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                             <Paper elevation={0} sx={{ p: 1, bgcolor: 'warning.main', color: 'white', borderRadius: 2 }}>
