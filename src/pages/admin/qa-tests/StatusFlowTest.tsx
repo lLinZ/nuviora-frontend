@@ -50,7 +50,7 @@ export const StatusFlowTest: React.FC = () => {
             const list = Array.isArray(j) ? j : (j.data?.data ?? j.data ?? j.orders ?? []);
             const mapped: OrderOption[] = list.slice(0, 50).map((o: any) => ({
                 id: o.id,
-                label: `#${o.id} — ${o.client_name ?? o.customer?.name ?? 'Sin nombre'} (${o.status?.description ?? o.status_description ?? '?'})`,
+                label: `#${o.id} ${o.name ? '('+o.name+')' : ''} — ${o.client_name ?? o.customer?.name ?? o.client?.name ?? 'S/N'} (${o.status?.description ?? o.status_description ?? '?'})`,
                 status_id: o.status_id ?? o.status?.id ?? 0,
                 status_description: o.status?.description ?? o.status_description ?? '?',
             }));

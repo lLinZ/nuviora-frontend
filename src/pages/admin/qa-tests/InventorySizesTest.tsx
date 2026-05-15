@@ -31,11 +31,9 @@ export const InventorySizesTest: React.FC = () => {
         const { status, response }: IResponse = await request('/inventory', 'GET');
         if (status) {
             const data = await response.json();
-            // Solo productos que tengan tallas disponibles
-            const productsWithSizes = (data.data ?? []).filter((p: any) => 
-                p.available_sizes && p.available_sizes.length > 0
-            );
-            setProducts(productsWithSizes);
+            // Permitir ver todos los productos para poder testear incluso si no tienen tallas aún
+            const list = data.data ?? [];
+            setProducts(list);
         }
     };
 
@@ -201,7 +199,7 @@ export const InventorySizesTest: React.FC = () => {
 
                 <Grid size={{ xs: 12, md: 7 }}>
                     <Typography variant="subtitle2" fontWeight="bold" sx={{ mb: 1 }}>🖥️ Log de Ejecución</Typography>
-                    <Paper variant="outlined" sx={{ p: 2, height: 300, overflowY: 'auto', bgcolor: 'grey.50', borderRadius: 2 }}>
+                    <Paper variant="outlined" sx={{ p: 2, height: 300, overflowY: 'auto', bgcolor: 'background.default', borderRadius: 2 }}>
                         {logs.length === 0 && <Typography variant="body2" color="text.disabled" sx={{ fontStyle: 'italic' }}>Esperando inicio...</Typography>}
                         {logs.map((l, i) => (
                             <Box key={i} sx={{ mb: 0.5, display: 'flex', gap: 1 }}>
