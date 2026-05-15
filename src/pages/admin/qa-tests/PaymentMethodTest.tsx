@@ -48,7 +48,7 @@ export const PaymentMethodTest: React.FC = () => {
             const list = Array.isArray(j) ? j : (j.data?.data ?? j.data ?? j.orders ?? []);
             setOrders(list.slice(0, 50).map((o: any) => ({
                 id: o.id,
-                label: `#${o.id} — ${o.client_name ?? o.customer?.name ?? 'Sin nombre'} | Total: ${o.total ?? '?'}`,
+                label: `#${o.id} ${o.name ? '('+o.name+')' : ''} — ${o.client_name ?? o.customer?.name ?? o.client?.name ?? 'S/N'} | Total: ${o.current_total_price ?? o.total ?? '?'}`,
             })));
         }
     };
@@ -81,12 +81,15 @@ export const PaymentMethodTest: React.FC = () => {
             // Build a test payment: keep originals + add a small test one
             const testPaymentAmount = 0.01;
             const testPayload = {
-                payment_methods: [
-                    ...originalPayments,
+                payments: [
+                    ...originalPayments.map(p => ({
+                        method: p.method,
+                        amount: p.amount,
+                        rate: p.rate
+                    })),
                     {
-                        method: 'cash',
+                        method: 'EFECTIVO_USD',
                         amount: testPaymentAmount,
-                        currency: 'USD',
                         note: TEST_PAYMENT_NOTE,
                     }
                 ]
@@ -127,7 +130,13 @@ export const PaymentMethodTest: React.FC = () => {
         } finally {
             setActiveStep(4);
             log('── PASO 5: Revirtiendo pagos originales ──', 'info');
-            const revertPayload = { payment_methods: originalPayments };
+            const revertPayload = { 
+                payments: originalPayments.map(p => ({
+                    method: p.method,
+                    amount: p.amount,
+                    rate: p.rate
+                })) 
+            };
             const { status: rs } = await apiCall(`/orders/${selectedOrderId}/payment`, 'PUT', revertPayload);
             if (rs === 200 || rs === 201) {
                 log(`✅ Pagos revertidos a estado original (${originalPayments.length} métodos)`, 'ok');

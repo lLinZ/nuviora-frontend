@@ -48,7 +48,7 @@ export const AgencyAssignmentTest: React.FC = () => {
             const list = Array.isArray(j) ? j : (j.data?.data ?? j.data ?? j.orders ?? []);
             setOrders(list.slice(0, 60).map((o: any) => ({
                 id: o.id,
-                label: `#${o.id} — ${o.client_name ?? o.customer?.name ?? '?'} | Agencia: ${o.agency?.name ?? o.warehouse?.name ?? 'Sin asignar'}`,
+                label: `#${o.id} ${o.name ? '('+o.name+')' : ''} — ${o.client_name ?? o.customer?.name ?? o.client?.name ?? 'S/N'} | Agencia: ${o.agency?.name ?? o.warehouse?.name ?? 'Sin asignar'}`,
                 agency_id: o.agency_id ?? o.warehouse_id ?? null,
                 agency_name: o.agency?.name ?? o.warehouse?.name ?? 'Sin asignar',
             })));
