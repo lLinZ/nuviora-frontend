@@ -69,16 +69,14 @@ export const PaymentMethodTest: React.FC = () => {
             const { status: gs, json: gj } = await apiCall(`/orders/${selectedOrderId}`, 'GET');
             if (gs !== 200) { log(`❌ No se pudo cargar la orden (${gs})`, 'error'); setFailed(true); return; }
 
-            const orderData = gj.data ?? gj;
-            originalTotal = Number(orderData.total ?? 0);
-            // Payment methods stored in the order (adapt field names to your schema)
-            originalPayments = orderData.payment_methods ?? orderData.payments ?? [];
+            const orderData = gj.data ?? gj.order ?? gj;
+            originalTotal = Number(orderData.current_total_price ?? orderData.total ?? 0);
+            originalPayments = orderData.payments ?? orderData.payment_methods ?? [];
             log(`✅ Orden cargada. Total: ${originalTotal}. Métodos de pago actuales: ${originalPayments.length}`, 'ok');
             setPaymentRecords(prev => [...prev, { label: 'ANTES', methods: originalPayments, total: originalTotal }]);
 
             setActiveStep(1);
             log('── PASO 2: Construyendo pago de prueba ──', 'info');
-            // Build a test payment: keep originals + add a small test one
             const testPaymentAmount = 0.01;
             const testPayload = {
                 payments: [
@@ -88,13 +86,13 @@ export const PaymentMethodTest: React.FC = () => {
                         rate: p.rate
                     })),
                     {
-                        method: 'EFECTIVO_USD',
+                        method: 'DOLARES_EFECTIVO',
                         amount: testPaymentAmount,
                         note: TEST_PAYMENT_NOTE,
                     }
                 ]
             };
-            log(`✅ Payload construido: ${originalPayments.length} métodos originales + 1 de prueba ($${testPaymentAmount} USD efectivo)`, 'ok');
+            log(`✅ Payload construido: ${originalPayments.length} originales + 1 de prueba ($${testPaymentAmount} Dólares)`, 'ok');
 
             setActiveStep(2);
             log('── PASO 3: Enviando PUT /orders/{id}/payment ──', 'info');
@@ -103,45 +101,44 @@ export const PaymentMethodTest: React.FC = () => {
                 log(`❌ Error al actualizar pago (${ps}): ${pj.message ?? JSON.stringify(pj.errors ?? {})}`, 'error');
                 setFailed(true); return;
             }
-            log(`✅ Pago aplicado. Respuesta: ${pj.message ?? 'OK'}`, 'ok');
+            log(`✅ Pago aplicado. Respuesta: OK`, 'ok');
 
             setActiveStep(3);
             log('── PASO 4: Verificando en BD ──', 'info');
             const { status: vs, json: vj } = await apiCall(`/orders/${selectedOrderId}`, 'GET');
-            const verifyData = vj.data ?? vj;
-            const newPayments = verifyData.payment_methods ?? verifyData.payments ?? [];
-            const newTotal = Number(verifyData.total ?? 0);
+            const verifyData = vj.data ?? vj.order ?? vj;
+            const newPayments = verifyData.payments ?? verifyData.payment_methods ?? [];
+            const newTotal = Number(verifyData.current_total_price ?? verifyData.total ?? 0);
             setPaymentRecords(prev => [...prev, { label: 'DESPUÉS', methods: newPayments, total: newTotal }]);
 
-            if (vs === 200 && newPayments.length >= 1) {
-                const hasTestPayment = newPayments.some((p: any) => p.note === TEST_PAYMENT_NOTE || p.amount === testPaymentAmount);
-                if (hasTestPayment) {
-                    log(`✅ VERIFICACIÓN OK: pago de prueba encontrado en la orden`, 'ok');
-                    testPassed = true;
-                } else {
-                    log(`⚠️ El pago de prueba no se encontró en los métodos devueltos (puede que el esquema sea diferente). Verificar manualmente.`, 'info');
-                    testPassed = true; // Consider passed if the PUT was 200
-                }
+            if (vs === 200 && newPayments.length > originalPayments.length) {
+                log(`✅ VERIFICACIÓN OK: pagos ${originalPayments.length} → ${newPayments.length}`, 'ok');
+                testPassed = true;
             } else {
-                log(`❌ VERIFICACIÓN FALLIDA — No se pudieron leer los pagos actualizados`, 'error');
+                log(`❌ VERIFICACIÓN FALLIDA — Los pagos no aumentaron (Antes: ${originalPayments.length}, Ahora: ${newPayments.length})`, 'error');
                 setFailed(true);
             }
 
         } finally {
             setActiveStep(4);
-            log('── PASO 5: Revirtiendo pagos originales ──', 'info');
-            const revertPayload = { 
-                payments: originalPayments.map(p => ({
-                    method: p.method,
-                    amount: p.amount,
-                    rate: p.rate
-                })) 
-            };
-            const { status: rs } = await apiCall(`/orders/${selectedOrderId}/payment`, 'PUT', revertPayload);
-            if (rs === 200 || rs === 201) {
-                log(`✅ Pagos revertidos a estado original (${originalPayments.length} métodos)`, 'ok');
+            log('── PASO 5: Revirtiendo pagos ──', 'info');
+            // SOLO revertimos si hay algo que revertir y el servidor lo permite (min:1)
+            if (originalPayments.length > 0) {
+                const revertPayload = { 
+                    payments: originalPayments.map(p => ({
+                        method: p.method,
+                        amount: p.amount,
+                        rate: p.rate
+                    })) 
+                };
+                const { status: rs } = await apiCall(`/orders/${selectedOrderId}/payment`, 'PUT', revertPayload);
+                if (rs === 200 || rs === 201) {
+                    log(`✅ Pagos originales restaurados`, 'ok');
+                } else {
+                    log(`⚠️ Error al revertir (${rs}).`, 'error');
+                }
             } else {
-                log(`⚠️ No se pudo revertir automáticamente (${rs}). Revisar manualmente.`, 'error');
+                log('ℹ️ No hay pagos originales para restaurar (se queda el de prueba para limpieza manual si es necesario)', 'info');
             }
             log('🧹 Limpieza completada', 'ok');
             if (testPassed) setDone(true);
