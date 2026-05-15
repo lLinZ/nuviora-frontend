@@ -156,8 +156,19 @@ export const InventorySizesTest: React.FC = () => {
                         label="Producto con Tallas"
                         value={productId || ''}
                         onChange={e => {
-                            setProductId(Number(e.target.value));
-                            setSize('');
+                            const val = Number(e.target.value);
+                            setProductId(val);
+                            const p = products.find(x => x.product_id === val);
+                            const sizes = p?.available_sizes ?? [];
+                            if (sizes.length === 1) {
+                                setSize(sizes[0]);
+                            } else if (sizes.length === 0 && p?.name?.includes('-')) {
+                                // Intento de inferir talla del nombre si no hay tallas definidas
+                                const inferred = p.name.split('-').pop().trim();
+                                if (inferred.length <= 5) setSize(inferred);
+                            } else {
+                                setSize('');
+                            }
                         }}
                         sx={{ flex: 1 }}
                         size="small"
