@@ -9,6 +9,8 @@ import {
     Typography,
     MenuItem,
     Grid,
+    Chip,
+    Alert
 } from '@mui/material';
 import { ButtonCustom } from '../custom';
 import { WarehouseSelector } from './WarehouseSelector';
@@ -21,7 +23,7 @@ interface StockMovementDialogProps {
     open: boolean;
     onClose: () => void;
     onSuccess: () => void;
-    product?: IProduct;
+    product?: IProduct & { available_sizes?: string[] };
     initialType?: 'in' | 'out' | 'transfer' | 'adjustment';
 }
 
@@ -39,6 +41,8 @@ export const StockMovementDialog: React.FC<StockMovementDialogProps> = ({
     const [notes, setNotes] = useState('');
     const [loading, setLoading] = useState(false);
     const [availableStock, setAvailableStock] = useState<number | null>(null);
+    // Tallas
+    const [sizesInput, setSizesInput] = useState<Record<string, number>>({});
 
     useEffect(() => {
         if (open) {
@@ -48,8 +52,13 @@ export const StockMovementDialog: React.FC<StockMovementDialogProps> = ({
             setQuantity(1);
             setNotes('');
             setAvailableStock(null);
+            
+            // Inicializar tallas
+            const initial: Record<string, number> = {};
+            (product?.available_sizes ?? []).forEach(s => { initial[s] = 0; });
+            setSizesInput(initial);
         }
-    }, [open, initialType]);
+    }, [open, initialType, product]);
 
     // Check stock when selecting source warehouse
     useEffect(() => {
@@ -68,8 +77,6 @@ export const StockMovementDialog: React.FC<StockMovementDialogProps> = ({
             );
             if (status === 200) {
                 const data = await response.json();
-                // Backend devuelve { inventory: [...], current_stock: number }
-                // current_stock ya viene filtrado por product_id desde el backend
                 const stock = data.current_stock ?? 0;
                 setAvailableStock(stock);
             }
@@ -78,10 +85,18 @@ export const StockMovementDialog: React.FC<StockMovementDialogProps> = ({
         }
     };
 
+    const hasSizes = (product?.available_sizes ?? []).length > 0;
+    const sizesTotal = Object.values(sizesInput).reduce((a, b) => a + (b || 0), 0);
+    const sizesMatch = !hasSizes || sizesTotal === quantity;
+
     const handleSubmit = async () => {
         if (!product) return;
-        if (quantity <= 0) {
+        if (quantity <= 0 && type !== 'adjustment') {
             toast.error('La cantidad debe ser mayor a 0');
+            return;
+        }
+        if (hasSizes && !sizesMatch && type !== 'transfer') {
+            toast.error(`El desglose de tallas (${sizesTotal}) no coincide con el total (${quantity})`);
             return;
         }
 
@@ -93,6 +108,11 @@ export const StockMovementDialog: React.FC<StockMovementDialogProps> = ({
                 quantity,
                 notes
             };
+
+            // Agregar tallas si existen
+            if (hasSizes && sizesTotal > 0) {
+                body.sizes = sizesInput;
+            }
 
             switch (type) {
                 case 'in':
@@ -117,7 +137,7 @@ export const StockMovementDialog: React.FC<StockMovementDialogProps> = ({
                     if (!toWarehouseId) { toast.error('Seleccione almacén'); setLoading(false); return; }
                     endpoint = '/inventory-movements/adjust';
                     body.warehouse_id = toWarehouseId;
-                    body.new_quantity = quantity; // Assuming adjustment sets the new quantity
+                    body.new_quantity = quantity;
                     break;
             }
 
@@ -140,10 +160,10 @@ export const StockMovementDialog: React.FC<StockMovementDialogProps> = ({
 
     const getTitle = () => {
         switch (type) {
-            case 'in': return 'Entrada de Stock';
-            case 'out': return 'Salida de Stock';
-            case 'transfer': return 'Transferencia entre Almacenes';
-            case 'adjustment': return 'Ajuste de Inventario (Fijar Stock)';
+            case 'in': return 'Entrada de Stock ➕';
+            case 'out': return 'Salida de Stock ➖';
+            case 'transfer': return 'Transferencia entre Almacenes 🔄';
+            case 'adjustment': return 'Ajuste de Inventario (Fijar Stock) 🎯';
             default: return 'Movimiento de Stock';
         }
     };
@@ -204,24 +224,56 @@ export const StockMovementDialog: React.FC<StockMovementDialogProps> = ({
                                 inputProps={{ min: 0 }}
                             />
                         </Grid>
-                        <Grid size={{ xs: 12 }}>
-                            <TextField
-                                fullWidth
-                                multiline
-                                rows={3}
-                                label="Notas / Motivo"
-                                value={notes}
-                                onChange={(e) => setNotes(e.target.value)}
-                            />
-                        </Grid>
                     </Grid>
+
+                    {/* Desglose de tallas */}
+                    {hasSizes && type !== 'transfer' && (
+                        <Box sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2, p: 2 }}>
+                            <Typography variant="body2" fontWeight={700} mb={1}>📦 Desglose por talla</Typography>
+                            <Grid container spacing={1}>
+                                {(product?.available_sizes ?? []).map(size => (
+                                    <Grid item xs={6} sm={4} key={size}>
+                                        <TextField
+                                            label={size}
+                                            size="small"
+                                            type="number"
+                                            value={sizesInput[size] ?? 0}
+                                            onChange={(e) => setSizesInput(prev => ({
+                                                ...prev,
+                                                [size]: Number(e.target.value)
+                                            }))}
+                                            inputProps={{ min: 0 }}
+                                            fullWidth
+                                        />
+                                    </Grid>
+                                ))}
+                            </Grid>
+                            {!sizesMatch && sizesTotal > 0 && (
+                                <Alert severity="warning" sx={{ mt: 1.5, py: 0 }}>
+                                    Suma: <b>{sizesTotal}</b> — Total: <b>{quantity}</b>. No coinciden.
+                                </Alert>
+                            )}
+                        </Box>
+                    )}
+
+                    <TextField
+                        fullWidth
+                        multiline
+                        rows={2}
+                        label="Notas / Motivo"
+                        value={notes}
+                        onChange={(e) => setNotes(e.target.value)}
+                    />
                 </Box>
             </DialogContent>
             <DialogActions>
                 <ButtonCustom onClick={onClose} color="primary" variant="outlined">
                     Cancelar
                 </ButtonCustom>
-                <ButtonCustom onClick={handleSubmit} disabled={loading}>
+                <ButtonCustom 
+                    onClick={handleSubmit} 
+                    disabled={loading || (hasSizes && !sizesMatch && sizesTotal > 0 && type !== 'transfer')}
+                >
                     {loading ? 'Procesando...' : 'Guardar'}
                 </ButtonCustom>
             </DialogActions>

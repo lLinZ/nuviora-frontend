@@ -94,7 +94,8 @@ export const InventoryOverview: React.FC<Props> = ({ isEmbedded }) => {
                 warehouse_id: item.warehouse_id,
                 warehouse_name: item.warehouse?.name || `Almacén ${item.warehouse_id}`,
                 warehouse_code: item.warehouse?.code || '',
-                quantity: item.quantity
+                quantity: item.quantity,
+                sizes_stock: item.sizes_stock // 🔥 Desglose por tallas
             });
             current.total_quantity += item.quantity;
         });

@@ -70,6 +70,7 @@ export interface IProduct {
     cost_usd?: number;
     image?: string;
     stock?: number;
+    available_sizes?: string[];          // 🔥 Tallas conocidas del producto
     created_at?: string;
     updated_at?: string;
 }
@@ -89,6 +90,7 @@ export interface IProductStock {
         warehouse_name: string;
         warehouse_code: string;
         quantity: number;
+        sizes_stock?: Record<string, number>; // 🔥 Desglose por talla en este almacén
     }>;
     total_quantity: number;
 }

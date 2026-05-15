@@ -7,7 +7,8 @@ import {
     Divider,
     IconButton,
     Tooltip,
-    LinearProgress
+    LinearProgress,
+    Chip
 } from '@mui/material';
 import {
     History as HistoryIcon,
@@ -71,19 +72,34 @@ export const InventoryCard: React.FC<InventoryCardProps> = ({
 
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
                     {warehouses.map((w) => (
-                        <Box key={w.warehouse_id} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                            <TypographyCustom variant="body2" sx={{ flex: 1 }} noWrap>
-                                {w.warehouse_name}
-                            </TypographyCustom>
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, minWidth: 60, justifyContent: 'flex-end' }}>
+                        <Box key={w.warehouse_id} sx={{ display: 'flex', flexDirection: 'column', gap: 0.5, borderBottom: '1px solid', borderColor: 'divider', pb: 1, '&:last-child': { borderBottom: 0 } }}>
+                            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                <TypographyCustom variant="body2" sx={{ flex: 1, fontWeight: 'bold' }} noWrap>
+                                    {w.warehouse_name}
+                                </TypographyCustom>
                                 <TypographyCustom
                                     variant="body2"
-                                    fontWeight="medium"
-                                    color={w.quantity > 0 ? 'text.primary' : 'text.disabled'}
+                                    fontWeight="bold"
+                                    color={w.quantity > 0 ? 'primary.main' : 'text.disabled'}
                                 >
                                     {w.quantity}
                                 </TypographyCustom>
                             </Box>
+                            
+                            {/* 🔥 Desglose por tallas */}
+                            {w.sizes_stock && Object.keys(w.sizes_stock).length > 0 && (
+                                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mt: 0.5 }}>
+                                    {Object.entries(w.sizes_stock).map(([size, qty]) => (
+                                        <Chip 
+                                            key={size} 
+                                            label={`${size}: ${qty}`} 
+                                            size="small" 
+                                            variant="outlined" 
+                                            sx={{ height: 18, fontSize: '0.65rem', borderRadius: 1 }}
+                                        />
+                                    ))}
+                                </Box>
+                            )}
                         </Box>
                     ))}
                     {warehouses.length === 0 && (
