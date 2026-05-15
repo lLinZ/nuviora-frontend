@@ -232,7 +232,7 @@ export const StockMovementDialog: React.FC<StockMovementDialogProps> = ({
                             <Typography variant="body2" fontWeight={700} mb={1}>📦 Desglose por talla</Typography>
                             <Grid container spacing={1}>
                                 {(product?.available_sizes ?? []).map(size => (
-                                    <Grid item xs={6} sm={4} key={size}>
+                                    <Grid size={{ xs: 6, sm: 4 }} key={size}>
                                         <TextField
                                             label={size}
                                             size="small"
