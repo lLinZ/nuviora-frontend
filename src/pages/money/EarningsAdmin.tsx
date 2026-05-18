@@ -255,7 +255,7 @@ export const EarningsAdmin: React.FC = () => {
 
                             <Grid container spacing={3}>
                                 <Grid size={{ xs: 12, lg: 6 }}>
-                                    <EarningsTable title="Vendedoras ($1.00 / orden)" rows={data.vendors} icon={<GroupsRoundedIcon color="primary" />} onDownload={exportUserToExcel} />
+                                    <EarningsTable title="Vendedoras ($1.00 venta · $1.00 upsell)" rows={data.vendors} icon={<GroupsRoundedIcon color="primary" />} onDownload={exportUserToExcel} showUpsells />
                                 </Grid>
                                 <Grid size={{ xs: 12, lg: 6 }}>
                                     <EarningsTable title="Repartidores ($2.50 / orden)" rows={data.deliverers} icon={<GroupsRoundedIcon color="secondary" />} onDownload={exportUserToExcel} />
@@ -301,7 +301,7 @@ const TotalProjection = ({ title, amountUsd, rate }: any) => (
     </Grid>
 );
 
-const EarningsTable = ({ title, rows, icon, onDownload }: { title: string, rows: any[], icon: React.ReactNode, onDownload?: (user: any) => void }) => (
+const EarningsTable = ({ title, rows, icon, onDownload, showUpsells }: { title: string, rows: any[], icon: React.ReactNode, onDownload?: (user: any) => void, showUpsells?: boolean }) => (
     <Paper sx={{
         p: 4,
         borderRadius: 5,
@@ -320,7 +320,13 @@ const EarningsTable = ({ title, rows, icon, onDownload }: { title: string, rows:
             <TableHead>
                 <TableRow>
                     <TableCell sx={{ fontWeight: 'bold' }}>Usuario</TableCell>
-                    <TableCell align="center" sx={{ fontWeight: 'bold' }}>Cant.</TableCell>
+                    <TableCell align="center" sx={{ fontWeight: 'bold' }}>
+                        {showUpsells ? (
+                            <Tooltip title="Ventas directas + Upsells (hover sobre los chips para ver el desglose)" arrow>
+                                <span style={{ cursor: 'help', borderBottom: '1px dashed' }}>Ventas / Ups.</span>
+                            </Tooltip>
+                        ) : 'Cant.'}
+                    </TableCell>
                     <TableCell align="right" sx={{ fontWeight: 'bold' }}>Total (USD)</TableCell>
                     {onDownload && <TableCell align="center" sx={{ fontWeight: 'bold', width: 50 }}>Acciones</TableCell>}
                 </TableRow>
@@ -340,7 +346,19 @@ const EarningsTable = ({ title, rows, icon, onDownload }: { title: string, rows:
                             </Stack>
                         </TableCell>
                         <TableCell align="center">
-                            <Chip label={r.orders_count} size="small" variant="outlined" sx={{ fontWeight: 'bold' }} />
+                            {r.upsells_count > 0 ? (
+                                <Tooltip
+                                    title={`${r.orders_count} venta${r.orders_count !== 1 ? 's' : ''} ($${r.orders_count.toFixed(2)}) + ${r.upsells_count} upsell${r.upsells_count !== 1 ? 's' : ''} ($${r.upsells_count.toFixed(2)}) = $${r.amount_usd.toFixed(2)}`}
+                                    arrow
+                                >
+                                    <Stack direction="row" spacing={0.5} alignItems="center" justifyContent="center">
+                                        <Chip label={r.orders_count} size="small" variant="outlined" sx={{ fontWeight: 'bold' }} />
+                                        <Chip label={`+${r.upsells_count} up`} size="small" color="warning" variant="filled" sx={{ fontWeight: 'bold', fontSize: '0.65rem' }} />
+                                    </Stack>
+                                </Tooltip>
+                            ) : (
+                                <Chip label={r.orders_count} size="small" variant="outlined" sx={{ fontWeight: 'bold' }} />
+                            )}
                         </TableCell>
                         <TableCell align="right">
                             <Typography variant="body1" fontWeight="bold" color="primary.main">{fmtMoney(r.amount_usd, "USD")}</Typography>
