@@ -262,7 +262,7 @@ export const EarningsAdmin: React.FC = () => {
                                 </Grid>
 
                                 <Grid size={{ xs: 12, lg: 6 }}>
-                                    <EarningsTable title="Upsells ($1.00 / producto adicional)" rows={data.upsells} icon={<TrendingUpRoundedIcon sx={{ color: '#ff9800' }} />} />
+                                    <EarningsTable title="Upsells ($1.00 / producto adicional)" rows={data.upsells} icon={<TrendingUpRoundedIcon sx={{ color: '#ff9800' }} />} mainCountIsUpsells />
                                 </Grid>
                                 <Grid size={{ xs: 12 }}>
                                     <EarningsTable title="Resumen Gerentes ($0.50 / venta exitosa)" rows={data.managers} icon={<GroupsRoundedIcon sx={{ color: '#e91e63' }} />} />
@@ -301,7 +301,16 @@ const TotalProjection = ({ title, amountUsd, rate }: any) => (
     </Grid>
 );
 
-const EarningsTable = ({ title, rows, icon, onDownload, showUpsells }: { title: string, rows: any[], icon: React.ReactNode, onDownload?: (user: any) => void, showUpsells?: boolean }) => (
+const EarningsTable = ({ title, rows, icon, onDownload, showUpsells, mainCountIsUpsells }: {
+    title: string;
+    rows: any[];
+    icon: React.ReactNode;
+    onDownload?: (user: any) => void;
+    /** Vendedoras: muestra chip de ventas + badge de upsells */
+    showUpsells?: boolean;
+    /** Tabla de Upsells: el chip principal muestra upsells_count directamente */
+    mainCountIsUpsells?: boolean;
+}) => (
     <Paper sx={{
         p: 4,
         borderRadius: 5,
@@ -346,7 +355,7 @@ const EarningsTable = ({ title, rows, icon, onDownload, showUpsells }: { title: 
                             </Stack>
                         </TableCell>
                         <TableCell align="center">
-                            {r.upsells_count > 0 ? (
+                            {showUpsells && r.upsells_count > 0 ? (
                                 <Tooltip
                                     title={`${r.orders_count} venta${r.orders_count !== 1 ? 's' : ''} ($${r.orders_count.toFixed(2)}) + ${r.upsells_count} upsell${r.upsells_count !== 1 ? 's' : ''} ($${r.upsells_count.toFixed(2)}) = $${r.amount_usd.toFixed(2)}`}
                                     arrow
@@ -357,7 +366,12 @@ const EarningsTable = ({ title, rows, icon, onDownload, showUpsells }: { title: 
                                     </Stack>
                                 </Tooltip>
                             ) : (
-                                <Chip label={r.orders_count} size="small" variant="outlined" sx={{ fontWeight: 'bold' }} />
+                                <Chip
+                                    label={mainCountIsUpsells ? r.upsells_count : r.orders_count}
+                                    size="small"
+                                    variant="outlined"
+                                    sx={{ fontWeight: 'bold' }}
+                                />
                             )}
                         </TableCell>
                         <TableCell align="right">
