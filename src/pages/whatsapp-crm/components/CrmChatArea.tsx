@@ -507,6 +507,18 @@ export const CrmChatArea: FC<Props> = ({ selected, incomingMessage, onRefresh, o
                             <Typography variant="caption" color="text.secondary" fontWeight={700} display="block">Ciudad</Typography>
                             <Typography variant="body2" fontWeight={600}>{selected.order?.location || "-"}</Typography>
                         </Box>
+                        {selected.order?.address1 && (
+                            <Box>
+                                <Typography variant="caption" color="text.secondary" fontWeight={700} display="block">Dirección de Envío</Typography>
+                                <Typography variant="body2" fontWeight={600}>{selected.order.address1}</Typography>
+                            </Box>
+                        )}
+                        {selected.order?.address2 && (
+                            <Box>
+                                <Typography variant="caption" color="text.secondary" fontWeight={700} display="block">Punto de Referencia</Typography>
+                                <Typography variant="body2" fontWeight={600}>{selected.order.address2}</Typography>
+                            </Box>
+                        )}
                         <Box>
                             <Typography variant="caption" color="text.secondary" fontWeight={700} display="block">Veces atendido</Typography>
                             <Typography variant="body2" fontWeight={600} color={selected.order?.reset_count && selected.order.reset_count > 0 ? "error.main" : "text.primary"}>{selected.order?.reset_count || 0}</Typography>

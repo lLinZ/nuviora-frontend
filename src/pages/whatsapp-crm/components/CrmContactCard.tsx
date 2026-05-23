@@ -34,6 +34,8 @@ export interface CrmConversation {
         created_at: string;
         reset_count: number;
         location: string;
+        address1: string | null;
+        address2: string | null;
     } | null;
 }
 
