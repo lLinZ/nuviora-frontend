@@ -11,4 +11,5 @@ export interface UserType {
     updated_at: string;
     delivery_cost?: string | number;
     is_lite_view?: boolean;
+    can_handle_no_stock?: boolean;
 }

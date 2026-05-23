@@ -101,6 +101,16 @@ export const ProductSearchDialog: FC<Props> = ({ open, onClose, onPick }) => {
                                                     {typeof p.price !== "undefined" && <Chip size="small" color="primary" variant="outlined" label={`Precio: $${p.price}`} />}
                                                     {typeof p.stock !== "undefined" && <Chip size="small" color={p.stock > 0 ? "success" : "error"} variant="outlined" label={`Stock: ${p.stock}`} />}
                                                 </Box>
+                                                {p.inventories && p.inventories.length > 0 && (
+                                                    <Box sx={{ mt: 0.5, p: 0.5, bgcolor: 'action.hover', borderRadius: 1 }}>
+                                                        <Box component="span" sx={{ fontSize: '0.7rem', fontWeight: 'bold', display: 'block', mb: 0.5 }}>Otros Almacenes (Prueba):</Box>
+                                                        <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}>
+                                                            {p.inventories.map((inv: any) => (
+                                                                <Chip key={inv.id} size="small" variant="outlined" label={`${inv.warehouse?.name || 'Almacén'}: ${inv.quantity}`} />
+                                                            ))}
+                                                        </Box>
+                                                    </Box>
+                                                )}
                                             </Box>
                                         }
                                     />

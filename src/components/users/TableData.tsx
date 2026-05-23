@@ -29,6 +29,7 @@ export const TableData = ({ data }: DataProps) => {
         status: data.status,
         delivery_cost: data.delivery_cost ?? 0,
         is_lite_view: Boolean(data.is_lite_view),
+        can_handle_no_stock: Boolean(data.can_handle_no_stock),
     }
     const [info, setInfo] = useState<UserType>(data);
     const [values, setValues] = useState<InitialValues>(initialValues);
@@ -52,7 +53,7 @@ export const TableData = ({ data }: DataProps) => {
         const url = `/user/${data.id}`;
         const body = new URLSearchParams();
         for (const [key, value] of Object.entries(values)) {
-            if (key === 'is_lite_view') {
+            if (key === 'is_lite_view' || key === 'can_handle_no_stock') {
                 body.append(key, value ? '1' : '0');
             } else {
                 body.append(key, String(value));
@@ -122,10 +123,22 @@ export const TableData = ({ data }: DataProps) => {
                         )}
                     </TableCell>
                     <TableCell sx={{ whiteSpace: 'nowrap', textAlign: 'center' }}>
-                        <Switch
-                            checked={Boolean(values.is_lite_view)}
-                            onChange={(e) => setValues({ ...values, is_lite_view: e.target.checked })}
-                        />
+                        <Box display="flex" flexDirection="column" gap={1}>
+                            <Box display="flex" alignItems="center" gap={1}>
+                                <Switch
+                                    checked={Boolean(values.is_lite_view)}
+                                    onChange={(e) => setValues({ ...values, is_lite_view: e.target.checked })}
+                                />
+                                <span style={{ fontSize: '0.75rem' }}>Vista Lite</span>
+                            </Box>
+                            <Box display="flex" alignItems="center" gap={1}>
+                                <Switch
+                                    checked={Boolean(values.can_handle_no_stock)}
+                                    onChange={(e) => setValues({ ...values, can_handle_no_stock: e.target.checked })}
+                                />
+                                <span style={{ fontSize: '0.75rem' }}>Sin Stock</span>
+                            </Box>
+                        </Box>
                     </TableCell>
                     <TableCell sx={{ whiteSpace: 'nowrap', textAlign: 'center' }}>
                         <Stack direction="column" spacing={1} alignItems="center">
@@ -174,7 +187,16 @@ export const TableData = ({ data }: DataProps) => {
                         <TableCell sx={{ whiteSpace: 'nowrap', textAlign: 'center' }}>{info.address}</TableCell>
                         <TableCell sx={{ whiteSpace: 'nowrap', textAlign: 'center' }}>{info.delivery_cost || 0}</TableCell>
                         <TableCell sx={{ whiteSpace: 'nowrap', textAlign: 'center' }}>
-                            <Switch checked={Boolean(info.is_lite_view)} disabled />
+                            <Box display="flex" flexDirection="column" gap={0.5}>
+                                <Box display="flex" alignItems="center" gap={0.5}>
+                                    <Switch size="small" checked={Boolean(info.is_lite_view)} disabled />
+                                    <span style={{ fontSize: '0.7rem' }}>Vista Lite</span>
+                                </Box>
+                                <Box display="flex" alignItems="center" gap={0.5}>
+                                    <Switch size="small" checked={Boolean(info.can_handle_no_stock)} disabled />
+                                    <span style={{ fontSize: '0.7rem' }}>Sin Stock</span>
+                                </Box>
+                            </Box>
                         </TableCell>
                         <TableCell sx={{ whiteSpace: 'nowrap', textAlign: 'center' }}>
                             <IconButton onClick={toggleEdit}>

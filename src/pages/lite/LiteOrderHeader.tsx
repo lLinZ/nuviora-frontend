@@ -71,6 +71,22 @@ export const LiteOrderHeader: React.FC<LiteOrderHeaderProps> = ({
                     )}
                 </InfoRow>
 
+                {order.client?.address1 && (
+                    <InfoRow label="Dirección de Envío">
+                        <Typography variant="body1" fontWeight="bold">
+                            {order.client.address1}
+                        </Typography>
+                    </InfoRow>
+                )}
+
+                {order.client?.address2 && (
+                    <InfoRow label="Punto de Referencia">
+                        <Typography variant="body1" fontWeight="bold">
+                            {order.client.address2}
+                        </Typography>
+                    </InfoRow>
+                )}
+
                 <InfoRow
                     label="Ubicación (Ciudad)"
                     action={
