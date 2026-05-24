@@ -41,6 +41,7 @@ import { PurchaseOrders } from './pages/inventory/PurchaseOrders';
 import { QaSuitePage } from './pages/admin/QaSuitePage';
 import { OrdersExportPage } from './pages/admin/OrdersExportPage';
 import { StockExportPage } from './pages/admin/StockExportPage';
+import { RoundRobinControl } from './pages/round-robin/RoundRobinControl';
 
 const useGetTheme = () => {
   const user = useUserStore((state) => state.user);
@@ -128,6 +129,7 @@ function App() {
           <Route path="/admin/qa-suite" element={<RequireRole allowedRoles={['Admin']}><QaSuitePage /></RequireRole>} />
           <Route path="/admin/orders-export" element={<RequireRole allowedRoles={['Admin', 'Gerente']}><OrdersExportPage /></RequireRole>} />
           <Route path="/admin/stock-export" element={<RequireRole allowedRoles={['Admin', 'Gerente']}><StockExportPage /></RequireRole>} />
+          <Route path="/round-robin" element={<RequireRole allowedRoles={['Admin', 'Gerente']}><RoundRobinControl /></RequireRole>} />
 
           {/* VISTA LITE DE VENTAS */}
           <Route path="/ordenes" element={

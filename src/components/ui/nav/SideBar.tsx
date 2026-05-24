@@ -22,7 +22,7 @@ import { InsertDriveFileRounded } from "@mui/icons-material";
 import moment from "moment";
 import { TypographyCustom } from "../../custom";
 import { useUserStore } from "../../../store/user/UserStore";
-import { AssignmentReturnRounded, StoreRounded, HistoryRounded, SwapHorizRounded, EditNoteRounded, StorefrontRounded, PollRounded, MapRounded, PaymentRounded, AccountBalanceRounded, ReceiptLongRounded, SettingsEthernetRounded, AccessTimeRounded, FileDownloadRounded, WarehouseRounded } from "@mui/icons-material";
+import { AssignmentReturnRounded, StoreRounded, HistoryRounded, SwapHorizRounded, EditNoteRounded, StorefrontRounded, PollRounded, MapRounded, PaymentRounded, AccountBalanceRounded, ReceiptLongRounded, SettingsEthernetRounded, AccessTimeRounded, FileDownloadRounded, WarehouseRounded, SyncAltRounded } from "@mui/icons-material";
 import { NotificationBell } from "../notifications/NotificationBell";
 import { WhatsAppBell } from "../notifications/WhatsAppBell";
 
@@ -214,6 +214,12 @@ export const SideBar = () => {
                 text: "Tiendas",
                 icon: <StorefrontRounded />,
                 link: "/shops",
+                roles: ["Admin", "Gerente"],
+            },
+            {
+                text: "Round-Robin",
+                icon: <SyncAltRounded />,
+                link: "/round-robin",
                 roles: ["Admin", "Gerente"],
             },
             {
