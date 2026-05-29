@@ -306,6 +306,36 @@ export const LiteOrderDialog: FC<LiteOrderDialogProps> = ({ id, open, setOpen, o
                     </Alert>
                 )}
 
+                {/* 📦 STOCK DISPONIBLE EN OTROS ALMACENES (solo cuando está en "Sin Stock") */}
+                {order.status?.description === 'Sin Stock' && Array.isArray(order.stock_elsewhere) && order.stock_elsewhere.length > 0 && (
+                    <Alert
+                        severity="success"
+                        variant="outlined"
+                        sx={{ mb: 2, borderRadius: 2, maxWidth: '1000px', margin: '0 auto 16px auto' }}
+                        action={
+                            <ButtonCustom size="small" color="success" onClick={() => setOpenAssignAgency(true)}>
+                                Reasignar agencia
+                            </ButtonCustom>
+                        }
+                    >
+                        <AlertTitle sx={{ fontWeight: 'bold' }}>📦 Hay stock en otros almacenes</AlertTitle>
+                        <Typography variant="body2" sx={{ mb: 1 }}>
+                            Esta orden está en <b>Sin Stock</b> para la agencia actual, pero sí hay existencias en:
+                        </Typography>
+                        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                            {order.stock_elsewhere.map((w: any) => (
+                                <Chip
+                                    key={w.warehouse_id}
+                                    size="small"
+                                    color="success"
+                                    variant="outlined"
+                                    label={w.city_name ? `Agencia: ${w.city_name}` : (w.warehouse_name || w.agency_name || 'Almacén')}
+                                />
+                            ))}
+                        </Box>
+                    </Alert>
+                )}
+
                 {order.scheduled_for && ['Programado para mas tarde', 'Reprogramado para hoy', 'Programado para otro dia', 'Reprogramado'].includes(order.status?.description) && (
                     <Alert severity="info" variant="filled" icon={<ScheduleRounded />} sx={{ mb: 2, borderRadius: 2, maxWidth: '1000px', margin: '0 auto 16px auto', bgcolor: '#fbc02d', color: '#000' }}>
                         <AlertTitle sx={{ fontWeight: 'bold' }}>📅 Entrega Programada</AlertTitle>
@@ -610,7 +640,7 @@ export const LiteOrderDialog: FC<LiteOrderDialogProps> = ({ id, open, setOpen, o
             <ReportNovedadDialog open={openReportNovedad} onClose={() => setOpenReportNovedad(false)} onConfirm={(data) => { if (pendingStatus) changeStatus(pendingStatus.description, { novedad_type: data.type, novedad_description: data.description }); }} />
             <ResolveNovedadDialog open={openResolveNovedad} onClose={() => setOpenResolveNovedad(false)} onConfirm={(resolution) => { if (pendingStatus) changeStatus(pendingStatus.description, { novedad_resolution: resolution }); }} />
             <AssignAgentDialog open={openAssign} onClose={() => setOpenAssign(false)} orderId={order.id} />
-            <AssignAgencyDialog open={openAssignAgency} onClose={() => setOpenAssignAgency(false)} orderId={order.id} />
+            <AssignAgencyDialog open={openAssignAgency} onClose={() => setOpenAssignAgency(false)} orderId={order.id} stockElsewhere={order.stock_elsewhere} />
             <AssignDelivererDialog open={openAssignDeliverer} onClose={() => setOpenAssignDeliverer(false)} orderId={order.id} />
             <LogisticsDialog open={openLogistics} onClose={() => setOpenLogistics(false)} order={order} />
             <DailyRatesDialog open={openRates} onClose={() => setOpenRates(false)} />

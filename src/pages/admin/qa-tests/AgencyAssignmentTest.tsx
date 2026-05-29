@@ -41,7 +41,8 @@ export const AgencyAssignmentTest: React.FC = () => {
     const loadSetup = async () => {
         const [oRes, aRes] = await Promise.all([
             request('/orders', 'GET'),
-            request('/warehouses', 'GET'),
+            // assign-agency espera un id de USUARIO-AGENCIA (no de warehouse).
+            request('/users/role/Agencia', 'GET'),
         ]);
         if (oRes.status === 200) {
             const j = await oRes.response.json();
@@ -58,7 +59,7 @@ export const AgencyAssignmentTest: React.FC = () => {
             const list = j.data?.data ?? j.data ?? j ?? [];
             setAgencies(list
                 .filter((w: any) => w.is_active !== false)
-                .map((w: any) => ({ id: w.id, name: w.name }))
+                .map((w: any) => ({ id: w.id, name: w.primary_city ? `Agencia: ${w.primary_city}` : (w.names ?? w.name) }))
             );
         }
     };

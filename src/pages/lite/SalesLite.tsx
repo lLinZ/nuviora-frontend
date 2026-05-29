@@ -247,6 +247,18 @@ const LiteOrderTable = ({ statusTitle, searchTerm, onRefresh, onDataUpdate }: an
                                             }
                                         </Typography>
                                     )}
+                                    {order.status?.description === 'Sin Stock' && Array.isArray(order.stock_elsewhere) && order.stock_elsewhere.length > 0 && (
+                                        <Tooltip title={`Disponible en: ${order.stock_elsewhere.map((w: any) => w.city_name ? `Agencia: ${w.city_name}` : (w.warehouse_name || 'Almacén')).join(', ')}. Abre la orden para reasignar la agencia.`}>
+                                            <Typography
+                                                variant="caption"
+                                                display="block"
+                                                onClick={(e) => { e.stopPropagation(); handleOpenOrder(order, 'detail'); }}
+                                                sx={{ mt: 0.5, fontWeight: 'bold', color: 'success.main', cursor: 'pointer' }}
+                                            >
+                                                📦 Hay stock en otra agencia
+                                            </Typography>
+                                        </Tooltip>
+                                    )}
                                     <Box sx={{ mt: 0.5 }}>
                                         <OrderTimer
                                             receivedAt={order.status?.description === 'Novedades' ? order.updated_at : order.received_at}

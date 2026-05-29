@@ -1,4 +1,4 @@
-import { AppBar, Box, Dialog, DialogActions, Divider, IconButton, Toolbar, Typography, useTheme, DialogContent, Tab, Tabs, Grid, Paper, Tooltip, Zoom, Fab, Menu, MenuItem, ListItemIcon, ListItemText, DialogTitle, TextField, Button, Alert, AlertTitle, Badge } from "@mui/material";
+import { AppBar, Box, Dialog, DialogActions, Divider, IconButton, Toolbar, Typography, useTheme, DialogContent, Tab, Tabs, Grid, Paper, Tooltip, Zoom, Fab, Menu, MenuItem, ListItemIcon, ListItemText, DialogTitle, TextField, Button, Alert, AlertTitle, Badge, Chip } from "@mui/material";
 import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
 import React, { FC, useState, useEffect } from "react";
 import { darken, lighten } from "@mui/material/styles";
@@ -548,6 +548,45 @@ export const OrderDialog: FC<OrderDialogProps> = ({ id, open, setOpen }) => {
                             </Paper>
                         )}
 
+                        {/* 📦 STOCK DISPONIBLE EN OTROS ALMACENES (solo cuando está en "Sin Stock") */}
+                        {order.status?.description === 'Sin Stock' && Array.isArray(order.stock_elsewhere) && order.stock_elsewhere.length > 0 && (
+                            <Paper elevation={0} sx={{
+                                p: 2, mb: 3,
+                                borderRadius: 3,
+                                bgcolor: 'rgba(46, 125, 50, 0.1)',
+                                border: '1px solid',
+                                borderColor: 'success.main',
+                            }}>
+                                <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-start', mb: 1.5 }}>
+                                    <Inventory2OutlinedIcon color="success" />
+                                    <Box>
+                                        <Typography variant="subtitle2" fontWeight="bold" color="success.main">
+                                            Hay stock en otros almacenes
+                                        </Typography>
+                                        <Typography variant="body2">
+                                            Esta orden está en <b>Sin Stock</b> para la agencia actual, pero sí hay existencias en los siguientes almacenes. Puedes reasignar la agencia para mover la orden a otro estado.
+                                        </Typography>
+                                    </Box>
+                                </Box>
+                                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 1.5, pl: { sm: 5 } }}>
+                                    {order.stock_elsewhere.map((w: any) => (
+                                        <Chip
+                                            key={w.warehouse_id}
+                                            color="success"
+                                            variant="outlined"
+                                            icon={<Inventory2OutlinedIcon />}
+                                            label={w.city_name ? `Agencia: ${w.city_name}` : (w.warehouse_name || w.agency_name || 'Almacén')}
+                                        />
+                                    ))}
+                                </Box>
+                                <Box sx={{ pl: { sm: 5 } }}>
+                                    <ButtonCustom size="small" color="success" onClick={() => setOpenAssignAgency(true)}>
+                                        Reasignar agencia
+                                    </ButtonCustom>
+                                </Box>
+                            </Paper>
+                        )}
+
                         {(Boolean(order.is_return) || Boolean(order.is_exchange)) && (
                             <Alert severity="warning" variant="outlined" sx={{ mb: 3, borderRadius: 3 }}>
                                 <AlertTitle fontWeight="black" sx={{ fontSize: '1.1rem' }}>
@@ -961,7 +1000,7 @@ export const OrderDialog: FC<OrderDialogProps> = ({ id, open, setOpen }) => {
                 <ReportNovedadDialog open={openReportNovedad} onClose={() => setOpenReportNovedad(false)} onConfirm={(data) => { if (pendingStatus) changeStatus(pendingStatus.description, { novedad_type: data.type, novedad_description: data.description }); }} />
                 <ResolveNovedadDialog open={openResolveNovedad} onClose={() => setOpenResolveNovedad(false)} onConfirm={(resolution) => { if (pendingStatus) changeStatus(pendingStatus.description, { novedad_resolution: resolution }); }} />
                 <AssignAgentDialog open={openAssign} onClose={() => setOpenAssign(false)} orderId={order.id} />
-                <AssignAgencyDialog open={openAssignAgency} onClose={() => setOpenAssignAgency(false)} orderId={order.id} />
+                <AssignAgencyDialog open={openAssignAgency} onClose={() => setOpenAssignAgency(false)} orderId={order.id} stockElsewhere={order.stock_elsewhere} />
                 <AssignDelivererDialog open={openAssignDeliverer} onClose={() => setOpenAssignDeliverer(false)} orderId={order.id} />
                 <LogisticsDialog open={openLogistics} onClose={() => setOpenLogistics(false)} order={order} />
                 <DailyRatesDialog open={openRates} onClose={() => setOpenRates(false)} />

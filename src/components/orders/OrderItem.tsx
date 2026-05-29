@@ -289,6 +289,31 @@ export const OrderItem: FC<OrderItemProps> = ({ order }) => {
                 </Tooltip>
             )}
 
+            {/* 📦 INDICADOR: Sin Stock aquí pero disponible en otro almacén */}
+            {order.status?.description === ORDER_STATUS.SIN_STOCK && Array.isArray(order.stock_elsewhere) && order.stock_elsewhere.length > 0 && (
+                <Tooltip title={`Disponible en: ${order.stock_elsewhere.map((w: any) => w.city_name ? `Agencia: ${w.city_name}` : (w.warehouse_name || 'Almacén')).join(', ')}. Reasigna la agencia para continuar.`}>
+                    <Box
+                        onClick={(e) => { e.stopPropagation(); setActiveModal('assign_agency', order); }}
+                        sx={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 0.5,
+                            mb: 1,
+                            px: 1,
+                            py: 0.4,
+                            borderRadius: 2,
+                            cursor: 'pointer',
+                            bgcolor: 'rgba(46, 125, 50, 0.12)',
+                            border: '1px solid rgba(46, 125, 50, 0.35)',
+                        }}
+                    >
+                        <Box component="span" sx={{ fontSize: '0.7rem', fontWeight: 'bold', color: 'success.main' }}>
+                            📦 Hay stock en otra agencia
+                        </Box>
+                    </Box>
+                </Tooltip>
+            )}
+
             <Box onClick={handleOpen} sx={{ cursor: "pointer" }}>
                 <TypographyCustom
                     variant="subtitle2"

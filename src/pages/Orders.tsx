@@ -442,6 +442,7 @@ export const Orders = () => {
                     open={true}
                     onClose={() => setActiveModal(null)}
                     orderId={activeModal.data.id}
+                    stockElsewhere={activeModal.data.stock_elsewhere}
                 />
             )}
             {activeModal.type === 'novelty' && activeModal.data && (
