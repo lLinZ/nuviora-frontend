@@ -47,10 +47,19 @@ export const useOrderDialogLogic = (
     const fetchOrder = async () => {
         if (!id) return;
         const { status, response }: IResponse = await request(`/orders/${id}`, "GET");
-        if (status) {
+        if (status === 200) {
             const data = await response.json();
             setSelectedOrder(data.order);
             setNewLocation(data.order.location || "");
+        } else if (status === 403) {
+            // 🔒 No es su orden: cerrar y avisar sin dejar el diálogo en blanco.
+            toast.error("No tienes permiso para ver esta orden.");
+            setSelectedOrder(null);
+            setOpen(false);
+        } else {
+            toast.error("No se pudo cargar la orden.");
+            setSelectedOrder(null);
+            setOpen(false);
         }
     };
 
