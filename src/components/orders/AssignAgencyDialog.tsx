@@ -84,15 +84,15 @@ export const AssignAgencyDialog: FC<AssignAgencyDialogProps> = ({
                 body
             );
 
-            if (status) {
+            if (status === 200) {
                 const data = await response.json();
                 updateOrderInColumns(data.order);
 
                 if (onAssigned) onAssigned(data.order.agency);
 
-                toast.success(
-                    `Orden #${data.order.name} asignada a la agencia ${data.order.agency.names} 🏢`
-                );
+                // Usamos el mensaje del backend: distingue entre "avanzó de status"
+                // y "se reasignó pero el nuevo almacén tampoco tiene stock".
+                toast.success(data.message || `Orden #${data.order.name} reasignada 🏢`);
                 onClose();
             } else {
                 toast.error("No se pudo asignar la agencia ❌");
