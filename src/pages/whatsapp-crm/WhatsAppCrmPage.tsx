@@ -56,6 +56,7 @@ export const WhatsAppCrmPage = () => {
     const [conversations, setConversations] = useState<CrmConversation[]>([]);
     const [selected, setSelected] = useState<CrmConversation | null>(null);
     const [loading, setLoading] = useState(true);
+    const [initialLoad, setInitialLoad] = useState(true);
     const [searchTerm, setSearchTerm] = useState("");
     const [bucket, setBucket] = useState<BucketFilter>("all");
     const [agentId, setAgentId] = useState<string>("");
@@ -165,6 +166,7 @@ export const WhatsAppCrmPage = () => {
             console.error("Error fetching CRM conversations", err);
         } finally {
             setLoading(false);
+            setInitialLoad(false);
         }
     }, [agentId, page, bucket, searchTerm, sortBy]);
 
@@ -355,7 +357,7 @@ export const WhatsAppCrmPage = () => {
     return (
         <Layout noMargin>
             <Paper elevation={0} sx={{ display: "flex", height: "100vh", borderRadius: 0, overflow: "hidden", bgcolor: "background.default" }}>
-                {loading && conversations.length === 0 ? (
+                {initialLoad ? (
                     <Box sx={{ display: "flex", flex: 1, justifyContent: "center", alignItems: "center" }}>
                         <CircularProgress />
                     </Box>
