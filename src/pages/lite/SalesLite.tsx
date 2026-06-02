@@ -2,6 +2,7 @@ import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { LiteNotificationBell } from './LiteNotificationBell';
 import { LiteWhatsAppBell } from './LiteWhatsAppBell';
+import { InternalChatBell } from '../../components/ui/notifications/InternalChatBell';
 import {
     Box,
     Typography,
@@ -578,6 +579,7 @@ export const SalesLite = () => {
                         </Tooltip>
                         <LiteSettingsMenu />
                         <LiteWhatsAppBell />
+                        <InternalChatBell />
                         <LiteNotificationBell />
                         <IconButton size="small" onClick={() => setShowTestPanel(!showTestPanel)} sx={{ color: 'warning.main', bgcolor: alpha(theme.palette.warning.main, 0.1) }}>
                             <NotificationsRounded fontSize="small" />

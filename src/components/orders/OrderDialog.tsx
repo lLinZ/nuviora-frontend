@@ -1,4 +1,5 @@
 import { AppBar, Box, Dialog, DialogActions, Divider, IconButton, Toolbar, Typography, useTheme, DialogContent, Tab, Tabs, Grid, Paper, Tooltip, Zoom, Fab, Menu, MenuItem, ListItemIcon, ListItemText, DialogTitle, TextField, Button, Alert, AlertTitle, Badge, Chip } from "@mui/material";
+import ForumRoundedIcon from "@mui/icons-material/ForumRounded";
 import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
 import React, { FC, useState, useEffect } from "react";
 import { darken, lighten } from "@mui/material/styles";
@@ -360,6 +361,19 @@ export const OrderDialog: FC<OrderDialogProps> = ({ id, open, setOpen }) => {
                                         #{order.name}
                                     </Typography>
                                 </Box>
+
+                                {order.agent_id && order.agency_id &&
+                                 ['Vendedor', 'Agencia', 'Admin', 'Gerente', 'Master'].includes(user.role?.description || '') && (
+                                    <Tooltip title={user.role?.description === 'Agencia' ? 'Chat con la vendedora' : 'Chat con la agencia'}>
+                                        <IconButton
+                                            size="small"
+                                            onClick={() => window.open(`/internal-chat?order=${order.id}`, "_blank")}
+                                            sx={{ color: 'white', bgcolor: 'rgba(255,255,255,0.15)', '&:hover': { bgcolor: 'rgba(255,255,255,0.28)' } }}
+                                        >
+                                            <ForumRoundedIcon fontSize="small" />
+                                        </IconButton>
+                                    </Tooltip>
+                                )}
 
                                 <Divider orientation="vertical" flexItem sx={{ bgcolor: 'rgba(255,255,255,0.2)', mx: 1, display: { xs: 'none', md: 'block' } }} />
 

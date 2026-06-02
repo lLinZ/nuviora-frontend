@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 import {
     Box, Typography, List, ListItemButton, ListItemText, Avatar, Divider, TextField,
-    IconButton, CircularProgress, Badge, Dialog, DialogTitle, DialogContent, List as MuiList,
-    ListItemButton as PickItem, Chip, Tooltip,
+    IconButton, CircularProgress, Badge, Dialog, DialogTitle, DialogContent,
+    InputAdornment, Chip, Tooltip,
 } from "@mui/material";
-import { SendRounded, AddCommentRounded, PersonRounded } from "@mui/icons-material";
+import { SendRounded, AddCommentRounded, SearchRounded, ReceiptLongRounded, ArrowBackRounded } from "@mui/icons-material";
+import { useSearchParams, useNavigate } from "react-router-dom";
 import dayjs from "dayjs";
 import { toast } from "react-toastify";
 
@@ -14,11 +15,15 @@ import { useValidateSession } from "../../hooks/useValidateSession";
 import { request } from "../../common/request";
 import { useSocketStore } from "../../store/sockets/SocketStore";
 
+interface Party { id: number; name: string }
+
 interface Conversation {
     id: number;
-    counterpart: { id: number; name: string } | null;
-    vendedor: { id: number; name: string } | null;
-    agency: { id: number; name: string } | null;
+    order: { id: number; name: string } | null;
+    client: string | null;
+    counterpart: Party | null;
+    vendedor: Party | null;
+    agency: Party | null;
     last_message: { body: string; sender_id: number; created_at: string } | null;
     last_message_at: string | null;
     unread: number;
@@ -27,35 +32,43 @@ interface Conversation {
 interface Message {
     id: number;
     sender_id: number;
-    sender: { id: number; name: string } | null;
+    sender: Party | null;
     body: string;
-    order_id: number | null;
     read_at: string | null;
     created_at: string;
     mine?: boolean;
 }
 
-interface Contact {
-    id: number;
-    name: string;
+interface OrderResult {
+    order_id: number;
+    order_name: string;
+    client: string | null;
+    counterpart: Party | null;
+    conversation_id: number | null;
 }
 
 export const InternalChatPage = () => {
     const { loadingSession, isValid, user } = useValidateSession();
     const echo = useSocketStore((s) => s.echo);
     const setSocket = useSocketStore((s) => s.setSocket);
+    const [searchParams, setSearchParams] = useSearchParams();
+    const navigate = useNavigate();
 
     const isAdmin = ["Admin", "Gerente", "Master"].includes(user.role?.description ?? "");
+    const isLite = !!user.is_lite_view;
 
     const [conversations, setConversations] = useState<Conversation[]>([]);
-    const [contacts, setContacts] = useState<Contact[]>([]);
     const [selected, setSelected] = useState<Conversation | null>(null);
     const [messages, setMessages] = useState<Message[]>([]);
     const [loadingMessages, setLoadingMessages] = useState(false);
     const [input, setInput] = useState("");
-    const [orderRef, setOrderRef] = useState("");
     const [sending, setSending] = useState(false);
+
+    // Buscador de órdenes
     const [pickerOpen, setPickerOpen] = useState(false);
+    const [searchTerm, setSearchTerm] = useState("");
+    const [searchResults, setSearchResults] = useState<OrderResult[]>([]);
+    const [searching, setSearching] = useState(false);
 
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const selectedRef = useRef<Conversation | null>(null);
@@ -65,25 +78,18 @@ export const InternalChatPage = () => {
         setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }), 80);
     };
 
-    // ── Carga inicial ─────────────────────────────────────────────
     const fetchConversations = async () => {
         const { ok, response } = await request("/internal-chat/conversations", "GET");
         if (ok) setConversations(await response.json());
     };
 
-    const fetchContacts = async () => {
-        const { ok, response } = await request("/internal-chat/contacts", "GET");
-        if (ok) setContacts(await response.json());
-    };
-
     useEffect(() => {
         if (!isValid) return;
         fetchConversations();
-        if (!isAdmin) fetchContacts();
         if (!echo) setSocket();
     }, [isValid]);
 
-    // ── Selección de hilo ─────────────────────────────────────────
+    // ── Abrir un hilo y cargar mensajes ───────────────────────────
     const openConversation = async (conv: Conversation) => {
         setSelected(conv);
         setLoadingMessages(true);
@@ -92,14 +98,64 @@ export const InternalChatPage = () => {
         if (ok) {
             setMessages(await response.json());
             scrollToBottom();
-            // Limpiar el contador local de no-leídos del hilo abierto
             setConversations((prev) => prev.map((c) => (c.id === conv.id ? { ...c, unread: 0 } : c)));
         } else {
             toast.error("No se pudieron cargar los mensajes");
         }
     };
 
-    // ── WebSocket del hilo abierto ─────────────────────────────────
+    // ── Abrir (o crear) el hilo de una orden ──────────────────────
+    const openByOrderId = async (orderId: number) => {
+        const { ok, response } = await request(`/internal-chat/orders/${orderId}/open`, "POST");
+        if (!ok) {
+            const err = await response.json().catch(() => ({}));
+            toast.error(err.message ?? "No se pudo abrir el chat de la orden");
+            return;
+        }
+        const conv = await response.json();
+        await fetchConversations();
+        openConversation({
+            id: conv.id,
+            order: conv.order,
+            client: conv.client,
+            counterpart: conv.counterpart,
+            vendedor: null, agency: null,
+            last_message: null, last_message_at: null, unread: 0,
+        });
+    };
+
+    // ── Deep-link: /internal-chat?order=123 (botón en la orden) ────
+    useEffect(() => {
+        if (!isValid) return;
+        const orderId = searchParams.get("order");
+        if (orderId) {
+            openByOrderId(parseInt(orderId, 10));
+            searchParams.delete("order");
+            setSearchParams(searchParams, { replace: true });
+        }
+    }, [isValid]);
+
+    // ── Buscador de órdenes (debounced) ───────────────────────────
+    useEffect(() => {
+        if (!pickerOpen) return;
+        setSearching(true);
+        const t = setTimeout(async () => {
+            const { ok, response } = await request(
+                `/internal-chat/orders/search?q=${encodeURIComponent(searchTerm)}`, "GET"
+            );
+            setSearching(false);
+            if (ok) setSearchResults(await response.json());
+        }, 300);
+        return () => clearTimeout(t);
+    }, [searchTerm, pickerOpen]);
+
+    const openPicker = () => {
+        setSearchTerm("");
+        setSearchResults([]);
+        setPickerOpen(true);
+    };
+
+    // ── WebSocket del hilo abierto ────────────────────────────────
     useEffect(() => {
         if (!echo || !selected) return;
         const channelName = `internal-chat.${selected.id}`;
@@ -113,7 +169,6 @@ export const InternalChatPage = () => {
                 return [...prev, { ...msg, mine: msg.sender_id === user.id }];
             });
             scrollToBottom();
-            // Marcar como leído lo recibido si no es mío
             if (msg.sender_id !== user.id) {
                 request(`/internal-chat/conversations/${selectedRef.current?.id}/read`, "POST");
             }
@@ -121,13 +176,10 @@ export const InternalChatPage = () => {
 
         channel.listen(".App\\Events\\InternalMessageSent", onMessage);
         channel.listen("InternalMessageSent", onMessage);
-
-        return () => {
-            echo.leave(channelName);
-        };
+        return () => { echo.leave(channelName); };
     }, [echo, selected?.id]);
 
-    // ── Canal personal: refrescar bandeja ante cualquier mensaje ──
+    // ── Canal personal: refrescar bandeja ─────────────────────────
     useEffect(() => {
         if (!echo || !user.id) return;
         const channelName = `App.Models.User.${user.id}`;
@@ -135,41 +187,26 @@ export const InternalChatPage = () => {
 
         const onAny = (e: any) => {
             const msg = e?.message;
-            // Si el mensaje no es del hilo abierto, refrescamos la bandeja para
-            // actualizar último mensaje / no-leídos.
-            if (!msg || selectedRef.current?.id !== msg.conversation_id) {
-                fetchConversations();
-            }
+            if (!msg || selectedRef.current?.id !== msg.conversation_id) fetchConversations();
         };
 
         channel.listen(".App\\Events\\InternalMessageSent", onAny);
         channel.listen("InternalMessageSent", onAny);
-
-        return () => {
-            echo.leave(channelName);
-        };
+        return () => { echo.leave(channelName); };
     }, [echo, user.id]);
 
     // ── Enviar ─────────────────────────────────────────────────────
     const sendMessage = async () => {
         if (!selected || !input.trim() || sending) return;
         setSending(true);
-        const body: any = { body: input.trim() };
-        const ref = parseInt(orderRef, 10);
-        if (!isNaN(ref)) body.order_id = ref;
-
         const { ok, response } = await request(
-            `/internal-chat/conversations/${selected.id}/messages`,
-            "POST",
-            body
+            `/internal-chat/conversations/${selected.id}/messages`, "POST", { body: input.trim() }
         );
         setSending(false);
-
         if (ok) {
             const msg = await response.json();
             setMessages((prev) => (prev.some((m) => m.id === msg.id) ? prev : [...prev, msg]));
             setInput("");
-            setOrderRef("");
             scrollToBottom();
             fetchConversations();
         } else {
@@ -178,33 +215,11 @@ export const InternalChatPage = () => {
         }
     };
 
-    // ── Iniciar hilo nuevo ─────────────────────────────────────────
-    const startChat = async (contact: Contact) => {
-        setPickerOpen(false);
-        const { ok, response } = await request("/internal-chat/conversations", "POST", {
-            counterpart_id: contact.id,
-        });
-        if (!ok) {
-            const err = await response.json().catch(() => ({}));
-            toast.error(err.message ?? "No se pudo abrir el chat");
-            return;
-        }
-        const conv = await response.json();
-        await fetchConversations();
-        openConversation({
-            id: conv.id,
-            counterpart: contact,
-            vendedor: null,
-            agency: null,
-            last_message: null,
-            last_message_at: null,
-            unread: 0,
-        });
-    };
-
-    const titleFor = (c: Conversation) => {
+    // ── Etiquetas ──────────────────────────────────────────────────
+    const orderLabel = (c: Conversation) => (c.order?.name ? `Orden ${c.order.name}` : "Orden");
+    const partyLabel = (c: Conversation) => {
         if (isAdmin) return `${c.vendedor?.name ?? "?"} ↔ ${c.agency?.name ?? "?"}`;
-        return c.counterpart?.name ?? "Conversación";
+        return c.counterpart?.name ?? "";
     };
 
     if (loadingSession) return <Loading />;
@@ -214,12 +229,21 @@ export const InternalChatPage = () => {
         <Layout noMargin>
             <Box sx={{ display: "flex", height: "100vh", overflow: "hidden" }}>
                 {/* ── Bandeja ────────────────────────────── */}
-                <Box sx={{ width: 320, borderRight: "1px solid", borderColor: "divider", display: "flex", flexDirection: "column" }}>
+                <Box sx={{ width: 340, borderRight: "1px solid", borderColor: "divider", display: "flex", flexDirection: "column" }}>
                     <Box sx={{ p: 2, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                        <Typography variant="h6" fontWeight="bold">Chat interno</Typography>
+                        <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+                            {isLite && (
+                                <Tooltip title="Volver">
+                                    <IconButton size="small" onClick={() => navigate("/orders")}>
+                                        <ArrowBackRounded />
+                                    </IconButton>
+                                </Tooltip>
+                            )}
+                            <Typography variant="h6" fontWeight="bold">Chat interno</Typography>
+                        </Box>
                         {!isAdmin && (
-                            <Tooltip title="Nuevo chat">
-                                <IconButton color="primary" onClick={() => setPickerOpen(true)}>
+                            <Tooltip title="Nuevo chat por orden">
+                                <IconButton color="primary" onClick={openPicker}>
                                     <AddCommentRounded />
                                 </IconButton>
                             </Tooltip>
@@ -230,7 +254,7 @@ export const InternalChatPage = () => {
                         {conversations.length === 0 && (
                             <Box sx={{ p: 4, textAlign: "center", opacity: 0.6 }}>
                                 <Typography variant="body2" color="text.secondary">
-                                    {isAdmin ? "No hay conversaciones." : "Inicia un chat con el botón +"}
+                                    {isAdmin ? "No hay conversaciones." : "Busca una orden con el botón +"}
                                 </Typography>
                             </Box>
                         )}
@@ -242,10 +266,10 @@ export const InternalChatPage = () => {
                                 sx={{ gap: 1.5 }}
                             >
                                 <Badge color="error" badgeContent={c.unread} overlap="circular">
-                                    <Avatar sx={{ bgcolor: "primary.main" }}><PersonRounded /></Avatar>
+                                    <Avatar sx={{ bgcolor: "primary.main" }}><ReceiptLongRounded /></Avatar>
                                 </Badge>
                                 <ListItemText
-                                    primary={titleFor(c)}
+                                    primary={`${orderLabel(c)} · ${partyLabel(c)}`}
                                     secondary={c.last_message?.body ?? "Sin mensajes"}
                                     primaryTypographyProps={{ noWrap: true, fontWeight: c.unread ? "bold" : "normal" }}
                                     secondaryTypographyProps={{ noWrap: true }}
@@ -264,8 +288,17 @@ export const InternalChatPage = () => {
                     ) : (
                         <>
                             <Box sx={{ p: 2, borderBottom: "1px solid", borderColor: "divider", display: "flex", alignItems: "center", gap: 1.5 }}>
-                                <Avatar sx={{ bgcolor: "primary.main" }}><PersonRounded /></Avatar>
-                                <Typography variant="subtitle1" fontWeight="bold">{titleFor(selected)}</Typography>
+                                <Avatar sx={{ bgcolor: "primary.main" }}><ReceiptLongRounded /></Avatar>
+                                <Box>
+                                    <Typography variant="subtitle1" fontWeight="bold" sx={{ lineHeight: 1.2 }}>
+                                        {orderLabel(selected)} · {partyLabel(selected)}
+                                    </Typography>
+                                    {selected.client && (
+                                        <Typography variant="caption" color="text.secondary">
+                                            Cliente: {selected.client}
+                                        </Typography>
+                                    )}
+                                </Box>
                             </Box>
 
                             <Box sx={{ flex: 1, overflowY: "auto", p: 2, display: "flex", flexDirection: "column", gap: 1 }}>
@@ -287,9 +320,6 @@ export const InternalChatPage = () => {
                                                     color: mine ? "primary.contrastText" : "text.primary",
                                                     boxShadow: 1,
                                                 }}>
-                                                    {m.order_id && (
-                                                        <Chip size="small" label={`Pedido #${m.order_id}`} sx={{ mb: 0.5 }} />
-                                                    )}
                                                     <Typography variant="body2" sx={{ whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
                                                         {m.body}
                                                     </Typography>
@@ -304,28 +334,14 @@ export const InternalChatPage = () => {
                                 <div ref={messagesEndRef} />
                             </Box>
 
-                            {/* Input — los admins observan; no escriben salvo intervención */}
                             <Box sx={{ p: 2, borderTop: "1px solid", borderColor: "divider", display: "flex", gap: 1, alignItems: "flex-end" }}>
                                 <TextField
-                                    size="small"
-                                    sx={{ width: 130 }}
-                                    label="Pedido # (opc.)"
-                                    value={orderRef}
-                                    onChange={(e) => setOrderRef(e.target.value.replace(/\D/g, ""))}
-                                />
-                                <TextField
-                                    fullWidth
-                                    multiline
-                                    maxRows={4}
-                                    size="small"
+                                    fullWidth multiline maxRows={4} size="small"
                                     placeholder="Escribe un mensaje…"
                                     value={input}
                                     onChange={(e) => setInput(e.target.value)}
                                     onKeyDown={(e) => {
-                                        if (e.key === "Enter" && !e.shiftKey) {
-                                            e.preventDefault();
-                                            sendMessage();
-                                        }
+                                        if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); }
                                     }}
                                 />
                                 <IconButton color="primary" onClick={sendMessage} disabled={sending || !input.trim()}>
@@ -337,23 +353,43 @@ export const InternalChatPage = () => {
                 </Box>
             </Box>
 
-            {/* ── Selector de contacto para nuevo hilo ── */}
-            <Dialog open={pickerOpen} onClose={() => setPickerOpen(false)} fullWidth maxWidth="xs">
-                <DialogTitle>Iniciar chat</DialogTitle>
+            {/* ── Buscador de órdenes para nuevo hilo ── */}
+            <Dialog open={pickerOpen} onClose={() => setPickerOpen(false)} fullWidth maxWidth="sm">
+                <DialogTitle>Iniciar chat — busca una orden</DialogTitle>
                 <DialogContent dividers>
-                    {contacts.length === 0 ? (
+                    <TextField
+                        autoFocus fullWidth size="small" placeholder="Número de orden o cliente…"
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        InputProps={{
+                            startAdornment: (
+                                <InputAdornment position="start"><SearchRounded /></InputAdornment>
+                            ),
+                        }}
+                        sx={{ mb: 1 }}
+                    />
+                    {searching ? (
+                        <Box sx={{ textAlign: "center", py: 3 }}><CircularProgress size={24} /></Box>
+                    ) : searchResults.length === 0 ? (
                         <Typography variant="body2" color="text.secondary" sx={{ py: 2 }}>
-                            No hay contactos disponibles.
+                            No se encontraron órdenes asignadas.
                         </Typography>
                     ) : (
-                        <MuiList>
-                            {contacts.map((ct) => (
-                                <PickItem key={ct.id} onClick={() => startChat(ct)}>
-                                    <Avatar sx={{ bgcolor: "primary.main", mr: 1.5 }}><PersonRounded /></Avatar>
-                                    <ListItemText primary={ct.name} />
-                                </PickItem>
+                        <List>
+                            {searchResults.map((o) => (
+                                <ListItemButton
+                                    key={o.order_id}
+                                    onClick={() => { setPickerOpen(false); openByOrderId(o.order_id); }}
+                                >
+                                    <Avatar sx={{ bgcolor: "primary.main", mr: 1.5 }}><ReceiptLongRounded /></Avatar>
+                                    <ListItemText
+                                        primary={`Orden ${o.order_name} · ${o.counterpart?.name ?? ""}`}
+                                        secondary={o.client ?? undefined}
+                                    />
+                                    {o.conversation_id && <Chip size="small" color="success" label="Chat activo" />}
+                                </ListItemButton>
                             ))}
-                        </MuiList>
+                        </List>
                     )}
                 </DialogContent>
             </Dialog>

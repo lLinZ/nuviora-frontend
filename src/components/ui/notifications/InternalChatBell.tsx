@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { IconButton, Badge, Tooltip } from "@mui/material";
 import ForumRoundedIcon from "@mui/icons-material/ForumRounded";
-import { useNavigate } from "react-router-dom";
 import { request } from "../../../common/request";
 import { useSocketStore } from "../../../store/sockets/SocketStore";
 import { useUserStore } from "../../../store/user/UserStore";
@@ -12,7 +11,6 @@ import { useUserStore } from "../../../store/user/UserStore";
  * usuario para incrementar en vivo. Solo aplica a Vendedor y Agencia.
  */
 export const InternalChatBell = () => {
-    const navigate = useNavigate();
     const user = useUserStore((s) => s.user);
     const echo = useSocketStore((s) => s.echo);
     const setSocket = useSocketStore((s) => s.setSocket);
@@ -62,7 +60,7 @@ export const InternalChatBell = () => {
     return (
         <Tooltip title="Chat interno">
             <IconButton
-                onClick={() => navigate("/internal-chat")}
+                onClick={() => window.open("/internal-chat", "_blank")}
                 sx={{
                     color: "inherit",
                     "&:hover": { bgcolor: "rgba(255,255,255,0.15)" },

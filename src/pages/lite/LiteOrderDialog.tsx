@@ -5,6 +5,7 @@ import {
     Toolbar,
     Typography,
     IconButton,
+    Tooltip,
     Box,
     useTheme,
     darken,
@@ -35,6 +36,7 @@ import { OrderProductItem } from "../../components/orders/OrderProductItem";
 import { OrderTimer } from "../../components/orders/OrderTimer";
 import { OrderWhatsApp } from "../../components/orders/OrderWhatsApp";
 import MessageRoundedIcon from '@mui/icons-material/MessageRounded';
+import ForumRoundedIcon from '@mui/icons-material/ForumRounded';
 import { ButtonCustom } from "../../components/custom";
 import { ProductSearchDialog } from "../../components/products/ProductsSearchDialog";
 import { fmtMoney } from "../../lib/money";
@@ -236,6 +238,17 @@ export const LiteOrderDialog: FC<LiteOrderDialogProps> = ({ id, open, setOpen, o
                     </Box>
 
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                        {/* CHAT INTERNO CON LA AGENCIA */}
+                        {order.agent_id && order.agency_id && (
+                            <Tooltip title="Chat con la agencia">
+                                <IconButton
+                                    onClick={() => window.open(`/internal-chat?order=${order.id}`, "_blank")}
+                                    color="primary"
+                                >
+                                    <ForumRoundedIcon />
+                                </IconButton>
+                            </Tooltip>
+                        )}
                         {/* RATES BUTTON */}
                         <IconButton
                             onClick={() => setOpenRates(true)}

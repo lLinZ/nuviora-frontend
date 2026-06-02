@@ -417,7 +417,7 @@ const SideBarLink: FC<SideBarLinkProps> = ({ icon, text, link, open, matches }) 
     const user = useUserStore((state) => state.user);
 
     const onClick = (link: string) => {
-        if (link === "/whatsapp" || link === "/whatsapp-old") {
+        if (link === "/whatsapp" || link === "/whatsapp-old" || link === "/internal-chat") {
             window.open(link, "_blank");
         } else {
             navigate(link);
