@@ -17,6 +17,7 @@ import LocalMallRoundedIcon from "@mui/icons-material/LocalMallRounded";
 import SavingsRoundedIcon from "@mui/icons-material/SavingsRounded";
 import BarChartRoundedIcon from "@mui/icons-material/BarChartRounded";
 import WhatsAppIcon from "@mui/icons-material/WhatsApp";
+import ForumRoundedIcon from "@mui/icons-material/ForumRounded";
 import { InsertDriveFileRounded } from "@mui/icons-material";
 
 import moment from "moment";
@@ -25,6 +26,7 @@ import { useUserStore } from "../../../store/user/UserStore";
 import { AssignmentReturnRounded, StoreRounded, HistoryRounded, SwapHorizRounded, EditNoteRounded, StorefrontRounded, PollRounded, MapRounded, PaymentRounded, AccountBalanceRounded, ReceiptLongRounded, SettingsEthernetRounded, AccessTimeRounded, FileDownloadRounded, WarehouseRounded, SyncAltRounded } from "@mui/icons-material";
 import { NotificationBell } from "../notifications/NotificationBell";
 import { WhatsAppBell } from "../notifications/WhatsAppBell";
+import { InternalChatBell } from "../notifications/InternalChatBell";
 
 const Clock = () => {
     const [time, setTime] = useState<string>(moment().format("h:mm A"));
@@ -113,6 +115,12 @@ export const SideBar = () => {
                 icon: <WhatsAppIcon />,
                 link: "/whatsapp",
                 roles: ["Admin", "Gerente", "Vendedor"],
+            },
+            {
+                text: "Chat interno",
+                icon: <ForumRoundedIcon />,
+                link: "/internal-chat",
+                roles: ["Admin", "Gerente", "Master", "Vendedor", "Agencia"],
             },
             /**             {                text: "WhatsApp (Anterior)",
                 icon: <HistoryRounded />,
@@ -369,6 +377,7 @@ export const SideBar = () => {
                             </IconButton>
 
                             <WhatsAppBell />
+                            <InternalChatBell />
                             <NotificationBell />
 
                             <IconButton sx={{ alignSelf: "flex-end" }} onClick={logout}>

@@ -42,6 +42,7 @@ import { QaSuitePage } from './pages/admin/QaSuitePage';
 import { OrdersExportPage } from './pages/admin/OrdersExportPage';
 import { StockExportPage } from './pages/admin/StockExportPage';
 import { RoundRobinControl } from './pages/round-robin/RoundRobinControl';
+import { InternalChatPage } from './pages/internal-chat/InternalChatPage';
 
 const useGetTheme = () => {
   const user = useUserStore((state) => state.user);
@@ -130,6 +131,9 @@ function App() {
           <Route path="/admin/orders-export" element={<RequireRole allowedRoles={['Admin', 'Gerente']}><OrdersExportPage /></RequireRole>} />
           <Route path="/admin/stock-export" element={<RequireRole allowedRoles={['Admin', 'Gerente']}><StockExportPage /></RequireRole>} />
           <Route path="/round-robin" element={<RequireRole allowedRoles={['Admin', 'Gerente']}><RoundRobinControl /></RequireRole>} />
+
+          {/* Chat interno vendedora <-> agencia */}
+          <Route path="/internal-chat" element={<RequireRole allowedRoles={['Admin', 'Gerente', 'Master', 'Vendedor', 'Agencia']}><InternalChatPage /></RequireRole>} />
 
           {/* VISTA LITE DE VENTAS */}
           <Route path="/ordenes" element={
