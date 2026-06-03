@@ -4,6 +4,7 @@ import ForumRoundedIcon from "@mui/icons-material/ForumRounded";
 import { request } from "../../../common/request";
 import { useSocketStore } from "../../../store/sockets/SocketStore";
 import { useUserStore } from "../../../store/user/UserStore";
+import { playNotificationSound } from "../../../lib/sound";
 
 /**
  * Campanita del chat interno (vendedora <-> agencia).
@@ -42,8 +43,9 @@ export const InternalChatBell = () => {
         const onMessage = (e: any) => {
             // Ignorar mis propios mensajes
             if (e?.message?.sender_id === user.id) return;
-            // Si ya estoy en la página del chat, dejo que la página gestione la lectura
+            // Si ya estoy en la página del chat, dejo que la página gestione sonido/lectura
             if (window.location.pathname === "/internal-chat") return;
+            playNotificationSound();
             setUnread((c) => c + 1);
         };
 

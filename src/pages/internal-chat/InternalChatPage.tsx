@@ -14,6 +14,7 @@ import { Loading } from "../../components/ui/content/Loading";
 import { useValidateSession } from "../../hooks/useValidateSession";
 import { request } from "../../common/request";
 import { useSocketStore } from "../../store/sockets/SocketStore";
+import { playNotificationSound } from "../../lib/sound";
 
 interface Party { id: number; name: string }
 
@@ -170,6 +171,7 @@ export const InternalChatPage = () => {
             });
             scrollToBottom();
             if (msg.sender_id !== user.id) {
+                playNotificationSound();
                 request(`/internal-chat/conversations/${selectedRef.current?.id}/read`, "POST");
             }
         };
@@ -187,7 +189,11 @@ export const InternalChatPage = () => {
 
         const onAny = (e: any) => {
             const msg = e?.message;
-            if (!msg || selectedRef.current?.id !== msg.conversation_id) fetchConversations();
+            // Mensaje de OTRO hilo (no el abierto): refrescar bandeja y sonar.
+            if (!msg || selectedRef.current?.id !== msg.conversation_id) {
+                if (msg && msg.sender_id !== user.id) playNotificationSound();
+                fetchConversations();
+            }
         };
 
         channel.listen(".App\\Events\\InternalMessageSent", onAny);
