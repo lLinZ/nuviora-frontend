@@ -225,7 +225,7 @@ export const InternalChatPage = () => {
     const orderLabel = (c: Conversation) => (c.order?.name ? `Orden ${c.order.name}` : "Orden");
     const partyLabel = (c: Conversation) => {
         if (isAdmin) return `${c.vendedor?.name ?? "?"} ↔ ${c.agency?.name ?? "?"}`;
-        return c.counterpart?.name ?? "";
+        return c.counterpart?.name ?? "(sin agencia)";
     };
 
     if (loadingSession) return <Loading />;
@@ -389,7 +389,7 @@ export const InternalChatPage = () => {
                                 >
                                     <Avatar sx={{ bgcolor: "primary.main", mr: 1.5 }}><ReceiptLongRounded /></Avatar>
                                     <ListItemText
-                                        primary={`Orden ${o.order_name} · ${o.counterpart?.name ?? ""}`}
+                                        primary={`Orden ${o.order_name} · ${o.counterpart?.name ?? "(sin agencia)"}`}
                                         secondary={o.client ?? undefined}
                                     />
                                     {o.conversation_id && <Chip size="small" color="success" label="Chat activo" />}
