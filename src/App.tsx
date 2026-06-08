@@ -43,6 +43,7 @@ import { OrdersExportPage } from './pages/admin/OrdersExportPage';
 import { StockExportPage } from './pages/admin/StockExportPage';
 import { RoundRobinControl } from './pages/round-robin/RoundRobinControl';
 import { InternalChatPage } from './pages/internal-chat/InternalChatPage';
+import { AgencyChatGateModal } from './components/internal-chat/AgencyChatGateModal';
 
 const useGetTheme = () => {
   const user = useUserStore((state) => state.user);
@@ -69,6 +70,7 @@ function App() {
     <ThemeProvider theme={theme}>
       <CssBaseline />
       <BrowserRouter>
+        <AgencyChatGateModal />
         <Routes>
           <Route path="/" element={<Login />} />
           <Route path="/test-register" element={<TestRegister />} />
