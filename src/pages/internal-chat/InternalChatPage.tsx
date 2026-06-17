@@ -65,6 +65,9 @@ export const InternalChatPage = () => {
     const [input, setInput] = useState("");
     const [sending, setSending] = useState(false);
 
+    // ── Buscador de chats en la bandeja ───────────────────────────
+    const [chatSearch, setChatSearch] = useState("");
+
     // Buscador de órdenes
     const [pickerOpen, setPickerOpen] = useState(false);
     const [searchTerm, setSearchTerm] = useState("");
@@ -221,6 +224,25 @@ export const InternalChatPage = () => {
         }
     };
 
+    // ── Filtrado de bandeja ────────────────────────────────────────
+    const filteredConversations = chatSearch.trim()
+        ? conversations.filter((c) => {
+              const q = chatSearch.toLowerCase();
+              const orderName = (c.order?.name ?? "").toLowerCase();
+              const clientName = (c.client ?? "").toLowerCase();
+              const counterpartName = (c.counterpart?.name ?? "").toLowerCase();
+              const vendedorName = (c.vendedor?.name ?? "").toLowerCase();
+              const agencyName = (c.agency?.name ?? "").toLowerCase();
+              return (
+                  orderName.includes(q) ||
+                  clientName.includes(q) ||
+                  counterpartName.includes(q) ||
+                  vendedorName.includes(q) ||
+                  agencyName.includes(q)
+              );
+          })
+        : conversations;
+
     // ── Etiquetas ──────────────────────────────────────────────────
     const orderLabel = (c: Conversation) => (c.order?.name ? `Orden ${c.order.name}` : "Orden");
     const partyLabel = (c: Conversation) => {
@@ -256,15 +278,52 @@ export const InternalChatPage = () => {
                         )}
                     </Box>
                     <Divider />
+
+                    {/* ── Buscador de chats ── */}
+                    <Box sx={{ px: 1.5, py: 1, borderBottom: "1px solid", borderColor: "divider" }}>
+                        <TextField
+                            fullWidth
+                            size="small"
+                            placeholder="Buscar por orden, cliente, agencia…"
+                            value={chatSearch}
+                            onChange={(e) => setChatSearch(e.target.value)}
+                            InputProps={{
+                                startAdornment: (
+                                    <InputAdornment position="start">
+                                        <SearchRounded fontSize="small" sx={{ color: "text.disabled" }} />
+                                    </InputAdornment>
+                                ),
+                                endAdornment: chatSearch ? (
+                                    <InputAdornment position="end">
+                                        <IconButton size="small" onClick={() => setChatSearch("")} edge="end">
+                                            {/* Clear button */}
+                                            <span style={{ fontSize: 14, lineHeight: 1, color: "inherit" }}>✕</span>
+                                        </IconButton>
+                                    </InputAdornment>
+                                ) : undefined,
+                            }}
+                            sx={{
+                                "& .MuiOutlinedInput-root": {
+                                    borderRadius: 2,
+                                    fontSize: "0.82rem",
+                                },
+                            }}
+                        />
+                    </Box>
+
                     <List sx={{ overflowY: "auto", flex: 1, p: 0 }}>
-                        {conversations.length === 0 && (
+                        {filteredConversations.length === 0 && (
                             <Box sx={{ p: 4, textAlign: "center", opacity: 0.6 }}>
                                 <Typography variant="body2" color="text.secondary">
-                                    {isAdmin ? "No hay conversaciones." : "Busca una orden con el botón +"}
+                                    {chatSearch
+                                        ? "No se encontraron conversaciones."
+                                        : isAdmin
+                                        ? "No hay conversaciones."
+                                        : "Busca una orden con el botón +"}
                                 </Typography>
                             </Box>
                         )}
-                        {conversations.map((c) => (
+                        {filteredConversations.map((c) => (
                             <ListItemButton
                                 key={c.id}
                                 selected={selected?.id === c.id}
