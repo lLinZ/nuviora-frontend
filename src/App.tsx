@@ -4,7 +4,6 @@ import { useEffect, useState } from 'react'
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { getThemeLight, getThemeDark } from './common/theme';
 import { Login } from './pages/auth/Login';
-import { TestRegister } from './pages/auth/TestRegister';
 
 import { RecoverPassword } from './pages/auth/RecoverPassword';
 import { ResetPassword } from './pages/auth/ResetPassword';
@@ -73,7 +72,6 @@ function App() {
         <AgencyChatGateModal />
         <Routes>
           <Route path="/" element={<Login />} />
-          <Route path="/test-register" element={<TestRegister />} />
           <Route path="/recover-password" element={<RecoverPassword />} />
           <Route path="/reset-password" element={<ResetPassword />} />
 

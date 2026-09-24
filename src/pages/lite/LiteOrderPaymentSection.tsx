@@ -19,6 +19,7 @@ import { CardMedia } from "@mui/material";
 import { ButtonCustom, SelectCustom } from "../../components/custom";
 import { useUserStore } from "../../store/user/UserStore";
 import { request } from "../../common/request";
+import { receiptUrl, orderPaymentReceiptUrl } from "../../common/receipts";
 import { toast } from "react-toastify";
 import { IResponse } from "../../interfaces/response-type";
 import { green, red, blue } from "@mui/material/colors";
@@ -178,14 +179,13 @@ export const LiteOrderPaymentSection: React.FC<OrderPaymentSectionProps> = ({ or
 
     const getReceiptsList = () => {
         let list: { id?: number, url: string }[] = [];
-        const apiUrl = import.meta.env.VITE_BACKEND_API_URL || 'http://localhost:8000/api';
 
         if (Array.isArray(order.receipts_gallery) && order.receipts_gallery.length > 0) {
-            list = order.receipts_gallery.map((r: any) => ({ id: r.id, url: `${apiUrl}/orders/receipt/${r.id}` }));
+            list = order.receipts_gallery.map((r: any) => ({ id: r.id, url: receiptUrl(r) }));
         } else if (Array.isArray(order.payment_receipts) && order.payment_receipts.length > 0) {
-            list = order.payment_receipts.map((r: any) => ({ id: r.id, url: `${apiUrl}/orders/receipt/${r.id}` }));
+            list = order.payment_receipts.map((r: any) => ({ id: r.id, url: receiptUrl(r) }));
         } else if (order.payment_receipt) {
-            list = [{ url: `${apiUrl}/orders/${order.id}/payment-receipt` }];
+            list = [{ url: orderPaymentReceiptUrl(order) }];
         }
         return list;
     };

@@ -12,6 +12,7 @@ import ArrowForwardIosIcon from '@mui/icons-material/ArrowForwardIos';
 import DeleteRounded from "@mui/icons-material/DeleteRounded";
 import PaymentMethodsSelector, { PaymentMethod } from "./payment_method/PaymentMethod";
 import { request } from "../../common/request";
+import { receiptUrl, orderPaymentReceiptUrl } from "../../common/receipts";
 import { toast } from "react-toastify";
 import { IResponse } from "../../interfaces/response-type";
 import { ButtonCustom } from "../custom";
@@ -81,33 +82,32 @@ export const OrderPaymentSection: React.FC<OrderPaymentSectionProps> = ({ order,
     // Helper to get all receipts
     const getReceiptsList = () => {
         let list: { id?: number, url: string }[] = [];
-        const apiUrl = import.meta.env.VITE_BACKEND_API_URL || 'http://localhost:8000/api';
 
         // 1. Explicit gallery key (newest)
         if (Array.isArray(order.receipts_gallery) && order.receipts_gallery.length > 0) {
             list = order.receipts_gallery.map((r: any) => ({
                 id: r.id,
-                url: `${apiUrl}/orders/receipt/${r.id}`
+                url: receiptUrl(r)
             }));
         }
         // 2. Snake case relation
         else if (Array.isArray(order.payment_receipts) && order.payment_receipts.length > 0) {
             list = order.payment_receipts.map((r: any) => ({
                 id: r.id,
-                url: `${apiUrl}/orders/receipt/${r.id}`
+                url: receiptUrl(r)
             }));
         }
         // 3. Camel case relation
         else if (Array.isArray(order.paymentReceipts) && order.paymentReceipts.length > 0) {
             list = order.paymentReceipts.map((r: any) => ({
                 id: r.id,
-                url: `${apiUrl}/orders/receipt/${r.id}`
+                url: receiptUrl(r)
             }));
         }
 
         // 4. Legacy fallback
         if (list.length === 0 && order.payment_receipt) {
-            list.push({ url: `${apiUrl}/orders/${order.id}/payment-receipt` });
+            list.push({ url: orderPaymentReceiptUrl(order) });
         }
 
         return list;

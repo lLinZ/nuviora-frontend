@@ -16,6 +16,7 @@ import {
 import { ButtonCustom, SelectCustom } from "../../components/custom";
 import { useUserStore } from "../../store/user/UserStore";
 import { request } from "../../common/request";
+import { changeReceiptUrl } from "../../common/receipts";
 import { toast } from "react-toastify";
 import { IResponse } from "../../interfaces/response-type";
 import { IBank } from "../../interfaces/bank.types";
@@ -386,8 +387,7 @@ export const LiteOrderChangeSection: React.FC<OrderChangeSectionProps> = ({ orde
                                 variant="contained"
                                 color="success"
                                 onClick={() => {
-                                    const baseUrl = import.meta.env.VITE_BACKEND_API_URL || import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
-                                    window.open(`${baseUrl}/orders/${order.id}/change-receipt`, '_blank');
+                                    window.open(changeReceiptUrl(order), '_blank');
                                 }}
                                 sx={{ borderRadius: 2, textTransform: 'none', boxShadow: 'none' }}
                             >

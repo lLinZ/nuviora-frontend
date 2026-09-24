@@ -28,6 +28,7 @@ import { Widget } from "../components/widgets/Widget";
 import { toast } from "react-toastify";
 import { useValidateSession } from "../hooks/useValidateSession";
 import { request } from "../common/request";
+import { changeReceiptUrl } from "../common/receipts";
 import { IResponse } from "../interfaces/response-type";
 import { OrderDialog } from "../components/orders/OrderDialog";
 import { PaymentMethodsReport } from "../components/reports/PaymentMethodsReport";
@@ -816,7 +817,7 @@ export const Dashboard = () => {
                                                         label="Ver Recibo"
                                                         size="small"
                                                         variant="outlined"
-                                                        onClick={() => window.open(`${import.meta.env.VITE_BACKEND_API_URL}/orders/${o.id}/change-receipt`, '_blank')}
+                                                        onClick={() => window.open(changeReceiptUrl(o), '_blank')}
                                                         sx={{ cursor: 'pointer' }}
                                                     />
                                                 )}

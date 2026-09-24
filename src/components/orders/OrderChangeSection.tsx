@@ -30,6 +30,7 @@ import CameraAltIcon from '@mui/icons-material/CameraAlt';
 import { ButtonCustom, SelectCustom } from "../custom";
 import { useUserStore } from "../../store/user/UserStore";
 import { request } from "../../common/request";
+import { changeReceiptUrl, withDownload } from "../../common/receipts";
 import { toast } from "react-toastify";
 import { IResponse } from "../../interfaces/response-type";
 import { green, blue, orange, grey, red } from "@mui/material/colors";
@@ -691,8 +692,7 @@ export const OrderChangeSection: React.FC<OrderChangeSectionProps> = ({ order, o
                                             variant="outlined"
                                             startIcon={<VisibilityIcon />}
                                             onClick={() => {
-                                                const url = `${import.meta.env.VITE_BACKEND_API_URL || import.meta.env.VITE_API_URL || 'http://localhost:8000/api'}/orders/${order.id}/change-receipt`;
-                                                window.open(url, '_blank');
+                                                window.open(changeReceiptUrl(order), '_blank');
                                             }}
                                             sx={{ borderColor: green[500], color: green[700] }}
                                         >
@@ -702,8 +702,7 @@ export const OrderChangeSection: React.FC<OrderChangeSectionProps> = ({ order, o
                                             variant="outlined"
                                             startIcon={<DownloadIcon />}
                                             onClick={() => {
-                                                const url = `${import.meta.env.VITE_BACKEND_API_URL || import.meta.env.VITE_API_URL || 'http://localhost:8000/api'}/orders/${order.id}/change-receipt?download=1`;
-                                                window.open(url, '_self');
+                                                window.open(withDownload(changeReceiptUrl(order)), '_self');
                                             }}
                                             sx={{ borderColor: green[500], color: green[700] }}
                                         >
