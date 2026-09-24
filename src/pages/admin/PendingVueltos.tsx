@@ -31,6 +31,17 @@ import moment from 'moment';
 import { blue, green, orange } from '@mui/material/colors';
 import { OrderDialog } from '../../components/orders/OrderDialog';
 
+// 🔥 Tarea 9: monto exacto en bolívares de cada vuelto, con la tasa guardada en la orden (change_rate).
+// Fran: las tasas no se tocan y los vueltos se pagan solo en Bs.
+const isBsMethod = (method?: string) => !!method && (method.startsWith('BOLIVARES') || method === 'PAGOMOVIL');
+const vueltoBs = (order: any): number | null => {
+    const rate = Number(order.change_rate);
+    return rate > 0 ? Number(order.change_amount_company) * rate : null;
+};
+const fmtBs = (n: number) => new Intl.NumberFormat('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n);
+const clientName = (order: any) =>
+    `${order.client?.first_name ?? ''} ${order.client?.last_name ?? ''}`.trim() || 'Cliente sin nombre';
+
 export const PendingVueltos: React.FC = () => {
     const { loadingSession, isValid } = useValidateSession();
     const [orders, setOrders] = useState<any[]>([]);
@@ -77,10 +88,13 @@ export const PendingVueltos: React.FC = () => {
 
         const getBankName = (id: any) => banks.find(b => b.id === id)?.name || "N/A";
 
+        const bs = vueltoBs(order);
+        const amountLine = bs !== null ? `\nMonto: Bs. ${fmtBs(bs)}` : '';
+
         if (method === 'BOLIVARES_PAGOMOVIL') {
-            text = `PAGO MÓVIL\nCédula: ${details.cedula}\nBanco: ${getBankName(details.bank_id)}\nTeléfono: ${details.phone_prefix}${details.phone_number}`;
+            text = `PAGO MÓVIL\nCédula: ${details.cedula}\nBanco: ${getBankName(details.bank_id)}\nTeléfono: ${details.phone_prefix}${details.phone_number}${amountLine}`;
         } else if (method === 'BOLIVARES_TRANSFERENCIA') {
-            text = `TRANSFERENCIA BANCARIA\nCuenta: ${details.account_number}\nCédula: ${details.cedula}\nBanco: ${getBankName(details.bank_id)}`;
+            text = `TRANSFERENCIA BANCARIA\nCuenta: ${details.account_number}\nCédula: ${details.cedula}\nBanco: ${getBankName(details.bank_id)}${amountLine}`;
         } else if (['ZELLE_DOLARES', 'BINANCE_DOLARES', 'PAYPAL_DOLARES', 'ZINLI_DOLARES'].includes(method)) {
             text = `${method.split('_')[0]}: ${details.email}`;
         }
@@ -92,6 +106,11 @@ export const PendingVueltos: React.FC = () => {
     };
 
     if (loadingSession || !isValid) return <Loading />;
+
+    const bsOrders = orders.filter((o) => isBsMethod(o.change_method_company));
+    const totalBs = bsOrders.reduce((acc, o) => acc + (vueltoBs(o) ?? 0), 0);
+    const withoutRate = bsOrders.filter((o) => vueltoBs(o) === null).length;
+    const otherOrders = orders.length - bsOrders.length;
 
     return (
         <Layout>
@@ -109,6 +128,30 @@ export const PendingVueltos: React.FC = () => {
                         <Typography variant="h6">No hay vueltos pendientes por pagar</Typography>
                     </Box>
                 ) : (
+                    <>
+                    <Card sx={{ mt: 2, borderRadius: 4, border: '1px solid', borderColor: 'divider' }}>
+                        <CardContent>
+                            <Typography variant="caption" color="text.secondary" fontWeight="bold">
+                                TOTAL A TRANSFERIR EN BOLÍVARES
+                            </Typography>
+                            <Typography variant="h4" fontWeight="bold" color="success.main">
+                                Bs. {fmtBs(totalBs)}
+                            </Typography>
+                            <Typography variant="body2" color="text.secondary">
+                                {bsOrders.length} vuelto{bsOrders.length === 1 ? '' : 's'} en bolívares, calculado{bsOrders.length === 1 ? '' : 's'} con la tasa guardada en cada orden.
+                            </Typography>
+                            {withoutRate > 0 && (
+                                <Typography variant="body2" color="error">
+                                    ⚠ {withoutRate} orden{withoutRate === 1 ? '' : 'es'} sin tasa guardada: no {withoutRate === 1 ? 'entra' : 'entran'} en el total.
+                                </Typography>
+                            )}
+                            {otherOrders > 0 && (
+                                <Typography variant="body2" color="text.secondary">
+                                    {otherOrders} vuelto{otherOrders === 1 ? '' : 's'} con otro método (dólares) fuera del total.
+                                </Typography>
+                            )}
+                        </CardContent>
+                    </Card>
                     <Grid container spacing={3} sx={{ mt: 1 }}>
                         {orders.map((order) => (
                             <Grid size={{ xs: 12, sm: 6, md: 4 }} key={order.id}>
@@ -142,7 +185,7 @@ export const PendingVueltos: React.FC = () => {
                                         <Stack spacing={1}>
                                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                                                 <PersonRounded fontSize="small" color="disabled" />
-                                                <Typography variant="body2">{order.client?.name || 'Cliente sin nombre'}</Typography>
+                                                <Typography variant="body2">{clientName(order)}</Typography>
                                             </Box>
                                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                                                 <AttachMoneyRounded fontSize="small" color="success" />
@@ -150,6 +193,13 @@ export const PendingVueltos: React.FC = () => {
                                                     Vuelto: ${Number(order.change_amount_company).toFixed(2)}
                                                 </Typography>
                                             </Box>
+                                            {isBsMethod(order.change_method_company) && (
+                                                <Typography variant="body2" sx={{ pl: 4 }} color={vueltoBs(order) === null ? 'error' : 'text.primary'}>
+                                                    {vueltoBs(order) !== null
+                                                        ? <>A transferir: <b>Bs. {fmtBs(vueltoBs(order)!)}</b> (tasa {fmtBs(Number(order.change_rate))})</>
+                                                        : '⚠ Sin tasa guardada en la orden'}
+                                                </Typography>
+                                            )}
                                         </Stack>
 
                                         <Box sx={{ mt: 2, p: 1.5, bgcolor: 'action.hover', borderRadius: 2 }}>
@@ -191,6 +241,7 @@ export const PendingVueltos: React.FC = () => {
                             </Grid>
                         ))}
                     </Grid>
+                    </>
                 )}
             </Box>
 
