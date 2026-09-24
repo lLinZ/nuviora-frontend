@@ -19,6 +19,7 @@ import dayjs from "dayjs";
 import { toast } from "react-toastify";
 import { useNavigate } from "react-router-dom";
 import { request } from "../../../common/request";
+import { WHATSAPP_ACCEPT, whatsappFileTooBig, readUploadError } from "../../../common/whatsappMedia";
 import { CrmConversation } from "./CrmContactCard";
 import { OrderDialog } from "../../../components/orders/OrderDialog";
 import { LiteOrderDialog } from "../../lite/LiteOrderDialog";
@@ -227,14 +228,17 @@ export const CrmChatArea: FC<Props> = ({ selected, incomingMessage, onRefresh, o
     // ── Subir archivo ────────────────────────────────────────────────────────
     const handleUpload = async (file: File) => {
         if (!selected) return;
+        const tooBig = whatsappFileTooBig(file);
+        if (tooBig) { toast.error(tooBig); return; }
         setUploading(true);
         const fd = new FormData(); fd.append("file", file);
         try {
             const { status, response } = await request(`/whatsapp-crm/conversations/${selected.client_id}/media`, "POST", fd);
             if (status === 201 || status === 200) {
                 const json = await response.json(); setMessages((prev) => [...prev, json]); onRefresh();
-            } else { const err = await response.json(); toast.error(err.message || "Error subiendo archivo"); }
-        } finally { setUploading(false); }
+            } else { toast.error(await readUploadError(response, status)); }
+        } catch { toast.error("Error de conexión al subir el archivo"); }
+        finally { setUploading(false); }
     };
 
     // ── Grabación de voz ─────────────────────────────────────────────────────
@@ -581,7 +585,7 @@ export const CrmChatArea: FC<Props> = ({ selected, incomingMessage, onRefresh, o
                     </Box>
                 ) : (
                     <>
-                        <input type="file" hidden ref={fileInputRef} accept="image/*,video/*,application/pdf" onChange={(e) => { const f = e.target.files?.[0]; if (f) handleUpload(f); e.target.value = ""; }} />
+                        <input type="file" hidden ref={fileInputRef} accept={WHATSAPP_ACCEPT} onChange={(e) => { const f = e.target.files?.[0]; if (f) handleUpload(f); e.target.value = ""; }} />
                         <Tooltip title="Adjuntar archivo">
                             <IconButton onClick={() => fileInputRef.current?.click()} disabled={uploading} sx={{ bgcolor: alpha(theme.palette.text.primary, 0.05) }}>
                                 {uploading ? <CircularProgress size={24} /> : <AttachFileRounded />}

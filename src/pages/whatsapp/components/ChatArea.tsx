@@ -5,6 +5,7 @@ import EmojiEmotionsRoundedIcon from "@mui/icons-material/EmojiEmotionsRounded";
 
 import { ContactData } from "../WhatsAppPage";
 import { request } from "../../../common/request";
+import { WHATSAPP_ACCEPT, whatsappFileTooBig, readUploadError } from "../../../common/whatsappMedia";
 import dayjs from "dayjs";
 import { toast } from "react-toastify";
 
@@ -329,18 +330,20 @@ export const ChatArea: FC<ChatAreaProps> = ({ selectedContact, onRefreshContacts
 
     const handleUpload = async (file: File) => {
         if (!selectedContact) return;
+        const tooBig = whatsappFileTooBig(file);
+        if (tooBig) { toast.error(tooBig); return; }
         setUploading(true);
         const formData = new FormData();
         formData.append('file', file);
         try {
             const { status, response } = await request(`/whatsapp-conversations/${selectedContact.id}/media`, 'POST', formData);
-            if (status) {
+            // Antes cualquier status (incluido un 500) se tomaba como éxito y el error se pintaba como mensaje
+            if (status === 201 || status === 200) {
                 const json = await response.json();
                 setMessages(prev => [...prev, json]);
                 onRefreshContacts();
             } else {
-                const err = await response.json();
-                toast.error(err.message || "Error subiendo archivo");
+                toast.error(await readUploadError(response, status));
             }
         } catch {
             toast.error("Error de conexión al subir archivo");
@@ -607,7 +610,7 @@ export const ChatArea: FC<ChatAreaProps> = ({ selectedContact, onRefreshContacts
                                 if (file) handleUpload(file);
                                 e.target.value = '';
                             }}
-                            accept="image/*,video/*,application/pdf,.pdf,.doc,.docx"
+                            accept={WHATSAPP_ACCEPT}
                         />
                         <Tooltip title="Adjuntar foto, video o PDF">
                             <IconButton color="default" onClick={() => fileInputRef.current?.click()} disabled={uploading}>

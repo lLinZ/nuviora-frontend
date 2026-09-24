@@ -2,6 +2,7 @@ import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { Box, TextField, IconButton, Typography, CircularProgress, Paper, Button, LinearProgress, Tooltip, Link } from '@mui/material';
 import { SendRounded, AutoAwesomeRounded, AttachFileRounded, WhatsApp as WhatsAppIcon, VerifiedRounded, LockRounded, LockOpenRounded } from '@mui/icons-material';
 import { request } from '../../common/request';
+import { WHATSAPP_ACCEPT, whatsappFileTooBig, readUploadError } from '../../common/whatsappMedia';
 import { toast } from 'react-toastify';
 import { useSocketStore } from '../../store/sockets/SocketStore';
 import { useUserStore } from '../../store/user/UserStore';
@@ -278,6 +279,8 @@ export const OrderWhatsApp = ({ orderId }: { orderId: number }) => {
     const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (!file || !orderId) return;
+        const tooBig = whatsappFileTooBig(file);
+        if (tooBig) { toast.error(tooBig); return; }
 
         setSending(true);
         try {
@@ -296,15 +299,7 @@ export const OrderWhatsApp = ({ orderId }: { orderId: number }) => {
                 });
                 setTimeout(() => scrollToBottom(), 100);
             } else {
-                const text = await response.text();
-                console.error("Raw Error Response:", text);
-                try {
-                    const errData = JSON.parse(text);
-                    toast.error(errData.error || errData.message || 'Error al subir archivo');
-                } catch (e) {
-                    const match = text.match(/<title>(.*?)<\/title>/);
-                    toast.error(match ? `[Server]: ${match[1]}` : 'Error al subir (HTML 500)');
-                }
+                toast.error(await readUploadError(response, status));
             }
         } catch (err) {
             console.error(err);
@@ -687,7 +682,7 @@ export const OrderWhatsApp = ({ orderId }: { orderId: number }) => {
                         type="file" 
                         ref={fileInputRef} 
                         style={{ display: 'none' }} 
-                        accept="image/jpeg,image/png,image/jpg,video/mp4,audio/*" 
+                        accept={WHATSAPP_ACCEPT} 
                         onChange={handleFileSelect} 
                     />
                     <IconButton size="small" onClick={() => fileInputRef.current?.click()} disabled={sending} sx={{ color: '#8696a0', '&:hover': { color: '#25d366', bgcolor: 'rgba(37, 211, 102, 0.1)' } }}>
