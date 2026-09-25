@@ -41,6 +41,7 @@ import { QaSuitePage } from './pages/admin/QaSuitePage';
 import { OrdersExportPage } from './pages/admin/OrdersExportPage';
 import { StockExportPage } from './pages/admin/StockExportPage';
 import { RoundRobinControl } from './pages/round-robin/RoundRobinControl';
+import { SalesGroups } from './pages/sales-groups/SalesGroups';
 import { InternalChatPage } from './pages/internal-chat/InternalChatPage';
 import { AgencyChatGateModal } from './components/internal-chat/AgencyChatGateModal';
 
@@ -130,7 +131,8 @@ function App() {
           <Route path="/admin/qa-suite" element={<RequireRole allowedRoles={['Admin']}><QaSuitePage /></RequireRole>} />
           <Route path="/admin/orders-export" element={<RequireRole allowedRoles={['Admin', 'Gerente']}><OrdersExportPage /></RequireRole>} />
           <Route path="/admin/stock-export" element={<RequireRole allowedRoles={['Admin', 'Gerente']}><StockExportPage /></RequireRole>} />
-          <Route path="/round-robin" element={<RequireRole allowedRoles={['Admin', 'Gerente']}><RoundRobinControl /></RequireRole>} />
+          <Route path="/round-robin" element={<RequireRole allowedRoles={['Admin', 'Gerente', 'Master']}><RoundRobinControl /></RequireRole>} />
+          <Route path="/grupos-de-venta" element={<RequireRole allowedRoles={['Admin', 'Master']}><SalesGroups /></RequireRole>} />
 
           {/* Chat interno vendedora <-> agencia */}
           <Route path="/internal-chat" element={<RequireRole allowedRoles={['Admin', 'Gerente', 'Master', 'Vendedor', 'Agencia']}><InternalChatPage /></RequireRole>} />

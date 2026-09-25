@@ -225,10 +225,16 @@ export const SideBar = () => {
                 roles: ["Admin", "Gerente"],
             },
             {
-                text: "Round-Robin",
+                text: "Reparto de órdenes",
                 icon: <SyncAltRounded />,
                 link: "/round-robin",
-                roles: ["Admin", "Gerente"],
+                roles: ["Admin", "Gerente", "Master"],
+            },
+            {
+                text: "Grupos de venta",
+                icon: <GroupsRoundedIcon />,
+                link: "/grupos-de-venta",
+                roles: ["Admin", "Master"],
             },
             {
                 text: "Métricas",
