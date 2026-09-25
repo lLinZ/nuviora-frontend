@@ -3,7 +3,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
     Alert, Autocomplete, Box, Button, Chip, CircularProgress, Dialog, DialogActions,
-    DialogContent, DialogTitle, Divider, IconButton, MenuItem, Paper, Stack, TextField,
+    DialogContent, DialogTitle, Divider, IconButton, InputAdornment, MenuItem, Paper, Stack, TextField,
     Tooltip, Typography,
 } from "@mui/material";
 import {
@@ -130,7 +130,7 @@ const GroupCard: React.FC<GroupCardProps> = ({ group, sellersById, onEdit, onMem
                     {group.leader ? (
                         <Stack direction="row" spacing={0.75} alignItems="center" flexWrap="wrap" useFlexGap sx={{ mt: 0.5 }}>
                             <Chip size="small" color="warning" icon={<StarRounded />} label={`Líder: ${group.leader.name}`} />
-                            <Chip size="small" variant="outlined" label={group.leader_load > 0 ? `vende al ${pct(group.leader_load)}` : "no vende"} />
+                            <Chip size="small" variant="outlined" label={group.leader_load > 0 ? `recibe el ${pct(group.leader_load)} de órdenes` : "no recibe órdenes"} />
                             <Chip size="small" variant="outlined" label={`comisión ${group.leader_commission_pct} %`} />
                         </Stack>
                     ) : (
@@ -220,7 +220,7 @@ const GroupCard: React.FC<GroupCardProps> = ({ group, sellersById, onEdit, onMem
 interface GroupForm {
     name: string;
     leader_id: number | "";
-    leader_load: string;
+    leader_load_pct: string; // en %: 100 = igual que una vendedora (el backend lo guarda como fracción)
     leader_commission_pct: string;
 }
 
@@ -231,7 +231,7 @@ const GroupDialog: React.FC<{
     onClose: () => void;
     onSaved: (data: SalesGroupsData) => void;
 }> = ({ open, group, sellers, onClose, onSaved }) => {
-    const [form, setForm] = useState<GroupForm>({ name: "", leader_id: "", leader_load: "0.65", leader_commission_pct: "0" });
+    const [form, setForm] = useState<GroupForm>({ name: "", leader_id: "", leader_load_pct: "65", leader_commission_pct: "0" });
     const [saving, setSaving] = useState(false);
 
     useEffect(() => {
@@ -239,23 +239,24 @@ const GroupDialog: React.FC<{
         setForm({
             name: group?.name ?? "",
             leader_id: group?.leader?.id ?? "",
-            leader_load: String(group?.leader_load ?? 0.65),
+            leader_load_pct: String(Math.round((group?.leader_load ?? 0.65) * 100)),
             leader_commission_pct: String(group?.leader_commission_pct ?? 0),
         });
     }, [open, group]);
 
     // Puede ser Líder cualquier vendedora que no lidere ya otro grupo.
     const leaderOptions = sellers.filter((s) => !s.is_leader || s.id === group?.leader?.id);
-    const load = Number(form.leader_load);
+    const loadPct = Number(form.leader_load_pct);
+    const loadValid = form.leader_load_pct !== "" && loadPct >= 0 && loadPct <= 100;
     const commission = Number(form.leader_commission_pct);
-    const invalid = form.name.trim() === "" || !(load >= 0 && load <= 1) || !(commission >= 0 && commission <= 100);
+    const invalid = form.name.trim() === "" || !loadValid || !(commission >= 0 && commission <= 100);
 
     const save = async () => {
         setSaving(true);
         const body = {
             name: form.name.trim(),
             leader_id: form.leader_id === "" ? null : form.leader_id,
-            leader_load: load,
+            leader_load: Math.round(loadPct) / 100,
             leader_commission_pct: commission,
         };
         const res = group
@@ -288,24 +289,30 @@ const GroupDialog: React.FC<{
                         {leaderOptions.map((s) => <MenuItem key={s.id} value={s.id}>{s.name}</MenuItem>)}
                     </TextField>
                     <TextField
-                        label="Cuánto vende la Líder"
+                        label="Órdenes que recibe la Líder"
                         type="number"
                         size="small"
-                        value={form.leader_load}
-                        onChange={(e) => setForm({ ...form, leader_load: e.target.value })}
-                        slotProps={{ htmlInput: { min: 0, max: 1, step: 0.05 } }}
-                        error={!(load >= 0 && load <= 1)}
-                        helperText="Frente a una vendedora normal: 0,65 = recibe el 65 % de lo que recibe una vendedora. 0 = no vende."
+                        value={form.leader_load_pct}
+                        onChange={(e) => setForm({ ...form, leader_load_pct: e.target.value })}
+                        slotProps={{
+                            htmlInput: { min: 0, max: 100, step: 5 },
+                            input: { endAdornment: <InputAdornment position="end">%</InputAdornment> },
+                        }}
+                        error={!loadValid}
+                        helperText="Comparado con una vendedora normal. 100 % = recibe igual que una vendedora · 65 % = recibe un poco más de la mitad · 0 % = no recibe órdenes, solo supervisa. No tiene que ver con lo que gana."
                     />
                     <TextField
-                        label="% de comisión de liderazgo"
+                        label="Comisión de liderazgo"
                         type="number"
                         size="small"
                         value={form.leader_commission_pct}
                         onChange={(e) => setForm({ ...form, leader_commission_pct: e.target.value })}
-                        slotProps={{ htmlInput: { min: 0, max: 100, step: 0.5 } }}
+                        slotProps={{
+                            htmlInput: { min: 0, max: 100, step: 0.5 },
+                            input: { endAdornment: <InputAdornment position="end">%</InputAdornment> },
+                        }}
                         error={!(commission >= 0 && commission <= 100)}
-                        helperText="Sobre las comisiones de las vendedoras del grupo. Queda guardado; se empieza a pagar cuando se active el cálculo de comisiones de la Líder."
+                        helperText="Este sí es dinero: un % sobre lo que ganan en comisiones las vendedoras del grupo. Queda guardado; se empieza a pagar cuando se active el cálculo de comisiones de la Líder."
                     />
                 </Stack>
             </DialogContent>
@@ -456,7 +463,7 @@ export const SalesGroups: React.FC = () => {
 
             <Alert severity="info" sx={{ mb: 3, borderRadius: 2 }}>
                 <Typography variant="body2">
-                    Cada grupo recibe órdenes según cuántas vendedoras tiene <strong>disponibles hoy</strong> (en el roster y por debajo de su máximo): uno con 7 recibe 7 veces lo de una sola. Dentro del grupo se reparten con los % de abajo; si los dejas vacíos, parejo. La Líder recibe según cuánto vende. Las vendedoras sin grupo cuentan como una porción cada una.
+                    Cada grupo recibe órdenes según cuántas vendedoras tiene <strong>disponibles hoy</strong> (en el roster y por debajo de su máximo): uno con 7 recibe 7 veces lo de una sola. Dentro del grupo se reparten con los % de abajo; si los dejas vacíos, parejo. La Líder recibe el % de órdenes que le pongas, comparado con una vendedora. Las vendedoras sin grupo cuentan como una porción cada una.
                 </Typography>
             </Alert>
 
