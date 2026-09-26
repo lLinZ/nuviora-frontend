@@ -15,9 +15,8 @@ export interface SalesGroupMember {
 export interface SalesGroup {
     id: number;
     name: string;
-    leader_load: number;
     leader_commission_pct: number;
-    leader: { id: number; name: string } | null;
+    leader: { id: number; name: string; weight: number | null } | null;
     members: SalesGroupMember[];
 }
 
