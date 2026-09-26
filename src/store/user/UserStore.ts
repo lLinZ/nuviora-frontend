@@ -18,6 +18,8 @@ export interface IUser {
     lighten: string;
     darken: string;
     is_lite_view?: boolean;
+    /** Si es Líder, el grupo que lidera: habilita "Mi grupo". El servidor valida cada acción. */
+    leader_group?: { id: number; name: string } | null;
 }
 export interface IRole {
     id: number;

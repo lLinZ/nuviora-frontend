@@ -87,6 +87,7 @@ type NavLink = {
     icon: ReactNode;
     link: string;
     roles?: string[]; // descriptions: 'Admin' | 'Gerente' | 'Vendedor' | 'Repartidor'
+    leaderOnly?: boolean; // solo si la usuaria lidera un grupo de venta
 };
 
 /**
@@ -109,6 +110,13 @@ export const SideBar = () => {
                 icon: <DashboardRoundedIcon />,
                 link: "/dashboard",
                 roles: ["Admin", "Gerente", "Vendedor", "Repartidor", "Agencia"],
+            },
+            {
+                text: "Mi grupo",
+                icon: <GroupsRoundedIcon />,
+                link: "/mi-grupo",
+                roles: ["Vendedor"],
+                leaderOnly: true,
             },
             {
                 text: "WhatsApp CRM",
@@ -283,7 +291,7 @@ export const SideBar = () => {
     );
 
     const allowedLinks = links.filter(
-        (l) => !l.roles || l.roles.includes(roleDesc)
+        (l) => (!l.roles || l.roles.includes(roleDesc)) && (!l.leaderOnly || !!user.leader_group)
     );
 
     const onClick = () => {

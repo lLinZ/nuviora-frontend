@@ -17,9 +17,13 @@ interface Props {
     sellers: SellerRef[];
     onClose: () => void;
     onDone: () => void;
+    /** "/assignment" para el Admin y la Gerente; "/my-group" para la Líder (el servidor limita a su grupo). */
+    apiBase?: string;
+    /** Quién no puede recibir órdenes (la Líder no se asigna a sí misma, spec §5.1). */
+    excludeTargetIds?: number[];
 }
 
-export const BulkReassignDialog: React.FC<Props> = ({ open, sellers, onClose, onDone }) => {
+export const BulkReassignDialog: React.FC<Props> = ({ open, sellers, onClose, onDone, apiBase = "/assignment", excludeTargetIds = [] }) => {
     const [from, setFrom] = useState<SellerRef | null>(null);
     const [preview, setPreview] = useState<ReassignPreview | null>(null);
     const [statusIds, setStatusIds] = useState<number[]>([]);
@@ -44,7 +48,7 @@ export const BulkReassignDialog: React.FC<Props> = ({ open, sellers, onClose, on
         }
         let cancelled = false;
         setLoadingPreview(true);
-        assignmentApi<ReassignPreview>(`/assignment/reassign/preview?from_agent_id=${from.id}`).then((res) => {
+        assignmentApi<ReassignPreview>(`${apiBase}/reassign/preview?from_agent_id=${from.id}`).then((res) => {
             if (cancelled) return;
             setLoadingPreview(false);
             if (!res.ok || !res.data) {
@@ -59,7 +63,7 @@ export const BulkReassignDialog: React.FC<Props> = ({ open, sellers, onClose, on
         return () => {
             cancelled = true;
         };
-    }, [from]);
+    }, [from, apiBase]);
 
     const groupMates = useMemo(
         () => sellers.filter((s) => preview?.group_mate_ids.includes(s.id)),
@@ -67,7 +71,7 @@ export const BulkReassignDialog: React.FC<Props> = ({ open, sellers, onClose, on
     );
     const destinations = mode === "group" ? groupMates : targets;
     const selectedCount = (preview?.statuses ?? []).filter((s) => statusIds.includes(s.id)).reduce((a, s) => a + s.count, 0);
-    const others = sellers.filter((s) => s.id !== from?.id);
+    const others = sellers.filter((s) => s.id !== from?.id && !excludeTargetIds.includes(s.id));
 
     const toggleStatus = (id: number) =>
         setStatusIds((cur) => (cur.includes(id) ? cur.filter((x) => x !== id) : [...cur, id]));
@@ -75,7 +79,7 @@ export const BulkReassignDialog: React.FC<Props> = ({ open, sellers, onClose, on
     const submit = async () => {
         if (!from) return;
         setSaving(true);
-        const res = await assignmentApi<{ moved: Record<string, number>; total: number }>("/assignment/reassign", "POST", {
+        const res = await assignmentApi<{ moved: Record<string, number>; total: number }>(`${apiBase}/reassign`, "POST", {
             from_agent_id: from.id,
             to_agent_ids: destinations.map((d) => d.id),
             status_ids: statusIds,

@@ -16,6 +16,7 @@ import { DescripcionDeVista } from "../../components/ui/content/DescripcionDeVis
 import { Loading } from "../../components/ui/content/Loading";
 import { useValidateSession } from "../../hooks/useValidateSession";
 import { assignmentApi } from "../round-robin/assignmentApi";
+import { fmtPct, groupShares, weightsError, weightsSummary } from "./weights";
 import { GroupSeller, SalesGroup, SalesGroupsData } from "../../interfaces/assignment.types";
 
 /* ─────────────────────────── Máximo de órdenes activas ─────────────────────────── */
@@ -83,25 +84,6 @@ interface GroupCardProps {
     onReload: (data?: SalesGroupsData) => void;
 }
 
-/** Lo que recibiría cada una si hoy vinieran todas (misma cuenta que EffectiveWeights en el backend). */
-function groupShares(leader: { id: number; pct: number | null } | null, sellers: { id: number; pct: number | null }[]): Record<number, number> {
-    const set = sellers.filter((s) => s.pct !== null).map((s) => s.pct as number);
-    const average = set.length ? set.reduce((a, v) => a + v, 0) / set.length : 1;
-    const shares = sellers.map((s) => ({ id: s.id, share: s.pct ?? average }));
-    const sum = shares.reduce((a, s) => a + s.share, 0);
-    const n = sellers.length;
-    const weights: Record<number, number> = {};
-    shares.forEach((s) => (weights[s.id] = sum > 0 ? (n * s.share) / sum : 0));
-    if (leader) {
-        const p = leader.pct;
-        weights[leader.id] = p === null ? 1 : p <= 0 ? 0 : sum <= 0 || p >= 100 ? Math.max(n, 1) : (n * p) / (100 - p);
-    }
-    const total = Object.values(weights).reduce((a, v) => a + v, 0);
-    return Object.fromEntries(Object.entries(weights).map(([id, w]) => [id, total > 0 ? w / total : 0]));
-}
-
-const fmt = (n: number) => `${Number(n.toFixed(2)).toLocaleString("es-VE")} %`;
-
 const GroupCard: React.FC<GroupCardProps> = ({ group, sellersById, onEdit, onMembers, onDelete, onReload }) => {
     const leader = group.leader;
     const people = useMemo(
@@ -119,33 +101,12 @@ const GroupCard: React.FC<GroupCardProps> = ({ group, sellersById, onEdit, onMem
 
     const value = (id: number): number | null => ((weights[id] ?? "") === "" ? null : Number(weights[id]));
     const dirty = people.some((m) => (weights[m.user_id] ?? "") !== initial[m.user_id]);
-    const leaderPct = leader ? value(leader.id) : null;
+    const leaderEntry = leader ? { id: leader.id, name: leader.name, pct: value(leader.id) } : null;
     const sellerValues = group.members.map((m) => ({ id: m.user_id, name: m.name, pct: value(m.user_id) }));
-    const missing = sellerValues.filter((s) => s.pct === null);
-    const filled = sellerValues.length - missing.length;
-    const total = sellerValues.reduce((a, s) => a + (s.pct ?? 0), 0) + (leaderPct ?? 0);
-    const outOfRange = people.some((m) => {
-        const v = value(m.user_id);
-        return v !== null && (Number.isNaN(v) || v < 0 || v > 100);
-    });
-
-    // Mismas reglas que el backend (SalesGroupController::weights).
-    let error: string | null = null;
-    if (outOfRange) error = "Cada % tiene que estar entre 0 y 100.";
-    else if (filled > 0 && missing.length > 0) error = `Falta el % de ${missing.map((s) => s.name).join(", ")}. Ponlo, o deja vacías a todas las vendedoras para que se repartan parejo.`;
-    else if (filled > 0 && leader && leaderPct === null) error = `Falta el % de la Líder, ${leader.name}.`;
-    else if (filled > 0 && Math.abs(total - 100) > 0.01) error = `Suman ${fmt(total)}: ${total > 100 ? "sobran" : "faltan"} ${fmt(Math.abs(100 - total))}. Tienen que sumar 100 %.`;
-    else if (filled === 0 && sellerValues.length > 0 && leaderPct !== null && leaderPct >= 100) error = "Si la Líder recibe el 100 %, pon 0 % a las vendedoras.";
-
-    const shares = error ? null : groupShares(leader ? { id: leader.id, pct: leaderPct } : null, sellerValues);
-    const shareOf = (id: number) => (shares ? fmt((shares[id] ?? 0) * 100) : "—");
-
-    let summary: { text: string; color: "success.main" | "text.secondary" } | null = null;
-    if (!error && people.length > 0) {
-        if (filled > 0) summary = { text: "Total: 100 %", color: "success.main" };
-        else if (leaderPct !== null && sellerValues.length > 0) summary = { text: `Las vendedoras se reparten parejo el ${fmt(100 - leaderPct)} que no recibe la Líder.`, color: "text.secondary" };
-        else if (sellerValues.length > 0) summary = { text: leader ? "Todo vacío: parejo, la Líder recibe igual que una vendedora." : "Todo vacío: parejo.", color: "text.secondary" };
-    }
+    const error = weightsError(leaderEntry, sellerValues);
+    const shares = error ? null : groupShares(leaderEntry, sellerValues);
+    const shareOf = (id: number) => (shares ? fmtPct((shares[id] ?? 0) * 100) : "—");
+    const summary = error ? null : weightsSummary(leaderEntry, sellerValues);
 
     const save = async () => {
         setSaving(true);
@@ -238,7 +199,7 @@ const GroupCard: React.FC<GroupCardProps> = ({ group, sellersById, onEdit, onMem
                     <Typography variant="caption" color="error" display="block" mt={1.5}>{error}</Typography>
                 )}
                 {summary && (
-                    <Typography variant="caption" color={summary.color} fontWeight={summary.color === "success.main" ? 700 : 400} display="block" mt={1.5}>
+                    <Typography variant="caption" color={summary.ok ? "success.main" : "text.secondary"} fontWeight={summary.ok ? 700 : 400} display="block" mt={1.5}>
                         {summary.text}
                     </Typography>
                 )}

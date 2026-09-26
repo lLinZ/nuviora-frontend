@@ -42,6 +42,7 @@ import { OrdersExportPage } from './pages/admin/OrdersExportPage';
 import { StockExportPage } from './pages/admin/StockExportPage';
 import { RoundRobinControl } from './pages/round-robin/RoundRobinControl';
 import { SalesGroups } from './pages/sales-groups/SalesGroups';
+import { MyGroup } from './pages/my-group/MyGroup';
 import { InternalChatPage } from './pages/internal-chat/InternalChatPage';
 import { AgencyChatGateModal } from './components/internal-chat/AgencyChatGateModal';
 
@@ -133,6 +134,8 @@ function App() {
           <Route path="/admin/stock-export" element={<RequireRole allowedRoles={['Admin', 'Gerente']}><StockExportPage /></RequireRole>} />
           <Route path="/round-robin" element={<RequireRole allowedRoles={['Admin', 'Gerente', 'Master']}><RoundRobinControl /></RequireRole>} />
           <Route path="/grupos-de-venta" element={<RequireRole allowedRoles={['Admin', 'Master']}><SalesGroups /></RequireRole>} />
+          {/* La Líder es una Vendedor; la página y el servidor comprueban que lidere un grupo */}
+          <Route path="/mi-grupo" element={<RequireRole allowedRoles={['Vendedor']}><MyGroup /></RequireRole>} />
 
           {/* Chat interno vendedora <-> agencia */}
           <Route path="/internal-chat" element={<RequireRole allowedRoles={['Admin', 'Gerente', 'Master', 'Vendedor', 'Agencia']}><InternalChatPage /></RequireRole>} />

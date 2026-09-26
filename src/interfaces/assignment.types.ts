@@ -79,3 +79,62 @@ export interface ReassignPreview {
     statuses: ReassignStatus[];
     group_mate_ids: number[];
 }
+
+// ── "Mi grupo" de la Líder ──────────────────────────────────────────────
+
+export interface MyGroupMember {
+    id: number;
+    name: string;
+    is_leader: boolean;
+    weight: number | null;
+    max_active_orders: number | null;
+    active_orders: number;
+    /** status_id => órdenes que tiene ahora en ese estado. */
+    pipeline: Record<string, number>;
+}
+
+export interface MyGroupShopMember {
+    user_id: number;
+    /** Trabaja en esa tienda (puede entrar a su roster). */
+    linked: boolean;
+    in_roster: boolean;
+    last_change: { active: boolean; reason: string | null; by: string; at: string } | null;
+}
+
+export interface MyGroupShop {
+    id: number;
+    name: string;
+    /** Jornada de hoy abierta. */
+    is_open: boolean;
+    members: MyGroupShopMember[];
+}
+
+export interface MyGroupData {
+    group: { id: number; name: string; leader_commission_pct: number };
+    me: number;
+    statuses: { id: number; description: string }[];
+    members: MyGroupMember[];
+    shops: MyGroupShop[];
+}
+
+export interface GroupMetricsRow {
+    assigned: number;
+    delivered: number;
+    effectiveness: number | null;
+    cancelled: number;
+    cancelled_pct: number | null;
+    to_agency: number;
+    to_agency_pct: number | null;
+    delivered_with_upsell: number;
+    upsell_pct: number | null;
+    commission_sales: number;
+    commission_upsells: number;
+    commission_total: number;
+}
+
+export interface GroupMetrics {
+    start_date: string;
+    end_date: string;
+    rows: (GroupMetricsRow & { user_id: number })[];
+    totals: GroupMetricsRow;
+}

@@ -35,7 +35,7 @@ import { request } from '../../common/request';
 import { toast, ToastContainer, Bounce } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 // import { Layout } from '../../components/ui/Layout'; // Removed per request
-import { SearchRounded, RefreshRounded, WhatsApp, LogoutRounded, NotificationsRounded } from '@mui/icons-material';
+import { SearchRounded, RefreshRounded, WhatsApp, LogoutRounded, NotificationsRounded, GroupsRounded } from '@mui/icons-material';
 import { statusColors } from '../../components/orders/OrderItem';
 import { green, blue, orange, red, grey } from '@mui/material/colors';
 import { LiteOrderDialog } from './LiteOrderDialog';
@@ -480,6 +480,25 @@ export const SalesLite = () => {
 
                     {/* 3. Acciones (Notificaciones + Logout) */}
                     <Box sx={{ display: 'flex', gap: 0.5, alignItems: 'center' }}>
+                        {user.leader_group && (
+                            <Tooltip title={`Mi grupo · ${user.leader_group.name}`}>
+                                <Button
+                                    startIcon={<GroupsRounded />}
+                                    size="small"
+                                    onClick={() => navigate('/mi-grupo')}
+                                    sx={{
+                                        borderRadius: 4,
+                                        textTransform: 'none',
+                                        minWidth: 0,
+                                        bgcolor: alpha(theme.palette.warning.main, 0.12),
+                                        color: theme.palette.warning.dark,
+                                        '& .MuiButton-startIcon': { mr: { xs: 0, md: 1 } },
+                                    }}
+                                >
+                                    <Box component="span" sx={{ display: { xs: 'none', md: 'inline' } }}>Mi grupo</Box>
+                                </Button>
+                            </Tooltip>
+                        )}
                         <IconButton
                             size="small"
                             onClick={() => setOpenBankDialog(true)}
