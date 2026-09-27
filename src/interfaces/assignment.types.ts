@@ -153,5 +153,7 @@ export interface GroupMetrics {
     end_date: string;
     rows: (GroupMetricsRow & { user_id: number })[];
     totals: GroupMetricsRow;
+    /** El período con el que se compara (spec §7.2), si se pidió. */
+    compare?: { start_date: string; end_date: string; rows: (GroupMetricsRow & { user_id: number })[]; totals: GroupMetricsRow } | null;
     earnings?: LeaderEarnings;
 }

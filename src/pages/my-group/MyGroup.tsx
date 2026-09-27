@@ -29,25 +29,74 @@ const iso = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart
 const money = (n: number) => `$${n.toLocaleString("es-VE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 const firstName = (name: string) => name.split(" ")[0];
 
-type Preset = "hoy" | "ayer" | "7d" | "mes" | "mes_pasado" | "otro";
+// Períodos de la spec §7.1 (semanas de lunes a domingo)
+type Preset = "hoy" | "ayer" | "semana" | "semana_pasada" | "mes" | "mes_pasado" | "otro";
+type CompareMode = "anterior" | "otro" | "no";
+
+const parseIso = (s: string) => {
+    const [y, m, d] = s.split("-").map(Number);
+    return new Date(y, m - 1, d);
+};
+const addDays = (s: string, n: number) => {
+    const d = parseIso(s);
+    d.setDate(d.getDate() + n);
+    return iso(d);
+};
+const fmtDate = (s: string) => parseIso(s).toLocaleDateString("es-VE", { day: "2-digit", month: "2-digit", year: "numeric" });
 
 function presetRange(p: Exclude<Preset, "otro">): [string, string] {
     const now = new Date();
     const day = (offset: number) => new Date(now.getFullYear(), now.getMonth(), now.getDate() + offset);
+    const monday = day(-((now.getDay() + 6) % 7));
     switch (p) {
         case "hoy": return [iso(now), iso(now)];
         case "ayer": return [iso(day(-1)), iso(day(-1))];
-        case "7d": return [iso(day(-6)), iso(now)];
+        case "semana": return [iso(monday), iso(now)];
+        case "semana_pasada": return [addDays(iso(monday), -7), addDays(iso(monday), -1)];
         case "mes": return [iso(new Date(now.getFullYear(), now.getMonth(), 1)), iso(now)];
         case "mes_pasado": return [iso(new Date(now.getFullYear(), now.getMonth() - 1, 1)), iso(new Date(now.getFullYear(), now.getMonth(), 0))];
     }
 }
 
+/**
+ * El período con el que se compara por defecto (spec §7.2): esta semana contra los mismos días de la
+ * semana pasada, este mes contra los mismos días del mes anterior, y cualquier otro rango contra los
+ * mismos días justo antes.
+ */
+function previousRange(p: Preset, [a, b]: [string, string]): [string, string] {
+    if (p === "semana" || p === "semana_pasada") return [addDays(a, -7), addDays(b, -7)];
+    if (p === "mes" || p === "mes_pasado") {
+        const start = parseIso(a);
+        const prevStart = new Date(start.getFullYear(), start.getMonth() - 1, 1);
+        const prevLast = new Date(start.getFullYear(), start.getMonth(), 0);
+        if (p === "mes_pasado") return [iso(prevStart), iso(prevLast)];
+        const end = new Date(prevStart.getFullYear(), prevStart.getMonth(), Math.min(parseIso(b).getDate(), prevLast.getDate()));
+        return [iso(prevStart), iso(end)];
+    }
+    const days = Math.round((parseIso(b).getTime() - parseIso(a).getTime()) / 86400000) + 1;
+    return [addDays(a, -days), addDays(a, -1)];
+}
+
+/** Cuánto subió o bajó un número frente al período comparado. Verde si mejoró, rojo si empeoró. */
+const Delta: React.FC<{ cur?: number | null; prev?: number | null; kind?: "count" | "pts" | "money"; good?: "up" | "down" }> = ({ cur, prev, kind = "count", good }) => {
+    if (cur === undefined || prev === undefined || cur === null || prev === null) return null;
+    const diff = Math.round((cur - prev) * 100) / 100;
+    const abs = Math.abs(diff);
+    const text = diff === 0 ? "igual" : `${diff > 0 ? "▲" : "▼"} ${kind === "pts" ? `${abs.toLocaleString("es-VE")} pts` : kind === "money" ? money(abs) : abs}`;
+    const better = good && diff !== 0 ? (good === "up" ? diff > 0 : diff < 0) : null;
+    return (
+        <Typography variant="caption" display="block" sx={{ whiteSpace: "nowrap" }}
+            color={better === null ? "text.secondary" : better ? "success.main" : "error.main"}>
+            {text}
+        </Typography>
+    );
+};
+
 /** Semáforo de efectividad de la spec §8.5: rojo < 45 %, amarillo 45–49,99 %, verde ≥ 50 %. */
 const effectivenessColor = (v: number | null): "error" | "warning" | "success" | "default" =>
     v === null ? "default" : v < 45 ? "error" : v < 50 ? "warning" : "success";
 
-const PctCell: React.FC<{ pct: number | null; count: number; title: string }> = ({ pct, count, title }) => (
+const PctCell: React.FC<{ pct: number | null; count: number; title: string; delta?: React.ReactNode }> = ({ pct, count, title, delta }) => (
     <TableCell align="right">
         <Tooltip title={title}>
             <Box component="span">
@@ -55,6 +104,7 @@ const PctCell: React.FC<{ pct: number | null; count: number; title: string }> = 
                 <Typography variant="caption" color="text.secondary" display="block">{count}</Typography>
             </Box>
         </Tooltip>
+        {delta}
     </TableCell>
 );
 
@@ -148,16 +198,25 @@ const NowCard: React.FC<{ data: MyGroupData }> = ({ data }) => {
 /* ─────────────────────────── Rendimiento ─────────────────────────── */
 
 const MetricsCard: React.FC<{ data: MyGroupData; reloadKey: number }> = ({ data, reloadKey }) => {
-    const [preset, setPreset] = useState<Preset>("7d");
-    const [range, setRange] = useState<[string, string]>(presetRange("7d"));
+    const [preset, setPreset] = useState<Preset>("semana");
+    const [range, setRange] = useState<[string, string]>(presetRange("semana"));
+    const [compareMode, setCompareMode] = useState<CompareMode>("anterior");
+    const [otherRange, setOtherRange] = useState<[string, string]>(previousRange("semana", presetRange("semana")));
     const [metrics, setMetrics] = useState<GroupMetrics | null>(null);
     const [loading, setLoading] = useState(false);
 
+    const compareRange = useMemo<[string, string] | null>(
+        () => (compareMode === "anterior" ? previousRange(preset, range) : compareMode === "otro" ? otherRange : null),
+        [compareMode, preset, range, otherRange]
+    );
+
     useEffect(() => {
         if (!range[0] || !range[1] || range[0] > range[1]) return;
+        if (compareRange && (!compareRange[0] || !compareRange[1] || compareRange[0] > compareRange[1])) return;
         let cancelled = false;
         setLoading(true);
-        assignmentApi<GroupMetrics>(`/my-group/metrics?start_date=${range[0]}&end_date=${range[1]}`).then((res) => {
+        const compare = compareRange ? `&compare_start=${compareRange[0]}&compare_end=${compareRange[1]}` : "";
+        assignmentApi<GroupMetrics>(`/my-group/metrics?start_date=${range[0]}&end_date=${range[1]}${compare}`).then((res) => {
             if (cancelled) return;
             setLoading(false);
             if (res.ok && res.data) setMetrics(res.data);
@@ -166,7 +225,7 @@ const MetricsCard: React.FC<{ data: MyGroupData; reloadKey: number }> = ({ data,
         return () => {
             cancelled = true;
         };
-    }, [range, reloadKey]);
+    }, [range, compareRange, reloadKey]);
 
     const choose = (p: Preset | null) => {
         if (!p) return;
@@ -175,20 +234,25 @@ const MetricsCard: React.FC<{ data: MyGroupData; reloadKey: number }> = ({ data,
     };
 
     const rowOf = (id: number) => metrics?.rows.find((r) => r.user_id === id);
+    const prevOf = (id: number) => metrics?.compare?.rows.find((r) => r.user_id === id);
 
-    const cells = (r: GroupMetricsRow | undefined) => (
+    const cells = (r: GroupMetricsRow | undefined, p: GroupMetricsRow | undefined) => (
         <>
-            <TableCell align="right">{r?.assigned ?? 0}</TableCell>
-            <TableCell align="right">{r?.delivered ?? 0}</TableCell>
+            <TableCell align="right">{r?.assigned ?? 0}<Delta cur={r?.assigned} prev={p?.assigned} /></TableCell>
+            <TableCell align="right">{r?.delivered ?? 0}<Delta cur={r?.delivered} prev={p?.delivered} good="up" /></TableCell>
             <TableCell align="right">
                 <Chip size="small" color={effectivenessColor(r?.effectiveness ?? null)} label={r?.effectiveness == null ? "—" : fmtPct(r.effectiveness)} />
+                <Delta cur={r?.effectiveness} prev={p?.effectiveness} kind="pts" good="up" />
             </TableCell>
-            <PctCell pct={r?.cancelled_pct ?? null} count={r?.cancelled ?? 0} title="Canceladas ÷ asignadas" />
-            <PctCell pct={r?.to_agency_pct ?? null} count={r?.to_agency ?? 0} title="Pasadas a agencia ÷ asignadas" />
-            <PctCell pct={r?.upsell_pct ?? null} count={r?.delivered_with_upsell ?? 0} title="Entregadas con upsell ÷ entregadas" />
+            <PctCell pct={r?.cancelled_pct ?? null} count={r?.cancelled ?? 0} title="Canceladas ÷ asignadas"
+                delta={<Delta cur={r?.cancelled_pct} prev={p?.cancelled_pct} kind="pts" good="down" />} />
+            <PctCell pct={r?.to_agency_pct ?? null} count={r?.to_agency ?? 0} title="Pasadas a agencia ÷ asignadas"
+                delta={<Delta cur={r?.to_agency_pct} prev={p?.to_agency_pct} kind="pts" good="up" />} />
+            <PctCell pct={r?.upsell_pct ?? null} count={r?.delivered_with_upsell ?? 0} title="Entregadas con upsell ÷ entregadas"
+                delta={<Delta cur={r?.upsell_pct} prev={p?.upsell_pct} kind="pts" good="up" />} />
             <TableCell align="right">{money(r?.commission_sales ?? 0)}</TableCell>
             <TableCell align="right">{money(r?.commission_upsells ?? 0)}</TableCell>
-            <TableCell align="right" sx={{ fontWeight: 600 }}>{money(r?.commission_total ?? 0)}</TableCell>
+            <TableCell align="right" sx={{ fontWeight: 600 }}>{money(r?.commission_total ?? 0)}<Delta cur={r?.commission_total} prev={p?.commission_total} kind="money" good="up" /></TableCell>
         </>
     );
 
@@ -206,7 +270,8 @@ const MetricsCard: React.FC<{ data: MyGroupData; reloadKey: number }> = ({ data,
                 <ToggleButtonGroup size="small" exclusive value={preset} onChange={(_, v) => choose(v)} sx={{ flexWrap: "wrap" }}>
                     <ToggleButton value="hoy">Hoy</ToggleButton>
                     <ToggleButton value="ayer">Ayer</ToggleButton>
-                    <ToggleButton value="7d">7 días</ToggleButton>
+                    <ToggleButton value="semana">Esta semana</ToggleButton>
+                    <ToggleButton value="semana_pasada">Semana pasada</ToggleButton>
                     <ToggleButton value="mes">Este mes</ToggleButton>
                     <ToggleButton value="mes_pasado">Mes pasado</ToggleButton>
                     <ToggleButton value="otro">Otro</ToggleButton>
@@ -216,6 +281,27 @@ const MetricsCard: React.FC<{ data: MyGroupData; reloadKey: number }> = ({ data,
                         <TextField size="small" type="date" label="Desde" value={range[0]} onChange={(e) => setRange([e.target.value, range[1]])} slotProps={{ inputLabel: { shrink: true } }} />
                         <TextField size="small" type="date" label="Hasta" value={range[1]} onChange={(e) => setRange([range[0], e.target.value])} slotProps={{ inputLabel: { shrink: true } }} error={range[0] > range[1]} />
                     </>
+                )}
+            </Stack>
+
+            <Stack direction="row" spacing={1} mt={1} flexWrap="wrap" useFlexGap alignItems="center">
+                <Typography variant="body2" color="text.secondary">Comparar con</Typography>
+                <ToggleButtonGroup size="small" exclusive value={compareMode} onChange={(_, v) => v && setCompareMode(v)}>
+                    <ToggleButton value="anterior">El período anterior</ToggleButton>
+                    <ToggleButton value="otro">Otras fechas</ToggleButton>
+                    <ToggleButton value="no">No comparar</ToggleButton>
+                </ToggleButtonGroup>
+                {compareMode === "otro" && (
+                    <>
+                        <TextField size="small" type="date" label="Desde" value={otherRange[0]} onChange={(e) => setOtherRange([e.target.value, otherRange[1]])} slotProps={{ inputLabel: { shrink: true } }} />
+                        <TextField size="small" type="date" label="Hasta" value={otherRange[1]} onChange={(e) => setOtherRange([otherRange[0], e.target.value])} slotProps={{ inputLabel: { shrink: true } }} error={otherRange[0] > otherRange[1]} />
+                    </>
+                )}
+                {metrics?.compare && (
+                    <Typography variant="caption" color="text.secondary">
+                        {fmtDate(metrics.start_date)}{metrics.start_date !== metrics.end_date ? ` – ${fmtDate(metrics.end_date)}` : ""} frente a{" "}
+                        {fmtDate(metrics.compare.start_date)}{metrics.compare.start_date !== metrics.compare.end_date ? ` – ${fmtDate(metrics.compare.end_date)}` : ""}
+                    </Typography>
                 )}
             </Stack>
 
@@ -239,12 +325,12 @@ const MetricsCard: React.FC<{ data: MyGroupData; reloadKey: number }> = ({ data,
                         {data.members.map((m) => (
                             <TableRow key={m.id} hover>
                                 <NameCell member={m} />
-                                {cells(rowOf(m.id))}
+                                {cells(rowOf(m.id), prevOf(m.id))}
                             </TableRow>
                         ))}
                         <TableRow sx={{ "& td": { fontWeight: 700, borderTop: 2, borderColor: "divider" } }}>
                             <NameCell label="Grupo" />
-                            {cells(metrics?.totals)}
+                            {cells(metrics?.totals, metrics?.compare?.totals)}
                         </TableRow>
                     </TableBody>
                 </Table>
