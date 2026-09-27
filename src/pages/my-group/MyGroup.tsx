@@ -4,7 +4,7 @@
 // Cada acción la valida el servidor (MyGroupController): aquí solo se muestra y se pide.
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
-    Alert, Box, Button, Chip, CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle,
+    Alert, Box, Button, Chip, CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle, MenuItem,
     Paper, Stack, Switch, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField,
     ToggleButton, ToggleButtonGroup, Tooltip, Typography,
 } from "@mui/material";
@@ -21,7 +21,7 @@ import { useUserStore } from "../../store/user/UserStore";
 import { assignmentApi } from "../round-robin/assignmentApi";
 import { BulkReassignDialog } from "../round-robin/BulkReassignDialog";
 import { fmtPct, groupShares, weightsError, weightsSummary } from "../sales-groups/weights";
-import { GroupMetrics, GroupMetricsRow, LeaderEarnings, MyGroupData, MyGroupMember, SellerRef } from "../../interfaces/assignment.types";
+import { GroupAgency, GroupMetrics, GroupMetricsRow, LeaderEarnings, MyGroupData, MyGroupMember, SellerRef } from "../../interfaces/assignment.types";
 
 /* ─────────────────────────── utilidades ─────────────────────────── */
 
@@ -341,8 +341,79 @@ const MetricsCard: React.FC<{ data: MyGroupData; reloadKey: number }> = ({ data,
                 Upsells = entregadas con upsell ÷ entregadas. Las comisiones son lo que ganó cada una en esas fechas; solo se consultan.
             </Typography>
 
+            <AgenciesSection range={range} reloadKey={reloadKey} />
+
             {metrics?.earnings && <EarningsSection earnings={metrics.earnings} commissionPct={data.group.leader_commission_pct} />}
         </Paper>
+    );
+};
+
+/* ─────────────────────────── Agencias, solo con los pedidos del grupo (spec §10) ─────────────────────────── */
+
+const AgenciesSection: React.FC<{ range: [string, string]; reloadKey: number }> = ({ range, reloadKey }) => {
+    const [agencies, setAgencies] = useState<GroupAgency[]>([]);
+    const [selected, setSelected] = useState<number | "">("");
+
+    useEffect(() => {
+        if (!range[0] || !range[1] || range[0] > range[1]) return;
+        let cancelled = false;
+        assignmentApi<GroupAgency[]>(`/my-group/agencies?start_date=${range[0]}&end_date=${range[1]}`).then((res) => {
+            if (cancelled || !res.ok || !res.data) return;
+            setAgencies(res.data);
+            setSelected((cur) => (cur !== "" && res.data!.some((a) => a.agency_id === cur) ? cur : res.data![0]?.agency_id ?? ""));
+        });
+        return () => {
+            cancelled = true;
+        };
+    }, [range, reloadKey]);
+
+    const a = agencies.find((x) => x.agency_id === selected);
+    const tiles = a
+        ? [
+            { label: "Recibió", value: String(a.received) },
+            { label: "Entregó", value: String(a.delivered) },
+            { label: "Efectividad", value: a.effectiveness === null ? "—" : fmtPct(a.effectiveness), color: effectivenessColor(a.effectiveness) },
+            { label: "Pendientes", value: String(a.pending) },
+            { label: "Novedades", value: String(a.novelties) },
+            { label: "Resueltas", value: a.resolved_pct === null ? String(a.novelties_resolved) : `${a.novelties_resolved} (${fmtPct(a.resolved_pct)})` },
+        ]
+        : [];
+
+    return (
+        <Box mt={3}>
+            <Box display="flex" alignItems="center" gap={1.5} flexWrap="wrap">
+                <Typography variant="subtitle1" fontWeight={700}>Agencias</Typography>
+                {agencies.length > 0 && (
+                    <TextField select size="small" label="Agencia" value={selected} onChange={(e) => setSelected(Number(e.target.value))} sx={{ minWidth: 200 }}>
+                        {agencies.map((x) => <MenuItem key={x.agency_id} value={x.agency_id}>{x.name} ({x.received})</MenuItem>)}
+                    </TextField>
+                )}
+            </Box>
+            <Typography variant="caption" color="text.secondary" display="block">
+                Solo con los pedidos de tu grupo que entraron en el período. Muchas pasadas a agencia con pocas entregas pueden indicar pedidos mal confirmados.
+            </Typography>
+            {agencies.length === 0 ? (
+                <Typography variant="caption" color="text.secondary" display="block" mt={1}>Ningún pedido de tu grupo llegó a una agencia en estas fechas.</Typography>
+            ) : a && (
+                <>
+                    <Box display="grid" gridTemplateColumns={{ xs: "repeat(2, 1fr)", sm: "repeat(3, 1fr)", md: "repeat(6, 1fr)" }} gap={1} mt={1}>
+                        {tiles.map((t) => (
+                            <Paper key={t.label} variant="outlined" sx={{ p: 1.25, borderRadius: 2 }}>
+                                <Typography variant="caption" color="text.secondary">{t.label}</Typography>
+                                {t.color && t.color !== "default" ? (
+                                    <Box><Chip size="small" color={t.color} label={t.value} /></Box>
+                                ) : (
+                                    <Typography variant="h6" fontWeight={700}>{t.value}</Typography>
+                                )}
+                            </Paper>
+                        ))}
+                    </Box>
+                    <Stack direction="row" spacing={0.75} flexWrap="wrap" useFlexGap mt={1}>
+                        {a.by_status.map((s) => <Chip key={s.status} size="small" variant="outlined" label={`${s.status}: ${s.count}`} />)}
+                    </Stack>
+                </>
+            )}
+        </Box>
     );
 };
 

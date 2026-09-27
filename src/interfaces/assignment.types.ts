@@ -157,3 +157,17 @@ export interface GroupMetrics {
     compare?: { start_date: string; end_date: string; rows: (GroupMetricsRow & { user_id: number })[]; totals: GroupMetricsRow } | null;
     earnings?: LeaderEarnings;
 }
+
+/** Una agencia, solo con los pedidos del grupo de la Líder (spec §10). */
+export interface GroupAgency {
+    agency_id: number;
+    name: string;
+    received: number;
+    delivered: number;
+    effectiveness: number | null;
+    pending: number;
+    novelties: number;
+    novelties_resolved: number;
+    resolved_pct: number | null;
+    by_status: { status: string; count: number }[];
+}
