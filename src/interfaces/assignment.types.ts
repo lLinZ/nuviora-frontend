@@ -138,6 +138,10 @@ export interface GroupMetricsRow {
     commission_sales: number;
     commission_upsells: number;
     commission_total: number;
+    /** Pasaron por Novedades y cuántas se resolvieron (spec §8.3). */
+    novelties: number;
+    novelties_resolved: number;
+    resolved_pct: number | null;
 }
 
 /** Ganancias de la Líder en el período (spec §12.2 y §12.4). */

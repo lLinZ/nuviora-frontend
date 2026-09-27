@@ -9,7 +9,7 @@ import {
     ToggleButton, ToggleButtonGroup, Tooltip, Typography,
 } from "@mui/material";
 import {
-    ArrowBackRounded, BalanceRounded, RefreshRounded, SaveRounded, StarRounded, StickyNote2Outlined, SwapHorizRounded,
+    ArrowBackRounded, BalanceRounded, DescriptionRounded, RefreshRounded, SaveRounded, StarRounded, StickyNote2Outlined, SwapHorizRounded,
 } from "@mui/icons-material";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Bounce, ToastContainer, toast } from "react-toastify";
@@ -729,6 +729,7 @@ export const MyGroup: React.FC = () => {
     const { loadingSession, isValid } = useValidateSession();
     const [searchParams] = useSearchParams();
     const viewGroup = searchParams.get("grupo");
+    const navigate = useNavigate();
     const user = useUserStore((s) => s.user);
     const [data, setData] = useState<MyGroupData | null>(null);
     const [forbidden, setForbidden] = useState(false);
@@ -774,6 +775,7 @@ export const MyGroup: React.FC = () => {
                 </Box>
                 <Stack direction="row" spacing={1}>
                     <Button size="small" startIcon={loading ? <CircularProgress size={14} /> : <RefreshRounded />} onClick={refresh} disabled={loading}>Actualizar</Button>
+                    <Button size="small" variant="outlined" startIcon={<DescriptionRounded />} onClick={() => navigate(viewGroup ? `/mi-grupo/reporte?grupo=${viewGroup}` : "/mi-grupo/reporte")} disabled={!data}>Reporte semanal</Button>
                     {!data?.read_only && (
                         <Button size="small" variant="contained" startIcon={<SwapHorizRounded />} onClick={() => setReassignOpen(true)} disabled={!data}>Reasignar en bloque</Button>
                     )}
