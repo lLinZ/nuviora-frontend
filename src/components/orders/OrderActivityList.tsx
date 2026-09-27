@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from "react";
-import { Box, Avatar, Tooltip, Divider, useTheme, Paper, Fade, CircularProgress, Select, MenuItem, FormControl, InputLabel, SelectChangeEvent } from "@mui/material";
+import { Box, Avatar, Chip, Tooltip, Divider, useTheme, Paper, Fade, CircularProgress, Select, MenuItem, FormControl, InputLabel, SelectChangeEvent } from "@mui/material";
 import { TypographyCustom } from "../custom";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
@@ -165,6 +165,9 @@ export const OrderActivityList: React.FC<OrderActivityListProps> = ({ orderId })
                                     <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
                                         <TypographyCustom variant="subtitle2" fontWeight="bold">
                                             {a.user ? `${a.user.names} ${a.user.surnames || ''}` : 'Sistema'}
+                                            {a.actor_role && a.actor_role !== 'Sistema' && (
+                                                <Chip size="small" label={a.actor_role} color={a.actor_role === 'Líder' ? 'warning' : 'default'} variant="outlined" sx={{ ml: 1, height: 18, fontSize: '0.65rem', fontWeight: 600 }} />
+                                            )}
                                             {a.user?.email && (
                                                 <TypographyCustom component="span" variant="caption" sx={{ ml: 1, opacity: 0.6, fontWeight: 'normal' }}>
                                                     • {a.user.email}

@@ -4,6 +4,7 @@ import { DescripcionDeVista } from "../components/ui/content/DescripcionDeVista"
 import { Loading } from "../components/ui/content/Loading";
 import { Layout } from "../components/ui/Layout";
 import { useUserStore } from "../store/user/UserStore";
+import { LeaderViewSelect } from "./my-group/LeaderViewSelect";
 import { request } from "../common/request";
 import { IResponse } from "../interfaces/response-type";
 import { useOrdersStore } from "../store/orders/OrdersStore";
@@ -129,6 +130,7 @@ export const Orders = () => {
             if (filters.city_id) params.append('city_id', filters.city_id);
             if (filters.agency_id) params.append('agency_id', filters.agency_id);
             if (filters.seller_id) params.append('seller_id', filters.seller_id);
+            if (filters.scope) params.append('scope', filters.scope);
             if (filters.date_from) params.append('date_from', filters.date_from);
             if (filters.date_to) params.append('date_to', filters.date_to);
             if (searchTerm) params.append('search', searchTerm);
@@ -153,7 +155,8 @@ export const Orders = () => {
             agency_id: '',
             seller_id: '',
             date_from: '',
-            date_to: ''
+            date_to: '',
+            scope: '' as const
         };
         setStoreFilters(emptyFilters);
         setSearchTerm("");
@@ -190,6 +193,12 @@ export const Orders = () => {
                         sx={{ maxWidth: 400, width: '100%', bgcolor: 'background.paper', borderRadius: 1 }}
                     />
                 </Box>
+                {!isSupervisor && (
+                    <LeaderViewSelect
+                        value={{ scope: filters.scope, sellerId: filters.seller_id }}
+                        onChange={(v) => setStoreFilters({ scope: v.scope, seller_id: v.sellerId })}
+                    />
+                )}
                 {isSupervisor && (
                     <Box display="flex" gap={1} alignItems="center" flexWrap="wrap">
                         <FormControl size="small" sx={{ minWidth: 140 }}>

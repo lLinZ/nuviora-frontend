@@ -50,9 +50,11 @@ import { AccountBalanceRounded, AddCircleOutline, CurrencyExchange } from '@mui/
 import { OrderTimer } from '../../components/orders/OrderTimer';
 import { PhoneActionMenu } from '../../components/orders/PhoneActionMenu';
 import { useOrdersStore } from '../../store/orders/OrdersStore';
+import { LeaderViewSelect } from '../my-group/LeaderViewSelect';
+import { LeaderView, MY_ORDERS, appendLeaderView } from '../my-group/leaderView';
 
 // Componente simple de Tabla Lite
-const LiteOrderTable = ({ statusTitle, searchTerm, onRefresh, onDataUpdate }: any) => {
+const LiteOrderTable = ({ statusTitle, searchTerm, onRefresh, onDataUpdate, leaderView = MY_ORDERS }: any) => {
     const user = useUserStore((state) => state.user);
     const [orders, setOrders] = useState<any[]>([]);
     const [loading, setLoading] = useState(false);
@@ -72,6 +74,7 @@ const LiteOrderTable = ({ statusTitle, searchTerm, onRefresh, onDataUpdate }: an
             params.append('page', pageToLoad.toString());
             params.append('status', statusTitle);
             if (searchTerm) params.append('search', searchTerm);
+            appendLeaderView(params, leaderView);
 
             const { status, response } = await request(`/orders?${params.toString()}`, 'GET');
             if (status === 200) {
@@ -91,12 +94,12 @@ const LiteOrderTable = ({ statusTitle, searchTerm, onRefresh, onDataUpdate }: an
         } finally {
             setLoading(false);
         }
-    }, [loading, page, statusTitle, searchTerm]);
+    }, [loading, page, statusTitle, searchTerm, leaderView]);
 
-    // Efecto para cargar al cambiar status o búsqueda
+    // Efecto para cargar al cambiar status, búsqueda o vista de la Líder
     useEffect(() => {
         fetchOrders(true);
-    }, [statusTitle, searchTerm]);
+    }, [statusTitle, searchTerm, leaderView]);
 
     // Exponer refresh al padre si fuera necesario (aquí lo usamos interno)
     useEffect(() => {
@@ -148,6 +151,9 @@ const LiteOrderTable = ({ statusTitle, searchTerm, onRefresh, onDataUpdate }: an
                                         <Typography variant="subtitle2" fontWeight="bold">
                                             #{order.name}
                                         </Typography>
+                                        {order.agent && order.agent_id !== user.id && (
+                                            <Chip size="small" variant="outlined" color="warning" label={`de ${order.agent.names}`} sx={{ height: 20, fontSize: '0.7rem', mb: 0.25 }} />
+                                        )}
                                         <Typography variant="body2" color="text.secondary">
                                             {order.client?.first_name} {order.client?.last_name}
                                         </Typography>
@@ -342,6 +348,14 @@ export const SalesLite = () => {
     const [openRatesDialog, setOpenRatesDialog] = useState(false);
     const [openCreateDialog, setOpenCreateDialog] = useState(false);
     const [showTestPanel, setShowTestPanel] = useState(false);
+    // Solo la Líder: ver sus órdenes, las de su grupo o las de una vendedora
+    const [leaderView, setLeaderView] = useState<LeaderView>(MY_ORDERS);
+    const leaderViewRef = useRef<LeaderView>(MY_ORDERS);
+
+    useEffect(() => {
+        leaderViewRef.current = leaderView;
+        if (user.id) fetchCounts();
+    }, [leaderView]);
 
     useEffect(() => {
         if (!user.id) {
@@ -371,7 +385,10 @@ export const SalesLite = () => {
 
     const fetchCounts = async () => {
         try {
-            const { status, response } = await request('/orders/lite/counts', 'GET');
+            const params = new URLSearchParams();
+            appendLeaderView(params, leaderViewRef.current);
+            const query = params.toString();
+            const { status, response } = await request(`/orders/lite/counts${query ? `?${query}` : ''}`, 'GET');
             if (status === 200) {
                 const data = await response.json();
                 setCounts(data.counts || {});
@@ -631,6 +648,7 @@ export const SalesLite = () => {
                         variant="outlined"
                         size="small"
                     />
+                    <LeaderViewSelect value={leaderView} onChange={setLeaderView} />
                     <IconButton sx={{ bgcolor: 'background.paper', border: '1px solid', borderColor: 'divider' }} onClick={() => refreshRef.current && refreshRef.current()}>
                         <RefreshRounded />
                     </IconButton>
@@ -692,6 +710,7 @@ export const SalesLite = () => {
                     searchTerm={searchTerm}
                     onRefresh={refreshRef}
                     onDataUpdate={fetchCounts}
+                    leaderView={leaderView}
                 />
             </Box>
 

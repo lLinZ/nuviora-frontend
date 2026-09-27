@@ -26,6 +26,8 @@ interface OrdersState {
         seller_id: string;
         date_from: string;
         date_to: string;
+        /** 'group': la Líder ve las órdenes de su grupo (el servidor lo valida). */
+        scope: '' | 'group';
     };
     refreshSignal: number;
     activeModal: {
@@ -68,7 +70,8 @@ export const useOrdersStore = create<OrdersState>((set, get) => ({
         agency_id: '',
         seller_id: '',
         date_from: '',
-        date_to: ''
+        date_to: '',
+        scope: ''
     },
     refreshSignal: 0,
     activeModal: { type: null },
