@@ -91,6 +91,10 @@ export interface MyGroupMember {
     active_orders: number;
     /** status_id => órdenes que tiene ahora en ese estado. */
     pipeline: Record<string, number>;
+    /** Carga activa (Asignado a vendedor + Reprogramado para hoy) y alerta de saturación (spec §9). */
+    load: number;
+    saturated: boolean;
+    over_pct: number | null;
 }
 
 export interface MyGroupShopMember {
@@ -115,6 +119,7 @@ export interface MyGroupData {
     statuses: { id: number; description: string }[];
     members: MyGroupMember[];
     shops: MyGroupShop[];
+    saturation: { average: number | null; threshold: number; min_load: number };
 }
 
 export interface GroupMetricsRow {

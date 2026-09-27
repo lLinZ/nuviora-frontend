@@ -83,12 +83,20 @@ const NowCard: React.FC<{ data: MyGroupData }> = ({ data }) => {
         <Paper elevation={2} sx={{ borderRadius: 3, p: 2 }}>
             <Typography variant="subtitle1" fontWeight={700}>Ahora mismo</Typography>
             <Typography variant="caption" color="text.secondary">Órdenes que cada una tiene en curso en este momento.</Typography>
+            {data.members.filter((m) => m.saturated).map((m) => (
+                <Alert key={m.id} severity="warning" sx={{ mt: 1 }}>
+                    <strong>{m.name}</strong> está saturada: tiene {m.load} pedidos en carga,
+                    {m.over_pct !== null ? ` ${Math.round(m.over_pct)} % más que` : " por encima de"} el promedio del grupo
+                    {data.saturation.average !== null ? ` (${fmtPct(data.saturation.average).replace(" %", "")})` : ""}. Puedes pasarle parte a otra vendedora con "Reasignar en bloque".
+                </Alert>
+            ))}
             <TableContainer sx={{ mt: 1 }}>
                 <Table size="small">
                     <TableHead>
                         <TableRow sx={{ "& th": { whiteSpace: "nowrap" } }}>
                             <TableCell>Vendedora</TableCell>
                             <TableCell align="right">Activas</TableCell>
+                            <TableCell align="right">Carga</TableCell>
                             {main.map((s) => <TableCell key={s.id} align="right">{SHORT[s.description] ?? s.description}</TableCell>)}
                             <TableCell align="right">Otras</TableCell>
                             <TableCell align="right">Total</TableCell>
@@ -107,6 +115,15 @@ const NowCard: React.FC<{ data: MyGroupData }> = ({ data }) => {
                                             </Typography>
                                         </Tooltip>
                                     </TableCell>
+                                    <TableCell align="right">
+                                        <Tooltip title={`Asignado a vendedor + Reprogramado para hoy. Promedio del grupo: ${data.saturation.average ?? "—"}. Se avisa desde un ${Math.round((data.saturation.threshold - 1) * 100)} % por encima.`}>
+                                            {m.saturated ? (
+                                                <Chip size="small" color="warning" label={`${m.load} · saturada`} />
+                                            ) : (
+                                                <span>{m.load}</span>
+                                            )}
+                                        </Tooltip>
+                                    </TableCell>
                                     {main.map((s) => <TableCell key={s.id} align="right">{count(m, s.id)}</TableCell>)}
                                     <TableCell align="right"><Tooltip title={restDetail(m)}><span>{restOf(m)}</span></Tooltip></TableCell>
                                     <TableCell align="right" sx={{ fontWeight: 600 }}>{totalOf(m)}</TableCell>
@@ -116,6 +133,7 @@ const NowCard: React.FC<{ data: MyGroupData }> = ({ data }) => {
                         <TableRow sx={{ "& td": { fontWeight: 700, borderTop: 2, borderColor: "divider" } }}>
                             <NameCell label="Grupo" />
                             <TableCell align="right">{sum((m) => m.active_orders)}</TableCell>
+                            <TableCell align="right">{sum((m) => m.load)}</TableCell>
                             {main.map((s) => <TableCell key={s.id} align="right">{sum((m) => count(m, s.id))}</TableCell>)}
                             <TableCell align="right">{sum(restOf)}</TableCell>
                             <TableCell align="right">{sum(totalOf)}</TableCell>

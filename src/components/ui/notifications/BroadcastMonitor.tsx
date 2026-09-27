@@ -10,6 +10,7 @@ import {
     CheckCircleRounded,
     ScheduleRounded,
     TimerRounded,
+    WarningAmberRounded,
     WhatsApp
 } from "@mui/icons-material";
 
@@ -72,6 +73,11 @@ export const BroadcastMonitor = () => {
                     Icon = <TimerRounded />;
                     bgColor = '#ed6c02'; // Warning orange
                     break;
+                case 'saturation':
+                    // Alerta de saturación de una vendedora (spec de la Líder §9)
+                    Icon = <WarningAmberRounded />;
+                    bgColor = '#e65100';
+                    break;
             }
 
             // 3. Add to store (for the bell)
@@ -107,6 +113,11 @@ export const BroadcastMonitor = () => {
                 closeOnClick: false,
                 position: "top-right",
                 onClick: () => {
+                    if (!notification.order_id && notification.url) {
+                        toast.dismiss(toastId);
+                        window.location.href = notification.url;
+                        return;
+                    }
                     if (notification.order_id) {
                         dismissNotification(notification.order_id);
 
