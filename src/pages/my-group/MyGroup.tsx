@@ -21,6 +21,7 @@ import { useUserStore } from "../../store/user/UserStore";
 import { assignmentApi } from "../round-robin/assignmentApi";
 import { BulkReassignDialog } from "../round-robin/BulkReassignDialog";
 import { NotesDialog } from "./NotesDialog";
+import { MeetingsCard } from "./MeetingsCard";
 import { fmtPct, groupShares, weightsError, weightsSummary } from "../sales-groups/weights";
 import { GroupAgency, GroupMetrics, GroupMetricsRow, LeaderEarnings, MyGroupData, MyGroupMember, SellerRef } from "../../interfaces/assignment.types";
 
@@ -796,6 +797,7 @@ export const MyGroup: React.FC = () => {
                         <WeightsCard data={data} onSaved={setData} />
                         <RosterCard data={data} onSaved={setData} />
                     </Box>
+                    <MeetingsCard data={data} />
                 </Stack>
             )}
 
