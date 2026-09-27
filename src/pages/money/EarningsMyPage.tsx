@@ -98,6 +98,15 @@ export const MyEarningsPage: React.FC = () => {
                                                 <Typography variant="caption" color="text.secondary" display="block">Upsell</Typography>
                                                 <Typography variant="body2" fontWeight="bold">${data.breakdown.upsells}</Typography>
                                             </Box>
+                                            {data.breakdown.leadership > 0 && (
+                                                <>
+                                                    <Divider orientation="vertical" flexItem />
+                                                    <Box>
+                                                        <Typography variant="caption" color="text.secondary" display="block">Liderazgo</Typography>
+                                                        <Typography variant="body2" fontWeight="bold">${data.breakdown.leadership}</Typography>
+                                                    </Box>
+                                                </>
+                                            )}
                                         </Box>
                                     )}
 

@@ -313,7 +313,7 @@ const GroupDialog: React.FC<{
                             input: { endAdornment: <InputAdornment position="end">%</InputAdornment> },
                         }}
                         error={!(commission >= 0 && commission <= 100)}
-                        helperText="Este sí es dinero: un % sobre lo que ganan en comisiones las vendedoras del grupo. Queda guardado; se empieza a pagar cuando se active el cálculo de comisiones de la Líder."
+                        helperText="Este sí es dinero: un % sobre lo que ganan en comisiones las vendedoras del grupo (ventas y upsells, sin las de la Líder). Si lo cambias, vale desde ese momento: lo ya ganado no se recalcula."
                     />
                 </Stack>
             </DialogContent>

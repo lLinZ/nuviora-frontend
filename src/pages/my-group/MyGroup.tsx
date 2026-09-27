@@ -21,7 +21,7 @@ import { useUserStore } from "../../store/user/UserStore";
 import { assignmentApi } from "../round-robin/assignmentApi";
 import { BulkReassignDialog } from "../round-robin/BulkReassignDialog";
 import { fmtPct, groupShares, weightsError, weightsSummary } from "../sales-groups/weights";
-import { GroupMetrics, GroupMetricsRow, MyGroupData, MyGroupMember, SellerRef } from "../../interfaces/assignment.types";
+import { GroupMetrics, GroupMetricsRow, LeaderEarnings, MyGroupData, MyGroupMember, SellerRef } from "../../interfaces/assignment.types";
 
 /* ─────────────────────────── utilidades ─────────────────────────── */
 
@@ -236,7 +236,72 @@ const MetricsCard: React.FC<{ data: MyGroupData; reloadKey: number }> = ({ data,
                 Efectividad = entregadas ÷ asignadas (rojo por debajo de 45 %, amarillo hasta 50 %, verde desde 50 %). Canceladas y A agencia también sobre las asignadas.
                 Upsells = entregadas con upsell ÷ entregadas. Las comisiones son lo que ganó cada una en esas fechas; solo se consultan.
             </Typography>
+
+            {metrics?.earnings && <EarningsSection earnings={metrics.earnings} commissionPct={data.group.leader_commission_pct} />}
         </Paper>
+    );
+};
+
+/* ─────────────────────────── Tus ganancias (spec §12.2 y §12.4) ─────────────────────────── */
+
+const EarningsSection: React.FC<{ earnings: LeaderEarnings; commissionPct: number }> = ({ earnings, commissionPct }) => {
+    const tiles = [
+        { label: "Como vendedora", value: earnings.personal.total, hint: `Ventas ${money(earnings.personal.sales)} · upsells ${money(earnings.personal.upsells)}` },
+        { label: "Por liderazgo", value: earnings.leadership.total, hint: `Tu ${fmtPct(Number(commissionPct))} sobre lo que ganan tus vendedoras` },
+        { label: "Total", value: earnings.total, hint: "Lo que ganas en el período" },
+    ];
+
+    return (
+        <Box mt={3}>
+            <Typography variant="subtitle1" fontWeight={700}>Tus ganancias en el período</Typography>
+            <Box display="grid" gridTemplateColumns={{ xs: "1fr", sm: "repeat(3, 1fr)" }} gap={1.5} mt={1}>
+                {tiles.map((t, i) => (
+                    <Paper key={t.label} variant="outlined" sx={{ p: 1.5, borderRadius: 2, borderColor: i === 2 ? "success.main" : "divider" }}>
+                        <Typography variant="caption" color="text.secondary">{t.label}</Typography>
+                        <Typography variant="h6" fontWeight={700} color={i === 2 ? "success.main" : undefined}>{money(t.value)}</Typography>
+                        <Typography variant="caption" color="text.secondary">{t.hint}</Typography>
+                    </Paper>
+                ))}
+            </Box>
+
+            {earnings.leadership.by_seller.length > 0 ? (
+                <TableContainer sx={{ mt: 1.5 }}>
+                    <Table size="small">
+                        <TableHead>
+                            <TableRow sx={{ "& th": { whiteSpace: "nowrap" } }}>
+                                <TableCell>Vendedora</TableCell>
+                                <TableCell align="right">Comisión que generó</TableCell>
+                                <TableCell align="right">Tu %</TableCell>
+                                <TableCell align="right">Para ti</TableCell>
+                            </TableRow>
+                        </TableHead>
+                        <TableBody>
+                            {earnings.leadership.by_seller.map((s) => (
+                                <TableRow key={s.seller_id} hover>
+                                    <TableCell>{s.name}</TableCell>
+                                    <TableCell align="right">{money(s.base_usd)}</TableCell>
+                                    <TableCell align="right">{s.pcts.map((p) => fmtPct(p)).join(" y ")}</TableCell>
+                                    <TableCell align="right" sx={{ fontWeight: 600 }}>{money(s.amount_usd)}</TableCell>
+                                </TableRow>
+                            ))}
+                            <TableRow sx={{ "& td": { fontWeight: 700, borderTop: 2, borderColor: "divider" } }}>
+                                <TableCell>Total</TableCell>
+                                <TableCell align="right">{money(earnings.leadership.base_total)}</TableCell>
+                                <TableCell />
+                                <TableCell align="right">{money(earnings.leadership.total)}</TableCell>
+                            </TableRow>
+                        </TableBody>
+                    </Table>
+                </TableContainer>
+            ) : (
+                <Typography variant="caption" color="text.secondary" display="block" mt={1}>
+                    Todavía no hay comisión de liderazgo en estas fechas. Nace cada vez que una vendedora de tu grupo genera su comisión (venta o upsell).
+                </Typography>
+            )}
+            <Typography variant="caption" color="text.secondary" display="block" mt={1}>
+                Tus propias ventas no cuentan para el liderazgo. El % lo fija el administrador y, si cambia, vale desde ese momento: lo ya ganado no se recalcula.
+            </Typography>
+        </Box>
     );
 };
 

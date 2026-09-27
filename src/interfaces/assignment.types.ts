@@ -132,9 +132,21 @@ export interface GroupMetricsRow {
     commission_total: number;
 }
 
+/** Ganancias de la Líder en el período (spec §12.2 y §12.4). */
+export interface LeaderEarnings {
+    personal: { sales: number; upsells: number; total: number };
+    leadership: {
+        total: number;
+        base_total: number;
+        by_seller: { seller_id: number; name: string; base_usd: number; pcts: number[]; amount_usd: number }[];
+    };
+    total: number;
+}
+
 export interface GroupMetrics {
     start_date: string;
     end_date: string;
     rows: (GroupMetricsRow & { user_id: number })[];
     totals: GroupMetricsRow;
+    earnings?: LeaderEarnings;
 }

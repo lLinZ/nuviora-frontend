@@ -30,12 +30,25 @@ import LaunchRoundedIcon from '@mui/icons-material/LaunchRounded';
 import SwapHorizRoundedIcon from '@mui/icons-material/SwapHorizRounded';
 import { OrderDialog } from "../../components/orders/OrderDialog";
 
+type LeaderRow = {
+    user_id: number;
+    names: string;
+    surnames: string;
+    color?: string;
+    groups: string[];
+    sellers_count: number;
+    base_usd: number;
+    amount_usd: number;
+};
+
 type SummaryData = {
     vendors: any[];
     deliverers: any[];
     managers: any[];
     agencies: any[];
     upsells: any[];
+    /** Comisión de liderazgo por Líder (ver LeaderCommissions en el backend). */
+    leaders?: LeaderRow[];
     global_users: any[];
     orders_with_change: any[];
     agency_settlement: any[];
@@ -46,6 +59,7 @@ type SummaryData = {
         managers_usd: number;
         agencies_usd: number;
         upsells_usd: number;
+        leaders_usd?: number;
     };
     rates: {
         bcv: number;
@@ -237,6 +251,9 @@ export const EarningsAdmin: React.FC = () => {
                                                 </TableCell>
                                                 <TableCell align="right">
                                                     <Typography variant="h6" fontWeight="900" color="primary.main">{fmtMoney(u.amount_usd, 'USD')}</Typography>
+                                                    {u.leadership_usd > 0 && (
+                                                        <Typography variant="caption" color="warning.main" display="block">incluye {fmtMoney(u.leadership_usd, 'USD')} de liderazgo</Typography>
+                                                    )}
                                                 </TableCell>
                                             </TableRow>
                                         ))}
@@ -267,6 +284,9 @@ export const EarningsAdmin: React.FC = () => {
                                 <Grid size={{ xs: 12 }}>
                                     <EarningsTable title="Resumen Gerentes ($0.50 / venta exitosa)" rows={data.managers} icon={<GroupsRoundedIcon sx={{ color: '#e91e63' }} />} />
                                 </Grid>
+                                <Grid size={{ xs: 12 }}>
+                                    <LeadersTable rows={data.leaders ?? []} total={data.totals.leaders_usd ?? 0} />
+                                </Grid>
                             </Grid>
                         </>
                     ))}
@@ -292,6 +312,50 @@ const RateCard = ({ title, rate, icon, color }: any) => (
             </Box>
         </CardContent>
     </Card>
+);
+
+/** Comisión de liderazgo: un % de lo que ganan las vendedoras de cada grupo, guardado al generarse. */
+const LeadersTable = ({ rows, total }: { rows: LeaderRow[]; total: number }) => (
+    <Paper sx={{ p: 4, borderRadius: 5, boxShadow: 1, border: '1px solid', borderColor: 'divider', bgcolor: 'background.paper' }}>
+        <Stack direction="row" spacing={2} alignItems="center" sx={{ mb: 1 }}>
+            <GroupsRoundedIcon sx={{ color: '#ff9800' }} />
+            <Typography variant="h6" fontWeight="bold" color="text.primary">Líderes (comisión de liderazgo)</Typography>
+        </Stack>
+        <Typography variant="caption" color="text.secondary">
+            Cada Líder cobra su % sobre las comisiones de las vendedoras de su grupo. Ya está sumado en el total a pagar de cada una.
+        </Typography>
+        <Divider sx={{ my: 2 }} />
+        <Table size="small">
+            <TableHead>
+                <TableRow>
+                    <TableCell>Líder</TableCell>
+                    <TableCell>Grupo</TableCell>
+                    <TableCell align="center">Vendedoras</TableCell>
+                    <TableCell align="right">Comisiones de su grupo</TableCell>
+                    <TableCell align="right">Liderazgo (USD)</TableCell>
+                </TableRow>
+            </TableHead>
+            <TableBody>
+                {rows.map((r) => (
+                    <TableRow key={r.user_id} hover>
+                        <TableCell sx={{ fontWeight: 'bold' }}>{r.names} {r.surnames}</TableCell>
+                        <TableCell>{r.groups.join(', ')}</TableCell>
+                        <TableCell align="center">{r.sellers_count}</TableCell>
+                        <TableCell align="right">{fmtMoney(r.base_usd, 'USD')}</TableCell>
+                        <TableCell align="right"><Typography fontWeight="900" color="primary.main">{fmtMoney(r.amount_usd, 'USD')}</Typography></TableCell>
+                    </TableRow>
+                ))}
+                {rows.length === 0 ? (
+                    <TableRow><TableCell colSpan={5} align="center" sx={{ py: 3 }}>Sin comisión de liderazgo en estas fechas</TableCell></TableRow>
+                ) : (
+                    <TableRow>
+                        <TableCell colSpan={4} sx={{ fontWeight: 'bold' }}>Total</TableCell>
+                        <TableCell align="right" sx={{ fontWeight: 'bold' }}>{fmtMoney(total, 'USD')}</TableCell>
+                    </TableRow>
+                )}
+            </TableBody>
+        </Table>
+    </Paper>
 );
 
 const TotalProjection = ({ title, amountUsd, rate }: any) => (
