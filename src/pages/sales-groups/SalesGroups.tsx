@@ -8,7 +8,7 @@ import {
 } from "@mui/material";
 import {
     AddRounded, DeleteOutlineRounded, EditRounded, GroupAddRounded, StarRounded,
-    SaveRounded, BalanceRounded, PersonOffRounded,
+    SaveRounded, BalanceRounded, PersonOffRounded, StickyNote2Outlined,
 } from "@mui/icons-material";
 import { toast } from "react-toastify";
 import { Layout } from "../../components/ui/Layout";
@@ -17,6 +17,7 @@ import { Loading } from "../../components/ui/content/Loading";
 import { useValidateSession } from "../../hooks/useValidateSession";
 import { assignmentApi } from "../round-robin/assignmentApi";
 import { fmtPct, groupShares, weightsError, weightsSummary } from "./weights";
+import { NotesDialog } from "../my-group/NotesDialog";
 import { GroupSeller, SalesGroup, SalesGroupsData } from "../../interfaces/assignment.types";
 
 /* ─────────────────────────── Máximo de órdenes activas ─────────────────────────── */
@@ -86,6 +87,7 @@ interface GroupCardProps {
 
 const GroupCard: React.FC<GroupCardProps> = ({ group, sellersById, onEdit, onMembers, onDelete, onReload }) => {
     const leader = group.leader;
+    const [notesOf, setNotesOf] = useState<{ id: number; name: string } | null>(null);
     const people = useMemo(
         () => [...(leader ? [{ user_id: leader.id, weight: leader.weight }] : []), ...group.members],
         [leader, group.members]
@@ -142,6 +144,7 @@ const GroupCard: React.FC<GroupCardProps> = ({ group, sellersById, onEdit, onMem
 
     return (
         <Paper elevation={2} sx={{ borderRadius: 3, overflow: "hidden" }}>
+            <NotesDialog seller={notesOf} mode="admin" onClose={() => setNotesOf(null)} />
             <Box sx={{ px: 2, py: 1.5, bgcolor: "action.hover", display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 1 }}>
                 <Box>
                     <Typography variant="subtitle1" fontWeight={700}>{group.name}</Typography>
@@ -181,7 +184,14 @@ const GroupCard: React.FC<GroupCardProps> = ({ group, sellersById, onEdit, onMem
                     )}
                     {group.members.map((m) => (
                         <Box key={m.user_id} display="flex" alignItems="center" gap={1} flexWrap="wrap">
-                            <Typography variant="body2" sx={{ flex: "1 1 140px", minWidth: 0 }} noWrap title={m.name}>{m.name}</Typography>
+                            <Typography variant="body2" sx={{ flex: "1 1 140px", minWidth: 0 }} noWrap title={m.name}>
+                                {m.name}
+                                <Tooltip title="Notas privadas de la Líder sobre ella">
+                                    <IconButton size="small" onClick={() => setNotesOf({ id: m.user_id, name: m.name })} sx={{ ml: 0.5, p: 0.25 }}>
+                                        <StickyNote2Outlined sx={{ fontSize: 16 }} />
+                                    </IconButton>
+                                </Tooltip>
+                            </Typography>
                             {pctInput(m.user_id)}
                             {shareText(m.user_id)}
                             <MaxActiveInput seller={sellersById.get(m.user_id)} onSaved={() => onReload()} />

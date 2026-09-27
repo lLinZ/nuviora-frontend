@@ -4,12 +4,12 @@
 // Cada acción la valida el servidor (MyGroupController): aquí solo se muestra y se pide.
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
-    Alert, Box, Button, Chip, CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle, MenuItem,
+    Alert, Box, Button, Chip, CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle, IconButton, MenuItem,
     Paper, Stack, Switch, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField,
     ToggleButton, ToggleButtonGroup, Tooltip, Typography,
 } from "@mui/material";
 import {
-    ArrowBackRounded, BalanceRounded, RefreshRounded, SaveRounded, StarRounded, SwapHorizRounded,
+    ArrowBackRounded, BalanceRounded, RefreshRounded, SaveRounded, StarRounded, StickyNote2Outlined, SwapHorizRounded,
 } from "@mui/icons-material";
 import { useNavigate } from "react-router-dom";
 import { Bounce, ToastContainer, toast } from "react-toastify";
@@ -20,6 +20,7 @@ import { useValidateSession } from "../../hooks/useValidateSession";
 import { useUserStore } from "../../store/user/UserStore";
 import { assignmentApi } from "../round-robin/assignmentApi";
 import { BulkReassignDialog } from "../round-robin/BulkReassignDialog";
+import { NotesDialog } from "./NotesDialog";
 import { fmtPct, groupShares, weightsError, weightsSummary } from "../sales-groups/weights";
 import { GroupAgency, GroupMetrics, GroupMetricsRow, LeaderEarnings, MyGroupData, MyGroupMember, SellerRef } from "../../interfaces/assignment.types";
 
@@ -128,9 +129,11 @@ const NowCard: React.FC<{ data: MyGroupData }> = ({ data }) => {
     const totalOf = (m: MyGroupMember) => data.statuses.reduce((a, s) => a + count(m, s.id), 0);
     const restDetail = (m: MyGroupMember) => rest.filter((s) => count(m, s.id) > 0).map((s) => `${s.description}: ${count(m, s.id)}`).join(" · ") || "Ninguna";
     const sum = (f: (m: MyGroupMember) => number) => data.members.reduce((a, m) => a + f(m), 0);
+    const [notesOf, setNotesOf] = useState<{ id: number; name: string } | null>(null);
 
     return (
         <Paper elevation={2} sx={{ borderRadius: 3, p: 2 }}>
+            <NotesDialog seller={notesOf} mode="leader" onClose={() => setNotesOf(null)} />
             <Typography variant="subtitle1" fontWeight={700}>Ahora mismo</Typography>
             <Typography variant="caption" color="text.secondary">Órdenes que cada una tiene en curso en este momento.</Typography>
             {data.members.filter((m) => m.saturated).map((m) => (
@@ -157,7 +160,17 @@ const NowCard: React.FC<{ data: MyGroupData }> = ({ data }) => {
                             const full = m.max_active_orders !== null && m.active_orders >= m.max_active_orders;
                             return (
                                 <TableRow key={m.id} hover>
-                                    <NameCell member={m} />
+                                    <TableCell sx={{ whiteSpace: "nowrap", fontWeight: m.is_leader ? 600 : 400 }}>
+                                        {m.is_leader && <StarRounded sx={{ fontSize: 14, color: "warning.main", verticalAlign: -2, mr: 0.5 }} />}
+                                        {m.name}
+                                        {!m.is_leader && (
+                                            <Tooltip title="Notas privadas sobre ella">
+                                                <IconButton size="small" onClick={() => setNotesOf({ id: m.id, name: m.name })} sx={{ ml: 0.5, p: 0.25 }}>
+                                                    <StickyNote2Outlined sx={{ fontSize: 16 }} />
+                                                </IconButton>
+                                            </Tooltip>
+                                        )}
+                                    </TableCell>
                                     <TableCell align="right">
                                         <Tooltip title="Asignado a vendedor y Llamado 1-3, sumando todas las tiendas. Al llegar a su máximo deja de recibir.">
                                             <Typography variant="body2" component="span" color={full ? "error.main" : undefined} fontWeight={full ? 700 : 400}>
