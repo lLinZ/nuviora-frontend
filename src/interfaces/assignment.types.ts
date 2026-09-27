@@ -115,7 +115,10 @@ export interface MyGroupShop {
 
 export interface MyGroupData {
     group: { id: number; name: string; leader_commission_pct: number };
+    /** La Líder del grupo. */
     me: number;
+    /** true cuando lo mira el administrador: solo lectura. */
+    read_only: boolean;
     statuses: { id: number; description: string }[];
     members: MyGroupMember[];
     shops: MyGroupShop[];

@@ -11,7 +11,7 @@ import {
 import {
     ArrowBackRounded, BalanceRounded, RefreshRounded, SaveRounded, StarRounded, StickyNote2Outlined, SwapHorizRounded,
 } from "@mui/icons-material";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { Bounce, ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { Layout } from "../../components/ui/Layout";
@@ -133,7 +133,7 @@ const NowCard: React.FC<{ data: MyGroupData }> = ({ data }) => {
 
     return (
         <Paper elevation={2} sx={{ borderRadius: 3, p: 2 }}>
-            <NotesDialog seller={notesOf} mode="leader" onClose={() => setNotesOf(null)} />
+            <NotesDialog seller={notesOf} mode={data.read_only ? "admin" : "leader"} onClose={() => setNotesOf(null)} />
             <Typography variant="subtitle1" fontWeight={700}>Ahora mismo</Typography>
             <Typography variant="caption" color="text.secondary">Órdenes que cada una tiene en curso en este momento.</Typography>
             {data.members.filter((m) => m.saturated).map((m) => (
@@ -218,6 +218,7 @@ const MetricsCard: React.FC<{ data: MyGroupData; reloadKey: number }> = ({ data,
     const [metrics, setMetrics] = useState<GroupMetrics | null>(null);
     const [loading, setLoading] = useState(false);
 
+    const gq = groupQuery(data);
     const compareRange = useMemo<[string, string] | null>(
         () => (compareMode === "anterior" ? previousRange(preset, range) : compareMode === "otro" ? otherRange : null),
         [compareMode, preset, range, otherRange]
@@ -229,7 +230,7 @@ const MetricsCard: React.FC<{ data: MyGroupData; reloadKey: number }> = ({ data,
         let cancelled = false;
         setLoading(true);
         const compare = compareRange ? `&compare_start=${compareRange[0]}&compare_end=${compareRange[1]}` : "";
-        assignmentApi<GroupMetrics>(`/my-group/metrics?start_date=${range[0]}&end_date=${range[1]}${compare}`).then((res) => {
+        assignmentApi<GroupMetrics>(`/my-group/metrics?start_date=${range[0]}&end_date=${range[1]}${compare}${gq}`).then((res) => {
             if (cancelled) return;
             setLoading(false);
             if (res.ok && res.data) setMetrics(res.data);
@@ -238,7 +239,7 @@ const MetricsCard: React.FC<{ data: MyGroupData; reloadKey: number }> = ({ data,
         return () => {
             cancelled = true;
         };
-    }, [range, compareRange, reloadKey]);
+    }, [range, compareRange, reloadKey, gq]);
 
     const choose = (p: Preset | null) => {
         if (!p) return;
@@ -354,7 +355,7 @@ const MetricsCard: React.FC<{ data: MyGroupData; reloadKey: number }> = ({ data,
                 Upsells = entregadas con upsell ÷ entregadas. Las comisiones son lo que ganó cada una en esas fechas; solo se consultan.
             </Typography>
 
-            <AgenciesSection range={range} reloadKey={reloadKey} />
+            <AgenciesSection range={range} reloadKey={reloadKey} groupQuery={groupQuery(data)} />
 
             {metrics?.earnings && <EarningsSection earnings={metrics.earnings} commissionPct={data.group.leader_commission_pct} />}
         </Paper>
@@ -363,14 +364,14 @@ const MetricsCard: React.FC<{ data: MyGroupData; reloadKey: number }> = ({ data,
 
 /* ─────────────────────────── Agencias, solo con los pedidos del grupo (spec §10) ─────────────────────────── */
 
-const AgenciesSection: React.FC<{ range: [string, string]; reloadKey: number }> = ({ range, reloadKey }) => {
+const AgenciesSection: React.FC<{ range: [string, string]; reloadKey: number; groupQuery: string }> = ({ range, reloadKey, groupQuery }) => {
     const [agencies, setAgencies] = useState<GroupAgency[]>([]);
     const [selected, setSelected] = useState<number | "">("");
 
     useEffect(() => {
         if (!range[0] || !range[1] || range[0] > range[1]) return;
         let cancelled = false;
-        assignmentApi<GroupAgency[]>(`/my-group/agencies?start_date=${range[0]}&end_date=${range[1]}`).then((res) => {
+        assignmentApi<GroupAgency[]>(`/my-group/agencies?start_date=${range[0]}&end_date=${range[1]}${groupQuery}`).then((res) => {
             if (cancelled || !res.ok || !res.data) return;
             setAgencies(res.data);
             setSelected((cur) => (cur !== "" && res.data!.some((a) => a.agency_id === cur) ? cur : res.data![0]?.agency_id ?? ""));
@@ -378,7 +379,7 @@ const AgenciesSection: React.FC<{ range: [string, string]; reloadKey: number }> 
         return () => {
             cancelled = true;
         };
-    }, [range, reloadKey]);
+    }, [range, reloadKey, groupQuery]);
 
     const a = agencies.find((x) => x.agency_id === selected);
     const tiles = a
@@ -543,7 +544,7 @@ const WeightsCard: React.FC<{ data: MyGroupData; onSaved: (d: MyGroupData) => vo
                 {leader && (
                     <Box display="flex" alignItems="center" gap={1} flexWrap="wrap">
                         <Typography variant="body2" fontWeight={600} sx={{ flex: "1 1 140px", minWidth: 0 }} noWrap title={leader.name}>
-                            <StarRounded sx={{ fontSize: 14, color: "warning.main", verticalAlign: -2 }} /> {leader.name} (tú)
+                            <StarRounded sx={{ fontSize: 14, color: "warning.main", verticalAlign: -2 }} /> {leader.name}{data.read_only ? "" : " (tú)"}
                         </Typography>
                         <Tooltip title="Tu % lo fija el administrador">
                             <Chip size="small" variant="outlined" label={leader.weight != null ? fmtPct(Number(leader.weight)) : "como una vendedora"} sx={{ width: 90 }} />
@@ -563,6 +564,7 @@ const WeightsCard: React.FC<{ data: MyGroupData; onSaved: (d: MyGroupData) => vo
                             onChange={(e) => setWeights({ ...weights, [m.id]: e.target.value })}
                             slotProps={{ htmlInput: { min: 0, max: 100 }, inputLabel: { shrink: true } }}
                             sx={{ width: 90 }}
+                            disabled={data.read_only}
                         />
                         {shareText(m.id)}
                     </Box>
@@ -579,7 +581,7 @@ const WeightsCard: React.FC<{ data: MyGroupData; onSaved: (d: MyGroupData) => vo
                 </Typography>
             )}
 
-            {sellers.length > 0 && (
+            {sellers.length > 0 && !data.read_only && (
                 <Stack direction="row" spacing={1} mt={2} justifyContent="flex-end">
                     <Button size="small" startIcon={<BalanceRounded />} onClick={() => setWeights(Object.fromEntries(sellers.map((m) => [m.id, ""])))}>
                         Repartir parejo
@@ -653,7 +655,7 @@ const RosterCard: React.FC<{ data: MyGroupData; onSaved: (d: MyGroupData) => voi
                                                 <Switch
                                                     size="small"
                                                     checked={m.in_roster}
-                                                    disabled={busy === key || (!m.in_roster && !canTurnOn)}
+                                                    disabled={data.read_only || busy === key || (!m.in_roster && !canTurnOn)}
                                                     onChange={(e) => (e.target.checked ? send(shop.id, m.user_id, true) : setPending({ shopId: shop.id, userId: m.user_id }))}
                                                 />
                                                 <Typography variant="body2" sx={{ minWidth: 120 }}>{name(m.user_id)}</Typography>
@@ -703,6 +705,9 @@ const RosterCard: React.FC<{ data: MyGroupData; onSaved: (d: MyGroupData) => voi
 
 /* ─────────────────────────── Página ─────────────────────────── */
 
+/** Cuando el administrador mira el grupo de una Líder (?grupo=), las consultas llevan group_id. */
+const groupQuery = (data: MyGroupData) => (data.read_only ? `&group_id=${data.group.id}` : "");
+
 /** Las vendedoras con vista simple no tienen menú lateral: se les da una barra con "volver". */
 const Shell: React.FC<{ lite: boolean; children: React.ReactNode }> = ({ lite, children }) => {
     const navigate = useNavigate();
@@ -721,6 +726,8 @@ const Shell: React.FC<{ lite: boolean; children: React.ReactNode }> = ({ lite, c
 
 export const MyGroup: React.FC = () => {
     const { loadingSession, isValid } = useValidateSession();
+    const [searchParams] = useSearchParams();
+    const viewGroup = searchParams.get("grupo");
     const user = useUserStore((s) => s.user);
     const [data, setData] = useState<MyGroupData | null>(null);
     const [forbidden, setForbidden] = useState(false);
@@ -730,7 +737,7 @@ export const MyGroup: React.FC = () => {
 
     const fetchData = useCallback(async () => {
         setLoading(true);
-        const res = await assignmentApi<MyGroupData>("/my-group");
+        const res = await assignmentApi<MyGroupData>(viewGroup ? `/my-group?group_id=${viewGroup}` : "/my-group");
         setLoading(false);
         if (res.ok && res.data) {
             setData(res.data);
@@ -739,7 +746,7 @@ export const MyGroup: React.FC = () => {
             setForbidden(true);
             toast.error(res.message);
         }
-    }, []);
+    }, [viewGroup]);
 
     useEffect(() => {
         if (isValid) fetchData();
@@ -766,7 +773,9 @@ export const MyGroup: React.FC = () => {
                 </Box>
                 <Stack direction="row" spacing={1}>
                     <Button size="small" startIcon={loading ? <CircularProgress size={14} /> : <RefreshRounded />} onClick={refresh} disabled={loading}>Actualizar</Button>
-                    <Button size="small" variant="contained" startIcon={<SwapHorizRounded />} onClick={() => setReassignOpen(true)} disabled={!data}>Reasignar en bloque</Button>
+                    {!data?.read_only && (
+                        <Button size="small" variant="contained" startIcon={<SwapHorizRounded />} onClick={() => setReassignOpen(true)} disabled={!data}>Reasignar en bloque</Button>
+                    )}
                 </Stack>
             </Box>
 
@@ -776,6 +785,11 @@ export const MyGroup: React.FC = () => {
 
             {data && (
                 <Stack spacing={2}>
+                    {data.read_only && (
+                        <Alert severity="info">
+                            Estás viendo "Mi grupo" de {data.members.find((m) => m.is_leader)?.name ?? "la Líder"} como administrador. Es solo para mirar: los cambios los hace ella.
+                        </Alert>
+                    )}
                     <NowCard data={data} />
                     <MetricsCard data={data} reloadKey={reloadKey} />
                     <Box display="grid" gridTemplateColumns={{ xs: "1fr", lg: "1fr 1fr" }} gap={2} alignItems="start">

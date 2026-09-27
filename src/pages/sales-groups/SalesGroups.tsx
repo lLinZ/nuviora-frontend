@@ -8,8 +8,9 @@ import {
 } from "@mui/material";
 import {
     AddRounded, DeleteOutlineRounded, EditRounded, GroupAddRounded, StarRounded,
-    SaveRounded, BalanceRounded, PersonOffRounded, StickyNote2Outlined,
+    SaveRounded, BalanceRounded, PersonOffRounded, StickyNote2Outlined, VisibilityRounded,
 } from "@mui/icons-material";
+import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import { Layout } from "../../components/ui/Layout";
 import { DescripcionDeVista } from "../../components/ui/content/DescripcionDeVista";
@@ -88,6 +89,7 @@ interface GroupCardProps {
 const GroupCard: React.FC<GroupCardProps> = ({ group, sellersById, onEdit, onMembers, onDelete, onReload }) => {
     const leader = group.leader;
     const [notesOf, setNotesOf] = useState<{ id: number; name: string } | null>(null);
+    const navigate = useNavigate();
     const people = useMemo(
         () => [...(leader ? [{ user_id: leader.id, weight: leader.weight }] : []), ...group.members],
         [leader, group.members]
@@ -158,6 +160,11 @@ const GroupCard: React.FC<GroupCardProps> = ({ group, sellersById, onEdit, onMem
                     )}
                 </Box>
                 <Stack direction="row" spacing={0.5}>
+                    {leader && (
+                        <Tooltip title={`Ver "Mi grupo" como lo ve ${leader.name}`}>
+                            <IconButton size="small" onClick={() => navigate(`/mi-grupo?grupo=${group.id}`)}><VisibilityRounded fontSize="small" /></IconButton>
+                        </Tooltip>
+                    )}
                     <Tooltip title="Editar grupo y Líder">
                         <IconButton size="small" onClick={() => onEdit(group)}><EditRounded fontSize="small" /></IconButton>
                     </Tooltip>

@@ -134,8 +134,8 @@ function App() {
           <Route path="/admin/stock-export" element={<RequireRole allowedRoles={['Admin', 'Gerente']}><StockExportPage /></RequireRole>} />
           <Route path="/round-robin" element={<RequireRole allowedRoles={['Admin', 'Gerente', 'Master']}><RoundRobinControl /></RequireRole>} />
           <Route path="/grupos-de-venta" element={<RequireRole allowedRoles={['Admin', 'Master']}><SalesGroups /></RequireRole>} />
-          {/* La Líder es una Vendedor; la página y el servidor comprueban que lidere un grupo */}
-          <Route path="/mi-grupo" element={<RequireRole allowedRoles={['Vendedor']}><MyGroup /></RequireRole>} />
+          {/* La Líder es una Vendedor; la página y el servidor comprueban que lidere un grupo. El Admin la mira con ?grupo= (solo lectura) */}
+          <Route path="/mi-grupo" element={<RequireRole allowedRoles={['Vendedor', 'Admin', 'Master']}><MyGroup /></RequireRole>} />
 
           {/* Chat interno vendedora <-> agencia */}
           <Route path="/internal-chat" element={<RequireRole allowedRoles={['Admin', 'Gerente', 'Master', 'Vendedor', 'Agencia']}><InternalChatPage /></RequireRole>} />
