@@ -33,6 +33,7 @@ import { IResponse } from "../interfaces/response-type";
 import { OrderDialog } from "../components/orders/OrderDialog";
 import { PaymentMethodsReport } from "../components/reports/PaymentMethodsReport";
 import { StockAlertWidget } from "../components/inventory/StockAlertWidget";
+import { tripSheetRows } from "../common/agencyTrips";
 
 interface DashboardStats {
     total_sales?: number;
@@ -262,6 +263,8 @@ export const Dashboard = () => {
         const ws = XLSX.utils.json_to_sheet(worksheetData);
         const wb = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(wb, ws, "Liquidación");
+        // Cada carrera que se le paga a la agencia (tarea 5)
+        XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(tripSheetRows(agency.trip_details ?? [])), "Carreras");
         const fileName = `Liquidacion_${agency.agency_name?.replace(/\s+/g, '_') || 'Agencia'}_${fromDate}_al_${toDate}.xlsx`;
         XLSX.writeFile(wb, fileName);
     };
@@ -971,6 +974,14 @@ export const Dashboard = () => {
                                             {fetchingSettlement ? '...' : (agencySettlement[0]?.total_orders ?? 0)}
                                         </TypographyCustom>
                                         <TypographyCustom variant="caption" color="text.secondary">Total Entregadas (Periodo)</TypographyCustom>
+                                    </Box>
+                                    <Box textAlign="center">
+                                        <TypographyCustom variant="h4" fontWeight="bold" color="info.main">
+                                            {fetchingSettlement ? '...' : (agencySettlement[0]?.count_trips ?? 0)}
+                                        </TypographyCustom>
+                                        <TypographyCustom variant="caption" color="text.secondary">
+                                            Carreras · ${Number(agencySettlement[0]?.total_shipping_cost || 0).toFixed(2)}
+                                        </TypographyCustom>
                                     </Box>
                                     <Box textAlign="center">
                                         <TypographyCustom variant="h4" fontWeight="bold" color="success.main">

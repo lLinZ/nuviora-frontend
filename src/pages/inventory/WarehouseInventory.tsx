@@ -135,6 +135,11 @@ export const WarehouseInventory: React.FC = () => {
                                         <TableCell>{item.product?.sku || '—'}</TableCell>
                                         <TableCell align="right" sx={{ fontWeight: 'bold' }}>
                                             {item.quantity}
+                                            {(item.defective_stock ?? 0) > 0 && (
+                                                <Typography variant="caption" color="warning.main" display="block">
+                                                    incluye {item.defective_stock} defectuosa{item.defective_stock === 1 ? '' : 's'}
+                                                </Typography>
+                                            )}
                                         </TableCell>
                                         <TableCell align="right">
                                             ${Number(item.product?.price || 0).toFixed(2)}

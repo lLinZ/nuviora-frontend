@@ -29,6 +29,8 @@ import AccountBalanceWalletRoundedIcon from '@mui/icons-material/AccountBalanceW
 import LaunchRoundedIcon from '@mui/icons-material/LaunchRounded';
 import SwapHorizRoundedIcon from '@mui/icons-material/SwapHorizRounded';
 import { OrderDialog } from "../../components/orders/OrderDialog";
+import ReplayRoundedIcon from '@mui/icons-material/ReplayRounded';
+import { SettlementTrip, TRIP_TYPES, tripResultColor, tripResultLabel, tripSheetRows } from "../../common/agencyTrips";
 
 type LeaderRow = {
     user_id: number;
@@ -52,6 +54,8 @@ type SummaryData = {
     global_users: any[];
     orders_with_change: any[];
     agency_settlement: any[];
+    /** Devoluciones = reembolsos del período (tarea 3b). */
+    refunds?: { total_usd: number; count: number; items: any[] };
     totals: {
         all_usd: number;
         vendors_usd: number;
@@ -265,7 +269,15 @@ export const EarningsAdmin: React.FC = () => {
                             </Paper>
 
                             {/* SECCIÓN: LIQUIDACIÓN DE AGENCIAS */}
-                            <AgencySettlementTable settlement={data.agency_settlement} openOrder={openOrder} />
+                            <AgencySettlementTable
+                                settlement={data.agency_settlement}
+                                openOrder={openOrder}
+                                canVoid={['Admin', 'Master'].includes(user.role?.description || '')}
+                                onChanged={load}
+                            />
+
+                            {/* SECCIÓN: DEVOLUCIONES (REEMBOLSOS) */}
+                            {data.refunds && <RefundsTable refunds={data.refunds} openOrder={openOrder} />}
 
 
                             <Typography variant="h6" fontWeight="bold" sx={{ mt: 2, mb: -1 }}>Detalle por Categoría</Typography>
@@ -460,7 +472,29 @@ const EarningsTable = ({ title, rows, icon, onDownload, showUpsells, mainCountIs
     </Paper>
 );
 
-const AgencySettlementTable = ({ settlement, openOrder }: { settlement: any[], openOrder: (id: number) => void }) => {
+type SettlementProps = { settlement: any[]; openOrder: (id: number) => void; canVoid: boolean; onChanged: () => void };
+
+const AgencySettlementTable = ({ settlement, openOrder, canVoid, onChanged }: SettlementProps) => {
+    const [expanded, setExpanded] = useState<number | null>(null);
+
+    const voidTrip = async (t: SettlementTrip) => {
+        if (!t.trip_id) return;
+        const reason = window.prompt(`¿Por qué se anula la carrera de #${t.order_name} (${t.trip_date})? Ya no se le pagará a la agencia.`);
+        if (reason === null) return;
+        if (reason.trim().length < 3) {
+            toast.error("Escribe el motivo");
+            return;
+        }
+        const { ok, response } = await request(`/agency-trips/${t.trip_id}/void`, "POST", { reason: reason.trim() });
+        const json = await response.json().catch(() => ({}));
+        if (ok && json.status) {
+            toast.success("Carrera anulada");
+            onChanged();
+        } else {
+            toast.error(json.message || "No se pudo anular");
+        }
+    };
+
     const exportToExcel = (agency: any) => {
         const worksheetData = agency.order_details.map((d: any) => ({
             "Orden": `#${d.order_name}`,
@@ -480,6 +514,7 @@ const AgencySettlementTable = ({ settlement, openOrder }: { settlement: any[], o
         const ws = XLSX.utils.json_to_sheet(worksheetData);
         const wb = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(wb, ws, "Liquidación");
+        XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(tripSheetRows(agency.trip_details ?? [])), "Carreras");
         XLSX.writeFile(wb, `Liquidacion_${agency.agency_name.replace(/\s+/g, '_')}_${dayjs().format('YYYYMMDD')}.xlsx`);
     };
 
@@ -489,7 +524,7 @@ const AgencySettlementTable = ({ settlement, openOrder }: { settlement: any[], o
                 <BusinessRoundedIcon sx={{ color: 'success.main', fontSize: 32 }} />
                 <Box>
                     <Typography variant="h5" fontWeight="900">Liquidación de Agencias</Typography>
-                    <Typography variant="caption" color="text.secondary">Saldo de efectivo recaudado vs vueltos entregados por agencias externas.</Typography>
+                    <Typography variant="caption" color="text.secondary">Se paga cada carrera (también las fallidas y las re-entregas), en la semana en que se hizo. El saldo es el efectivo cobrado menos los vueltos entregados.</Typography>
                 </Box>
             </Stack>
             <Divider sx={{ mb: 3 }} />
@@ -504,8 +539,8 @@ const AgencySettlementTable = ({ settlement, openOrder }: { settlement: any[], o
                         <TableRow sx={{ bgcolor: 'action.hover' }}>
                             <TableCell sx={{ fontWeight: 'bold' }}>Agencia</TableCell>
                             <TableCell align="center" sx={{ fontWeight: 'bold' }}>Entregados</TableCell>
-                            <TableCell align="center" sx={{ fontWeight: 'bold' }}>Total Envíos</TableCell>
-                            <TableCell align="right" sx={{ fontWeight: 'bold' }}>A Pagar (Envío)</TableCell>
+                            <TableCell align="center" sx={{ fontWeight: 'bold' }}>Carreras</TableCell>
+                            <TableCell align="right" sx={{ fontWeight: 'bold' }}>A Pagar (Carreras)</TableCell>
                             <TableCell align="right" sx={{ fontWeight: 'bold' }}>Saldo Final (USD)</TableCell>
                             <TableCell align="right" sx={{ fontWeight: 'bold' }}>Saldo Final (BS)</TableCell>
                             <TableCell align="center" sx={{ fontWeight: 'bold' }}>Acciones</TableCell>
@@ -527,10 +562,11 @@ const AgencySettlementTable = ({ settlement, openOrder }: { settlement: any[], o
                                         <Chip label={a.count_delivered || 0} size="small" color="success" variant="outlined" sx={{ fontWeight: 'bold' }} />
                                     </TableCell>
                                     <TableCell align="center">
-                                        <Chip label={a.count_shipped || 0} size="small" color="info" variant="outlined" sx={{ fontWeight: 'bold' }} />
+                                        <Chip label={a.count_trips ?? 0} size="small" color="info" variant="outlined" sx={{ fontWeight: 'bold' }} />
                                     </TableCell>
                                     <TableCell align="right">
                                         <Typography variant="body2" color="error.main" fontWeight="bold">{fmtMoney(a.total_shipping_cost, 'USD')}</Typography>
+                                        {a.delivery_rate > 0 && <Typography variant="caption" color="text.secondary" display="block">tarifa {fmtMoney(a.delivery_rate, 'USD')}</Typography>}
                                     </TableCell>
                                     <TableCell align="right">
                                         <Typography variant="h6" fontWeight="900" color="success.main">{fmtMoney(a.balance_usd, 'USD')}</Typography>
@@ -545,7 +581,48 @@ const AgencySettlementTable = ({ settlement, openOrder }: { settlement: any[], o
                                                     <FileDownloadRoundedIcon />
                                                 </IconButton>
                                             </Tooltip>
+                                            <Tooltip title="Ver carreras">
+                                                <IconButton onClick={() => setExpanded(expanded === a.agency_id ? null : a.agency_id)} disabled={!(a.trip_details?.length)}>
+                                                    {expanded === a.agency_id ? <KeyboardArrowUpIcon /> : <KeyboardArrowDownIcon />}
+                                                </IconButton>
+                                            </Tooltip>
                                         </Stack>
+                                    </TableCell>
+                                </TableRow>
+                                <TableRow>
+                                    <TableCell colSpan={7} sx={{ py: 0, borderBottom: expanded === a.agency_id ? undefined : 'none' }}>
+                                        <Collapse in={expanded === a.agency_id} unmountOnExit>
+                                            <Table size="small" sx={{ my: 2 }}>
+                                                <TableHead>
+                                                    <TableRow>
+                                                        <TableCell>Fecha</TableCell>
+                                                        <TableCell>Orden</TableCell>
+                                                        <TableCell>Tipo</TableCell>
+                                                        <TableCell>Resultado</TableCell>
+                                                        <TableCell align="right">Monto</TableCell>
+                                                        {canVoid && <TableCell />}
+                                                    </TableRow>
+                                                </TableHead>
+                                                <TableBody>
+                                                    {(a.trip_details ?? []).map((t: SettlementTrip, i: number) => (
+                                                        <TableRow key={t.trip_id ?? `e${i}`} hover>
+                                                            <TableCell>{dayjs(t.trip_date).format('DD/MM/YYYY')}</TableCell>
+                                                            <TableCell>
+                                                                <Chip size="small" variant="outlined" label={`#${t.order_name}`} onClick={() => openOrder(t.order_id)} icon={<LaunchRoundedIcon />} />
+                                                            </TableCell>
+                                                            <TableCell>{TRIP_TYPES[t.type] ?? t.type}</TableCell>
+                                                            <TableCell><Chip size="small" color={tripResultColor(t.result)} label={tripResultLabel(t.result)} /></TableCell>
+                                                            <TableCell align="right">{fmtMoney(t.amount_usd, 'USD')}</TableCell>
+                                                            {canVoid && (
+                                                                <TableCell align="right">
+                                                                    {t.trip_id && <ButtonCustom size="small" variant="text" color="error" onClick={() => voidTrip(t)}>Anular</ButtonCustom>}
+                                                                </TableCell>
+                                                            )}
+                                                        </TableRow>
+                                                    ))}
+                                                </TableBody>
+                                            </Table>
+                                        </Collapse>
                                     </TableCell>
                                 </TableRow>
                             </React.Fragment>
@@ -557,3 +634,49 @@ const AgencySettlementTable = ({ settlement, openOrder }: { settlement: any[], o
     );
 };
 
+/** Devoluciones del período: reembolsos al cliente (el producto se queda con él). */
+const RefundsTable = ({ refunds, openOrder }: { refunds: { total_usd: number; count: number; items: any[] }; openOrder: (id: number) => void }) => (
+    <Paper sx={{ p: 4, borderRadius: 5, border: '1px solid', borderColor: 'divider', bgcolor: 'background.paper', boxShadow: 3 }}>
+        <Stack direction="row" spacing={2} alignItems="center" sx={{ mb: 3 }}>
+            <ReplayRoundedIcon sx={{ color: 'warning.main', fontSize: 32 }} />
+            <Box sx={{ flex: 1 }}>
+                <Typography variant="h5" fontWeight="900">Devoluciones (reembolsos)</Typography>
+                <Typography variant="caption" color="text.secondary">Dinero devuelto a clientes en el período. No quitan la comisión de la vendedora.</Typography>
+            </Box>
+            <Chip color="warning" label={`${refunds.count} · ${fmtMoney(refunds.total_usd, 'USD')}`} sx={{ fontWeight: 'bold' }} />
+        </Stack>
+        <Divider sx={{ mb: 2 }} />
+        {refunds.items.length === 0 ? (
+            <Typography variant="body2" color="text.secondary" sx={{ py: 2, textAlign: 'center' }}>Sin devoluciones en este periodo.</Typography>
+        ) : (
+            <Table size="small">
+                <TableHead>
+                    <TableRow sx={{ bgcolor: 'action.hover' }}>
+                        <TableCell sx={{ fontWeight: 'bold' }}>Fecha</TableCell>
+                        <TableCell sx={{ fontWeight: 'bold' }}>Orden</TableCell>
+                        <TableCell sx={{ fontWeight: 'bold' }}>Vendedora</TableCell>
+                        <TableCell sx={{ fontWeight: 'bold' }}>Método</TableCell>
+                        <TableCell sx={{ fontWeight: 'bold' }}>Registró</TableCell>
+                        <TableCell sx={{ fontWeight: 'bold' }}>Nota</TableCell>
+                        <TableCell align="right" sx={{ fontWeight: 'bold' }}>Monto</TableCell>
+                    </TableRow>
+                </TableHead>
+                <TableBody>
+                    {refunds.items.map((r) => (
+                        <TableRow key={r.id} hover>
+                            <TableCell>{dayjs(r.refunded_at).format('DD/MM/YYYY')}</TableCell>
+                            <TableCell>
+                                <Chip size="small" variant="outlined" label={`#${r.order_name}`} onClick={() => openOrder(r.order_id)} icon={<LaunchRoundedIcon />} />
+                            </TableCell>
+                            <TableCell>{r.seller_name ?? '—'}</TableCell>
+                            <TableCell>{r.method ?? '—'}</TableCell>
+                            <TableCell>{r.user_name ?? '—'}</TableCell>
+                            <TableCell sx={{ maxWidth: 240 }}><Typography variant="body2" noWrap title={r.notes ?? ''}>{r.notes ?? '—'}</Typography></TableCell>
+                            <TableCell align="right"><Typography variant="body2" fontWeight="bold">{fmtMoney(r.amount_usd, 'USD')}</Typography></TableCell>
+                        </TableRow>
+                    ))}
+                </TableBody>
+            </Table>
+        )}
+    </Paper>
+);

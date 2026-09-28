@@ -22,6 +22,9 @@ import { OrderActivityList } from "./OrderActivityList";
 import { OrderProductsList } from "./OrderProductsList";
 import { OrderHeader } from "./OrderHeader";
 import { OrderCompanyAccounts } from "./OrderCompanyAccounts";
+import { OrderRefundsCard } from "./OrderRefundsCard";
+import { OrderTripsCard } from "./OrderTripsCard";
+import { RefundDialog } from "./RefundDialog";
 import { fmtMoney } from "../../lib/money";
 import { ButtonCustom } from "../custom";
 import { ProductSearchDialog } from "../products/ProductsSearchDialog";
@@ -178,7 +181,8 @@ export const OrderDialog: FC<OrderDialogProps> = ({ id, open, setOpen }) => {
     const [upsellPrice, setUpsellPrice] = useState(0);
     const [stagedPayments, setStagedPayments] = useState<any[]>([]);
     const [confirmReturnOpen, setConfirmReturnOpen] = useState(false);
-    const [confirmType, setConfirmType] = useState<'devolucion' | 'cambio'>('devolucion');
+    // Devolución = reembolso (tarea 3b): se registra en la orden, sin crear otra
+    const [openRefund, setOpenRefund] = useState(false);
     const [creatingReturn, setCreatingReturn] = useState(false);
     const [isAddingRegular, setIsAddingRegular] = useState(false);
 
@@ -293,16 +297,15 @@ export const OrderDialog: FC<OrderDialogProps> = ({ id, open, setOpen }) => {
         setCreatingReturn(true);
         try {
             const body = new URLSearchParams();
-            body.append('type', confirmType);
+            body.append('type', 'cambio');
             const { status, response } = await request(`/orders/${order.id}/create-return`, 'POST', body);
             const data = await response.json();
             if (status === 200 && data.status) {
-                const label = confirmType === 'cambio' ? 'cambio' : 'devolución';
-                toast.success(`✅ Orden de ${label} creada: #` + data.order?.name);
+                toast.success('✅ Orden de cambio creada: #' + data.order?.name);
                 setConfirmReturnOpen(false);
-                // Optionally refresh or navigate
+                refreshOrder();
             } else {
-                toast.error(data.message || 'Error al crear devolución');
+                toast.error(data.message || 'Error al crear el cambio');
             }
         } catch (error) {
             console.error(error);
@@ -635,9 +638,19 @@ export const OrderDialog: FC<OrderDialogProps> = ({ id, open, setOpen }) => {
                         {/* ✅ HAS RETURNS CREATED */}
                         {order.return_orders && order.return_orders.length > 0 && (
                             <Alert severity="warning" variant="filled" sx={{ mb: 3, borderRadius: 3 }}>
-                                <AlertTitle sx={{ fontWeight: 'bold' }}>📦 Devolución Generada</AlertTitle>
+                                <AlertTitle sx={{ fontWeight: 'bold' }}>📦 Cambio generado</AlertTitle>
                                 <Typography variant="body2">
-                                    Se {order.return_orders.length === 1 ? 'ha' : 'han'} creado {order.return_orders.length} {order.return_orders.length === 1 ? 'orden' : 'órdenes'} de devolución desde esta orden: {order.return_orders.map((r: any) => r.name).join(', ')}
+                                    Se {order.return_orders.length === 1 ? 'ha' : 'han'} creado {order.return_orders.length} {order.return_orders.length === 1 ? 'orden' : 'órdenes'} desde esta orden: {order.return_orders.map((r: any) => r.name).join(', ')}
+                                </Typography>
+                            </Alert>
+                        )}
+
+                        {/* 💸 REEMBOLSADA (devolución, tarea 3b) */}
+                        {Number(order.refunded_usd) > 0 && (
+                            <Alert severity="warning" sx={{ mb: 3, borderRadius: 3 }}>
+                                <AlertTitle sx={{ fontWeight: 'bold' }}>💸 Devolución: se reembolsaron {fmtMoney(Number(order.refunded_usd), 'USD')}</AlertTitle>
+                                <Typography variant="body2">
+                                    El producto se quedó con el cliente. El detalle está en la pestaña <b>Finanzas</b>.
                                 </Typography>
                             </Alert>
                         )}
@@ -885,6 +898,20 @@ export const OrderDialog: FC<OrderDialogProps> = ({ id, open, setOpen }) => {
                                         <Grid size={{ xs: 12 }}>
                                             <OrderCompanyAccounts />
                                         </Grid>
+                                        {!order.is_exchange && (
+                                            <Grid size={{ xs: 12, md: 6 }}>
+                                                <OrderRefundsCard
+                                                    order={order}
+                                                    canRegister={['Admin', 'Gerente', 'Master', 'Vendedor'].includes(user.role?.description || '')}
+                                                    onChange={refreshOrder}
+                                                />
+                                            </Grid>
+                                        )}
+                                        {['Admin', 'Gerente', 'Master', 'Agencia'].includes(user.role?.description || '') && (
+                                            <Grid size={{ xs: 12, md: 6 }}>
+                                                <OrderTripsCard orderId={order.id} canVoid={['Admin', 'Master'].includes(user.role?.description || '')} />
+                                            </Grid>
+                                        )}
                                     </Grid>
                                 )}
                             </>
@@ -976,11 +1003,13 @@ export const OrderDialog: FC<OrderDialogProps> = ({ id, open, setOpen }) => {
 
                     {!(order.is_return || order.is_exchange) && order.status?.description === 'Entregado' && (
                         <>
-                            <MenuItem onClick={() => { handleMenuClose(); setConfirmType('devolucion'); setConfirmReturnOpen(true); }}>
-                                <ListItemIcon><ReplayRounded fontSize="small" /></ListItemIcon>
-                                <ListItemText>Generar Devolución</ListItemText>
-                            </MenuItem>
-                            <MenuItem onClick={() => { handleMenuClose(); setConfirmType('cambio'); setConfirmReturnOpen(true); }}>
+                            {['Admin', 'Gerente', 'Master', 'Vendedor'].includes(user.role?.description || '') && (
+                                <MenuItem onClick={() => { handleMenuClose(); setOpenRefund(true); }}>
+                                    <ListItemIcon><ReplayRounded fontSize="small" /></ListItemIcon>
+                                    <ListItemText>Registrar Devolución (reembolso)</ListItemText>
+                                </MenuItem>
+                            )}
+                            <MenuItem onClick={() => { handleMenuClose(); setConfirmReturnOpen(true); }}>
                                 <ListItemIcon><EventRepeatRounded fontSize="small" /></ListItemIcon>
                                 <ListItemText>Generar Cambio</ListItemText>
                             </MenuItem>
@@ -1019,27 +1048,36 @@ export const OrderDialog: FC<OrderDialogProps> = ({ id, open, setOpen }) => {
                 <LogisticsDialog open={openLogistics} onClose={() => setOpenLogistics(false)} order={order} />
                 <DailyRatesDialog open={openRates} onClose={() => setOpenRates(false)} />
 
-                {/* CONFIRM RETURN/EXCHANGE DIALOG */}
+                {/* CONFIRMAR CAMBIO (la devolución es un reembolso: RefundDialog) */}
                 <Dialog open={confirmReturnOpen} onClose={() => setConfirmReturnOpen(false)}>
-                    <DialogTitle>Generar Orden de {confirmType === 'cambio' ? 'Cambio' : 'Devolución'}</DialogTitle>
+                    <DialogTitle>Generar orden de cambio</DialogTitle>
                     <DialogContent>
                         <Typography variant="body1" sx={{ mb: 2 }}>
-                            Esto creará una nueva orden marcada como <strong>{confirmType === 'cambio' ? 'CAMBIO' : 'DEVOLUCIÓN'}</strong> basada en la orden #{order.name}.
+                            Esto creará una orden de <strong>CAMBIO</strong> basada en la orden #{order.name}.
                         </Typography>
                         <Typography variant="body2" color="text.secondary">
-                            • El cliente no paga (Total: $0)<br />
-                            • Se asignará automáticamente a la agencia de la ciudad<br />
-                            • Los productos se copiarán de la orden original<br />
-                            • No generará comisión para la vendedora
+                            • El cliente no paga (Total: $0) y no genera comisión<br />
+                            • La lleva la agencia que entregó la orden (o la de su ciudad)<br />
+                            • Lleva los mismos productos y tallas: la pieza buena sale de su almacén<br />
+                            • La agencia retira la pieza defectuosa, que queda en su almacén como defectuosa<br />
+                            • Es una sola carrera para la agencia
                         </Typography>
                     </DialogContent>
                     <DialogActions>
                         <Button onClick={() => setConfirmReturnOpen(false)} disabled={creatingReturn}>Cancelar</Button>
                         <ButtonCustom onClick={handleCreateReturn} disabled={creatingReturn}>
-                            {creatingReturn ? 'Creando...' : (confirmType === 'cambio' ? 'Crear Cambio' : 'Crear Devolución')}
+                            {creatingReturn ? 'Creando...' : 'Crear Cambio'}
                         </ButtonCustom>
                     </DialogActions>
                 </Dialog>
+                <RefundDialog
+                    open={openRefund}
+                    onClose={() => setOpenRefund(false)}
+                    orderId={order.id}
+                    orderName={order.name}
+                    refundable={Math.max(0, Math.round((Number(order.current_total_price) - Number(order.refunded_usd || 0)) * 100) / 100)}
+                    onSaved={refreshOrder}
+                />
                 <ProductSearchDialog open={openSearch} onClose={() => setOpenSearch(false)} onPick={(product) => { setUpsellCandidate(product); setUpsellPrice(Number(product.price)); setUpsellQty(1); setOpenSearch(false); setShowUpsellConfirm(true); }} />
                 <Dialog open={showUpsellConfirm} onClose={() => setShowUpsellConfirm(false)}>
                     <DialogTitle>{isAddingRegular ? 'Confirmar Agregar Producto' : 'Confirmar Upsell'}</DialogTitle>

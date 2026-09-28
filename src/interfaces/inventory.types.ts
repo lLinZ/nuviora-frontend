@@ -34,6 +34,8 @@ export interface IInventory {
     warehouse_id: number;
     product_id: number;
     quantity: number;
+    /** Incluidas en quantity: piezas retiradas en cambios, pendientes de revisión (no se venden). */
+    defective_stock?: number;
     warehouse?: IWarehouse;
     product?: IProduct;
     created_at: string;
