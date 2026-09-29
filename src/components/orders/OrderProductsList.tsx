@@ -8,9 +8,10 @@ interface OrderProductsListProps {
     currency: string;
     onDeleteItem?: (id: number) => void;
     onEditQuantity?: (id: number, quantity: number, price: number) => void; // 🔥 Added price parameter
+    onChangeVariant?: (id: number, variantId: number) => void; // tarea 4: cambiar la talla
 }
 
-export const OrderProductsList: React.FC<OrderProductsListProps> = ({ products, currency, onDeleteItem, onEditQuantity }) => {
+export const OrderProductsList: React.FC<OrderProductsListProps> = ({ products, currency, onDeleteItem, onEditQuantity, onChangeVariant }) => {
     return (
         <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
             {products?.length > 0 ? (
@@ -21,6 +22,7 @@ export const OrderProductsList: React.FC<OrderProductsListProps> = ({ products, 
                         currency={currency}
                         onDelete={onDeleteItem ? () => onDeleteItem(p.id) : undefined}
                         onEditQuantity={onEditQuantity ? (qty) => onEditQuantity(p.id, qty, p.price) : undefined}
+                        onChangeVariant={onChangeVariant ? (variantId) => onChangeVariant(p.id, variantId) : undefined}
                     />
                 ))
             ) : (

@@ -36,10 +36,33 @@ export interface IInventory {
     quantity: number;
     /** Incluidas en quantity: piezas retiradas en cambios, pendientes de revisión (no se venden). */
     defective_stock?: number;
+    /** Tarea 4: stock de cada variante (talla, color) en este almacén */
+    variants_stock?: IVariantStock[];
+    /** Lo que el total tiene de más: stock cargado sin decir la variante */
+    unassigned?: number;
     warehouse?: IWarehouse;
     product?: IProduct;
     created_at: string;
     updated_at: string;
+}
+
+/** Una variante del catálogo (tarea 4): una talla, un color o la combinación ("Negro / M"). */
+export interface IProductVariant {
+    id: number;
+    product_id?: number;
+    title: string;
+    sku?: string | null;
+    shopify_variant_id?: string | number | null;
+    is_active: boolean;
+}
+
+/** Stock de una variante en un almacén. */
+export interface IVariantStock {
+    variant_id: number;
+    title: string;
+    is_active: boolean;
+    quantity: number;
+    defective_stock: number;
 }
 
 export interface IInventoryMovement {
@@ -48,6 +71,9 @@ export interface IInventoryMovement {
     from_warehouse_id?: number | null;
     to_warehouse_id?: number | null;
     quantity: number;
+    /** Tarea 4: la talla o variante que se movió (su nombre) */
+    variant_id?: number | null;
+    size?: string | null;
     movement_type: 'transfer' | 'in' | 'out' | 'adjustment';
     reference_type?: string | null;
     reference_id?: number | null;
@@ -72,7 +98,7 @@ export interface IProduct {
     cost_usd?: number;
     image?: string;
     stock?: number;
-    available_sizes?: string[];          // 🔥 Tallas conocidas del producto
+    variants?: IProductVariant[];        // Tallas y variantes del producto (tarea 4)
     created_at?: string;
     updated_at?: string;
 }
@@ -92,7 +118,8 @@ export interface IProductStock {
         warehouse_name: string;
         warehouse_code: string;
         quantity: number;
-        sizes_stock?: Record<string, number>; // 🔥 Desglose por talla en este almacén
+        variants_stock?: IVariantStock[]; // Stock por variante en este almacén (tarea 4)
+        unassigned?: number;              // Cargado sin variante
     }>;
     total_quantity: number;
 }

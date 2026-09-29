@@ -29,6 +29,7 @@ import { IResponse } from '../../interfaces/response-type';
 import { IProductStock, IProduct } from '../../interfaces/inventory.types';
 import { WarehouseSelector } from '../../components/inventory/WarehouseSelector';
 import { EditProductDialog } from '../../components/inventory/EditProductDialog';
+import { ProductVariantsDialog } from '../../components/inventory/ProductVariantsDialog';
 import { useValidateSession } from '../../hooks/useValidateSession';
 import { ButtonCustom, TextFieldCustom } from '../../components/custom';
 
@@ -49,6 +50,7 @@ export const InventoryOverview: React.FC<Props> = ({ isEmbedded }) => {
     const [dialogType, setDialogType] = useState<'in' | 'out' | 'transfer' | 'adjustment'>('in');
     const [editDialogOpen, setEditDialogOpen] = useState(false);
     const [productToEdit, setProductToEdit] = useState<IProduct | undefined>(undefined);
+    const [variantsProduct, setVariantsProduct] = useState<IProduct | undefined>(undefined);
     const { loadingSession, isValid, user } = useValidateSession();
 
     useEffect(() => {
@@ -95,7 +97,8 @@ export const InventoryOverview: React.FC<Props> = ({ isEmbedded }) => {
                 warehouse_name: item.warehouse?.name || `Almacén ${item.warehouse_id}`,
                 warehouse_code: item.warehouse?.code || '',
                 quantity: item.quantity,
-                sizes_stock: item.sizes_stock // 🔥 Desglose por tallas
+                variants_stock: item.variants_stock, // Tarea 4: stock por talla o variante
+                unassigned: item.unassigned
             });
             current.total_quantity += item.quantity;
         });
@@ -180,6 +183,7 @@ export const InventoryOverview: React.FC<Props> = ({ isEmbedded }) => {
                                 onTransfer={user.role?.description === 'Agencia' ? undefined : (prod) => handleAction(prod, 'transfer')}
                                 onAdjust={user.role?.description === 'Agencia' ? undefined : (prod) => handleAction(prod, 'adjustment')}
                                 onEdit={user.role?.description === 'Agencia' ? undefined : (prod) => handleEdit(prod)}
+                                onVariants={user.role?.description === 'Agencia' ? undefined : (prod) => setVariantsProduct(prod.product)}
                                 onViewHistory={(prod) => prod.product && navigate(`/inventory/movements?product_id=${prod.product.id}`)}
                             />
                         </Grid>
@@ -200,6 +204,13 @@ export const InventoryOverview: React.FC<Props> = ({ isEmbedded }) => {
                 onSuccess={loadInventory}
                 product={selectedProduct}
                 initialType={dialogType}
+            />
+
+            <ProductVariantsDialog
+                open={!!variantsProduct}
+                product={variantsProduct}
+                onClose={() => setVariantsProduct(undefined)}
+                onChanged={loadInventory}
             />
 
             <EditProductDialog

@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { IProductVariant } from "../../interfaces/inventory.types";
 import { Dialog, DialogTitle, DialogContent, DialogActions, TextField, Button, Box, Typography, IconButton, Grid, MenuItem, Select, FormControl, InputLabel } from "@mui/material";
 import { ButtonCustom } from "../custom";
 import { ProductSearchDialog } from "../products/ProductsSearchDialog";
@@ -97,29 +98,35 @@ export const CreateOrderDialog = ({ open, onClose, onSuccess, prefillName, prefi
         }
     };
 
+    // Tarea 4: un producto con tallas va en una fila por talla (se elige en la fila); sin tallas, se suma a la suya
+    const activeVariants = (p: { variants?: IProductVariant[] }) => (p.variants ?? []).filter(v => v.is_active);
     const handleAddProduct = (product: any) => {
         setProducts(prev => {
-            const exists = prev.find(p => p.id === product.id);
+            const exists = activeVariants(product).length === 0 && prev.find(p => p.id === product.id);
             if (exists) {
-                return prev.map(p => p.id === product.id ? { ...p, quantity: p.quantity + 1 } : p);
+                return prev.map(p => p.rowKey === exists.rowKey ? { ...p, quantity: p.quantity + 1 } : p);
             }
-            return [...prev, { ...product, quantity: 1, price: parseFloat(product.price || 0) }];
+            return [...prev, { ...product, rowKey: `${product.id}-${Date.now()}`, variant_id: '', quantity: 1, price: parseFloat(product.price || 0) }];
         });
         setOpenProductSearch(false);
     };
 
-    const handleRemoveProduct = (id: number) => {
-        setProducts(prev => prev.filter(p => p.id !== id));
+    const handleRemoveProduct = (rowKey: string) => {
+        setProducts(prev => prev.filter(p => p.rowKey !== rowKey));
     };
 
-    const handleQuantityChange = (id: number, qty: number) => {
+    const handleQuantityChange = (rowKey: string, qty: number) => {
         if (qty < 1) return;
-        setProducts(prev => prev.map(p => p.id === id ? { ...p, quantity: qty } : p));
+        setProducts(prev => prev.map(p => p.rowKey === rowKey ? { ...p, quantity: qty } : p));
     };
 
-    const handlePriceChange = (id: number, price: number) => {
+    const handlePriceChange = (rowKey: string, price: number) => {
         if (price < 0) return;
-        setProducts(prev => prev.map(p => p.id === id ? { ...p, price: price } : p));
+        setProducts(prev => prev.map(p => p.rowKey === rowKey ? { ...p, price: price } : p));
+    };
+
+    const handleVariantChange = (rowKey: string, variantId: number) => {
+        setProducts(prev => prev.map(p => p.rowKey === rowKey ? { ...p, variant_id: variantId } : p));
     };
 
     const calculateTotal = () => {
@@ -133,6 +140,11 @@ export const CreateOrderDialog = ({ open, onClose, onSuccess, prefillName, prefi
             toast.warning("Por favor complete los campos obligatorios. El teléfono debe tener 7 dígitos.");
             return;
         }
+        const missing = products.find(p => activeVariants(p).length > 0 && !p.variant_id);
+        if (missing) {
+            toast.warning(`Elige la talla de ${missing.name || missing.title}.`);
+            return;
+        }
 
         setLoading(true);
         try {
@@ -143,6 +155,7 @@ export const CreateOrderDialog = ({ open, onClose, onSuccess, prefillName, prefi
                 client_address: clientAddress,
                 products: products.map(p => ({
                     id: p.id,
+                    variant_id: p.variant_id || null,
                     quantity: p.quantity,
                     price: p.price
                 }))
@@ -297,11 +310,27 @@ export const CreateOrderDialog = ({ open, onClose, onSuccess, prefillName, prefi
                         ) : (
                             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
                                 {products.map((p) => (
-                                    <Box key={p.id} sx={{ display: 'flex', alignItems: 'center', gap: 2, p: 1, border: '1px solid', borderColor: 'divider', borderRadius: 1 }}>
-                                        <Box sx={{ flex: 1 }}>
+                                    <Box key={p.rowKey} sx={{ display: 'flex', alignItems: 'center', gap: 2, p: 1, border: '1px solid', borderColor: 'divider', borderRadius: 1, flexWrap: 'wrap' }}>
+                                        <Box sx={{ flex: 1, minWidth: 120 }}>
                                             <Typography variant="body2" fontWeight="bold">{p.name || p.title}</Typography>
                                             <Typography variant="caption" color="text.secondary">{p.sku}</Typography>
                                         </Box>
+
+                                        {activeVariants(p).length > 0 && (
+                                            <TextField
+                                                select
+                                                label="Talla"
+                                                size="small"
+                                                sx={{ width: 110 }}
+                                                value={p.variant_id}
+                                                onChange={(e) => handleVariantChange(p.rowKey, Number(e.target.value))}
+                                                error={!p.variant_id}
+                                            >
+                                                {activeVariants(p).map((v) => (
+                                                    <MenuItem key={v.id} value={v.id}>{v.title}</MenuItem>
+                                                ))}
+                                            </TextField>
+                                        )}
 
                                         <TextField
                                             label="Cant."
@@ -309,7 +338,7 @@ export const CreateOrderDialog = ({ open, onClose, onSuccess, prefillName, prefi
                                             size="small"
                                             sx={{ width: 80 }}
                                             value={p.quantity}
-                                            onChange={(e) => handleQuantityChange(p.id, parseInt(e.target.value))}
+                                            onChange={(e) => handleQuantityChange(p.rowKey, parseInt(e.target.value))}
                                         />
 
                                         <TextField
@@ -318,14 +347,14 @@ export const CreateOrderDialog = ({ open, onClose, onSuccess, prefillName, prefi
                                             size="small"
                                             sx={{ width: 100 }}
                                             value={p.price}
-                                            onChange={(e) => handlePriceChange(p.id, parseFloat(e.target.value))}
+                                            onChange={(e) => handlePriceChange(p.rowKey, parseFloat(e.target.value))}
                                         />
 
                                         <Typography variant="body2" fontWeight="bold" sx={{ minWidth: 60, textAlign: 'right' }}>
                                             {fmtMoney(p.price * p.quantity, 'USD')}
                                         </Typography>
 
-                                        <IconButton size="small" color="error" onClick={() => handleRemoveProduct(p.id)}>
+                                        <IconButton size="small" color="error" onClick={() => handleRemoveProduct(p.rowKey)}>
                                             <DeleteOutline />
                                         </IconButton>
                                     </Box>

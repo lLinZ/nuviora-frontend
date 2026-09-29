@@ -1,5 +1,5 @@
-import React from "react";
-import { Box, Avatar, Typography, IconButton, Paper, Tooltip } from "@mui/material";
+import React, { useState } from "react";
+import { Box, Avatar, Typography, IconButton, Paper, Tooltip, Chip, Menu, MenuItem, ListItemText } from "@mui/material";
 import { TypographyCustom } from "../custom";
 import { fmtMoney } from "../../lib/money";
 import DeleteOutlineRoundedIcon from "@mui/icons-material/DeleteOutlineRounded";
@@ -11,10 +11,15 @@ interface OrderProductItemProps {
     currency: string;
     onDelete?: () => void;
     onEditQuantity?: (qty: number) => void;
+    /** Tarea 4: cambiar la talla o variante de la línea */
+    onChangeVariant?: (variantId: number) => void;
 }
 
-export const OrderProductItem: React.FC<OrderProductItemProps> = ({ product, currency, onDelete, onEditQuantity }) => {
+export const OrderProductItem: React.FC<OrderProductItemProps> = ({ product, currency, onDelete, onEditQuantity, onChangeVariant }) => {
     const subtotal = (Number(product.price) || 0) * (Number(product.quantity) || 0);
+    const variants: Array<{ id: number; title: string; is_active: boolean; available: number }> = product.variants ?? [];
+    const [variantMenu, setVariantMenu] = useState<HTMLElement | null>(null);
+    const canChangeVariant = !!onChangeVariant && variants.length > 0;
 
     return (
         <Paper
@@ -85,7 +90,20 @@ export const OrderProductItem: React.FC<OrderProductItemProps> = ({ product, cur
                     </Typography>
                 )}
 
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 0.5 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 0.5, flexWrap: 'wrap' }}>
+                    {/* Tarea 4: la talla o variante de la línea; se puede cambiar por otra con stock */}
+                    {(product.variant_title || variants.length > 0) && (
+                        <Tooltip title={canChangeVariant ? "Cambiar la talla o variante" : ""}>
+                            <Chip
+                                size="small"
+                                label={product.variant_title ? `Talla: ${product.variant_title}` : 'Sin talla'}
+                                color={product.variant_title ? 'default' : 'warning'}
+                                variant={product.variant_title ? 'outlined' : 'filled'}
+                                onClick={canChangeVariant ? (e) => setVariantMenu(e.currentTarget) : undefined}
+                                sx={{ height: 20, fontSize: '0.7rem', fontWeight: 'bold' }}
+                            />
+                        </Tooltip>
+                    )}
                     <Tooltip title={onEditQuantity ? "Click para editar cantidad" : ""}>
                         <Box
                             onClick={() => onEditQuantity && onEditQuantity(Number(product.quantity))}
@@ -120,6 +138,23 @@ export const OrderProductItem: React.FC<OrderProductItemProps> = ({ product, cur
                     </Typography>
                 )}
             </Box>
+
+            <Menu anchorEl={variantMenu} open={!!variantMenu} onClose={() => setVariantMenu(null)}>
+                {variants.map(v => (
+                    <MenuItem
+                        key={v.id}
+                        selected={v.id === product.variant_id}
+                        disabled={!v.is_active && v.id !== product.variant_id}
+                        onClick={() => { setVariantMenu(null); if (v.id !== product.variant_id) onChangeVariant?.(v.id); }}
+                    >
+                        <ListItemText
+                            primary={v.title}
+                            secondary={v.available > 0 ? `Hay ${v.available}` : 'Sin stock en su almacén'}
+                            secondaryTypographyProps={{ color: v.available >= Number(product.quantity) ? 'success.main' : 'error.main' }}
+                        />
+                    </MenuItem>
+                ))}
+            </Menu>
 
             <Box sx={{ textAlign: 'right', display: 'flex', alignItems: 'center', gap: 1 }}>
                 <Typography variant="body2" fontWeight="black" color="text.primary">

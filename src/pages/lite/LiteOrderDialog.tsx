@@ -1,4 +1,5 @@
 import React, { FC, useState, useEffect } from "react";
+import { IProductVariant } from "../../interfaces/inventory.types";
 import {
     Dialog,
     AppBar,
@@ -20,7 +21,8 @@ import {
     TextField,
     Chip,
     Alert,
-    AlertTitle
+    AlertTitle,
+    MenuItem
 } from "@mui/material";
 import { statusColors } from "../../components/orders/OrderItem";
 import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
@@ -102,6 +104,7 @@ export const LiteOrderDialog: FC<LiteOrderDialogProps> = ({ id, open, setOpen, o
         updateOrder,
         addUpsell,
         removeUpsell,
+        changeProductVariant,
         openApproveDelivery, setOpenApproveDelivery,
         openRejectDelivery, setOpenRejectDelivery,
         approveDelivery,
@@ -146,6 +149,7 @@ export const LiteOrderDialog: FC<LiteOrderDialogProps> = ({ id, open, setOpen, o
     const [upsellCandidate, setUpsellCandidate] = useState<any>(null);
     const [upsellQty, setUpsellQty] = useState(1);
     const [upsellPrice, setUpsellPrice] = useState(0);
+    const [upsellVariantId, setUpsellVariantId] = useState<number | ''>(''); // tarea 4: la talla del producto que se agrega
 
     const [showUpdates, setShowUpdates] = useState(false);
     const [showWhatsApp, setShowWhatsApp] = useState(false);
@@ -174,6 +178,10 @@ export const LiteOrderDialog: FC<LiteOrderDialogProps> = ({ id, open, setOpen, o
 
 
     if (!order) return null;
+
+    // Tarea 4: cambiar la talla de una línea. La agencia no; en una orden entregada, solo el Admin (como el backend).
+    const canChangeVariant = user?.role?.description !== 'Agencia'
+        && (order.status?.description !== 'Entregado' || user?.role?.description === 'Admin');
 
     const binanceRate = Number(order?.binance_rate || 0);
 
@@ -444,6 +452,7 @@ export const LiteOrderDialog: FC<LiteOrderDialogProps> = ({ id, open, setOpen, o
                                                 product={p}
                                                 currency={order.currency}
                                                 onDelete={() => { if (confirm(`¿Eliminar este producto del ${order.is_exchange ? 'cambio' : 'devolución'}?`)) removeUpsell(p.id); }}
+                                                onChangeVariant={canChangeVariant ? (variantId) => changeProductVariant(p.id, variantId) : undefined}
                                             />
                                         ))}
                                     </Box>
@@ -451,6 +460,7 @@ export const LiteOrderDialog: FC<LiteOrderDialogProps> = ({ id, open, setOpen, o
                                     <OrderProductsList
                                         products={(order.products || []).filter((p: any) => !p.is_upsell)}
                                         currency={order.currency}
+                                        onChangeVariant={canChangeVariant ? changeProductVariant : undefined}
                                         onEditQuantity={
                                             user.role?.description === 'Vendedor'
                                                 ? (id, qty, currentPrice) => {
@@ -502,6 +512,7 @@ export const LiteOrderDialog: FC<LiteOrderDialogProps> = ({ id, open, setOpen, o
                                                 product={p}
                                                 currency={order.currency}
                                                 onDelete={() => { if (confirm("¿Eliminar este upsell?")) removeUpsell(p.id); }}
+                                                onChangeVariant={canChangeVariant ? (variantId) => changeProductVariant(p.id, variantId) : undefined}
                                             />
                                         ))}
                                     </Box>
@@ -659,17 +670,31 @@ export const LiteOrderDialog: FC<LiteOrderDialogProps> = ({ id, open, setOpen, o
             <DailyRatesDialog open={openRates} onClose={() => setOpenRates(false)} />
 
             {/* Upsell Dialog */}
-            <ProductSearchDialog open={openSearch} onClose={() => setOpenSearch(false)} onPick={(product) => { setUpsellCandidate(product); setUpsellPrice(Number(product.price)); setUpsellQty(1); setOpenSearch(false); setShowUpsellConfirm(true); }} />
+            <ProductSearchDialog open={openSearch} onClose={() => setOpenSearch(false)} onPick={(product) => { setUpsellCandidate(product); setUpsellPrice(Number(product.price)); setUpsellQty(1); setUpsellVariantId(''); setOpenSearch(false); setShowUpsellConfirm(true); }} />
             <Dialog open={showUpsellConfirm} onClose={() => setShowUpsellConfirm(false)}>
                 <DialogTitle>Confirmar Upsell</DialogTitle>
                 <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1, minWidth: 300 }}>
                     <Typography variant="subtitle1" fontWeight="bold">{upsellCandidate?.name || upsellCandidate?.title}</Typography>
                     <TextField label="Cantidad" type="number" value={upsellQty} onChange={(e) => setUpsellQty(Number(e.target.value))} fullWidth />
                     <TextField label="Precio de Venta (c/u)" type="number" value={upsellPrice} onChange={(e) => setUpsellPrice(Number(e.target.value))} helperText="Puedes modificar el precio para dar un descuento" fullWidth />
+                    {(upsellCandidate?.variants ?? []).some((v: IProductVariant) => v.is_active) && (
+                        <TextField
+                            select
+                            label="Talla o variante"
+                            value={upsellVariantId}
+                            onChange={(e) => setUpsellVariantId(Number(e.target.value))}
+                            fullWidth
+                            required
+                        >
+                            {(upsellCandidate?.variants ?? []).filter((v: IProductVariant) => v.is_active).map((v: IProductVariant) => (
+                                <MenuItem key={v.id} value={v.id}>{v.title}</MenuItem>
+                            ))}
+                        </TextField>
+                    )}
                 </DialogContent>
                 <DialogActions>
                     <Button onClick={() => setShowUpsellConfirm(false)}>Cancelar</Button>
-                    <ButtonCustom onClick={() => { addUpsell(upsellCandidate.id, upsellQty, upsellPrice); setShowUpsellConfirm(false); }}>Agregar</ButtonCustom>
+                    <ButtonCustom disabled={((upsellCandidate?.variants ?? []).some((v: IProductVariant) => v.is_active) && !upsellVariantId)} onClick={() => { addUpsell(upsellCandidate.id, upsellQty, upsellPrice, true, upsellVariantId || null); setShowUpsellConfirm(false); }}>Agregar</ButtonCustom>
                 </DialogActions>
             </Dialog>
 

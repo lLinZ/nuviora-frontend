@@ -9,12 +9,12 @@ import {
     Typography,
     MenuItem,
     Grid,
-    Chip,
-    Alert
 } from '@mui/material';
 import { ButtonCustom } from '../custom';
 import { WarehouseSelector } from './WarehouseSelector';
-import { IProduct } from '../../interfaces/inventory.types';
+import { VariantBreakdown } from './VariantBreakdown';
+import { IProduct, IVariantStock } from '../../interfaces/inventory.types';
+import { variantPayload, variantSum } from '../../common/variants';
 import { request } from '../../common/request';
 import { toast } from 'react-toastify';
 import { IResponse } from '../../interfaces/response-type';
@@ -23,7 +23,7 @@ interface StockMovementDialogProps {
     open: boolean;
     onClose: () => void;
     onSuccess: () => void;
-    product?: IProduct & { available_sizes?: string[] };
+    product?: IProduct;
     initialType?: 'in' | 'out' | 'transfer' | 'adjustment';
 }
 
@@ -41,8 +41,9 @@ export const StockMovementDialog: React.FC<StockMovementDialogProps> = ({
     const [notes, setNotes] = useState('');
     const [loading, setLoading] = useState(false);
     const [availableStock, setAvailableStock] = useState<number | null>(null);
-    // Tallas
-    const [sizesInput, setSizesInput] = useState<Record<string, number>>({});
+    // Tallas y variantes (tarea 4): cantidad de cada una y lo que hay en el almacén que se mira
+    const [variantsInput, setVariantsInput] = useState<Record<number, number>>({});
+    const [availableVariants, setAvailableVariants] = useState<Record<number, number> | undefined>(undefined);
 
     useEffect(() => {
         if (open) {
@@ -52,22 +53,23 @@ export const StockMovementDialog: React.FC<StockMovementDialogProps> = ({
             setQuantity(1);
             setNotes('');
             setAvailableStock(null);
-            
-            // Inicializar tallas
-            const initial: Record<string, number> = {};
-            (product?.available_sizes ?? []).forEach(s => { initial[s] = 0; });
-            setSizesInput(initial);
+            setVariantsInput({});
+            setAvailableVariants(undefined);
         }
     }, [open, initialType, product]);
 
-    // Check stock when selecting source warehouse
+    // El stock que se muestra es el del origen (salida, traslado) o el del almacén que se ajusta
+    const stockWarehouseId = type === 'out' || type === 'transfer' ? fromWarehouseId : type === 'adjustment' ? toWarehouseId : null;
+
     useEffect(() => {
-        if (fromWarehouseId && product && (type === 'out' || type === 'transfer')) {
-            checkStock(fromWarehouseId);
+        setVariantsInput({});
+        if (stockWarehouseId && product) {
+            checkStock(stockWarehouseId);
         } else {
             setAvailableStock(null);
+            setAvailableVariants(undefined);
         }
-    }, [fromWarehouseId, product, type]);
+    }, [stockWarehouseId, product, type]);
 
     const checkStock = async (warehouseId: number) => {
         try {
@@ -79,15 +81,23 @@ export const StockMovementDialog: React.FC<StockMovementDialogProps> = ({
                 const data = await response.json();
                 const stock = data.current_stock ?? 0;
                 setAvailableStock(stock);
+                const byVariant: Record<number, number> = {};
+                (data.current_variants ?? []).forEach((v: IVariantStock) => { byVariant[v.variant_id] = v.quantity; });
+                setAvailableVariants(byVariant);
+                if (type === 'adjustment') setQuantity(stock);
             }
         } catch (error) {
             console.error("Error checking stock", error);
         }
     };
 
-    const hasSizes = (product?.available_sizes ?? []).length > 0;
-    const sizesTotal = Object.values(sizesInput).reduce((a, b) => a + (b || 0), 0);
-    const sizesMatch = !hasSizes || sizesTotal === quantity;
+    const variants = product?.variants ?? [];
+    const hasVariants = variants.length > 0;
+    const mode = type === 'adjustment' ? 'absolute' : 'split';
+    const variantsTotal = mode === 'absolute'
+        ? variants.reduce((a, v) => a + (variantsInput[v.id] ?? availableVariants?.[v.id] ?? 0), 0)
+        : variantSum(variantsInput);
+    const variantsOk = !hasVariants || variantsTotal <= quantity;
 
     const handleSubmit = async () => {
         if (!product) return;
@@ -95,8 +105,8 @@ export const StockMovementDialog: React.FC<StockMovementDialogProps> = ({
             toast.error('La cantidad debe ser mayor a 0');
             return;
         }
-        if (hasSizes && !sizesMatch && type !== 'transfer') {
-            toast.error(`El desglose de tallas (${sizesTotal}) no coincide con el total (${quantity})`);
+        if (!variantsOk) {
+            toast.error(`Las tallas suman ${variantsTotal} y la cantidad es ${quantity}`);
             return;
         }
 
@@ -109,9 +119,9 @@ export const StockMovementDialog: React.FC<StockMovementDialogProps> = ({
                 notes
             };
 
-            // Agregar tallas si existen
-            if (hasSizes && sizesTotal > 0) {
-                body.sizes = sizesInput;
+            if (hasVariants) {
+                const payload = variantPayload(variantsInput, mode);
+                if (Object.keys(payload).length > 0) body.variants = payload;
             }
 
             switch (type) {
@@ -209,7 +219,7 @@ export const StockMovementDialog: React.FC<StockMovementDialogProps> = ({
 
                     {availableStock !== null && (
                         <Typography variant="body2" color={availableStock > 0 ? "success.main" : "error.main"}>
-                            Stock disponible en origen: <strong>{availableStock}</strong>
+                            {type === 'adjustment' ? 'Stock actual' : 'Stock disponible en origen'}: <strong>{availableStock}</strong>
                         </Typography>
                     )}
 
@@ -226,34 +236,15 @@ export const StockMovementDialog: React.FC<StockMovementDialogProps> = ({
                         </Grid>
                     </Grid>
 
-                    {/* Desglose de tallas */}
-                    {hasSizes && type !== 'transfer' && (
-                        <Box sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2, p: 2 }}>
-                            <Typography variant="body2" fontWeight={700} mb={1}>📦 Desglose por talla</Typography>
-                            <Grid container spacing={1}>
-                                {(product?.available_sizes ?? []).map(size => (
-                                    <Grid size={{ xs: 6, sm: 4 }} key={size}>
-                                        <TextField
-                                            label={size}
-                                            size="small"
-                                            type="number"
-                                            value={sizesInput[size] ?? 0}
-                                            onChange={(e) => setSizesInput(prev => ({
-                                                ...prev,
-                                                [size]: Number(e.target.value)
-                                            }))}
-                                            inputProps={{ min: 0 }}
-                                            fullWidth
-                                        />
-                                    </Grid>
-                                ))}
-                            </Grid>
-                            {!sizesMatch && sizesTotal > 0 && (
-                                <Alert severity="warning" sx={{ mt: 1.5, py: 0 }}>
-                                    Suma: <b>{sizesTotal}</b> — Total: <b>{quantity}</b>. No coinciden.
-                                </Alert>
-                            )}
-                        </Box>
+                    {hasVariants && (
+                        <VariantBreakdown
+                            variants={variants}
+                            value={variantsInput}
+                            onChange={setVariantsInput}
+                            mode={mode}
+                            total={quantity}
+                            available={availableVariants}
+                        />
                     )}
 
                     <TextField
@@ -270,9 +261,9 @@ export const StockMovementDialog: React.FC<StockMovementDialogProps> = ({
                 <ButtonCustom onClick={onClose} color="primary" variant="outlined">
                     Cancelar
                 </ButtonCustom>
-                <ButtonCustom 
-                    onClick={handleSubmit} 
-                    disabled={loading || (hasSizes && !sizesMatch && sizesTotal > 0 && type !== 'transfer')}
+                <ButtonCustom
+                    onClick={handleSubmit}
+                    disabled={loading || !variantsOk}
                 >
                     {loading ? 'Procesando...' : 'Guardar'}
                 </ButtonCustom>

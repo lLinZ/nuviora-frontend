@@ -60,11 +60,12 @@ export const InventorySizesTest: React.FC = () => {
         const list = data.data ?? [];
         const p = list.find((x: any) => x.product_id === pId && (x.id > 0 || list.filter((i:any)=>i.product_id===pId).length === 1));
         
-        if (p?.sizes_stock) {
-            log(`DEBUG: Tallas en BD: ${JSON.stringify(p.sizes_stock)}`, 'info');
+        const byVariant = (p?.variants_stock ?? []) as Array<{ title: string; quantity: number }>;
+        if (byVariant.length) {
+            log(`DEBUG: Tallas en BD: ${byVariant.map(v => `${v.title}: ${v.quantity}`).join(', ')}`, 'info');
         }
-        
-        return p?.sizes_stock?.[targetSize] ?? 0;
+
+        return byVariant.find(v => v.title.toLowerCase() === targetSize.toLowerCase())?.quantity ?? 0;
     };
 
     const runTest = async () => {
@@ -171,7 +172,7 @@ export const InventorySizesTest: React.FC = () => {
                             const val = Number(e.target.value);
                             setProductId(val);
                             const p = products.find(x => x.product_id === val);
-                            const sizes = p?.available_sizes ?? [];
+                            const sizes = (p?.variants_stock ?? []).map((v: { title: string }) => v.title);
                             if (sizes.length === 1) {
                                 setSize(sizes[0]);
                             } else if (sizes.length === 0 && p?.product?.name?.includes('-')) {
@@ -191,7 +192,7 @@ export const InventorySizesTest: React.FC = () => {
                         ))}
                     </TextField>
 
-                    { (selectedProduct?.available_sizes?.length > 0) ? (
+                    { ((selectedProduct?.variants_stock ?? []).length > 0) ? (
                         <TextField
                             select
                             label="Talla a Testear"
@@ -201,8 +202,8 @@ export const InventorySizesTest: React.FC = () => {
                             size="small"
                             disabled={busy || !productId}
                         >
-                            {selectedProduct.available_sizes.map((s: string) => (
-                                <MenuItem key={s} value={s}>{s}</MenuItem>
+                            {selectedProduct.variants_stock.map((v: { title: string }) => (
+                                <MenuItem key={v.title} value={v.title}>{v.title}</MenuItem>
                             ))}
                         </TextField>
                     ) : (

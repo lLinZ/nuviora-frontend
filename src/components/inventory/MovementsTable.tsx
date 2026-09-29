@@ -49,7 +49,9 @@ export const MovementsTable: React.FC<MovementsTableProps> = ({ movements, loadi
                             <TableCell>{dayjs(row.created_at).format('DD/MM/YYYY HH:mm')}</TableCell>
                             <TableCell>
                                 <Box>
-                                    <Typography variant="body2" fontWeight="bold">{row.product?.title}</Typography>
+                                    <Typography variant="body2" fontWeight="bold">
+                                        {row.product?.title}{row.size ? ` · ${row.size}` : ''}
+                                    </Typography>
                                     <Typography variant="caption" color="text.secondary">{row.product?.sku}</Typography>
                                 </Box>
                             </TableCell>

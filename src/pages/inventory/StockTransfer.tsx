@@ -12,10 +12,12 @@ import {
 import { Layout } from '../../components/ui/Layout';
 import { DescripcionDeVista } from '../../components/ui/content/DescripcionDeVista';
 import { WarehouseSelector } from '../../components/inventory/WarehouseSelector';
+import { VariantBreakdown } from '../../components/inventory/VariantBreakdown';
+import { variantPayload, variantSum } from '../../common/variants';
 import { ButtonCustom, TextFieldCustom } from '../../components/custom';
 import { request } from '../../common/request';
 import { IResponse } from '../../interfaces/response-type';
-import { IProduct } from '../../interfaces/inventory.types';
+import { IProduct, IVariantStock } from '../../interfaces/inventory.types';
 import { toast } from 'react-toastify';
 import { useNavigate } from 'react-router-dom';
 import { useValidateSession } from '../../hooks/useValidateSession';
@@ -35,6 +37,9 @@ export const StockTransfer: React.FC<Props> = ({ isEmbedded }) => {
     const [notes, setNotes] = useState('');
     const [loading, setLoading] = useState(false);
     const [availableStock, setAvailableStock] = useState<number | null>(null);
+    // Tarea 4: cuántas de cada talla se trasladan, y cuántas hay en el origen
+    const [variantsInput, setVariantsInput] = useState<Record<number, number>>({});
+    const [availableVariants, setAvailableVariants] = useState<Record<number, number> | undefined>(undefined);
     const { loadingSession, isValid, user } = useValidateSession();
 
     useEffect(() => {
@@ -42,10 +47,12 @@ export const StockTransfer: React.FC<Props> = ({ isEmbedded }) => {
     }, []);
 
     useEffect(() => {
+        setVariantsInput({});
         if (fromWarehouseId && selectedProduct) {
             checkStock();
         } else {
             setAvailableStock(null);
+            setAvailableVariants(undefined);
         }
     }, [fromWarehouseId, selectedProduct]);
 
@@ -79,6 +86,9 @@ export const StockTransfer: React.FC<Props> = ({ isEmbedded }) => {
                     stock = data.inventory.find((i: any) => i.product_id == selectedProduct.id)?.quantity || 0;
                 }
                 setAvailableStock(stock);
+                const byVariant: Record<number, number> = {};
+                (data.current_variants ?? []).forEach((v: IVariantStock) => { byVariant[v.variant_id] = v.quantity; });
+                setAvailableVariants(byVariant);
             }
         } catch (error) {
             console.error(error);
@@ -102,20 +112,26 @@ export const StockTransfer: React.FC<Props> = ({ isEmbedded }) => {
             toast.error('Stock insuficiente en almacén de origen');
             return;
         }
+        if (variantSum(variantsInput) > quantity) {
+            toast.error('Las tallas suman más que la cantidad');
+            return;
+        }
 
         setLoading(true);
         try {
-            const body = {
+            const body: Record<string, unknown> = {
                 product_id: selectedProduct.id,
                 from_warehouse_id: fromWarehouseId,
                 to_warehouse_id: toWarehouseId,
                 quantity,
                 notes
             };
+            const variants = variantPayload(variantsInput);
+            if (Object.keys(variants).length > 0) body.variants = variants;
 
             const { status, response }: IResponse = await request('/inventory-movements/transfer', 'POST', JSON.stringify(body));
 
-            if (status) {
+            if (status >= 200 && status < 300) {
                 toast.success('Transferencia realizada con éxito');
                 if (!isEmbedded) navigate('/inventory/movements');
             } else {
@@ -181,6 +197,18 @@ export const StockTransfer: React.FC<Props> = ({ isEmbedded }) => {
                             inputProps={{ min: 1, max: availableStock || undefined }}
                         />
                     </Grid>
+
+                    {(selectedProduct?.variants ?? []).length > 0 && (
+                        <Grid size={{ xs: 12 }}>
+                            <VariantBreakdown
+                                variants={selectedProduct?.variants ?? []}
+                                value={variantsInput}
+                                onChange={setVariantsInput}
+                                total={quantity}
+                                available={availableVariants}
+                            />
+                        </Grid>
+                    )}
 
                     <Grid size={{ xs: 12 }}>
                         <TextField

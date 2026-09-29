@@ -1,4 +1,5 @@
 import { AppBar, Box, Dialog, DialogActions, Divider, IconButton, Toolbar, Typography, useTheme, DialogContent, Tab, Tabs, Grid, Paper, Tooltip, Zoom, Fab, Menu, MenuItem, ListItemIcon, ListItemText, DialogTitle, TextField, Button, Alert, AlertTitle, Badge, Chip } from "@mui/material";
+import { IProductVariant } from "../../interfaces/inventory.types";
 import ForumRoundedIcon from "@mui/icons-material/ForumRounded";
 import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
 import React, { FC, useState, useEffect } from "react";
@@ -93,6 +94,7 @@ export const OrderDialog: FC<OrderDialogProps> = ({ id, open, setOpen }) => {
         updateOrder,
         addUpsell,
         removeUpsell,
+        changeProductVariant,
         openApproveDelivery, setOpenApproveDelivery,
         openRejectDelivery, setOpenRejectDelivery,
         approveDelivery,
@@ -179,6 +181,7 @@ export const OrderDialog: FC<OrderDialogProps> = ({ id, open, setOpen }) => {
     const [upsellCandidate, setUpsellCandidate] = useState<any>(null);
     const [upsellQty, setUpsellQty] = useState(1);
     const [upsellPrice, setUpsellPrice] = useState(0);
+    const [upsellVariantId, setUpsellVariantId] = useState<number | ''>(''); // tarea 4: la talla del producto que se agrega
     const [stagedPayments, setStagedPayments] = useState<any[]>([]);
     const [confirmReturnOpen, setConfirmReturnOpen] = useState(false);
     // Devolución = reembolso (tarea 3b): se registra en la orden, sin crear otra
@@ -316,6 +319,10 @@ export const OrderDialog: FC<OrderDialogProps> = ({ id, open, setOpen }) => {
     };
 
     if (!order) return null;
+
+    // Tarea 4: cambiar la talla de una línea. La agencia no; en una orden entregada, solo el Admin (como el backend).
+    const canChangeVariant = user?.role?.description !== 'Agencia'
+        && (order.status?.description !== 'Entregado' || user?.role?.description === 'Admin');
 
     const handleMenuOpen = (event: React.MouseEvent<HTMLElement>) => setAnchorEl(event.currentTarget);
     const handleMenuClose = () => setAnchorEl(null);
@@ -751,6 +758,7 @@ export const OrderDialog: FC<OrderDialogProps> = ({ id, open, setOpen }) => {
                                                             product={p}
                                                             currency={order.currency}
                                                             onDelete={() => { if (confirm(`¿Eliminar este producto del ${order.is_exchange ? 'cambio' : 'devolución'}?`)) removeUpsell(p.id); }}
+                                                            onChangeVariant={canChangeVariant ? (variantId) => changeProductVariant(p.id, variantId) : undefined}
                                                         />
                                                     ))}
                                                 </Box>
@@ -758,6 +766,7 @@ export const OrderDialog: FC<OrderDialogProps> = ({ id, open, setOpen }) => {
                                                 <OrderProductsList
                                                     products={(order.products || []).filter((p: any) => !p.is_upsell)}
                                                     currency={order.currency}
+                                                    onChangeVariant={canChangeVariant ? changeProductVariant : undefined}
                                                     onDeleteItem={
                                                         user.role?.description === 'Admin'
                                                             ? (id) => { if (confirm("⚠️ ¿Estás seguro de eliminar este producto?\nEsto reducirá el total de la orden.")) removeUpsell(id); }
@@ -797,6 +806,7 @@ export const OrderDialog: FC<OrderDialogProps> = ({ id, open, setOpen }) => {
                                                             product={p}
                                                             currency={order.currency}
                                                             onDelete={() => { if (confirm("¿Eliminar este upsell?")) removeUpsell(p.id); }}
+                                                            onChangeVariant={canChangeVariant ? (variantId) => changeProductVariant(p.id, variantId) : undefined}
                                                         />
                                                     ))}
                                                 </Box>
@@ -1078,17 +1088,31 @@ export const OrderDialog: FC<OrderDialogProps> = ({ id, open, setOpen }) => {
                     refundable={Math.max(0, Math.round((Number(order.current_total_price) - Number(order.refunded_usd || 0)) * 100) / 100)}
                     onSaved={refreshOrder}
                 />
-                <ProductSearchDialog open={openSearch} onClose={() => setOpenSearch(false)} onPick={(product) => { setUpsellCandidate(product); setUpsellPrice(Number(product.price)); setUpsellQty(1); setOpenSearch(false); setShowUpsellConfirm(true); }} />
+                <ProductSearchDialog open={openSearch} onClose={() => setOpenSearch(false)} onPick={(product) => { setUpsellCandidate(product); setUpsellPrice(Number(product.price)); setUpsellQty(1); setUpsellVariantId(''); setOpenSearch(false); setShowUpsellConfirm(true); }} />
                 <Dialog open={showUpsellConfirm} onClose={() => setShowUpsellConfirm(false)}>
                     <DialogTitle>{isAddingRegular ? 'Confirmar Agregar Producto' : 'Confirmar Upsell'}</DialogTitle>
                     <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1, minWidth: 300 }}>
                         <Typography variant="subtitle1" fontWeight="bold">{upsellCandidate?.name || upsellCandidate?.title}</Typography>
                         <TextField label="Cantidad" type="number" value={upsellQty} onChange={(e) => setUpsellQty(Number(e.target.value))} fullWidth />
                         <TextField label="Precio de Venta (c/u)" type="number" value={upsellPrice} onChange={(e) => setUpsellPrice(Number(e.target.value))} helperText="Puedes modificar el precio para dar un descuento" fullWidth />
+                        {(upsellCandidate?.variants ?? []).some((v: IProductVariant) => v.is_active) && (
+                            <TextField
+                                select
+                                label="Talla o variante"
+                                value={upsellVariantId}
+                                onChange={(e) => setUpsellVariantId(Number(e.target.value))}
+                                fullWidth
+                                required
+                            >
+                                {(upsellCandidate?.variants ?? []).filter((v: IProductVariant) => v.is_active).map((v: IProductVariant) => (
+                                    <MenuItem key={v.id} value={v.id}>{v.title}</MenuItem>
+                                ))}
+                            </TextField>
+                        )}
                     </DialogContent>
                     <DialogActions>
                         <Button onClick={() => setShowUpsellConfirm(false)}>Cancelar</Button>
-                        <ButtonCustom onClick={() => { addUpsell(upsellCandidate.id, upsellQty, upsellPrice, !isAddingRegular); setShowUpsellConfirm(false); }}>Agregar</ButtonCustom>
+                        <ButtonCustom disabled={((upsellCandidate?.variants ?? []).some((v: IProductVariant) => v.is_active) && !upsellVariantId)} onClick={() => { addUpsell(upsellCandidate.id, upsellQty, upsellPrice, !isAddingRegular, upsellVariantId || null); setShowUpsellConfirm(false); }}>Agregar</ButtonCustom>
                     </DialogActions>
                 </Dialog>
             </Dialog >

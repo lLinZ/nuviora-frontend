@@ -131,7 +131,20 @@ export const WarehouseInventory: React.FC = () => {
                             <TableBody>
                                 {filteredInventory.map((item) => (
                                     <TableRow key={item.id} hover>
-                                        <TableCell>{item.product?.title}</TableCell>
+                                        <TableCell>
+                                            {item.product?.title}
+                                            {/* Tarea 4: stock por talla o variante */}
+                                            {(item.variants_stock ?? []).length > 0 && (
+                                                <Typography variant="caption" color="text.secondary" display="block">
+                                                    {(item.variants_stock ?? []).map(v => `${v.title}: ${v.quantity}`).join(' · ')}
+                                                    {(item.unassigned ?? 0) !== 0 && (
+                                                        <Typography component="span" variant="caption" color={(item.unassigned ?? 0) > 0 ? 'warning.main' : 'error.main'} fontWeight="bold">
+                                                            {` · Sin variante: ${item.unassigned}`}
+                                                        </Typography>
+                                                    )}
+                                                </Typography>
+                                            )}
+                                        </TableCell>
                                         <TableCell>{item.product?.sku || '—'}</TableCell>
                                         <TableCell align="right" sx={{ fontWeight: 'bold' }}>
                                             {item.quantity}

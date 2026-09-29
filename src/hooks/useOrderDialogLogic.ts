@@ -282,11 +282,12 @@ export const useOrderDialogLogic = (
         }
     };
 
-    const addUpsell = async (productId: number, quantity: number, price: number, is_upsell: boolean = true) => {
+    const addUpsell = async (productId: number, quantity: number, price: number, is_upsell: boolean = true, variantId?: number | null) => {
         if (!selectedOrder) return false;
         try {
             const body = new URLSearchParams();
             body.append("product_id", String(productId));
+            if (variantId) body.append("variant_id", String(variantId)); // tarea 4: la talla elegida
             body.append("quantity", String(quantity));
             body.append("is_upsell", is_upsell ? "1" : "0");
 
@@ -301,9 +302,11 @@ export const useOrderDialogLogic = (
                 body
             );
 
-            if (status) {
+            // Antes cualquier respuesta contaba como éxito (un 422 mostraba su mensaje en verde)
+            if (status >= 200 && status < 300) {
                 const data = await response.json();
                 updateOrderInColumns(data.order);
+                await fetchOrder(); // trae la línea con su talla y su stock
                 toast.success(data.message || ((selectedOrder.is_return || selectedOrder.is_exchange) ? "Producto agregado ✅" : "Agregado correctamente ✅"));
                 return true;
             } else {
@@ -356,6 +359,26 @@ export const useOrderDialogLogic = (
                 toast.success("Producto actualizado ✅");
             } else {
                 toast.error("Error al actualizar producto ❌");
+            }
+        } catch {
+            toast.error("Error de servidor 🚨");
+        }
+    };
+
+    /** Tarea 4: cambia la talla o variante de una línea. Si la orden ya descontó, el stock se ajusta solo. */
+    const changeProductVariant = async (itemId: number, variantId: number) => {
+        if (!selectedOrder) return;
+        try {
+            const body = new URLSearchParams();
+            body.append("variant_id", String(variantId));
+            const { status, response }: IResponse = await request(`/orders/${selectedOrder.id}/upsell/${itemId}`, "PUT", body);
+            const data = await response.json().catch(() => ({}));
+            if (status >= 200 && status < 300) {
+                updateOrderInColumns(data.order);
+                toast.success("Talla cambiada ✅");
+                await fetchOrder();
+            } else {
+                toast.error(data.message || "No se pudo cambiar la talla ❌");
             }
         } catch {
             toast.error("Error de servidor 🚨");
@@ -628,6 +651,7 @@ export const useOrderDialogLogic = (
         updateOrder: updateOrderInColumns,
         addUpsell,
         removeUpsell,
+        changeProductVariant,
         openApproveDelivery, setOpenApproveDelivery,
         openRejectDelivery, setOpenRejectDelivery,
         approveDelivery,

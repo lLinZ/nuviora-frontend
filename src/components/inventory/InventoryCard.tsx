@@ -14,7 +14,8 @@ import {
     History as HistoryIcon,
     SwapHoriz as TransferIcon,
     Edit as EditIcon,
-    Tune as AdjustIcon
+    Tune as AdjustIcon,
+    Straighten as VariantsIcon
 } from '@mui/icons-material';
 import { IProductStock } from '../../interfaces/inventory.types';
 import { TypographyCustom } from '../custom';
@@ -24,6 +25,7 @@ interface InventoryCardProps {
     onTransfer?: (product: IProductStock) => void;
     onAdjust?: (product: IProductStock) => void;
     onEdit?: (product: IProductStock) => void;
+    onVariants?: (product: IProductStock) => void;
     onViewHistory: (product: IProductStock) => void;
 }
 
@@ -32,6 +34,7 @@ export const InventoryCard: React.FC<InventoryCardProps> = ({
     onTransfer,
     onAdjust,
     onEdit,
+    onVariants,
     onViewHistory
 }) => {
     const { product, warehouses, total_quantity } = productStock;
@@ -86,18 +89,31 @@ export const InventoryCard: React.FC<InventoryCardProps> = ({
                                 </TypographyCustom>
                             </Box>
                             
-                            {/* 🔥 Desglose por tallas */}
-                            {w.sizes_stock && Object.keys(w.sizes_stock).length > 0 && (
+                            {/* Tarea 4: stock por talla o variante, y lo cargado sin variante */}
+                            {(w.variants_stock ?? []).length > 0 && (
                                 <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mt: 0.5 }}>
-                                    {Object.entries(w.sizes_stock).map(([size, qty]) => (
-                                        <Chip 
-                                            key={size} 
-                                            label={`${size}: ${qty}`} 
-                                            size="small" 
-                                            variant="outlined" 
-                                            sx={{ height: 18, fontSize: '0.65rem', borderRadius: 1 }}
+                                    {(w.variants_stock ?? []).map((v) => (
+                                        <Chip
+                                            key={v.variant_id}
+                                            label={`${v.title}: ${v.quantity}${v.defective_stock > 0 ? ` (${v.defective_stock} def.)` : ''}`}
+                                            size="small"
+                                            variant="outlined"
+                                            color={v.quantity < 0 ? 'error' : 'default'}
+                                            sx={{ height: 18, fontSize: '0.65rem', borderRadius: 1, opacity: v.is_active ? 1 : 0.6 }}
                                         />
                                     ))}
+                                    {(w.unassigned ?? 0) !== 0 && (
+                                        <Tooltip title={(w.unassigned ?? 0) > 0
+                                            ? 'Cargadas sin decir la talla: no se venden por talla. Repártelas con "Ajustar".'
+                                            : 'Las tallas suman más que el total: revisar en el conteo.'}>
+                                            <Chip
+                                                label={`Sin variante: ${w.unassigned}`}
+                                                size="small"
+                                                color={(w.unassigned ?? 0) > 0 ? 'warning' : 'error'}
+                                                sx={{ height: 18, fontSize: '0.65rem', borderRadius: 1 }}
+                                            />
+                                        </Tooltip>
+                                    )}
                                 </Box>
                             )}
                         </Box>
@@ -124,6 +140,13 @@ export const InventoryCard: React.FC<InventoryCardProps> = ({
                     <Tooltip title="Ajustar Stock (Cantidades)">
                         <IconButton size="small" color="warning" onClick={() => onAdjust(productStock)}>
                             <AdjustIcon />
+                        </IconButton>
+                    </Tooltip>
+                )}
+                {onVariants && (
+                    <Tooltip title="Tallas y variantes">
+                        <IconButton size="small" color="secondary" onClick={() => onVariants(productStock)}>
+                            <VariantsIcon />
                         </IconButton>
                     </Tooltip>
                 )}

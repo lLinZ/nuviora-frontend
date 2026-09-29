@@ -3,10 +3,12 @@ import { Box, Paper, Typography, Grid, TextField, Autocomplete, Divider, MenuIte
 import { Layout } from '../../components/ui/Layout';
 import { DescripcionDeVista } from '../../components/ui/content/DescripcionDeVista';
 import { WarehouseSelector } from '../../components/inventory/WarehouseSelector';
+import { VariantBreakdown } from '../../components/inventory/VariantBreakdown';
+import { variantPayload, variantSum } from '../../common/variants';
 import { ButtonCustom } from '../../components/custom';
 import { request } from '../../common/request';
 import { IResponse } from '../../interfaces/response-type';
-import { IProduct } from '../../interfaces/inventory.types';
+import { IProduct, IVariantStock } from '../../interfaces/inventory.types';
 import { toast } from 'react-toastify';
 import { useNavigate } from 'react-router-dom';
 import { Loading } from '../../components/ui/content/Loading';
@@ -26,6 +28,9 @@ export const StockAdjustment: React.FC<Props> = ({ isEmbedded }) => {
     const [notes, setNotes] = useState('');
     const [loading, setLoading] = useState(false);
     const [currentStock, setCurrentStock] = useState<number | null>(null);
+    // Tarea 4: cantidades por talla (reparto en entrada/salida, cantidad exacta en ajuste)
+    const [variantsInput, setVariantsInput] = useState<Record<number, number>>({});
+    const [currentVariants, setCurrentVariants] = useState<Record<number, number> | undefined>(undefined);
     const { loadingSession, isValid, user } = useValidateSession();
 
     useEffect(() => {
@@ -33,12 +38,16 @@ export const StockAdjustment: React.FC<Props> = ({ isEmbedded }) => {
     }, []);
 
     useEffect(() => {
+        setVariantsInput({});
         if (warehouseId && selectedProduct) {
             checkStock();
         } else {
             setCurrentStock(null);
+            setCurrentVariants(undefined);
         }
     }, [warehouseId, selectedProduct]);
+
+    useEffect(() => { setVariantsInput({}); }, [type]);
 
     const loadProducts = async () => {
         try {
@@ -70,6 +79,9 @@ export const StockAdjustment: React.FC<Props> = ({ isEmbedded }) => {
                     stock = data.inventory.find((i: any) => i.product_id == selectedProduct.id)?.quantity || 0;
                 }
                 setCurrentStock(stock);
+                const byVariant: Record<number, number> = {};
+                (data.current_variants ?? []).forEach((v: IVariantStock) => { byVariant[v.variant_id] = v.quantity; });
+                setCurrentVariants(byVariant);
             }
         } catch (error) {
             console.error(error);
@@ -85,6 +97,14 @@ export const StockAdjustment: React.FC<Props> = ({ isEmbedded }) => {
             toast.error('La cantidad debe ser mayor a 0');
             return;
         }
+        const variantMode = type === 'adjustment' ? 'absolute' : 'split';
+        const variantTotal = variantMode === 'absolute'
+            ? (selectedProduct.variants ?? []).reduce((a, v) => a + (variantsInput[v.id] ?? currentVariants?.[v.id] ?? 0), 0)
+            : variantSum(variantsInput);
+        if (variantTotal > quantity) {
+            toast.error(`Las tallas suman ${variantTotal} y la cantidad es ${quantity}`);
+            return;
+        }
 
         setLoading(true);
         try {
@@ -94,6 +114,8 @@ export const StockAdjustment: React.FC<Props> = ({ isEmbedded }) => {
                 quantity,
                 notes
             };
+            const variants = variantPayload(variantsInput, variantMode);
+            if (Object.keys(variants).length > 0) body.variants = variants;
 
             if (type === 'in') {
                 endpoint = '/inventory-movements/in';
@@ -109,8 +131,10 @@ export const StockAdjustment: React.FC<Props> = ({ isEmbedded }) => {
 
             const { status, response }: IResponse = await request(endpoint, 'POST', JSON.stringify(body));
 
-            if (status) {
+            if (status >= 200 && status < 300) {
                 toast.success('Ajuste realizado con éxito');
+                checkStock();
+                setVariantsInput({});
                 if (!isEmbedded) navigate('/inventory/movements');
             } else {
                 const data = await response.json();
@@ -182,6 +206,19 @@ export const StockAdjustment: React.FC<Props> = ({ isEmbedded }) => {
                             helperText={type === 'adjustment' ? 'El stock se actualizará a este valor exacto' : ''}
                         />
                     </Grid>
+
+                    {(selectedProduct?.variants ?? []).length > 0 && (
+                        <Grid size={{ xs: 12 }}>
+                            <VariantBreakdown
+                                variants={selectedProduct?.variants ?? []}
+                                value={variantsInput}
+                                onChange={setVariantsInput}
+                                mode={type === 'adjustment' ? 'absolute' : 'split'}
+                                total={quantity}
+                                available={currentVariants}
+                            />
+                        </Grid>
+                    )}
 
                     <Grid size={{ xs: 12 }}>
                         <TextField
