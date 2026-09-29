@@ -22,6 +22,7 @@ import { assignmentApi } from "../round-robin/assignmentApi";
 import { BulkReassignDialog } from "../round-robin/BulkReassignDialog";
 import { NotesDialog } from "./NotesDialog";
 import { MeetingsCard } from "./MeetingsCard";
+import { AgencyChart, LoadChart, PeriodCharts } from "./GroupCharts";
 import { fmtPct, groupShares, weightsError, weightsSummary } from "../sales-groups/weights";
 import { GroupAgency, GroupMetrics, GroupMetricsRow, LeaderEarnings, MyGroupData, MyGroupMember, SellerRef } from "../../interfaces/assignment.types";
 
@@ -205,6 +206,9 @@ const NowCard: React.FC<{ data: MyGroupData }> = ({ data }) => {
                     </TableBody>
                 </Table>
             </TableContainer>
+            <Box mt={1.5}>
+                <LoadChart data={data} />
+            </Box>
         </Paper>
     );
 };
@@ -356,6 +360,8 @@ const MetricsCard: React.FC<{ data: MyGroupData; reloadKey: number }> = ({ data,
                 Upsells = entregadas con upsell ÷ entregadas. Las comisiones son lo que ganó cada una en esas fechas; solo se consultan.
             </Typography>
 
+            {metrics && <PeriodCharts metrics={metrics} data={data} />}
+
             <AgenciesSection range={range} reloadKey={reloadKey} groupQuery={groupQuery(data)} />
 
             {metrics?.earnings && <EarningsSection earnings={metrics.earnings} commissionPct={data.group.leader_commission_pct} />}
@@ -423,9 +429,7 @@ const AgenciesSection: React.FC<{ range: [string, string]; reloadKey: number; gr
                             </Paper>
                         ))}
                     </Box>
-                    <Stack direction="row" spacing={0.75} flexWrap="wrap" useFlexGap mt={1}>
-                        {a.by_status.map((s) => <Chip key={s.status} size="small" variant="outlined" label={`${s.status}: ${s.count}`} />)}
-                    </Stack>
+                    <AgencyChart agency={a} />
                 </>
             )}
         </Box>

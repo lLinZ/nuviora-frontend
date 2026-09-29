@@ -163,6 +163,15 @@ export interface GroupMetrics {
     /** El período con el que se compara (spec §7.2), si se pidió. */
     compare?: { start_date: string; end_date: string; rows: (GroupMetricsRow & { user_id: number })[]; totals: GroupMetricsRow } | null;
     earnings?: LeaderEarnings;
+    /** Para los gráficos (spec §17) */
+    series?: GroupSeries;
+}
+
+/** Evolución del período por día (o por semana si pasa de 31 días) y dónde están hoy sus órdenes. */
+export interface GroupSeries {
+    granularity: "day" | "week";
+    points: { date: string; assigned: number; delivered: number; deliveries: number; effectiveness: number | null }[];
+    funnel: { stage: string; count: number }[];
 }
 
 /** Una agencia, solo con los pedidos del grupo de la Líder (spec §10). */
