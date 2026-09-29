@@ -29,7 +29,8 @@ export function ButtonCustom<C extends React.ElementType>(
     // Si no es outlined entonces el color de la letra sera en contraste al color de usuario
     // Si hay un color personalizado, entonces la letra sera el mismo color pero oscurecido
     // Si no hay color personalizado, entonces dependiendo del tema sera el color de la letra. Color de usuario (para tema oscuro) / Color de usuario oscurecido (para tema claro)
-    const color = rest.variant && rest.variant !== 'outlined'
+    // Sin variant el fondo tambien es relleno, asi que la letra va en contraste (si no, quedaba del mismo color que el fondo)
+    const color = rest.variant !== 'outlined'
         ? theme.palette.getContrastText(user.color)
         : customcolor
             ? darken(customcolor, 0.2)
