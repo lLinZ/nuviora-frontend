@@ -1,6 +1,6 @@
 import { MoreHorizRounded, Check } from "@mui/icons-material";
 import { IconButton, Menu, MenuList, Divider, Chip, MenuItem, ListItemIcon, ListItemText, Box, Tooltip, CircularProgress } from "@mui/material";
-import { purple, blue, green, red, yellow, grey } from "@mui/material/colors";
+import { purple, blue, green, red, yellow, grey, orange } from "@mui/material/colors";
 import { useState, useEffect } from "react";
 import { useUserStore } from "../../../store/user/UserStore";
 import { request } from "../../../common/request";
@@ -69,6 +69,7 @@ export default function DenseMenu({
             'Entregado': green[500],
             'Cancelado': red[500],
             'Asignar a agencia': blue[400],
+            'Pendiente de asignación a agencia': orange[700],
             'Sin Stock': grey[700],
         };
         return colorMap[statusName] || blue[500];
@@ -94,6 +95,8 @@ export default function DenseMenu({
             'Entregado': ['Admin', 'Gerente', 'Repartidor', 'Agencia'],
             'Cancelado': ['Admin', 'Gerente', 'Vendedor'],
             'Asignar a agencia': ['Admin', 'Gerente', 'Vendedor'],
+            // Lo pone el sistema cuando todas las agencias de la ciudad están llenas
+            'Pendiente de asignación a agencia': ['Admin'],
             'Sin Stock': ['Admin', 'Gerente'],
         };
         return roleMap[statusName] || ['Admin'];

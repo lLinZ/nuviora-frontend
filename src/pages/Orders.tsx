@@ -377,6 +377,8 @@ export const Orders = () => {
                                     </>
                                 )}
 
+                                {/* Todas las agencias de la ciudad llenas: se asigna sola al liberarse cupo */}
+                                {!isAgency && <OrderList title="Pendiente de asignación a agencia" />}
                                 <OrderList title="Asignar a agencia" />
 
                                 {(isSupervisor || isAgency) && (

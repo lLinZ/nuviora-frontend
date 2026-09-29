@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { Layout } from "../components/ui/Layout";
 import { DescripcionDeVista } from "../components/ui/content/DescripcionDeVista";
 import { Loading } from "../components/ui/content/Loading";
@@ -6,98 +6,94 @@ import { useValidateSession } from "../hooks/useValidateSession";
 import { request } from "../common/request";
 import { IResponse } from "../interfaces/response-type";
 import {
-    Box, Button, Card, CardContent, Grid, IconButton,
-    Typography, Dialog, DialogTitle, DialogContent,
-    DialogActions, TextField, MenuItem
+    Avatar, Box, Button, Card, CardContent, Chip, Dialog, DialogActions, DialogContent, DialogTitle,
+    Grid, IconButton, Paper, Stack, Table, TableBody, TableCell, TableHead, TableRow, TextField, Tooltip, Typography
 } from "@mui/material";
-import { Edit as EditIcon, Delete as DeleteIcon, Add as AddIcon, PersonAdd as PersonAddIcon } from "@mui/icons-material";
+import {
+    Edit as EditIcon, Delete as DeleteIcon, Add as AddIcon, PersonAdd as PersonAddIcon,
+    Tune as TuneIcon, SwapHoriz as SwapHorizIcon
+} from "@mui/icons-material";
 import { toast } from "react-toastify";
 import { AddUserDialog } from "../components/users/AddUserDialog";
+import { fmtMoney } from "../lib/money";
+import { AgencyRouting, RoutingAgency, RoutingCity } from "../interfaces/agencyRouting.types";
+import { routingApi } from "../components/agencies/agencyApi";
+import { CityAgenciesDialog } from "../components/agencies/CityAgenciesDialog";
+import { AgencySettingsDialog } from "../components/agencies/AgencySettingsDialog";
+import { AgencyReassignDialog } from "../components/agencies/AgencyReassignDialog";
 
+/**
+ * Ciudades y agencias (tareas 3c, 6 y 8): qué agencias entregan en cada ciudad y con qué %, la tarifa
+ * y el máximo de cada agencia, y pasar las órdenes de una agencia a las demás.
+ */
 export const Cities = () => {
     const { loadingSession, isValid, user } = useValidateSession();
-    const [cities, setCities] = useState<any[]>([]);
-    const [agencies, setAgencies] = useState<any[]>([]);
+    const [routing, setRouting] = useState<AgencyRouting | null>(null);
     const [loading, setLoading] = useState(true);
     const [openAdd, setOpenAdd] = useState(false);
     const [openAddAgency, setOpenAddAgency] = useState(false);
-    const [editingCity, setEditingCity] = useState<any>(null);
+    const [editingCity, setEditingCity] = useState<RoutingCity | null>(null);
+    const [cityAgencies, setCityAgencies] = useState<RoutingCity | null>(null);
+    const [agencySettings, setAgencySettings] = useState<RoutingAgency | null>(null);
+    const [reassign, setReassign] = useState<RoutingAgency | null>(null);
 
-    const fetchData = async () => {
+    const role = user.role?.description || '';
+    const canEdit = ['Admin', 'Master'].includes(role);
+    const canReassign = ['Admin', 'Gerente', 'Master'].includes(role);
+
+    const fetchData = useCallback(async () => {
         setLoading(true);
-        try {
-            const [citiesRes, agenciesRes]: [IResponse, IResponse] = await Promise.all([
-                request("/cities", "GET"),
-                request("/users/role/Agencia", "GET")
-            ]);
-
-            if (citiesRes.status) {
-                const data = await citiesRes.response.json();
-                setCities(data);
-            }
-            if (agenciesRes.status) {
-                const data = await agenciesRes.response.json();
-                setAgencies(data.data);
-            }
-        } catch (e) {
-            toast.error("Error al cargar datos");
-        } finally {
-            setLoading(false);
-        }
-    };
+        const res = await routingApi('');
+        if (res.ok) setRouting(res.data);
+        else toast.error("Error al cargar ciudades y agencias");
+        setLoading(false);
+    }, []);
 
     useEffect(() => {
         if (isValid) fetchData();
-    }, [isValid]);
+    }, [isValid, fetchData]);
 
     const handleSaveCity = async (e: React.FormEvent) => {
         e.preventDefault();
-        const formData = new FormData(e.target as HTMLFormElement);
-        const data = Object.fromEntries(formData.entries());
-
+        const data = Object.fromEntries(new FormData(e.target as HTMLFormElement).entries());
         const url = editingCity ? `/cities/${editingCity.id}` : "/cities";
-        const method = editingCity ? "PUT" : "POST";
-
-        try {
-            const { status, response }: IResponse = await request(url, method, data as any);
-            if (status) {
-                toast.success(editingCity ? "Ciudad actualizada" : "Ciudad creada");
-                setOpenAdd(false);
-                setEditingCity(null);
-                fetchData();
-            } else {
-                const err = await response.json();
-                toast.error(err.message || "Error al guardar");
-            }
-        } catch (e) {
-            toast.error("Error inesperado");
+        const { status, response }: IResponse = await request(url, editingCity ? "PUT" : "POST", data);
+        if (status && response.ok) {
+            toast.success(editingCity ? "Ciudad actualizada" : "Ciudad creada");
+            setOpenAdd(false);
+            setEditingCity(null);
+            fetchData();
+        } else {
+            const err = await response.json().catch(() => ({}));
+            toast.error(err.message || "Error al guardar");
         }
     };
 
     const handleDeleteCity = async (id: number) => {
         if (!confirm("¿Eliminar esta ciudad?")) return;
-        try {
-            const { status }: IResponse = await request(`/cities/${id}`, "DELETE");
-            if (status) {
-                toast.success("Ciudad eliminada");
-                fetchData();
-            }
-        } catch (e) {
+        const { status, response }: IResponse = await request(`/cities/${id}`, "DELETE");
+        if (status && response.ok) {
+            toast.success("Ciudad eliminada");
+            fetchData();
+        } else {
             toast.error("Error al eliminar");
         }
     };
 
-    if (loadingSession || loading) return <Loading />;
+    if (loadingSession || (loading && !routing)) return <Loading />;
+
+    const agencies = routing?.agencies ?? [];
+    const cities = routing?.cities ?? [];
 
     return (
         <Layout>
-            <Box display="flex" justifyContent="space-between" alignItems="center" mb={4}>
-                <DescripcionDeVista title="Ciudades y Agencias" description="Administración de ciudades, costos de delivery y agencias asignadas" />
+            <Box display="flex" justifyContent="space-between" alignItems="center" mb={4} gap={2} flexWrap="wrap">
+                <DescripcionDeVista title="Ciudades y Agencias" description="Qué agencias entregan en cada ciudad, con qué % y hasta cuántas órdenes a la vez" />
                 <Box display="flex" gap={2}>
                     <Button variant="outlined" startIcon={<PersonAddIcon />} onClick={() => setOpenAddAgency(true)} color="secondary">
                         Nueva Agencia
                     </Button>
-                    {user.role?.description === 'Admin' && (
+                    {role === 'Admin' && (
                         <Button variant="contained" startIcon={<AddIcon />} onClick={() => { setEditingCity(null); setOpenAdd(true); }}>
                             Nueva Ciudad
                         </Button>
@@ -105,33 +101,123 @@ export const Cities = () => {
                 </Box>
             </Box>
 
+            {/* AGENCIAS */}
+            <Paper elevation={0} sx={{ p: 3, borderRadius: 4, mb: 4, border: '1px solid', borderColor: 'divider' }}>
+                <Typography variant="h6" fontWeight="bold">Agencias</Typography>
+                <Typography variant="caption" color="text.secondary">
+                    Activas = órdenes en Asignar a agencia, con repartidor o en ruta. Al llegar a su máximo, deja de recibir hasta que libere cupo.
+                </Typography>
+                <Box sx={{ overflowX: 'auto', mt: 2 }}>
+                    <Table size="small">
+                        <TableHead>
+                            <TableRow>
+                                <TableCell>Agencia</TableCell>
+                                <TableCell>Ciudades</TableCell>
+                                <TableCell align="right">Tarifa</TableCell>
+                                <TableCell align="center">Activas / máximo</TableCell>
+                                <TableCell align="right" />
+                            </TableRow>
+                        </TableHead>
+                        <TableBody>
+                            {agencies.map((a) => (
+                                <TableRow key={a.id} hover>
+                                    <TableCell>
+                                        <Stack direction="row" spacing={1} alignItems="center">
+                                            <Avatar sx={{ width: 28, height: 28, fontSize: '0.8rem', bgcolor: a.color || 'primary.main' }}>{a.names.charAt(0)}</Avatar>
+                                            <Typography fontWeight={600}>{a.names}</Typography>
+                                        </Stack>
+                                    </TableCell>
+                                    <TableCell>{a.cities.length ? a.cities.join(', ') : <Typography variant="caption" color="text.secondary">Sin ciudad</Typography>}</TableCell>
+                                    <TableCell align="right">{fmtMoney(a.delivery_cost, 'USD')}</TableCell>
+                                    <TableCell align="center">
+                                        <Chip
+                                            size="small"
+                                            color={a.full ? 'error' : 'default'}
+                                            variant={a.full ? 'filled' : 'outlined'}
+                                            label={`${a.active} / ${a.max_active_orders ?? 'sin tope'}`}
+                                        />
+                                    </TableCell>
+                                    <TableCell align="right">
+                                        {canEdit && (
+                                            <Tooltip title="Tarifa y máximo">
+                                                <IconButton size="small" onClick={() => setAgencySettings(a)}><EditIcon fontSize="small" /></IconButton>
+                                            </Tooltip>
+                                        )}
+                                        {canReassign && (
+                                            <Tooltip title="Pasar sus órdenes a otras agencias">
+                                                <IconButton size="small" onClick={() => setReassign(a)}><SwapHorizIcon fontSize="small" /></IconButton>
+                                            </Tooltip>
+                                        )}
+                                    </TableCell>
+                                </TableRow>
+                            ))}
+                            {agencies.length === 0 && (
+                                <TableRow><TableCell colSpan={5} align="center">No hay agencias</TableCell></TableRow>
+                            )}
+                        </TableBody>
+                    </Table>
+                </Box>
+            </Paper>
+
+            {/* CIUDADES */}
             <Grid container spacing={3}>
                 {cities.map((city) => (
                     <Grid size={{ xs: 12, md: 6, lg: 4 }} key={city.id}>
                         <Card elevation={3} sx={{ borderRadius: 4, height: '100%' }}>
                             <CardContent>
-                                <Box display="flex" justifyContent="space-between" alignItems="flex-start">
+                                <Box display="flex" justifyContent="space-between" alignItems="flex-start" gap={1}>
                                     <Box>
                                         <Typography variant="h6" fontWeight="bold">{city.name}</Typography>
                                         <Typography variant="body2" color="text.secondary">
-                                            Costo Delivery: <b>${city.delivery_cost_usd}</b>
-                                        </Typography>
-                                        <Typography variant="body2" color="text.secondary">
-                                            Agencia: <b>{city.agency?.names || 'No asignada'}</b>
+                                            Costo Delivery: <b>{fmtMoney(city.delivery_cost_usd, 'USD')}</b>
                                         </Typography>
                                     </Box>
-                                    <Box>
-                                        <IconButton onClick={() => { setEditingCity(city); setOpenAdd(true); }}><EditIcon /></IconButton>
-                                        <IconButton color="error" onClick={() => handleDeleteCity(city.id)}><DeleteIcon /></IconButton>
+                                    <Box sx={{ whiteSpace: 'nowrap' }}>
+                                        {canEdit && (
+                                            <Tooltip title="Agencias y %">
+                                                <IconButton onClick={() => setCityAgencies(city)}><TuneIcon /></IconButton>
+                                            </Tooltip>
+                                        )}
+                                        {canEdit && <IconButton onClick={() => { setEditingCity(city); setOpenAdd(true); }}><EditIcon /></IconButton>}
+                                        {role === 'Admin' && <IconButton color="error" onClick={() => handleDeleteCity(city.id)}><DeleteIcon /></IconButton>}
                                     </Box>
                                 </Box>
+
+                                {city.pending > 0 && (
+                                    <Chip color="warning" size="small" sx={{ mt: 1, fontWeight: 'bold' }}
+                                        label={`${city.pending} ${city.pending === 1 ? 'orden espera' : 'órdenes esperan'} agencia: todas llenas`} />
+                                )}
+
+                                <Stack spacing={0.75} sx={{ mt: 2 }}>
+                                    {city.agencies.length === 0 && (
+                                        <Typography variant="body2" color="text.secondary">Sin agencias: las órdenes de esta ciudad se asignan a mano.</Typography>
+                                    )}
+                                    {city.agencies.map((a) => (
+                                        <Stack key={a.id} direction="row" spacing={1} alignItems="center" sx={{ opacity: a.is_active ? 1 : 0.5 }}>
+                                            <Typography variant="body2" fontWeight={600} sx={{ flex: 1, minWidth: 0 }} noWrap>{a.names}</Typography>
+                                            {a.is_active ? (
+                                                <Tooltip title={a.weight === null ? 'Sin %: reparto parejo' : `${a.weight} % configurado`}>
+                                                    <Typography variant="body2" color="text.secondary">{Math.round(a.share * 100)} %</Typography>
+                                                </Tooltip>
+                                            ) : (
+                                                <Chip size="small" label="Inactiva" variant="outlined" />
+                                            )}
+                                            <Chip
+                                                size="small"
+                                                variant="outlined"
+                                                color={a.max_active_orders !== null && a.active >= a.max_active_orders ? 'error' : 'default'}
+                                                label={`${a.active}/${a.max_active_orders ?? '∞'}`}
+                                            />
+                                        </Stack>
+                                    ))}
+                                </Stack>
                             </CardContent>
                         </Card>
                     </Grid>
                 ))}
             </Grid>
 
-            {/* Dialog Add/Edit */}
+            {/* Ciudad: nombre y costo */}
             <Dialog open={openAdd} onClose={() => setOpenAdd(false)} fullWidth maxWidth="xs">
                 <form onSubmit={handleSaveCity}>
                     <DialogTitle>{editingCity ? 'Editar Ciudad' : 'Nueva Ciudad'}</DialogTitle>
@@ -146,21 +232,11 @@ export const Cities = () => {
                                 required
                                 defaultValue={editingCity?.delivery_cost_usd}
                                 inputProps={{ step: "0.01" }}
+                                helperText="Se usa solo si la agencia no tiene tarifa propia."
                             />
-                            <TextField
-                                select
-                                name="agency_id"
-                                label="Agencia Asignada"
-                                fullWidth
-                                defaultValue={editingCity?.agency_id || ""}
-                            >
-                                <MenuItem value=""><em>Sin agencia</em></MenuItem>
-                                {agencies.map(agency => (
-                                    <MenuItem key={agency.id} value={agency.id}>
-                                        {agency.names}
-                                    </MenuItem>
-                                ))}
-                            </TextField>
+                            <Typography variant="caption" color="text.secondary">
+                                Las agencias de la ciudad y sus % se configuran con el botón de ajustes de cada ciudad.
+                            </Typography>
                         </Box>
                     </DialogContent>
                     <DialogActions>
@@ -170,14 +246,16 @@ export const Cities = () => {
                 </form>
             </Dialog>
 
-            <AddUserDialog
-                open={openAddAgency}
-                onClose={() => setOpenAddAgency(false)}
-                defaultRole="Agencia"
-                onUserAdded={() => {
-                    fetchData();
-                }}
+            <CityAgenciesDialog open={!!cityAgencies} city={cityAgencies} agencies={agencies} onClose={() => setCityAgencies(null)} onSaved={setRouting} />
+            <AgencySettingsDialog open={!!agencySettings} agency={agencySettings} onClose={() => setAgencySettings(null)} onSaved={setRouting} />
+            <AgencyReassignDialog
+                open={!!reassign}
+                agency={reassign}
+                canForce={canEdit}
+                onClose={() => setReassign(null)}
+                onSaved={setRouting}
             />
+            <AddUserDialog open={openAddAgency} onClose={() => setOpenAddAgency(false)} defaultRole="Agencia" onUserAdded={fetchData} />
         </Layout>
     );
 };

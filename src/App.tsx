@@ -121,7 +121,7 @@ function App() {
           <Route path="/shops" element={<RequireRole allowedRoles={['Admin', 'Gerente']}><Shops /></RequireRole>} />
           <Route path="/metrics" element={<RequireRole allowedRoles={['Admin', 'Gerente']}><Metrics /></RequireRole>} />
           <Route path="/business-metrics" element={<RequireRole allowedRoles={['Admin']}><BusinessMetrics /></RequireRole>} />
-          <Route path="/cities" element={<RequireRole allowedRoles={['Admin', 'Gerente']}><Cities /></RequireRole>} />
+          <Route path="/cities" element={<RequireRole allowedRoles={['Admin', 'Gerente', 'Master']}><Cities /></RequireRole>} />
           <Route path="/admin/company-accounts" element={<RequireRole allowedRoles={['Admin', 'Gerente']}><CompanyAccounts /></RequireRole>} />
           <Route path="/admin/banks" element={<RequireRole allowedRoles={['Admin', 'Gerente']}><Banks /></RequireRole>} />
           <Route path="/admin/pending-vueltos" element={<RequireRole allowedRoles={['Admin', 'Gerente']}><PendingVueltos /></RequireRole>} />
