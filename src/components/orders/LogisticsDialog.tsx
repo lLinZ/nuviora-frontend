@@ -85,13 +85,13 @@ export const LogisticsDialog: FC<LogisticsDialogProps> = ({ open, onClose, order
             if (form.agency_id) body.append("agency_id", String(form.agency_id));
 
             const { status, response }: IResponse = await request(`/orders/${order.id}/logistics`, "PUT", body);
-            if (status) {
+            if (status >= 200 && status < 300) {
                 const data = await response.json();
                 updateOrderInColumns(data.order);
                 toast.success("Logística actualizada ✅");
                 onClose();
             } else {
-                toast.error("Error al actualizar logística ❌");
+                toast.error((await response.json().catch(() => ({})))?.message || "Error al actualizar logística ❌");
             }
         } catch (e) {
             toast.error("Error en el servidor 🚨");

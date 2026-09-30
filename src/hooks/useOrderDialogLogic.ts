@@ -4,6 +4,13 @@ import { request } from "../common/request";
 import { IResponse } from "../interfaces/response-type";
 import { useOrdersStore } from "../store/orders/OrdersStore";
 import { useUserStore } from "../store/user/UserStore";
+import { orderNo } from "../lib/functions";
+
+/** El motivo que da el servidor (por ejemplo "No se puede modificar una orden entregada."), o el texto por defecto. */
+const serverMessage = async (response: Response, fallback: string) => {
+    const data = await response.json().catch(() => ({}));
+    return data?.message || fallback;
+};
 
 export const useOrderDialogLogic = (
     id: number | undefined,
@@ -111,13 +118,13 @@ export const useOrderDialogLogic = (
                 "PUT",
                 body
             );
-            if (status) {
+            if (status >= 200 && status < 300) {
                 const data = await response.json();
                 updateOrderInColumns(data.order);
                 toast.success("Cancelación aprobada ✅");
                 setOpenApprove(false);
             } else {
-                toast.error("No se pudo aprobar ❌");
+                toast.error(await serverMessage(response, "No se pudo aprobar ❌"));
             }
         } catch {
             toast.error("Error al aprobar 🚨");
@@ -143,13 +150,13 @@ export const useOrderDialogLogic = (
                 "PUT",
                 body
             );
-            if (status) {
+            if (status >= 200 && status < 300) {
                 const data = await response.json();
                 updateOrderInColumns(data.order);
                 toast.success("Cancelación rechazada ❎");
                 setOpenReject(false);
             } else {
-                toast.error("No se pudo rechazar ❌");
+                toast.error(await serverMessage(response, "No se pudo rechazar ❌"));
             }
         } catch {
             toast.error("Error al rechazar 🚨");
@@ -265,7 +272,7 @@ export const useOrderDialogLogic = (
             if (ok === 200) {
                 const data = await response.json();
                 updateOrderInColumns(data.order);
-                toast.success(`Orden #${selectedOrder.name} actualizada a ${status} ✅`);
+                toast.success(`Orden ${orderNo(selectedOrder.name)} actualizada a ${status} ✅`);
 
                 // Cleanup
                 setOpenMarkDelivered(false);
@@ -329,12 +336,12 @@ export const useOrderDialogLogic = (
                 "DELETE"
             );
 
-            if (status) {
+            if (status >= 200 && status < 300) {
                 const data = await response.json();
                 updateOrderInColumns(data.order);
                 toast.success("Upsell eliminado correctamente ✅");
             } else {
-                toast.error("Error al eliminar upsell ❌");
+                toast.error(await serverMessage(response, "Error al eliminar upsell ❌"));
             }
         } catch {
             toast.error("Error de servidor 🚨");
@@ -353,12 +360,12 @@ export const useOrderDialogLogic = (
                 body
             );
 
-            if (status) {
+            if (status >= 200 && status < 300) {
                 const data = await response.json();
                 updateOrderInColumns(data.order);
                 toast.success("Producto actualizado ✅");
             } else {
-                toast.error("Error al actualizar producto ❌");
+                toast.error(await serverMessage(response, "Error al actualizar producto ❌"));
             }
         } catch {
             toast.error("Error de servidor 🚨");
@@ -402,13 +409,13 @@ export const useOrderDialogLogic = (
                 "PUT",
                 body
             );
-            if (status) {
+            if (status >= 200 && status < 300) {
                 const data = await response.json();
                 updateOrderInColumns(data.order);
                 toast.success("Entrega aprobada ✅");
                 setOpenApproveDelivery(false);
             } else {
-                toast.error("No se pudo aprobar la entrega ❌");
+                toast.error(await serverMessage(response, "No se pudo aprobar la entrega ❌"));
             }
         } catch {
             toast.error("Error al aprobar entrega 🚨");
@@ -434,13 +441,13 @@ export const useOrderDialogLogic = (
                 "PUT",
                 body
             );
-            if (status) {
+            if (status >= 200 && status < 300) {
                 const data = await response.json();
                 updateOrderInColumns(data.order);
                 toast.success("Entrega rechazada ❎");
                 setOpenRejectDelivery(false);
             } else {
-                toast.error("No se pudo rechazar la entrega ❌");
+                toast.error(await serverMessage(response, "No se pudo rechazar la entrega ❌"));
             }
         } catch {
             toast.error("Error al rechazar entrega 🚨");
@@ -466,13 +473,13 @@ export const useOrderDialogLogic = (
                 "PUT",
                 body
             );
-            if (status) {
+            if (status >= 200 && status < 300) {
                 const data = await response.json();
                 updateOrderInColumns(data.order);
                 toast.success("Cambio de ubicación aprobado ✅");
                 setOpenApproveLocation(false);
             } else {
-                toast.error("No se pudo aprobar el cambio ❌");
+                toast.error(await serverMessage(response, "No se pudo aprobar el cambio ❌"));
             }
         } catch {
             toast.error("Error al aprobar 🚨");
@@ -498,13 +505,13 @@ export const useOrderDialogLogic = (
                 "PUT",
                 body
             );
-            if (status) {
+            if (status >= 200 && status < 300) {
                 const data = await response.json();
                 updateOrderInColumns(data.order);
                 toast.success("Cambio de ubicación rechazado ❎");
                 setOpenRejectLocation(false);
             } else {
-                toast.error("No se pudo rechazar el cambio ❌");
+                toast.error(await serverMessage(response, "No se pudo rechazar el cambio ❌"));
             }
         } catch {
             toast.error("Error al rechazar 🚨");
@@ -530,13 +537,13 @@ export const useOrderDialogLogic = (
                 "PUT",
                 body
             );
-            if (status) {
+            if (status >= 200 && status < 300) {
                 const data = await response.json();
                 updateOrderInColumns(data.order);
                 toast.success("Rechazo aprobado ✅");
                 setOpenApproveRejection(false);
             } else {
-                toast.error("No se pudo aprobar el rechazo ❌");
+                toast.error(await serverMessage(response, "No se pudo aprobar el rechazo ❌"));
             }
         } catch {
             toast.error("Error el aprobar 🚨");
@@ -562,13 +569,13 @@ export const useOrderDialogLogic = (
                 "PUT",
                 body
             );
-            if (status) {
+            if (status >= 200 && status < 300) {
                 const data = await response.json();
                 updateOrderInColumns(data.order);
                 toast.success("Solicitud de rechazo denegada ❎");
                 setOpenRejectRejection(false);
             } else {
-                toast.error("No se pudo denegar la solicitud ❌");
+                toast.error(await serverMessage(response, "No se pudo denegar la solicitud ❌"));
             }
         } catch {
             toast.error("Error al denegar 🚨");
@@ -592,12 +599,12 @@ export const useOrderDialogLogic = (
                 "PUT",
                 body
             );
-            if (status) {
+            if (status >= 200 && status < 300) {
                 const data = await response.json();
                 updateOrderInColumns(data.order);
                 toast.success('Recordatorio establecido 📅');
             } else {
-                toast.error('Error al guardar recordatorio');
+                toast.error(await serverMessage(response, 'Error al guardar recordatorio'));
             }
         } catch {
             toast.error('Error de conexión');
@@ -616,7 +623,7 @@ export const useOrderDialogLogic = (
                 "PUT",
                 body
             );
-            if (status) {
+            if (status >= 200 && status < 300) {
                 const data = await response.json();
                 updateOrderInColumns(data.order);
                 toast.success('Total actualizado correctamente ✅');

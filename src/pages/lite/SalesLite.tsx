@@ -52,6 +52,7 @@ import { PhoneActionMenu } from '../../components/orders/PhoneActionMenu';
 import { useOrdersStore } from '../../store/orders/OrdersStore';
 import { LeaderViewSelect } from '../my-group/LeaderViewSelect';
 import { LeaderView, MY_ORDERS, appendLeaderView } from '../my-group/leaderView';
+import { orderNo } from "../../lib/functions";
 
 // Componente simple de Tabla Lite
 const LiteOrderTable = ({ statusTitle, searchTerm, onRefresh, onDataUpdate, leaderView = MY_ORDERS }: any) => {
@@ -149,7 +150,7 @@ const LiteOrderTable = ({ statusTitle, searchTerm, onRefresh, onDataUpdate, lead
                                 <TableCell>
                                     <Box>
                                         <Typography variant="subtitle2" fontWeight="bold">
-                                            #{order.name}
+                                            {orderNo(order.name)}
                                         </Typography>
                                         {order.agent && order.agent_id !== user.id && (
                                             <Chip size="small" variant="outlined" color="warning" label={`de ${order.agent.names}`} sx={{ height: 20, fontSize: '0.7rem', mb: 0.25 }} />

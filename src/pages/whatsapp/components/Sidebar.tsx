@@ -18,6 +18,7 @@ import { useNavigate } from "react-router-dom";
 import dayjs from "dayjs";
 import { ShiftManagement } from "./ShiftManagement";
 import { useUserStore } from "../../../store/user/UserStore";
+import { orderNo } from "../../../lib/functions";
 
 // ─── Nivel 3 Crítico: umbral de minutos sin respuesta ─────────────────────────
 const CRITICAL_THRESHOLD_MINUTES = 30;
@@ -462,7 +463,7 @@ export const Sidebar: FC<SidebarProps> = ({
                                                     sx={{ height: 16, fontSize: '0.6rem', fontWeight: 'bold', flexShrink: 0 }} />
                                             ) : (
                                                 <Chip
-                                                    label={`#${contact.context.order.name}`}
+                                                    label={`${orderNo(contact.context.order.name)}`}
                                                     size="small" color="primary" variant="outlined"
                                                     sx={{ height: 16, fontSize: '0.6rem', fontWeight: 'bold', borderColor: 'currentColor', color: 'inherit', flexShrink: 0 }}
                                                 />

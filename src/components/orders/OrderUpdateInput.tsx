@@ -41,7 +41,7 @@ export const OrderUpdateInput: React.FC<OrderUpdateInputProps> = ({ orderId }) =
                 true
             );
 
-            if (status) {
+            if (status >= 200 && status < 300) {
                 const data = await response.json();
 
                 const newUpdatesList = [...(selectedOrder?.updates ?? selectedOrder?.order_updates ?? []), data.update];
@@ -56,7 +56,7 @@ export const OrderUpdateInput: React.FC<OrderUpdateInputProps> = ({ orderId }) =
                 setPreview(null);
                 toast.success("Actualización agregada ✅");
             } else {
-                toast.error("No se pudo guardar la actualización ❌");
+                toast.error((await response.json().catch(() => ({})))?.message || "No se pudo guardar la actualización ❌");
             }
         } catch (err) {
             toast.error("Error en servidor ⚠️");

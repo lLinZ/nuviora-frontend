@@ -45,7 +45,7 @@ export const OrderCompanyAccounts: React.FC = () => {
         setLoading(true);
         try {
             const { status, response }: IResponse = await request('/company-accounts', 'GET');
-            if (status) {
+            if (status >= 200 && status < 300) {
                 const data = await response.json();
                 // Filter only active accounts
                 setAccounts(data.filter((a: ICompanyAccount) => a.is_active));

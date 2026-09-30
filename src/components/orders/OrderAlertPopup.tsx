@@ -15,6 +15,7 @@ import NotificationsActiveRoundedIcon from "@mui/icons-material/NotificationsAct
 import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
 import { red, yellow } from "@mui/material/colors";
 import { TypographyCustom } from "../custom";
+import { orderNo } from "../../lib/functions";
 
 interface OrderAlertPopupProps {
     open: boolean;
@@ -152,7 +153,7 @@ export const OrderAlertPopup: FC<OrderAlertPopupProps> = ({ open, order, onClose
                     </TypographyCustom>
 
                     <Typography variant="body1" sx={{ color: 'text.secondary', fontWeight: 500, px: 2 }}>
-                        La orden <Box component="span" sx={{ color: red[600], fontWeight: 700 }}>#{order.name}</Box> requiere tu atención inmediata.
+                        La orden <Box component="span" sx={{ color: red[600], fontWeight: 700 }}>{orderNo(order.name)}</Box> requiere tu atención inmediata.
                     </Typography>
 
                     <Box

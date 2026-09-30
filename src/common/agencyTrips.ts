@@ -1,3 +1,6 @@
+
+import { orderNo } from "../lib/functions";
+
 /** Carreras de las agencias (tarea 5): nombres para mostrar y filas para Excel. */
 
 export type AgencyTrip = {
@@ -54,7 +57,7 @@ export const tripResultColor = (r: string | null | undefined): 'success' | 'warn
 
 export const tripSheetRows = (trips: SettlementTrip[]) => trips.map((t) => ({
     Fecha: t.trip_date,
-    Orden: `#${t.order_name}`,
+    Orden: `${orderNo(t.order_name)}`,
     Tipo: TRIP_TYPES[t.type] ?? t.type,
     Resultado: tripResultLabel(t.result),
     'Monto USD': t.amount_usd,

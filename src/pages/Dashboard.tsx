@@ -34,6 +34,7 @@ import { OrderDialog } from "../components/orders/OrderDialog";
 import { PaymentMethodsReport } from "../components/reports/PaymentMethodsReport";
 import { StockAlertWidget } from "../components/inventory/StockAlertWidget";
 import { tripSheetRows } from "../common/agencyTrips";
+import { orderNo } from "../lib/functions";
 
 interface DashboardStats {
     total_sales?: number;
@@ -246,7 +247,7 @@ export const Dashboard = () => {
     const exportToExcel = (agency: any) => {
         if (!agency) return;
         const worksheetData = agency.order_details.map((d: any) => ({
-            "Orden": `#${d.order_name}`,
+            "Orden": `${orderNo(d.order_name)}`,
             "Fecha": dayjs(d.updated_at).format('DD/MM/YYYY HH:mm'),
             "Total Orden": d.total_price,
             "Cobrado USD (Efec)": d.collected_usd,
@@ -359,7 +360,7 @@ export const Dashboard = () => {
                                                             cursor: 'pointer', '&:hover': { bgcolor: 'action.hover' }
                                                         }}>
                                                         <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-                                                            <TypographyCustom variant="subtitle2" fontWeight="bold">#{pv.name} - {pv.client?.first_name} {pv.client?.last_name}</TypographyCustom>
+                                                            <TypographyCustom variant="subtitle2" fontWeight="bold">{orderNo(pv.name)} - {pv.client?.first_name} {pv.client?.last_name}</TypographyCustom>
                                                             <Chip label={`$${pv.change_amount}`} size="small" color="primary" sx={{ fontWeight: 'bold' }} />
                                                         </Box>
                                                         <Stack direction="row" spacing={1} alignItems="center">
@@ -517,7 +518,7 @@ export const Dashboard = () => {
                                                             '&:hover': { bgcolor: 'rgba(255, 152, 0, 0.15)' }
                                                         }}
                                                     >
-                                                        <TypographyCustom variant="caption" fontWeight="bold">#{o.name}</TypographyCustom>
+                                                        <TypographyCustom variant="caption" fontWeight="bold">{orderNo(o.name)}</TypographyCustom>
                                                         <TypographyCustom variant="caption">${o.current_total_price}</TypographyCustom>
                                                     </Box>
                                                 ))}
@@ -576,7 +577,7 @@ export const Dashboard = () => {
                                                 <Stack spacing={0.5}>
                                                     {stats.unassigned_city_orders?.map((o: any, i: number) => (
                                                         <Box key={i} sx={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', opacity: 0.8 }}>
-                                                            <span>#{o.name} ({o.city_name})</span>
+                                                            <span>{orderNo(o.name)} ({o.city_name})</span>
                                                             <span>${o.current_total_price}</span>
                                                         </Box>
                                                     ))}
@@ -758,7 +759,7 @@ export const Dashboard = () => {
                                                             {o.client?.first_name} {o.client?.last_name}
                                                         </TypographyCustom>
                                                         <Stack direction="row" spacing={1} alignItems="center">
-                                                            <TypographyCustom variant="caption" color="text.secondary">#{o.name}</TypographyCustom>
+                                                            <TypographyCustom variant="caption" color="text.secondary">{orderNo(o.name)}</TypographyCustom>
                                                             <TypographyCustom variant="caption" color="text.disabled">•</TypographyCustom>
                                                             <TypographyCustom variant="caption" color="text.secondary">${o.current_total_price}</TypographyCustom>
                                                         </Stack>
@@ -808,7 +809,7 @@ export const Dashboard = () => {
                                                     />
                                                     <Box onClick={() => handleOpenOrder(o.id)} sx={{ cursor: 'pointer' }}>
                                                         <TypographyCustom variant="subtitle2" fontWeight="bold" sx={{ textDecoration: o.client_notified ? 'line-through' : 'none', opacity: o.client_notified ? 0.6 : 1 }}>
-                                                            #{o.name} - {o.client?.names || o.client?.first_name}
+                                                            {orderNo(o.name)} - {o.client?.names || o.client?.first_name}
                                                         </TypographyCustom>
                                                         <TypographyCustom variant="caption" color="text.secondary">
                                                             Vuelto: {o.change_covered_by} • {o.status?.description}

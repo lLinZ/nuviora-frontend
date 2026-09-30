@@ -8,6 +8,7 @@ import { request } from "../../common/request";
 import { toast } from "react-toastify";
 import { useUserStore } from "../../store/user/UserStore";
 import { fmtMoney } from "../../lib/money";
+import { orderNo } from "../../lib/functions";
 
 interface CreateOrderDialogProps {
     open: boolean;
@@ -216,7 +217,7 @@ export const CreateOrderDialog = ({ open, onClose, onSuccess, prefillName, prefi
             const data = await response.json();
 
             if (status === 200 && data.status) {
-                toast.success(`Orden #${data.order.name} creada exitosamente`);
+                toast.success(`Orden ${orderNo(data.order.name)} creada exitosamente`);
                 if (onSuccess) onSuccess(data.order);
                 handleClose();
             } else {

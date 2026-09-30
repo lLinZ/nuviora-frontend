@@ -233,7 +233,7 @@ export const OrderChangeSection: React.FC<OrderChangeSectionProps> = ({ order, o
                 true // isJson=false for FormData
             );
 
-            if (status) {
+            if (status >= 200 && status < 300) {
                 toast.success("Comprobante de vuelto subido");
                 if (onUpdate) onUpdate();
             } else {

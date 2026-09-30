@@ -22,6 +22,7 @@ import { IResponse } from "../../interfaces/response-type";
 import { toast } from "react-toastify";
 import { useOrdersStore } from "../../store/orders/OrdersStore";
 import BusinessRoundedIcon from "@mui/icons-material/BusinessRounded";
+import { orderNo } from "../../lib/functions";
 
 interface AssignAgencyDialogProps {
     open: boolean;
@@ -92,7 +93,7 @@ export const AssignAgencyDialog: FC<AssignAgencyDialogProps> = ({
 
                 // Usamos el mensaje del backend: distingue entre "avanzó de status"
                 // y "se reasignó pero el nuevo almacén tampoco tiene stock".
-                toast.success(data.message || `Orden #${data.order.name} reasignada 🏢`);
+                toast.success(data.message || `Orden ${orderNo(data.order.name)} reasignada 🏢`);
                 onClose();
             } else {
                 toast.error("No se pudo asignar la agencia ❌");

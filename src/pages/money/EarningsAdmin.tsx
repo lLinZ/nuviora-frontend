@@ -31,6 +31,7 @@ import SwapHorizRoundedIcon from '@mui/icons-material/SwapHorizRounded';
 import { OrderDialog } from "../../components/orders/OrderDialog";
 import ReplayRoundedIcon from '@mui/icons-material/ReplayRounded';
 import { SettlementTrip, TRIP_TYPES, tripResultColor, tripResultLabel, tripSheetRows } from "../../common/agencyTrips";
+import { orderNo } from "../../lib/functions";
 
 type LeaderRow = {
     user_id: number;
@@ -479,7 +480,7 @@ const AgencySettlementTable = ({ settlement, openOrder, canVoid, onChanged }: Se
 
     const voidTrip = async (t: SettlementTrip) => {
         if (!t.trip_id) return;
-        const reason = window.prompt(`¿Por qué se anula la carrera de #${t.order_name} (${t.trip_date})? Ya no se le pagará a la agencia.`);
+        const reason = window.prompt(`¿Por qué se anula la carrera de ${orderNo(t.order_name)} (${t.trip_date})? Ya no se le pagará a la agencia.`);
         if (reason === null) return;
         if (reason.trim().length < 3) {
             toast.error("Escribe el motivo");
@@ -497,7 +498,7 @@ const AgencySettlementTable = ({ settlement, openOrder, canVoid, onChanged }: Se
 
     const exportToExcel = (agency: any) => {
         const worksheetData = agency.order_details.map((d: any) => ({
-            "Orden": `#${d.order_name}`,
+            "Orden": `${orderNo(d.order_name)}`,
             "Fecha": dayjs(d.updated_at).format('DD/MM/YYYY HH:mm'),
             "Total Orden": d.total_price,
             "Cobrado USD (Efec)": d.collected_usd,
@@ -608,7 +609,7 @@ const AgencySettlementTable = ({ settlement, openOrder, canVoid, onChanged }: Se
                                                         <TableRow key={t.trip_id ?? `e${i}`} hover>
                                                             <TableCell>{dayjs(t.trip_date).format('DD/MM/YYYY')}</TableCell>
                                                             <TableCell>
-                                                                <Chip size="small" variant="outlined" label={`#${t.order_name}`} onClick={() => openOrder(t.order_id)} icon={<LaunchRoundedIcon />} />
+                                                                <Chip size="small" variant="outlined" label={`${orderNo(t.order_name)}`} onClick={() => openOrder(t.order_id)} icon={<LaunchRoundedIcon />} />
                                                             </TableCell>
                                                             <TableCell>{TRIP_TYPES[t.type] ?? t.type}</TableCell>
                                                             <TableCell><Chip size="small" color={tripResultColor(t.result)} label={tripResultLabel(t.result)} /></TableCell>
@@ -666,7 +667,7 @@ const RefundsTable = ({ refunds, openOrder }: { refunds: { total_usd: number; co
                         <TableRow key={r.id} hover>
                             <TableCell>{dayjs(r.refunded_at).format('DD/MM/YYYY')}</TableCell>
                             <TableCell>
-                                <Chip size="small" variant="outlined" label={`#${r.order_name}`} onClick={() => openOrder(r.order_id)} icon={<LaunchRoundedIcon />} />
+                                <Chip size="small" variant="outlined" label={`${orderNo(r.order_name)}`} onClick={() => openOrder(r.order_id)} icon={<LaunchRoundedIcon />} />
                             </TableCell>
                             <TableCell>{r.seller_name ?? '—'}</TableCell>
                             <TableCell>{r.method ?? '—'}</TableCell>

@@ -8,6 +8,7 @@ import { useUserStore } from "../../../store/user/UserStore";
 import { AssignAgentDialog } from "../../../components/orders/AssignAgentDialog";
 import { request } from "../../../common/request";
 import { toast } from "react-toastify";
+import { orderNo } from "../../../lib/functions";
 
 interface ContextPanelProps {
     selectedContact: ContactData | null;
@@ -147,7 +148,7 @@ export const ContextPanel: FC<ContextPanelProps> = ({ selectedContact, isMobileD
                             <Paper elevation={0} sx={{ p: 2, borderRadius: 3, border: '1px solid', borderColor: 'divider', mb: 2 }}>
                                 <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
                                     <Typography variant="subtitle2" fontWeight="bold">
-                                        Orden #{context.order.name}
+                                        Orden {orderNo(context.order.name)}
                                     </Typography>
                                     <Chip 
                                         label={context.order.status?.description || 'Desconocido'} 

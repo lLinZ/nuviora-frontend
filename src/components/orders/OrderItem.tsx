@@ -31,6 +31,7 @@ import { OrderTimer } from "./OrderTimer";
 import { ORDER_STATUS, STATUS_COLORS } from "../../constants/OrderStatus";
 import { usePermissions, ROLES } from "../../hooks/usePermissions";
 import { grey, orange, red } from "@mui/material/colors";
+import { orderNo } from "../../lib/functions";
 
 interface OrderItemProps {
     order: any;
@@ -158,7 +159,7 @@ export const OrderItem: FC<OrderItemProps> = ({ order }) => {
             if (ok === 200) {
                 const data = await response.json();
                 updateOrderInColumns(data.order);
-                toast.success(data.message || `Orden #${order.name} actualizada a ${status} ✅`);
+                toast.success(data.message || `Orden ${orderNo(order.name)} actualizada a ${status} ✅`);
                 setPendingStatus(null);
             } else {
                 const errorData = await response.json();

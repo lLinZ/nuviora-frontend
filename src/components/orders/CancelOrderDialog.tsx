@@ -49,7 +49,7 @@ export const CancelOrderDialog: FC<CancelOrderDialogProps> = ({
                 body
             );
 
-            if (status) {
+            if (status >= 200 && status < 300) {
                 const data = await response.json();
 
                 // Actualizamos estado global de la orden
@@ -64,7 +64,7 @@ export const CancelOrderDialog: FC<CancelOrderDialogProps> = ({
                 setReason("");
                 onClose();
             } else {
-                toast.error("No se pudo solicitar la cancelación ❌");
+                toast.error((await response.json().catch(() => ({})))?.message || "No se pudo solicitar la cancelación ❌");
             }
         } catch (e) {
             console.error("Error al cancelar orden", e);

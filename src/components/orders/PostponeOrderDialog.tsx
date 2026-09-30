@@ -71,7 +71,7 @@ export const PostponeOrderDialog: FC<Props> = ({ open, onClose, orderId, targetS
                 "POST",
                 body
             );
-            if (status) {
+            if (status >= 200 && status < 300) {
                 const data = await response.json();
                 updateOrderInColumns(data.order);
                 toast.success("Orden pospuesta correctamente ✅");
@@ -79,7 +79,7 @@ export const PostponeOrderDialog: FC<Props> = ({ open, onClose, orderId, targetS
                 setScheduledFor("");
                 onClose();
             } else {
-                toast.error("No se pudo posponer la orden ❌");
+                toast.error((await response.json().catch(() => ({})))?.message || "No se pudo posponer la orden ❌");
             }
         } catch (e) {
             toast.error("Error en el servidor al posponer 🚨");

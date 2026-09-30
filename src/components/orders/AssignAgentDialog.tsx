@@ -21,6 +21,7 @@ import { IResponse } from "../../interfaces/response-type";
 import { toast } from "react-toastify";
 import { useOrdersStore } from "../../store/orders/OrdersStore";
 import { SquareOutlined } from "@mui/icons-material";
+import { orderNo } from "../../lib/functions";
 
 interface AssignAgentDialogProps {
     open: boolean;
@@ -41,7 +42,7 @@ export const AssignAgentDialog: FC<AssignAgentDialogProps> = ({
     const [loading, setLoading] = useState(false);
     const [assigning, setAssigning] = useState(false);
 
-    const { updateOrderInColumns } = useOrdersStore();
+    const { updateOrderInColumns, selectedOrder, setSelectedOrder } = useOrdersStore();
 
     useEffect(() => {
         if (open) {
@@ -95,16 +96,20 @@ export const AssignAgentDialog: FC<AssignAgentDialogProps> = ({
                 body
             );
 
-            if (status) {
+            if (status >= 200 && status < 300) {
                 const data = await response.json();
-                updateOrderInColumns(data.order);
+                // La respuesta trae el pedido sin sus productos: se vuelve a pedir entero para que la ficha no pierda nada
+                const full = await request(`/orders/${orderId}`, "GET");
+                const fresh = full.status === 200 ? (await full.response.json()).order : null;
+                updateOrderInColumns(fresh ?? data.order);
+                if (fresh && selectedOrder?.id === fresh.id) setSelectedOrder(fresh);
                 if (onAssigned) onAssigned(data.order.agent);
                 toast.success(
-                    `Orden #${data.order.name} asignada a ${data.order.agent.names} 👩‍💼`
+                    `Orden ${orderNo(data.order.name)} asignada a ${data.order.agent.names} 👩‍💼`
                 );
                 onClose();
             } else {
-                toast.error("No se pudo asignar el vendedor ❌");
+                toast.error((await response.json().catch(() => ({})))?.message || "No se pudo asignar el vendedor ❌");
             }
         } catch (e) {
             console.error("Error al asignar vendedor", e);

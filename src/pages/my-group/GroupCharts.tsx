@@ -84,10 +84,10 @@ export const PeriodCharts: React.FC<{ metrics: GroupMetrics; data: MyGroupData }
                 hint={`${weekly ? "Por semana" : "Por día"}, de las órdenes que entraron ese ${weekly ? "período" : "día"}. Los últimos días suben a medida que se entregan.`}
             >
                 {hasOrders ? (
-                    <LineChart data={points} margin={{ top: 10, right: 16, left: -10, bottom: 0 }}>
+                    <LineChart data={points} margin={{ top: 10, right: 16, left: 0, bottom: 0 }}>
                         <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={c.grid} />
                         <XAxis dataKey="label" tick={c.tick} interval="preserveStartEnd" minTickGap={12} />
-                        <YAxis domain={[0, 100]} tick={c.tick} tickFormatter={(v) => `${v}%`} width={42} />
+                        <YAxis domain={[0, 100]} tick={c.tick} tickFormatter={(v) => `${v}%`} width={46} />
                         <ChartTooltip {...c.tooltip} formatter={(v) => [pctLabel(v), "Efectividad"]} />
                         <ReferenceLine y={45} stroke={c.error} strokeDasharray="4 4" />
                         <ReferenceLine y={50} stroke={c.success} strokeDasharray="4 4" label={{ value: "50 %", position: "insideTopLeft", fill: c.success, fontSize: 10 }} />
@@ -102,7 +102,7 @@ export const PeriodCharts: React.FC<{ metrics: GroupMetrics; data: MyGroupData }
 
             <ChartBox title={weekly ? "Entregas por semana" : "Entregas por día"} hint="Pedidos de tus vendedoras que pasaron a Entregado en esa fecha.">
                 {points.some((p) => p.deliveries > 0) ? (
-                    <BarChart data={points} margin={{ top: 16, right: 8, left: -20, bottom: 0 }}>
+                    <BarChart data={points} margin={{ top: 16, right: 8, left: 0, bottom: 0 }}>
                         <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={c.grid} />
                         <XAxis dataKey="label" tick={c.tick} interval="preserveStartEnd" minTickGap={12} />
                         <YAxis allowDecimals={false} tick={c.tick} width={40} />
@@ -129,11 +129,11 @@ export const PeriodCharts: React.FC<{ metrics: GroupMetrics; data: MyGroupData }
             </ChartBox>
 
             <ChartBox title="Upsells por vendedora" hint="Entregadas con upsell (barras) y la tasa: entregadas con upsell ÷ entregadas (línea)." height={barsHeight}>
-                <ComposedChart data={sellers} margin={{ top: 10, right: 8, left: -20, bottom: 0 }}>
+                <ComposedChart data={sellers} margin={{ top: 10, right: 8, left: 0, bottom: 0 }}>
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={c.grid} />
                     <XAxis dataKey="name" tick={c.tick} interval={0} />
                     <YAxis yAxisId="n" allowDecimals={false} tick={c.tick} width={40} />
-                    <YAxis yAxisId="p" orientation="right" domain={[0, 100]} tick={c.tick} tickFormatter={(v) => `${v}%`} width={42} />
+                    <YAxis yAxisId="p" orientation="right" domain={[0, 100]} tick={c.tick} tickFormatter={(v) => `${v}%`} width={46} />
                     <ChartTooltip {...c.tooltip} formatter={(v, name) => (name === "upsell_pct" ? [pctLabel(v), "Tasa de upsell"] : [v as number, "Con upsell"])} />
                     <Bar yAxisId="n" dataKey="upsells" fill={c.info} radius={[6, 6, 0, 0]} />
                     <Line yAxisId="p" type="monotone" dataKey="upsell_pct" stroke={c.warning} strokeWidth={2} dot={{ r: 3 }} connectNulls />

@@ -13,6 +13,8 @@ import { ReviewDeliveryDialog } from "./ReviewDeliveryDialog";
 import { ReminderDialog } from "./ReminderDialog";
 import { AssignDelivererDialog } from "./AssignDelivererDialog";
 import { AssignAgentDialog } from "./AssignAgentDialog";
+import { LeaderMoveOrderDialog } from "./LeaderMoveOrderDialog";
+import { leaderCanMove } from "../../common/leaderMove";
 import { AssignAgencyDialog } from "./AssignAgencyDialog";
 import { OrderPaymentSection } from "./OrderPaymentSection";
 import { OrderChangeSection } from "./OrderChangeSection";
@@ -61,6 +63,7 @@ import { LogisticsDialog } from "./LogisticsDialog";
 import DenseMenu from "../ui/content/DenseMenu";
 import { toast } from "react-toastify";
 import { DailyRatesDialog } from "./DailyRatesDialog";
+import { orderNo } from "../../lib/functions";
 
 interface OrderDialogProps {
     id?: number;
@@ -174,6 +177,7 @@ export const OrderDialog: FC<OrderDialogProps> = ({ id, open, setOpen }) => {
     const [openSearch, setOpenSearch] = useState(false);
     const [openRates, setOpenRates] = useState(false);
     const [openAssign, setOpenAssign] = useState(false);
+    const [openLeaderMove, setOpenLeaderMove] = useState(false);
     const [openAssignAgency, setOpenAssignAgency] = useState(false);
     const [openAssignDeliverer, setOpenAssignDeliverer] = useState(false);
     const [openLogistics, setOpenLogistics] = useState(false);
@@ -290,7 +294,7 @@ export const OrderDialog: FC<OrderDialogProps> = ({ id, open, setOpen }) => {
         if (order.client?.address2) locationDetails += `\n📍 *Referencia:* ${order.client.address2}`;
         if (order.location) locationDetails += `\n🔗 *Link Maps:* ${order.location}`;
 
-        const message = `🚀 *ORDEN #${order.name}*${locationDetails || '\n📍 *Ubicación:* No asignada'}\n🏢 *Agencia:* ${agencyDisplay}\n👤 *Cliente:* ${order.client?.first_name} ${order.client?.last_name}\n📞 *Teléfono:* ${order.client?.phone}\n📦 *Productos:*\n${productsList}\n${paymentInfo}`;
+        const message = `🚀 *ORDEN ${orderNo(order.name)}*${locationDetails || '\n📍 *Ubicación:* No asignada'}\n🏢 *Agencia:* ${agencyDisplay}\n👤 *Cliente:* ${order.client?.first_name} ${order.client?.last_name}\n📞 *Teléfono:* ${order.client?.phone}\n📦 *Productos:*\n${productsList}\n${paymentInfo}`;
         navigator.clipboard.writeText(message);
         toast.info('📋 Información copiada');
     };
@@ -368,7 +372,7 @@ export const OrderDialog: FC<OrderDialogProps> = ({ id, open, setOpen }) => {
                                         Orden
                                     </Typography>
                                     <Typography variant="h6" fontWeight="bold" sx={{ color: 'white', fontSize: { xs: '1.1rem', sm: '1.25rem' } }}>
-                                        #{order.name}
+                                        {orderNo(order.name)}
                                     </Typography>
                                 </Box>
 
@@ -1006,6 +1010,14 @@ export const OrderDialog: FC<OrderDialogProps> = ({ id, open, setOpen }) => {
                         </>
                     )}
 
+                    {/* H4: la Líder pasa este pedido a otra vendedora de su grupo */}
+                    {!!user.leader_group && leaderCanMove(order.status?.description) && !['Admin', 'Gerente'].includes(user.role?.description || '') && (
+                        <MenuItem onClick={() => { handleMenuClose(); setOpenLeaderMove(true); }}>
+                            <ListItemIcon><AssignmentIndRounded fontSize="small" /></ListItemIcon>
+                            <ListItemText>Pasar a otra vendedora</ListItemText>
+                        </MenuItem>
+                    )}
+
                     <MenuItem onClick={() => { handleMenuClose(); setOpenPostpone(true); }}>
                         <ListItemIcon><EventRepeatRounded fontSize="small" /></ListItemIcon>
                         <ListItemText>Postponer Orden</ListItemText>
@@ -1053,6 +1065,7 @@ export const OrderDialog: FC<OrderDialogProps> = ({ id, open, setOpen }) => {
                 <ReportNovedadDialog open={openReportNovedad} onClose={() => setOpenReportNovedad(false)} onConfirm={(data) => { if (pendingStatus) changeStatus(pendingStatus.description, { novedad_type: data.type, novedad_description: data.description }); }} />
                 <ResolveNovedadDialog open={openResolveNovedad} onClose={() => setOpenResolveNovedad(false)} onConfirm={(resolution) => { if (pendingStatus) changeStatus(pendingStatus.description, { novedad_resolution: resolution }); }} />
                 <AssignAgentDialog open={openAssign} onClose={() => setOpenAssign(false)} orderId={order.id} />
+                {!!user.leader_group && <LeaderMoveOrderDialog open={openLeaderMove} onClose={() => setOpenLeaderMove(false)} order={{ id: order.id, name: order.name, agent_id: order.agent_id ?? order.agent?.id }} />}
                 <AssignAgencyDialog open={openAssignAgency} onClose={() => setOpenAssignAgency(false)} orderId={order.id} stockElsewhere={order.stock_elsewhere} />
                 <AssignDelivererDialog open={openAssignDeliverer} onClose={() => setOpenAssignDeliverer(false)} orderId={order.id} />
                 <LogisticsDialog open={openLogistics} onClose={() => setOpenLogistics(false)} order={order} />
@@ -1063,7 +1076,7 @@ export const OrderDialog: FC<OrderDialogProps> = ({ id, open, setOpen }) => {
                     <DialogTitle>Generar orden de cambio</DialogTitle>
                     <DialogContent>
                         <Typography variant="body1" sx={{ mb: 2 }}>
-                            Esto creará una orden de <strong>CAMBIO</strong> basada en la orden #{order.name}.
+                            Esto creará una orden de <strong>CAMBIO</strong> basada en la orden {orderNo(order.name)}.
                         </Typography>
                         <Typography variant="body2" color="text.secondary">
                             • El cliente no paga (Total: $0) y no genera comisión<br />

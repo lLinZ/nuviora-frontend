@@ -179,7 +179,8 @@ export const WeeklyReportPage: React.FC = () => {
 
                     <Section title="Desempeño por vendedora">
                         <TableContainer>
-                            <Table size="small">
+                            {/* H8: celdas más estrechas y el dato secundario en otra línea, para que "Carga hoy" quepa sin desplazar */}
+                            <Table size="small" sx={{ "& th, & td": { px: 1 } }}>
                                 <TableHead>
                                     <TableRow sx={{ "& th": { whiteSpace: "nowrap" } }}>
                                         <TableCell>Vendedora</TableCell>
@@ -196,7 +197,7 @@ export const WeeklyReportPage: React.FC = () => {
                                 <TableBody>
                                     {report.rows.map((r) => (
                                         <TableRow key={r.user_id}>
-                                            <TableCell sx={{ whiteSpace: "nowrap", fontWeight: r.is_leader ? 600 : 400 }}>{r.name}{r.is_leader ? " (Líder)" : ""}</TableCell>
+                                            <TableCell sx={{ fontWeight: r.is_leader ? 600 : 400 }}>{r.name}{r.is_leader ? " (Líder)" : ""}</TableCell>
                                             <TableCell align="right">{r.assigned}</TableCell>
                                             <TableCell align="right">{r.delivered}</TableCell>
                                             <TableCell align="right">
@@ -205,8 +206,14 @@ export const WeeklyReportPage: React.FC = () => {
                                                     <Typography variant="caption" color="text.secondary" display="block">{pts(r.effectiveness, r.previous_effectiveness)}</Typography>
                                                 )}
                                             </TableCell>
-                                            <TableCell align="right">{r.cancelled} ({pct(r.cancelled_pct)})</TableCell>
-                                            <TableCell align="right">{r.novelties}{r.novelties > 0 ? ` · ${pct(r.resolved_pct)} res.` : ""}</TableCell>
+                                            <TableCell align="right">
+                                                {r.cancelled}
+                                                <Typography variant="caption" color="text.secondary" display="block">{pct(r.cancelled_pct)}</Typography>
+                                            </TableCell>
+                                            <TableCell align="right">
+                                                {r.novelties}
+                                                {r.novelties > 0 && <Typography variant="caption" color="text.secondary" display="block" sx={{ whiteSpace: "nowrap" }}>{pct(r.resolved_pct)} resueltas</Typography>}
+                                            </TableCell>
                                             <TableCell align="right">{pct(r.upsell_pct)}</TableCell>
                                             <TableCell align="right">{money(r.commission_total)}</TableCell>
                                             <TableCell align="right">{r.load}</TableCell>

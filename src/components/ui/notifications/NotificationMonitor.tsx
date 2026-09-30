@@ -3,6 +3,7 @@ import { useOrdersStore } from "../../../store/orders/OrdersStore";
 import { useNotificationStore, AppNotification } from "../../../store/notifications/NotificationStore";
 import { toast } from "react-toastify";
 import { useUserStore } from "../../../store/user/UserStore";
+import { orderNo } from "../../../lib/functions";
 
 export const NotificationMonitor = () => {
     const { columns, setSelectedOrder } = useOrdersStore();
@@ -39,7 +40,7 @@ export const NotificationMonitor = () => {
                                     orderId: order.id,
                                     orderName: order.name,
                                     type,
-                                    message: `${label}: #${order.name}`,
+                                    message: `${label}: ${orderNo(order.name)}`,
                                     time: timeStr,
                                     createdAt: Date.now()
                                 };
@@ -49,7 +50,7 @@ export const NotificationMonitor = () => {
 
                                 // Mostrar toast solo una vez por sesión para este pedido
                                 if (!toastedRef.current.has(order.id)) {
-                                    const toastId = toast.warning(`⏰ ${label}: Orden #${order.name}`, {
+                                    const toastId = toast.warning(`⏰ ${label}: Orden ${orderNo(order.name)}`, {
                                         autoClose: false, // Persistente
                                         position: "top-right",
                                         onClick: () => {

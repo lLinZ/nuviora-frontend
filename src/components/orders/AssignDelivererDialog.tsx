@@ -58,13 +58,13 @@ export const AssignDelivererDialog: FC<Props> = ({ open, onClose, orderId }) => 
                 body
             );
 
-            if (status) {
+            if (status >= 200 && status < 300) {
                 const data = await response.json();
                 updateOrderInColumns(data.order); // incluye deliverer + status
                 toast.success(`Repartidor asignado correctamente 🚚`);
                 onClose();
             } else {
-                toast.error("No se pudo asignar el repartidor ❌");
+                toast.error((await response.json().catch(() => ({})))?.message || "No se pudo asignar el repartidor ❌");
             }
         } catch {
             toast.error("Error en el servidor al asignar 🚨");

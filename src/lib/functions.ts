@@ -72,3 +72,6 @@ export const ucfirst = (str: string) => {
     const f = str.charAt(0).toUpperCase();
     return f + str.substr(1);
 }
+
+/** Número de pedido con un solo "#": Shopify ya lo manda con "#" (#7849) y los manuales no (MAN-26729). */
+export const orderNo = (name?: string | number | null) => `#${String(name ?? '').replace(/^#+/, '')}`;

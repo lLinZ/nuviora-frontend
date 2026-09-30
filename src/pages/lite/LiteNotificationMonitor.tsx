@@ -2,6 +2,7 @@ import React, { useEffect, useRef } from "react";
 import { useNotificationStore, AppNotification } from "../../store/notifications/NotificationStore";
 import { toast } from "react-toastify";
 import { useUserStore } from "../../store/user/UserStore";
+import { orderNo } from "../../lib/functions";
 
 interface LiteNotificationMonitorProps {
     orders: any[];
@@ -46,7 +47,7 @@ export const LiteNotificationMonitor: React.FC<LiteNotificationMonitorProps> = (
                                     orderId: order.id,
                                     orderName: order.name,
                                     type,
-                                    message: `${label}: #${order.name}`,
+                                    message: `${label}: ${orderNo(order.name)}`,
                                     time: timeStr,
                                     createdAt: Date.now()
                                 };
@@ -55,7 +56,7 @@ export const LiteNotificationMonitor: React.FC<LiteNotificationMonitorProps> = (
                                 newFound = true;
 
                                 if (!toastedRef.current.has(order.id)) {
-                                    const toastId = toast.warning(`⏰ ${label}: Orden #${order.name}`, {
+                                    const toastId = toast.warning(`⏰ ${label}: Orden ${orderNo(order.name)}`, {
                                         autoClose: false,
                                         position: "top-right",
                                         onClick: () => {
