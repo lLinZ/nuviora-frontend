@@ -61,7 +61,7 @@ export const AgencySettingsDialog: FC<Props> = ({ open, agency, onClose, onSaved
                         value={max}
                         onChange={(e) => setMax(e.target.value)}
                         inputProps={{ min: 1, step: 1 }}
-                        helperText="Vacío = sin tope. Al llegar al máximo deja de recibir órdenes hasta que entregue o devuelva alguna. Vale para todas sus ciudades."
+                        helperText="Vacío = sin tope. Al llegar al máximo, las órdenes van primero a las otras agencias de la ciudad; si todas están en su máximo, se reparten igual por su %. Vale para todas sus ciudades."
                         fullWidth
                     />
                 </Stack>

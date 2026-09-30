@@ -718,8 +718,8 @@ export const OrderChangeSection: React.FC<OrderChangeSectionProps> = ({ order, o
                                 </Box>
                             )}
 
-                            {/* El Admin/Gerente puede (re)subir el comprobante */}
-                            {['Admin', 'Gerente'].includes(user.role?.description || '') && (
+                            {/* El Admin/Gerente puede (re)subir el comprobante; la líder también, en las órdenes de su grupo (Fran, 30-sep) */}
+                            {(['Admin', 'Gerente'].includes(user.role?.description || '') || !!user.leader_group) && (
                                 <Box sx={{ mt: order.change_receipt ? 2 : 0 }}>
                                     <input
                                         accept="image/*"

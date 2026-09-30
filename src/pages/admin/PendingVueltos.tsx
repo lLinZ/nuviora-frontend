@@ -12,6 +12,9 @@ import {
     IconButton,
     Tooltip,
 } from '@mui/material';
+import { useNavigate } from 'react-router-dom';
+import { ArrowBackRounded, GroupsRounded } from '@mui/icons-material';
+import { useUserStore } from '../../store/user/UserStore';
 import {
     ContentCopyRounded,
     CloudUploadRounded,
@@ -42,12 +45,32 @@ const fmtBs = (n: number) => new Intl.NumberFormat('es-VE', { minimumFractionDig
 const clientName = (order: any) =>
     `${order.client?.first_name ?? ''} ${order.client?.last_name ?? ''}`.trim() || 'Cliente sin nombre';
 
+type VueltoGroup = { id: number; name: string; leader_id: number | null; leader: string | null };
+
+/** La líder con vista simple no tiene menú lateral: se le da una barra con "volver". */
+const Shell: React.FC<{ lite: boolean; children: React.ReactNode }> = ({ lite, children }) => {
+    const navigate = useNavigate();
+    if (!lite) return <Layout>{children}</Layout>;
+    return (
+        <Box sx={{ minHeight: '100vh', bgcolor: 'background.default', p: 1 }}>
+            <Button startIcon={<ArrowBackRounded />} onClick={() => navigate('/ordenes')} sx={{ textTransform: 'none' }}>
+                Mis órdenes
+            </Button>
+            {children}
+        </Box>
+    );
+};
+
 export const PendingVueltos: React.FC = () => {
     const { loadingSession, isValid } = useValidateSession();
     const [orders, setOrders] = useState<any[]>([]);
     const [banks, setBanks] = useState<any[]>([]);
     const [loading, setLoading] = useState(false);
     const [selectedOrder, setSelectedOrder] = useState<any | null>(null);
+    // Fran (30-sep): la líder paga los vueltos de su grupo; administración ve cuánto transferirle a cada una
+    const [scope, setScope] = useState<'all' | 'group'>('all');
+    const [myGroup, setMyGroup] = useState<{ id: number; name: string } | null>(null);
+    const isLite = !!useUserStore((s) => s.user.is_lite_view);
 
     useEffect(() => {
         if (isValid) {
@@ -71,6 +94,8 @@ export const PendingVueltos: React.FC = () => {
             if (status === 200) {
                 const data = await response.json();
                 setOrders(data.orders);
+                setScope(data.scope === 'group' ? 'group' : 'all');
+                setMyGroup(data.group ?? null);
             }
         } catch (error) {
             toast.error('Error al cargar vueltos pendientes');
@@ -112,12 +137,23 @@ export const PendingVueltos: React.FC = () => {
     const withoutRate = bsOrders.filter((o) => vueltoBs(o) === null).length;
     const otherOrders = orders.length - bsOrders.length;
 
+    // Total en Bs por grupo (lo que administración le transfiere a cada líder); sin grupo, lo paga administración
+    const byGroup = Object.values(bsOrders.reduce((acc: Record<string, { group: VueltoGroup | null; count: number; bs: number }>, o) => {
+        const key = o.vuelto_group ? String(o.vuelto_group.id) : 'none';
+        acc[key] ??= { group: o.vuelto_group ?? null, count: 0, bs: 0 };
+        acc[key].count += 1;
+        acc[key].bs += vueltoBs(o) ?? 0;
+        return acc;
+    }, {})).sort((a, b) => (a.group ? 0 : 1) - (b.group ? 0 : 1) || b.bs - a.bs);
+
     return (
-        <Layout>
+        <Shell lite={isLite}>
             <Box sx={{ p: 2 }}>
                 <DescripcionDeVista
-                    title="Vueltos Pendientes"
-                    description="Órdenes entregadas que requieren pago de vuelto por parte de administración."
+                    title={scope === 'group' ? `Vueltos de mi grupo${myGroup ? ` · ${myGroup.name}` : ''}` : 'Vueltos Pendientes'}
+                    description={scope === 'group'
+                        ? 'Los vueltos de los clientes de tus vendedoras. Administración te transfiere el total; tú haces cada pago móvil y subes el comprobante en la orden.'
+                        : 'Órdenes entregadas con vuelto por pagar. Cada líder paga los de su grupo: transfiérele el total de su grupo. Los que no tienen grupo los paga administración.'}
                 />
 
                 {loading && orders.length === 0 ? (
@@ -132,7 +168,7 @@ export const PendingVueltos: React.FC = () => {
                     <Card sx={{ mt: 2, borderRadius: 4, border: '1px solid', borderColor: 'divider' }}>
                         <CardContent>
                             <Typography variant="caption" color="text.secondary" fontWeight="bold">
-                                TOTAL A TRANSFERIR EN BOLÍVARES
+                                {scope === 'group' ? 'TOTAL DE TUS VUELTOS POR PAGAR, EN BOLÍVARES' : 'TOTAL A TRANSFERIR EN BOLÍVARES'}
                             </Typography>
                             <Typography variant="h4" fontWeight="bold" color="success.main">
                                 Bs. {fmtBs(totalBs)}
@@ -149,6 +185,32 @@ export const PendingVueltos: React.FC = () => {
                                 <Typography variant="body2" color="text.secondary">
                                     {otherOrders} vuelto{otherOrders === 1 ? '' : 's'} con otro método (dólares) fuera del total.
                                 </Typography>
+                            )}
+                            {scope === 'all' && byGroup.length > 0 && (
+                                <Box sx={{ mt: 2 }}>
+                                    <Divider sx={{ mb: 1.5 }} />
+                                    <Typography variant="caption" color="text.secondary" fontWeight="bold">
+                                        A TRANSFERIR A CADA LÍDER
+                                    </Typography>
+                                    <Stack spacing={0.75} sx={{ mt: 1 }}>
+                                        {byGroup.map((g) => (
+                                            <Box key={g.group?.id ?? 'none'} sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
+                                                <GroupsRounded fontSize="small" color={g.group ? 'warning' : 'disabled'} />
+                                                <Typography variant="body2" sx={{ flex: 1, minWidth: 180 }}>
+                                                    {g.group
+                                                        ? <><b>{g.group.leader ?? 'Sin líder'}</b> · {g.group.name}</>
+                                                        : <><b>Sin grupo</b> · los paga administración</>}
+                                                </Typography>
+                                                <Typography variant="body2" color="text.secondary">
+                                                    {g.count} vuelto{g.count === 1 ? '' : 's'}
+                                                </Typography>
+                                                <Typography variant="body1" fontWeight="bold" sx={{ minWidth: 130, textAlign: 'right' }}>
+                                                    Bs. {fmtBs(g.bs)}
+                                                </Typography>
+                                            </Box>
+                                        ))}
+                                    </Stack>
+                                </Box>
                             )}
                         </CardContent>
                     </Card>
@@ -187,6 +249,16 @@ export const PendingVueltos: React.FC = () => {
                                                 <PersonRounded fontSize="small" color="disabled" />
                                                 <Typography variant="body2">{clientName(order)}</Typography>
                                             </Box>
+                                            {order.agent && (
+                                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
+                                                    <Typography variant="caption" color="text.secondary">
+                                                        Vendedora: {order.agent.names}
+                                                    </Typography>
+                                                    {scope === 'all' && order.vuelto_group && (
+                                                        <Chip size="small" variant="outlined" color="warning" label={`Grupo de ${order.vuelto_group.leader ?? order.vuelto_group.name}`} sx={{ height: 18, fontSize: '0.65rem' }} />
+                                                    )}
+                                                </Box>
+                                            )}
                                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                                                 <AttachMoneyRounded fontSize="small" color="success" />
                                                 <Typography variant="subtitle1" fontWeight="bold">
@@ -257,6 +329,6 @@ export const PendingVueltos: React.FC = () => {
                     }}
                 />
             )}
-        </Layout>
+        </Shell>
     );
 };

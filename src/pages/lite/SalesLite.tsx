@@ -35,7 +35,7 @@ import { request } from '../../common/request';
 import { toast, ToastContainer, Bounce } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 // import { Layout } from '../../components/ui/Layout'; // Removed per request
-import { SearchRounded, RefreshRounded, WhatsApp, LogoutRounded, NotificationsRounded, GroupsRounded } from '@mui/icons-material';
+import { SearchRounded, RefreshRounded, WhatsApp, LogoutRounded, NotificationsRounded, GroupsRounded, Inventory2Rounded, PaymentsRounded } from '@mui/icons-material';
 import { statusColors } from '../../components/orders/OrderItem';
 import { green, blue, orange, red, grey } from '@mui/material/colors';
 import { LiteOrderDialog } from './LiteOrderDialog';
@@ -497,6 +497,24 @@ export const SalesLite = () => {
 
                     {/* 3. Acciones (Notificaciones + Logout) */}
                     <Box sx={{ display: 'flex', gap: 0.5, alignItems: 'center' }}>
+                        {/* Fran (30-sep): qué hay en cada ciudad, talla por talla */}
+                        <Tooltip title="Inventario por ciudad">
+                            <Button
+                                startIcon={<Inventory2Rounded />}
+                                size="small"
+                                onClick={() => navigate('/inventario-ciudades')}
+                                sx={{
+                                    borderRadius: 4,
+                                    textTransform: 'none',
+                                    minWidth: 0,
+                                    bgcolor: alpha(theme.palette.success.main, 0.12),
+                                    color: theme.palette.success.dark,
+                                    '& .MuiButton-startIcon': { mr: { xs: 0, md: 1 } },
+                                }}
+                            >
+                                <Box component="span" sx={{ display: { xs: 'none', md: 'inline' } }}>Inventario</Box>
+                            </Button>
+                        </Tooltip>
                         {user.leader_group && (
                             <Tooltip title={`Mi grupo · ${user.leader_group.name}`}>
                                 <Button
@@ -514,6 +532,13 @@ export const SalesLite = () => {
                                 >
                                     <Box component="span" sx={{ display: { xs: 'none', md: 'inline' } }}>Mi grupo</Box>
                                 </Button>
+                            </Tooltip>
+                        )}
+                        {user.leader_group && (
+                            <Tooltip title="Vueltos de mi grupo">
+                                <IconButton size="small" onClick={() => navigate('/mi-grupo/vueltos')} sx={{ color: theme.palette.warning.dark }}>
+                                    <PaymentsRounded fontSize="small" />
+                                </IconButton>
                             </Tooltip>
                         )}
                         <IconButton

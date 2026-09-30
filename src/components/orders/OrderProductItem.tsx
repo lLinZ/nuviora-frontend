@@ -5,6 +5,7 @@ import { fmtMoney } from "../../lib/money";
 import DeleteOutlineRoundedIcon from "@mui/icons-material/DeleteOutlineRounded";
 import Inventory2OutlinedIcon from '@mui/icons-material/Inventory2Outlined';
 import EditRoundedIcon from '@mui/icons-material/EditRounded';
+import { useUserStore } from "../../store/user/UserStore";
 
 interface OrderProductItemProps {
     product: any;
@@ -20,6 +21,10 @@ export const OrderProductItem: React.FC<OrderProductItemProps> = ({ product, cur
     const variants: Array<{ id: number; title: string; is_active: boolean; available: number }> = product.variants ?? [];
     const [variantMenu, setVariantMenu] = useState<HTMLElement | null>(null);
     const canChangeVariant = !!onChangeVariant && variants.length > 0;
+    // Fran (30-sep): la vendedora ve qué tallas hay y no puede marcar una que no alcanza; el Admin sí, para corregir
+    const isAdmin = useUserStore((state) => state.user?.role?.description) === 'Admin';
+    const enough = (v: { available: number }) => v.available >= Number(product.quantity);
+    const otherVariants = variants.filter((v) => v.is_active && v.id !== product.variant_id);
 
     return (
         <Paper
@@ -132,6 +137,24 @@ export const OrderProductItem: React.FC<OrderProductItemProps> = ({ product, cur
                     </Typography>
                 </Box>
 
+                {otherVariants.length > 0 && (
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.5, flexWrap: 'wrap' }}>
+                        <Typography variant="caption" color="text.secondary">Otras tallas:</Typography>
+                        {otherVariants.map((v) => (
+                            <Tooltip key={v.id} title={enough(v) ? (canChangeVariant ? `Cambiar a ${v.title}` : '') : 'No hay suficientes en la agencia'}>
+                                <Chip
+                                    size="small"
+                                    variant="outlined"
+                                    color={enough(v) ? 'success' : 'default'}
+                                    label={enough(v) ? `${v.title} · hay ${v.available}` : `${v.title} · no hay`}
+                                    onClick={canChangeVariant && (enough(v) || isAdmin) ? () => onChangeVariant?.(v.id) : undefined}
+                                    sx={{ height: 18, fontSize: '0.65rem', opacity: enough(v) ? 1 : 0.6, textDecoration: enough(v) ? 'none' : 'line-through' }}
+                                />
+                            </Tooltip>
+                        ))}
+                    </Box>
+                )}
+
                 {product.upsell_user_name && (
                     <Typography variant="caption" sx={{ color: 'primary.main', fontWeight: 'bold', display: 'block', mt: 0.5 }}>
                         ✨ Upsell por: {product.upsell_user_name}
@@ -144,13 +167,13 @@ export const OrderProductItem: React.FC<OrderProductItemProps> = ({ product, cur
                     <MenuItem
                         key={v.id}
                         selected={v.id === product.variant_id}
-                        disabled={!v.is_active && v.id !== product.variant_id}
+                        disabled={v.id !== product.variant_id && (!v.is_active || (!enough(v) && !isAdmin))}
                         onClick={() => { setVariantMenu(null); if (v.id !== product.variant_id) onChangeVariant?.(v.id); }}
                     >
                         <ListItemText
                             primary={v.title}
-                            secondary={v.available > 0 ? `Hay ${v.available}` : 'Sin stock en su almacén'}
-                            secondaryTypographyProps={{ color: v.available >= Number(product.quantity) ? 'success.main' : 'error.main' }}
+                            secondary={v.available > 0 ? `Hay ${v.available}` : 'No hay en la agencia'}
+                            secondaryTypographyProps={{ color: enough(v) ? 'success.main' : 'error.main' }}
                         />
                     </MenuItem>
                 ))}

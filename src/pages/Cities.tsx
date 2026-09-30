@@ -105,7 +105,7 @@ export const Cities = () => {
             <Paper elevation={0} sx={{ p: 3, borderRadius: 4, mb: 4, border: '1px solid', borderColor: 'divider' }}>
                 <Typography variant="h6" fontWeight="bold">Agencias</Typography>
                 <Typography variant="caption" color="text.secondary">
-                    Activas = órdenes en Asignar a agencia, con repartidor o en ruta. Al llegar a su máximo, deja de recibir hasta que libere cupo.
+                    Activas = órdenes en Asignar a agencia, con repartidor o en ruta. Al llegar a su máximo, los pedidos van primero a las otras agencias de la ciudad; si todas están en su máximo, no esperan y se reparten igual por su %.
                 </Typography>
                 <Box sx={{ overflowX: 'auto', mt: 2 }}>
                     <Table size="small">
@@ -185,7 +185,7 @@ export const Cities = () => {
 
                                 {city.pending > 0 && (
                                     <Chip color="warning" size="small" sx={{ mt: 1, fontWeight: 'bold' }}
-                                        label={`${city.pending} ${city.pending === 1 ? 'orden espera' : 'órdenes esperan'} agencia: todas llenas`} />
+                                        label={`${city.pending} ${city.pending === 1 ? 'orden espera' : 'órdenes esperan'} agencia`} />
                                 )}
 
                                 <Stack spacing={0.75} sx={{ mt: 2 }}>

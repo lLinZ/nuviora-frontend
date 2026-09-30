@@ -172,6 +172,12 @@ export const SideBar = () => {
                 roles: ["Admin", "Agencia"],
             },
             {
+                text: "Inventario por ciudad",
+                icon: <Inventory2RoundedIcon />,
+                link: "/inventario-ciudades",
+                roles: ["Admin", "Gerente", "Vendedor"],
+            },
+            {
                 text: "Stock repartidor",
                 icon: <LocalMallRoundedIcon />,
                 link: "/deliverers/stock",
@@ -200,6 +206,13 @@ export const SideBar = () => {
                 icon: <AccountBalanceRounded />,
                 link: "/admin/banks",
                 roles: ["Admin", "Gerente"],
+            },
+            {
+                text: "Vueltos de mi grupo",
+                icon: <ReceiptLongRounded />,
+                link: "/mi-grupo/vueltos",
+                roles: ["Vendedor"],
+                leaderOnly: true,
             },
             {
                 text: "Vueltos Pendientes",

@@ -63,8 +63,10 @@ const ShopCard: React.FC<{ shop: OverviewShop; onReset: (id: number) => void; re
                     <TableBody>
                         {shop.sellers.map((s) => {
                             const realShare = shop.received_today > 0 ? s.received_today / shop.received_today : 0;
+                            // Si todas están en su máximo, las órdenes no esperan: se siguen repartiendo por % (Fran, 30-sep)
+                            const allFull = shop.sellers.every((x) => x.at_capacity);
                             return (
-                                <TableRow key={s.id} sx={{ opacity: s.at_capacity ? 0.6 : 1 }}>
+                                <TableRow key={s.id} sx={{ opacity: s.at_capacity && !allFull ? 0.6 : 1 }}>
                                     <TableCell>
                                         <Box display="flex" alignItems="center" gap={0.5} flexWrap="wrap">
                                             {s.is_leader && <StarRounded sx={{ fontSize: 14, color: "warning.main" }} titleAccess="Líder" />}
@@ -74,7 +76,7 @@ const ShopCard: React.FC<{ shop: OverviewShop; onReset: (id: number) => void; re
                                         </Box>
                                     </TableCell>
                                     <TableCell>
-                                        {s.at_capacity ? (
+                                        {s.at_capacity && !allFull ? (
                                             <Typography variant="caption" color="error.main">En su máximo: no recibe</Typography>
                                         ) : (
                                             <Box display="flex" alignItems="center" gap={1}>

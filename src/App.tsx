@@ -43,6 +43,7 @@ import { StockExportPage } from './pages/admin/StockExportPage';
 import { RoundRobinControl } from './pages/round-robin/RoundRobinControl';
 import { SalesGroups } from './pages/sales-groups/SalesGroups';
 import { MyGroup } from './pages/my-group/MyGroup';
+import { CityInventory } from './pages/inventory/CityInventory';
 import { WeeklyReportPage } from './pages/my-group/WeeklyReportPage';
 import { InternalChatPage } from './pages/internal-chat/InternalChatPage';
 import { AgencyChatGateModal } from './components/internal-chat/AgencyChatGateModal';
@@ -125,6 +126,7 @@ function App() {
           <Route path="/admin/company-accounts" element={<RequireRole allowedRoles={['Admin', 'Gerente']}><CompanyAccounts /></RequireRole>} />
           <Route path="/admin/banks" element={<RequireRole allowedRoles={['Admin', 'Gerente']}><Banks /></RequireRole>} />
           <Route path="/admin/pending-vueltos" element={<RequireRole allowedRoles={['Admin', 'Gerente']}><PendingVueltos /></RequireRole>} />
+          <Route path="/mi-grupo/vueltos" element={<RequireRole allowedRoles={['Vendedor']}><PendingVueltos /></RequireRole>} />
           <Route path="/admin/whatsapp-templates" element={<RequireRole allowedRoles={['Admin']}><WhatsappTemplates /></RequireRole>} />
           <Route path="/admin/webhooks" element={<RequireRole allowedRoles={['Admin']}><WebhooksPage /></RequireRole>} />
           <Route path="/admin/media-explorer" element={<RequireRole allowedRoles={['Admin', 'Gerente']}><MediaExplorerPage /></RequireRole>} />
@@ -136,6 +138,7 @@ function App() {
           <Route path="/round-robin" element={<RequireRole allowedRoles={['Admin', 'Gerente', 'Master']}><RoundRobinControl /></RequireRole>} />
           <Route path="/grupos-de-venta" element={<RequireRole allowedRoles={['Admin', 'Master']}><SalesGroups /></RequireRole>} />
           {/* La Líder es una Vendedor; la página y el servidor comprueban que lidere un grupo. El Admin la mira con ?grupo= (solo lectura) */}
+          <Route path="/inventario-ciudades" element={<RequireRole allowedRoles={['Vendedor', 'Admin', 'Gerente', 'Master']}><CityInventory /></RequireRole>} />
           <Route path="/mi-grupo" element={<RequireRole allowedRoles={['Vendedor', 'Admin', 'Master']}><MyGroup /></RequireRole>} />
           <Route path="/mi-grupo/reporte" element={<RequireRole allowedRoles={['Vendedor', 'Admin', 'Master']}><WeeklyReportPage /></RequireRole>} />
 

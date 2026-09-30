@@ -36,6 +36,9 @@ export const CreateOrderDialog = ({ open, onClose, onSuccess, prefillName, prefi
     const [products, setProducts] = useState<any[]>([]);
     const [openProductSearch, setOpenProductSearch] = useState(false);
 
+    // Fran (30-sep): cuántas hay de cada talla en la ciudad del cliente (variant_id => piezas)
+    const [cityStock, setCityStock] = useState<Record<number, number> | null>(null);
+
     // Dynamic Data
     const [agents, setAgents] = useState<any[]>([]);
     const [cities, setCities] = useState<any[]>([]);
@@ -100,6 +103,44 @@ export const CreateOrderDialog = ({ open, onClose, onSuccess, prefillName, prefi
 
     // Tarea 4: un producto con tallas va en una fila por talla (se elige en la fila); sin tallas, se suma a la suya
     const activeVariants = (p: { variants?: IProductVariant[] }) => (p.variants ?? []).filter(v => v.is_active);
+
+    // Qué tallas hay en la ciudad elegida (sin decir de qué agencia): se vuelve a pedir al cambiar la ciudad o los productos
+    const variantProductIds = Array.from(new Set(products.filter(p => activeVariants(p).length > 0).map(p => p.id))).sort().join(',');
+    useEffect(() => {
+        if (!open || !clientProvince || !variantProductIds) {
+            setCityStock(null);
+            return;
+        }
+        let cancelled = false;
+        (async () => {
+            try {
+                const { status, response } = await request(`/inventory/by-city?city=${encodeURIComponent(clientProvince)}&product_ids=${variantProductIds}`, 'GET');
+                if (status !== 200 || cancelled) return;
+                const data = await response.json();
+                const city = (data.data ?? [])[0];
+                if (!city || !city.has_agency) {
+                    setCityStock(null); // ciudad sin agencias configuradas: no se sabe, no se limita
+                    return;
+                }
+                const map: Record<number, number> = {};
+                for (const prod of city.products ?? []) {
+                    for (const v of prod.variants ?? []) map[v.id] = v.available;
+                }
+                setCityStock(map);
+            } catch (error) {
+                console.error(error);
+            }
+        })();
+        return () => { cancelled = true; };
+    }, [open, clientProvince, variantProductIds]);
+
+    // Piezas de esa talla pedidas en todo el formulario (dos filas de la misma talla suman)
+    const requestedOf = (variantId: number) => products.filter(p => p.variant_id === variantId).reduce((acc, p) => acc + (Number(p.quantity) || 0), 0);
+    const variantShort = (p: any) => {
+        if (!cityStock || !p.variant_id) return null;
+        const have = cityStock[p.variant_id] ?? 0;
+        return have < requestedOf(p.variant_id) ? have : null;
+    };
     const handleAddProduct = (product: any) => {
         setProducts(prev => {
             const exists = activeVariants(product).length === 0 && prev.find(p => p.id === product.id);
@@ -143,6 +184,12 @@ export const CreateOrderDialog = ({ open, onClose, onSuccess, prefillName, prefi
         const missing = products.find(p => activeVariants(p).length > 0 && !p.variant_id);
         if (missing) {
             toast.warning(`Elige la talla de ${missing.name || missing.title}.`);
+            return;
+        }
+        const short = products.find(p => variantShort(p) !== null);
+        if (short) {
+            const title = activeVariants(short).find(v => v.id === short.variant_id)?.title;
+            toast.warning(`No hay suficientes de la talla ${title} de ${short.name || short.title} en ${clientProvince}.`);
             return;
         }
 
@@ -321,14 +368,24 @@ export const CreateOrderDialog = ({ open, onClose, onSuccess, prefillName, prefi
                                                 select
                                                 label="Talla"
                                                 size="small"
-                                                sx={{ width: 110 }}
+                                                sx={{ width: 150 }}
                                                 value={p.variant_id}
                                                 onChange={(e) => handleVariantChange(p.rowKey, Number(e.target.value))}
-                                                error={!p.variant_id}
+                                                error={!p.variant_id || variantShort(p) !== null}
+                                                helperText={
+                                                    !clientProvince ? 'Elige la ciudad para ver qué hay'
+                                                        : variantShort(p) !== null ? (variantShort(p) ? `Solo hay ${variantShort(p)}` : 'No hay en la ciudad')
+                                                            : undefined
+                                                }
                                             >
-                                                {activeVariants(p).map((v) => (
-                                                    <MenuItem key={v.id} value={v.id}>{v.title}</MenuItem>
-                                                ))}
+                                                {activeVariants(p).map((v) => {
+                                                    const have = cityStock ? (cityStock[v.id] ?? 0) : null;
+                                                    return (
+                                                        <MenuItem key={v.id} value={v.id} disabled={have !== null && have <= 0}>
+                                                            {v.title}{have === null ? '' : have > 0 ? ` · hay ${have}` : ' · no hay'}
+                                                        </MenuItem>
+                                                    );
+                                                })}
                                             </TextField>
                                         )}
 

@@ -95,7 +95,7 @@ export default function DenseMenu({
             'Entregado': ['Admin', 'Gerente', 'Repartidor', 'Agencia'],
             'Cancelado': ['Admin', 'Gerente', 'Vendedor'],
             'Asignar a agencia': ['Admin', 'Gerente', 'Vendedor'],
-            // Lo pone el sistema cuando todas las agencias de la ciudad están llenas
+            // Lo ponía el sistema cuando todas las agencias de la ciudad estaban llenas (desde el 30-sep ya no esperan)
             'Pendiente de asignación a agencia': ['Admin'],
             'Sin Stock': ['Admin', 'Gerente'],
         };
