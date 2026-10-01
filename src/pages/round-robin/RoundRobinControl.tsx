@@ -177,7 +177,7 @@ export const RoundRobinControl: React.FC = () => {
 
             <Alert severity="info" sx={{ mb: 3, borderRadius: 2 }}>
                 <Typography variant="body2">
-                    Cada tienda reparte sus órdenes entre las vendedoras de su roster de hoy. Lo que <strong>debería recibir</strong> cada una sale de su grupo y sus % (en Grupos de venta), contando solo a las disponibles. Quien llega a su máximo de órdenes activas deja de recibir hasta liberar cupo, y al volver no recibe órdenes de más para compensar. Sin grupos ni %, el reparto es parejo.
+                    Cada tienda reparte sus órdenes entre las vendedoras de su roster de hoy. Lo que <strong>debería recibir</strong> cada una sale de su grupo y sus % (en Grupos de venta), contando solo a las disponibles. Quien llega a su máximo de órdenes activas deja de recibir hasta liberar cupo, y al volver no recibe órdenes de más para compensar. Si todas llegan a su máximo, las órdenes no esperan: se siguen repartiendo con los mismos %. Sin grupos ni %, el reparto es parejo.
                 </Typography>
             </Alert>
 
