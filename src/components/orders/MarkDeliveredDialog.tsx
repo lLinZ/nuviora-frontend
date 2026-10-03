@@ -1,6 +1,7 @@
 import React from "react";
 import { Dialog, DialogTitle, DialogContent, DialogActions, Button, Typography, Box, Divider } from "@mui/material";
 import { fmtMoney } from "../../lib/money";
+import { CASH_METHODS, paymentKind } from "../../lib/changeRules";
 
 interface MarkDeliveredDialogProps {
     open: boolean;
@@ -19,10 +20,8 @@ export const MarkDeliveredDialog: React.FC<MarkDeliveredDialogProps> = ({
 }) => {
     if (!order) return null;
 
-    const cashMethods = ['DOLARES_EFECTIVO', 'BOLIVARES_EFECTIVO', 'EUROS_EFECTIVO'];
-
     // Sumamos el efectivo REAL registrado en los pagos
-    const cashReceived = order.payments?.filter((p: any) => cashMethods.includes(p.method))
+    const cashReceived = order.payments?.filter((p: any) => CASH_METHODS.includes(p.method))
         .reduce((acc: number, p: any) => acc + Number(p.amount), 0) || 0;
 
     const totalPaid = order.payments?.reduce((acc: number, p: any) => acc + Number(p.amount), 0) || 0;
@@ -32,8 +31,10 @@ export const MarkDeliveredDialog: React.FC<MarkDeliveredDialogProps> = ({
     const changeAmount = Math.max(0, totalPaid - totalUSD);
     const hasChange = changeAmount > 0.01;
 
-    // Tomamos los valores que YA están registrados en la orden
-    const changeCoveredBy = order.change_covered_by || "agency";
+    // Tomamos los valores que YA están registrados en la orden. Si el cliente pagó todo digital, la agencia no
+    // da vuelto: lo devuelve la empresa (Fran, 2026-10-03)
+    const allDigital = paymentKind(order.payments) === "digital";
+    const changeCoveredBy = allDigital ? "company" : (order.change_covered_by || "agency");
     const changeAmountCompany = order.change_amount_company || 0;
     const changeAmountAgency = order.change_amount_agency || 0;
 

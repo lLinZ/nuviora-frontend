@@ -29,6 +29,7 @@ import { Cities } from './pages/Cities';
 import { CompanyAccounts } from './pages/admin/CompanyAccounts';
 import { Banks } from './pages/admin/Banks';
 import { PendingVueltos } from './pages/admin/PendingVueltos';
+import { ChangeApprovals } from './pages/admin/ChangeApprovals';
 import { SalesLite } from './pages/lite/SalesLite';
 import { OrderTrackingReport } from './pages/OrderTrackingReport';
 import { Javascript } from '@mui/icons-material';
@@ -126,6 +127,7 @@ function App() {
           <Route path="/admin/company-accounts" element={<RequireRole allowedRoles={['Admin', 'Gerente']}><CompanyAccounts /></RequireRole>} />
           <Route path="/admin/banks" element={<RequireRole allowedRoles={['Admin', 'Gerente']}><Banks /></RequireRole>} />
           <Route path="/admin/pending-vueltos" element={<RequireRole allowedRoles={['Admin', 'Gerente']}><PendingVueltos /></RequireRole>} />
+          <Route path="/admin/vueltos-por-validar" element={<RequireRole allowedRoles={['Admin', 'Gerente', 'Master']}><ChangeApprovals /></RequireRole>} />
           <Route path="/mi-grupo/vueltos" element={<RequireRole allowedRoles={['Vendedor']}><PendingVueltos /></RequireRole>} />
           <Route path="/admin/whatsapp-templates" element={<RequireRole allowedRoles={['Admin']}><WhatsappTemplates /></RequireRole>} />
           <Route path="/admin/webhooks" element={<RequireRole allowedRoles={['Admin']}><WebhooksPage /></RequireRole>} />

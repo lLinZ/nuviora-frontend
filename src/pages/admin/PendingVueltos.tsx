@@ -11,6 +11,7 @@ import {
     Chip,
     IconButton,
     Tooltip,
+    Alert,
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import { ArrowBackRounded, GroupsRounded } from '@mui/icons-material';
@@ -71,13 +72,26 @@ export const PendingVueltos: React.FC = () => {
     const [scope, setScope] = useState<'all' | 'group'>('all');
     const [myGroup, setMyGroup] = useState<{ id: number; name: string } | null>(null);
     const isLite = !!useUserStore((s) => s.user.is_lite_view);
+    const role = useUserStore((s) => s.user.role?.description);
+    const navigate = useNavigate();
+    // Vueltos de la agencia con pago mixto que administración tiene que validar (Fran, 2026-10-03)
+    const [toValidate, setToValidate] = useState(0);
 
     useEffect(() => {
         if (isValid) {
             loadPendingVueltos();
             loadBanks();
+            if (role === 'Admin' || role === 'Gerente') loadToValidate();
         }
-    }, [isValid]);
+    }, [isValid, role]);
+
+    const loadToValidate = async () => {
+        const { status, response }: IResponse = await request('/orders/change-approvals', 'GET');
+        if (status === 200) {
+            const data = await response.json();
+            setToValidate(data.orders?.length ?? 0);
+        }
+    };
 
     const loadBanks = async () => {
         const { status, response }: IResponse = await request('/banks', 'GET');
@@ -155,6 +169,16 @@ export const PendingVueltos: React.FC = () => {
                         ? 'Los vueltos de los clientes de tus vendedoras. Administración te transfiere el total; tú haces cada pago móvil y subes el comprobante en la orden.'
                         : 'Órdenes entregadas con vuelto por pagar. Cada líder paga los de su grupo: transfiérele el total de su grupo. Los que no tienen grupo los paga administración.'}
                 />
+
+                {toValidate > 0 && (
+                    <Alert
+                        severity="warning"
+                        sx={{ mt: 2, borderRadius: 2 }}
+                        action={<Button color="inherit" size="small" onClick={() => navigate('/admin/vueltos-por-validar')}>Ver</Button>}
+                    >
+                        {toValidate === 1 ? 'Hay 1 vuelto de agencia por validar' : `Hay ${toValidate} vueltos de agencia por validar`} (el cliente pagó en efectivo y digital).
+                    </Alert>
+                )}
 
                 {loading && orders.length === 0 ? (
                     <Loading />

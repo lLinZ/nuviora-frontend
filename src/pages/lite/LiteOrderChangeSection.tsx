@@ -22,6 +22,8 @@ import { IResponse } from "../../interfaces/response-type";
 import { IBank } from "../../interfaces/bank.types";
 import { green, blue, orange, grey } from "@mui/material/colors";
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
+import { paymentKind } from "../../lib/changeRules";
+import { ChangeRuleNotice } from "../../components/orders/ChangeRuleNotice";
 
 interface OrderChangeSectionProps {
     order: any;
@@ -131,6 +133,15 @@ export const LiteOrderChangeSection: React.FC<OrderChangeSectionProps> = ({ orde
     const userRole = (user.role?.description || '').toLowerCase();
     const canEdit = ['gerente', 'admin', 'vendedor', 'super'].some(r => userRole.includes(r));
 
+    // Con pago solo digital la agencia no da vuelto: lo devuelve la empresa (Fran, 2026-10-03)
+    const kind = paymentKind(payments && payments.length > 0 ? payments : order.payments);
+    const agencyBlocked = kind === "digital";
+    useEffect(() => {
+        if (agencyBlocked && ["agency", "partial"].includes(form.change_covered_by)) {
+            setForm(prev => ({ ...prev, change_covered_by: "company", change_amount_agency: "", change_method_agency: "" }));
+        }
+    }, [agencyBlocked, form.change_covered_by]);
+
     const handleChange = (e: React.ChangeEvent<HTMLInputElement> | any) => {
         const { name, value } = e.target;
         setForm(prev => ({ ...prev, [name]: value }));
@@ -169,7 +180,10 @@ export const LiteOrderChangeSection: React.FC<OrderChangeSectionProps> = ({ orde
             );
 
             if (status === 200) {
-                toast.success("Vuelto actualizado correctamente");
+                const data = await response.json().catch(() => null);
+                // Con pago mixto y vuelto de la agencia, avisa que falta la validación de administración
+                if (data?.change_approval?.pending) toast.warning(data.message, { autoClose: 10000 });
+                else toast.success("Vuelto actualizado correctamente");
                 if (onUpdate) onUpdate();
             } else {
                 const data = await response.json();
@@ -274,9 +288,13 @@ export const LiteOrderChangeSection: React.FC<OrderChangeSectionProps> = ({ orde
                     >
                         <MenuItem value="">Seleccione Responsable</MenuItem>
                         <MenuItem value="company">Empresa (Transferencia/Caja)</MenuItem>
-                        <MenuItem value="agency">Agencia/Repartidor (Efectivo)</MenuItem>
-                        <MenuItem value="partial">Parcial (Ambos)</MenuItem>
+                        <MenuItem value="agency" disabled={agencyBlocked}>Agencia/Repartidor (Efectivo)</MenuItem>
+                        <MenuItem value="partial" disabled={agencyBlocked}>Parcial (Ambos)</MenuItem>
                     </SelectCustom>
+                </Grid>
+
+                <Grid size={{ xs: 12 }}>
+                    <ChangeRuleNotice kind={kind} coveredBy={form.change_covered_by} approval={order.change_approval} />
                 </Grid>
 
                 {/* 4. DYNAMIC FORMS (Simplified) */}

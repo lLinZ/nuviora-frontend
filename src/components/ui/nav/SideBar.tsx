@@ -221,6 +221,12 @@ export const SideBar = () => {
                 roles: ["Admin", "Gerente"],
             },
             {
+                text: "Vueltos por validar",
+                icon: <ReceiptLongRounded />,
+                link: "/admin/vueltos-por-validar",
+                roles: ["Admin", "Gerente", "Master"],
+            },
+            {
                 text: "Tasa de dólar",
                 icon: <AttachMoneyRoundedIcon />,
                 link: "/currency",

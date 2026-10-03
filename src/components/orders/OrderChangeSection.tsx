@@ -40,6 +40,8 @@ import MailOutlineIcon from '@mui/icons-material/MailOutline';
 import ContactPageIcon from '@mui/icons-material/ContactPage';
 import AccountBalanceIcon from '@mui/icons-material/AccountBalance';
 import PhoneIphoneIcon from '@mui/icons-material/PhoneIphone';
+import { paymentKind } from "../../lib/changeRules";
+import { ChangeRuleNotice } from "./ChangeRuleNotice";
 
 interface OrderChangeSectionProps {
     order: any;
@@ -171,6 +173,15 @@ export const OrderChangeSection: React.FC<OrderChangeSectionProps> = ({ order, o
 
     const canEdit = ['Gerente', 'Admin', 'Vendedor'].includes(user.role?.description || '');
 
+    // Con pago solo digital la agencia no da vuelto: lo devuelve la empresa (Fran, 2026-10-03)
+    const kind = paymentKind(payments && payments.length > 0 ? payments : order.payments);
+    const agencyBlocked = kind === "digital";
+    useEffect(() => {
+        if (agencyBlocked && ["agency", "partial"].includes(form.change_covered_by)) {
+            setForm(prev => ({ ...prev, change_covered_by: "company", change_amount_agency: "", change_method_agency: "" }));
+        }
+    }, [agencyBlocked, form.change_covered_by]);
+
     const handleChange = (e: React.ChangeEvent<HTMLInputElement> | any) => {
         const { name, value } = e.target;
         setForm(prev => ({ ...prev, [name]: value }));
@@ -273,7 +284,10 @@ export const OrderChangeSection: React.FC<OrderChangeSectionProps> = ({ order, o
             );
 
             if (status === 200) {
-                toast.success("Vuelto actualizado correctamente");
+                const data = await response.json().catch(() => null);
+                // Con pago mixto y vuelto de la agencia, avisa que falta la validación de administración
+                if (data?.change_approval?.pending) toast.warning(data.message, { autoClose: 10000 });
+                else toast.success("Vuelto actualizado correctamente");
                 if (onUpdate) onUpdate();
             } else {
                 const data = await response.json();
@@ -332,19 +346,25 @@ export const OrderChangeSection: React.FC<OrderChangeSectionProps> = ({ order, o
         description: string;
         icon: any;
         color: string;
+        disabled?: boolean;
     }
 
-    const SelectorCard: React.FC<SelectorCardProps> = ({ value, label, description, icon, color }) => {
+    const SelectorCard: React.FC<SelectorCardProps> = ({ value, label, description, icon, color, disabled }) => {
         const isSelected = form.change_covered_by === value;
         const activeColor = isDark ? lighten(color, 0.4) : color;
+        const selectable = canEdit && !disabled;
 
         return (
             <Paper
                 elevation={0}
-                onClick={() => canEdit && setForm(prev => ({ ...prev, change_covered_by: value }))}
+                role="button"
+                aria-disabled={!selectable}
+                aria-pressed={isSelected}
+                onClick={() => selectable && setForm(prev => ({ ...prev, change_covered_by: value }))}
                 sx={{
                     p: 2,
-                    cursor: canEdit ? 'pointer' : 'default',
+                    opacity: disabled ? 0.45 : 1,
+                    cursor: selectable ? 'pointer' : (disabled ? 'not-allowed' : 'default'),
                     border: '2px solid',
                     borderColor: isSelected ? activeColor : 'divider',
                     bgcolor: isSelected
@@ -357,7 +377,7 @@ export const OrderChangeSection: React.FC<OrderChangeSectionProps> = ({ order, o
                     flexDirection: 'column',
                     alignItems: 'center',
                     gap: 1,
-                    '&:hover': canEdit ? { borderColor: activeColor, transform: 'translateY(-2px)' } : {}
+                    '&:hover': selectable ? { borderColor: activeColor, transform: 'translateY(-2px)' } : {}
                 }}
             >
                 <Box sx={{ color: isSelected ? activeColor : (isDark ? grey[600] : grey[400]), display: 'flex' }}>
@@ -505,18 +525,23 @@ export const OrderChangeSection: React.FC<OrderChangeSectionProps> = ({ order, o
                         <SelectorCard
                             value="agency"
                             label="Agencia"
-                            description="El repartidor entrega el vuelto en efectivo"
+                            description={agencyBlocked ? "No: el cliente pagó todo digital" : "El repartidor entrega el vuelto en efectivo"}
                             icon={<StoreIcon />}
                             color={green[600]}
+                            disabled={agencyBlocked}
                         />
                         <SelectorCard
                             value="partial"
                             label="Parcial"
-                            description="Repartidor y Empresa cubren partes"
+                            description={agencyBlocked ? "No: el cliente pagó todo digital" : "Repartidor y Empresa cubren partes"}
                             icon={<GroupsIcon />}
                             color={orange[700]}
+                            disabled={agencyBlocked}
                         />
                     </Stack>
+                    <Box sx={{ mt: 2 }}>
+                        <ChangeRuleNotice kind={kind} coveredBy={form.change_covered_by} approval={order.change_approval} />
+                    </Box>
                 </Grid>
 
                 <Grid size={{ xs: 12 }}>
