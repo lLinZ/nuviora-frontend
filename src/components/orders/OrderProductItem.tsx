@@ -1,11 +1,10 @@
 import React, { useState } from "react";
-import { Box, Avatar, Typography, IconButton, Paper, Tooltip, Chip, Menu, MenuItem, ListItemText } from "@mui/material";
+import { Box, Avatar, Typography, IconButton, Paper, Tooltip, Chip, Menu, MenuItem, ListItemText, Button } from "@mui/material";
 import { TypographyCustom } from "../custom";
 import { fmtMoney } from "../../lib/money";
 import DeleteOutlineRoundedIcon from "@mui/icons-material/DeleteOutlineRounded";
 import Inventory2OutlinedIcon from '@mui/icons-material/Inventory2Outlined';
 import EditRoundedIcon from '@mui/icons-material/EditRounded';
-import { useUserStore } from "../../store/user/UserStore";
 
 interface OrderProductItemProps {
     product: any;
@@ -21,10 +20,11 @@ export const OrderProductItem: React.FC<OrderProductItemProps> = ({ product, cur
     const variants: Array<{ id: number; title: string; is_active: boolean; available: number }> = product.variants ?? [];
     const [variantMenu, setVariantMenu] = useState<HTMLElement | null>(null);
     const canChangeVariant = !!onChangeVariant && variants.length > 0;
-    // Fran (30-sep): la vendedora ve qué tallas hay y no puede marcar una que no alcanza; el Admin sí, para corregir
-    const isAdmin = useUserStore((state) => state.user?.role?.description) === 'Admin';
+    // Fran (30-sep y 3-oct): se ve qué tallas hay y no se puede marcar una que no alcanza, nadie (tampoco el Admin)
     const enough = (v: { available: number }) => v.available >= Number(product.quantity);
     const otherVariants = variants.filter((v) => v.is_active && v.id !== product.variant_id);
+    // Fran (3-oct): el selector era muy pequeño y se olvidaba; sin talla no se puede mandar a la agencia
+    const missingSize = !product.variant_id && variants.some((v) => v.is_active);
 
     return (
         <Paper
@@ -105,7 +105,9 @@ export const OrderProductItem: React.FC<OrderProductItemProps> = ({ product, cur
                                 color={product.variant_title ? 'default' : 'warning'}
                                 variant={product.variant_title ? 'outlined' : 'filled'}
                                 onClick={canChangeVariant ? (e) => setVariantMenu(e.currentTarget) : undefined}
-                                sx={{ height: 20, fontSize: '0.7rem', fontWeight: 'bold' }}
+                                sx={product.variant_title
+                                    ? { height: 26, fontSize: '0.85rem', fontWeight: 'bold', borderWidth: 2, borderColor: 'primary.main' }
+                                    : { height: 20, fontSize: '0.7rem', fontWeight: 'bold' }}
                             />
                         </Tooltip>
                     )}
@@ -137,7 +139,31 @@ export const OrderProductItem: React.FC<OrderProductItemProps> = ({ product, cur
                     </Typography>
                 </Box>
 
-                {otherVariants.length > 0 && (
+                {missingSize && (
+                    <Box sx={{ mt: 1, p: 1, borderRadius: 2, border: '2px solid', borderColor: 'warning.main', bgcolor: 'rgba(237,108,2,0.08)' }}>
+                        <Typography variant="body2" fontWeight="bold" color="warning.main">
+                            ⚠️ Elige la talla. Sin talla no se puede mandar a la agencia.
+                        </Typography>
+                        <Box sx={{ display: 'flex', gap: 1, mt: 1, flexWrap: 'wrap' }}>
+                            {variants.filter((v) => v.is_active).map((v) => (
+                                <Button
+                                    key={v.id}
+                                    size="small"
+                                    variant={enough(v) ? 'contained' : 'outlined'}
+                                    color={enough(v) ? 'primary' : 'inherit'}
+                                    disabled={!canChangeVariant || !enough(v)}
+                                    onClick={() => onChangeVariant?.(v.id)}
+                                    sx={{ minWidth: 64, textTransform: 'none', flexDirection: 'column', lineHeight: 1.2, py: 0.5 }}
+                                >
+                                    <span style={{ fontWeight: 700, fontSize: '0.95rem' }}>{v.title}</span>
+                                    <span style={{ fontSize: '0.65rem' }}>{enough(v) ? `hay ${v.available}` : 'no hay'}</span>
+                                </Button>
+                            ))}
+                        </Box>
+                    </Box>
+                )}
+
+                {!missingSize && otherVariants.length > 0 && (
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.5, flexWrap: 'wrap' }}>
                         <Typography variant="caption" color="text.secondary">Otras tallas:</Typography>
                         {otherVariants.map((v) => (
@@ -147,7 +173,7 @@ export const OrderProductItem: React.FC<OrderProductItemProps> = ({ product, cur
                                     variant="outlined"
                                     color={enough(v) ? 'success' : 'default'}
                                     label={enough(v) ? `${v.title} · hay ${v.available}` : `${v.title} · no hay`}
-                                    onClick={canChangeVariant && (enough(v) || isAdmin) ? () => onChangeVariant?.(v.id) : undefined}
+                                    onClick={canChangeVariant && enough(v) ? () => onChangeVariant?.(v.id) : undefined}
                                     sx={{ height: 18, fontSize: '0.65rem', opacity: enough(v) ? 1 : 0.6, textDecoration: enough(v) ? 'none' : 'line-through' }}
                                 />
                             </Tooltip>
@@ -167,7 +193,7 @@ export const OrderProductItem: React.FC<OrderProductItemProps> = ({ product, cur
                     <MenuItem
                         key={v.id}
                         selected={v.id === product.variant_id}
-                        disabled={v.id !== product.variant_id && (!v.is_active || (!enough(v) && !isAdmin))}
+                        disabled={v.id !== product.variant_id && (!v.is_active || !enough(v))}
                         onClick={() => { setVariantMenu(null); if (v.id !== product.variant_id) onChangeVariant?.(v.id); }}
                     >
                         <ListItemText
