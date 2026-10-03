@@ -120,6 +120,12 @@ const NameCell: React.FC<{ member?: MyGroupMember; label?: string }> = ({ member
 
 /* ─────────────────────────── Ahora mismo ─────────────────────────── */
 
+/** Botones en una sola fila que se desliza en el teléfono, en vez de partirse en filas desparejas (2026-10-03). */
+const scrollRow = {
+    maxWidth: "100%", overflowX: "auto", flexWrap: "nowrap",
+    "& .MuiToggleButton-root": { whiteSpace: "nowrap", textTransform: "none", flexShrink: 0 },
+} as const;
+
 const MAIN_STATUSES = ["Asignado a vendedor", "Llamado 1", "Llamado 2", "Llamado 3", "Reprogramado para hoy"];
 const SHORT: Record<string, string> = { "Asignado a vendedor": "Asignadas", "Reprogramado para hoy": "Reprog. hoy" };
 
@@ -142,7 +148,7 @@ const NowCard: React.FC<{ data: MyGroupData }> = ({ data }) => {
                 <Alert key={m.id} severity="warning" sx={{ mt: 1 }}>
                     <strong>{m.name}</strong> está saturada: tiene {m.load} pedidos en carga,
                     {m.over_pct !== null ? ` ${Math.round(m.over_pct)} % más que` : " por encima de"} el promedio del grupo
-                    {data.saturation.average !== null ? ` (${fmtPct(data.saturation.average).replace(" %", "")})` : ""}. Puedes pasarle parte a otra vendedora con "Reasignar en bloque".
+                    {data.saturation.average !== null ? ` (${fmtPct(data.saturation.average).replace(" %", "")})` : ""}. Puedes pasarle parte a otra vendedora con "Reasignar".
                 </Alert>
             ))}
             <TableContainer sx={{ mt: 1 }}>
@@ -286,7 +292,7 @@ const MetricsCard: React.FC<{ data: MyGroupData; reloadKey: number }> = ({ data,
             </Box>
 
             <Stack direction="row" spacing={1} mt={1.5} flexWrap="wrap" useFlexGap alignItems="center">
-                <ToggleButtonGroup size="small" exclusive value={preset} onChange={(_, v) => choose(v)} sx={{ flexWrap: "wrap" }}>
+                <ToggleButtonGroup size="small" exclusive value={preset} onChange={(_, v) => choose(v)} sx={scrollRow}>
                     <ToggleButton value="hoy">Hoy</ToggleButton>
                     <ToggleButton value="ayer">Ayer</ToggleButton>
                     <ToggleButton value="semana">Esta semana</ToggleButton>
@@ -305,7 +311,7 @@ const MetricsCard: React.FC<{ data: MyGroupData; reloadKey: number }> = ({ data,
 
             <Stack direction="row" spacing={1} mt={1} flexWrap="wrap" useFlexGap alignItems="center">
                 <Typography variant="body2" color="text.secondary">Comparar con</Typography>
-                <ToggleButtonGroup size="small" exclusive value={compareMode} onChange={(_, v) => v && setCompareMode(v)}>
+                <ToggleButtonGroup size="small" exclusive value={compareMode} onChange={(_, v) => v && setCompareMode(v)} sx={scrollRow}>
                     <ToggleButton value="anterior">El período anterior</ToggleButton>
                     <ToggleButton value="otro">Otras fechas</ToggleButton>
                     <ToggleButton value="no">No comparar</ToggleButton>
@@ -777,13 +783,16 @@ export const MyGroup: React.FC = () => {
                     <Typography variant="h5" fontWeight={700}>Mi grupo{data ? ` · ${data.group.name}` : ""}</Typography>
                     <Typography variant="body2" color="text.secondary">Cómo van tus vendedoras, cómo se reparten las órdenes y quién trabaja hoy.</Typography>
                 </Box>
-                <Stack direction="row" spacing={1}>
-                    <Button size="small" startIcon={loading ? <CircularProgress size={14} /> : <RefreshRounded />} onClick={refresh} disabled={loading}>Actualizar</Button>
-                    <Button size="small" variant="outlined" startIcon={<DescriptionRounded />} onClick={() => navigate(viewGroup ? `/mi-grupo/reporte?grupo=${viewGroup}` : "/mi-grupo/reporte")} disabled={!data}>Reporte semanal</Button>
+                {/* En el teléfono, una fila que ocupa todo el ancho y sin textos partidos (2026-10-03) */}
+                <Box sx={{ display: "flex", gap: 1, width: { xs: "100%", sm: "auto" }, "& .MuiButton-root": { textTransform: "none", whiteSpace: "nowrap" } }}>
+                    <Button size="small" variant="outlined" aria-label="Actualizar" onClick={refresh} disabled={loading} sx={{ minWidth: 40, px: 1 }}>
+                        {loading ? <CircularProgress size={18} /> : <RefreshRounded fontSize="small" />}
+                    </Button>
+                    <Button size="small" variant="outlined" startIcon={<DescriptionRounded />} onClick={() => navigate(viewGroup ? `/mi-grupo/reporte?grupo=${viewGroup}` : "/mi-grupo/reporte")} disabled={!data} sx={{ flex: { xs: 1, sm: "none" } }}>Reporte semanal</Button>
                     {!data?.read_only && (
-                        <Button size="small" variant="contained" startIcon={<SwapHorizRounded />} onClick={() => setReassignOpen(true)} disabled={!data}>Reasignar en bloque</Button>
+                        <Button size="small" variant="contained" startIcon={<SwapHorizRounded />} onClick={() => setReassignOpen(true)} disabled={!data} sx={{ flex: { xs: 1, sm: "none" } }}>Reasignar</Button>
                     )}
-                </Stack>
+                </Box>
             </Box>
 
             {forbidden && !data && (

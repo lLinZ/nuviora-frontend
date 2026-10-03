@@ -185,8 +185,8 @@ export const LoadChart: React.FC<{ data: MyGroupData }> = ({ data }) => {
                 <XAxis type="number" allowDecimals={false} tick={c.tick} />
                 <YAxis type="category" dataKey="name" tick={c.tick} width={80} />
                 <ChartTooltip {...c.tooltip} formatter={(v, _n, item) => [`${v}${item?.payload?.saturated ? " · saturada" : ""}`, "Carga"]} />
-                {avg !== null && <ReferenceLine x={avg} stroke={c.muted} strokeDasharray="4 4" label={{ value: "Promedio", position: "top", fill: c.muted, fontSize: 10 }} />}
-                {limit !== null && <ReferenceLine x={limit} stroke={c.warning} strokeDasharray="2 4" label={{ value: "Aviso", position: "top", fill: c.warning, fontSize: 10 }} />}
+                {avg !== null && <ReferenceLine x={avg} stroke={c.muted} strokeDasharray="4 4" label={{ value: "Promedio", position: "insideTopRight", fill: c.muted, fontSize: 10 }} />}
+                {limit !== null && <ReferenceLine x={limit} stroke={c.warning} strokeDasharray="2 4" label={{ value: "Aviso", position: "insideTopLeft", fill: c.warning, fontSize: 10 }} />}
                 <Bar dataKey="load" radius={[0, 6, 6, 0]}>
                     {rows.map((r, i) => <Cell key={i} fill={r.saturated ? c.warning : c.info} />)}
                     <LabelList dataKey="load" position="right" fill={c.muted} fontSize={10} />
