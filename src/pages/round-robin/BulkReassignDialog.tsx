@@ -79,7 +79,7 @@ export const BulkReassignDialog: React.FC<Props> = ({ open, sellers, onClose, on
     const submit = async () => {
         if (!from) return;
         setSaving(true);
-        const res = await assignmentApi<{ moved: Record<string, number>; total: number }>(`${apiBase}/reassign`, "POST", {
+        const res = await assignmentApi<{ moved: Record<string, number>; total: number; kept_message?: string | null }>(`${apiBase}/reassign`, "POST", {
             from_agent_id: from.id,
             to_agent_ids: destinations.map((d) => d.id),
             status_ids: statusIds,
@@ -94,6 +94,8 @@ export const BulkReassignDialog: React.FC<Props> = ({ open, sellers, onClose, on
             .map(([id, n]) => `${sellers.find((s) => s.id === Number(id))?.name ?? id}: ${n}`)
             .join(" · ");
         toast.success(`${res.message}${detail ? ` (${detail})` : ""}`);
+        // Las órdenes de una tienda donde no está ninguna de las elegidas se quedan con la de origen
+        if (res.data.kept_message) toast.warning(res.data.kept_message, { autoClose: 10000 });
         onDone();
     };
 
@@ -177,7 +179,7 @@ export const BulkReassignDialog: React.FC<Props> = ({ open, sellers, onClose, on
                         )}
 
                         <Alert severity="info" sx={{ mt: 2 }}>
-                            Se reparten con los mismos % del reparto automático. Cada orden conserva su estado y el cambio queda en su historial.
+                            Se reparten con los mismos % del reparto automático, y cada orden solo va a vendedoras de su tienda. Cada orden conserva su estado y el cambio queda en su historial.
                         </Alert>
                     </>
                 )}
