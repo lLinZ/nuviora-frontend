@@ -25,6 +25,8 @@ export const OrderProductItem: React.FC<OrderProductItemProps> = ({ product, cur
     const otherVariants = variants.filter((v) => v.is_active && v.id !== product.variant_id);
     // Fran (3-oct): el selector era muy pequeño y se olvidaba; sin talla no se puede mandar a la agencia
     const missingSize = !product.variant_id && variants.some((v) => v.is_active);
+    // La talla elegida (también con los datos sin desglose, que traen solo `size`)
+    const sizeTitle: string | null = product.variant_title || (product.variant_id ? product.size : null) || null;
 
     return (
         <Paper
@@ -96,20 +98,32 @@ export const OrderProductItem: React.FC<OrderProductItemProps> = ({ product, cur
                 )}
 
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 0.5, flexWrap: 'wrap' }}>
-                    {/* Tarea 4: la talla o variante de la línea; se puede cambiar por otra con stock */}
-                    {(product.variant_title || variants.length > 0) && (
-                        <Tooltip title={canChangeVariant ? "Cambiar la talla o variante" : ""}>
-                            <Chip
-                                size="small"
-                                label={product.variant_title ? `Talla: ${product.variant_title}` : 'Sin talla'}
-                                color={product.variant_title ? 'default' : 'warning'}
-                                variant={product.variant_title ? 'outlined' : 'filled'}
+                    {/* Tarea 4: la talla de la línea. Fran (3-oct): en grande, para que la agencia no se equivoque */}
+                    {sizeTitle ? (
+                        <Tooltip title={canChangeVariant ? "Cambiar la talla" : ""}>
+                            <Box
                                 onClick={canChangeVariant ? (e) => setVariantMenu(e.currentTarget) : undefined}
-                                sx={product.variant_title
-                                    ? { height: 26, fontSize: '0.85rem', fontWeight: 'bold', borderWidth: 2, borderColor: 'primary.main' }
-                                    : { height: 20, fontSize: '0.7rem', fontWeight: 'bold' }}
-                            />
+                                sx={{
+                                    display: 'inline-flex', alignItems: 'baseline', gap: 0.75,
+                                    px: 1.5, py: 0.25, borderRadius: 2,
+                                    bgcolor: 'primary.main', color: 'primary.contrastText',
+                                    cursor: canChangeVariant ? 'pointer' : 'default',
+                                    boxShadow: '0 2px 6px rgba(0,0,0,0.25)',
+                                }}
+                            >
+                                <Typography component="span" sx={{ fontSize: '0.7rem', fontWeight: 700, letterSpacing: 1, opacity: 0.85 }}>TALLA</Typography>
+                                <Typography component="span" sx={{ fontSize: '1.35rem', fontWeight: 900, lineHeight: 1.2 }}>{String(sizeTitle).toUpperCase()}</Typography>
+                                {canChangeVariant && <EditRoundedIcon sx={{ fontSize: 14, opacity: 0.8, alignSelf: 'center' }} />}
+                            </Box>
                         </Tooltip>
+                    ) : variants.length > 0 && (
+                        <Chip
+                            size="small"
+                            label="Sin talla"
+                            color="warning"
+                            onClick={canChangeVariant ? (e) => setVariantMenu(e.currentTarget) : undefined}
+                            sx={{ height: 20, fontSize: '0.7rem', fontWeight: 'bold' }}
+                        />
                     )}
                     <Tooltip title={onEditQuantity ? "Click para editar cantidad" : ""}>
                         <Box

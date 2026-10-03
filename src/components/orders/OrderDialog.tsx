@@ -202,7 +202,13 @@ export const OrderDialog: FC<OrderDialogProps> = ({ id, open, setOpen }) => {
 
     const copyGeneralInfo = () => {
         if (!order) return;
-        const productsList = order.products?.map((p: any) => `• ${p.quantity}x ${p.showable_name || p.title}`).join('\n') || 'Sin productos';
+        // Fran (3-oct): la talla en una línea aparte y en negrita, para que la agencia no se equivoque
+        const sizeLine = (p: any) => {
+            const size = p.variant_title || (p.variant_id ? p.size : null);
+            if (size) return `\n   👕 *TALLA: ${String(size).toUpperCase()}*`;
+            return (p.variants ?? []).some((v: any) => v.is_active) ? '\n   ⚠️ *TALLA: SIN ELEGIR*' : '';
+        };
+        const productsList = order.products?.map((p: any) => `• ${p.quantity}x ${p.showable_name || p.title}${sizeLine(p)}`).join('\n') || 'Sin productos';
         const agencyDisplay = order.agency?.names
             ? (user.role?.description === 'Vendedor' ? 'Asignada a Agencia' : order.agency.names)
             : 'No asignada';
