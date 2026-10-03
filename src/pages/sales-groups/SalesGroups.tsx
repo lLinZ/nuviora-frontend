@@ -481,7 +481,7 @@ export const SalesGroups: React.FC = () => {
 
             <Alert severity="info" sx={{ mb: 3, borderRadius: 2 }}>
                 <Typography variant="body2">
-                    Cada grupo recibe órdenes según cuántas vendedoras tiene <strong>disponibles hoy</strong> (en el roster y por debajo de su máximo): uno con 7 recibe 7 veces lo de una sola. Dentro del grupo, la lista de % dice cuánto recibe cada una, <strong>la Líder incluida</strong>, y tiene que sumar 100. Si dejas vacías a las vendedoras, se reparten parejo lo que no recibe la Líder; todo vacío es parejo para todas. Las vendedoras sin grupo cuentan como una porción cada una. Si todas están en su máximo, las órdenes no esperan: se reparten igual, con estos mismos %.
+                    Cada grupo recibe órdenes según cuántas vendedoras tiene <strong>disponibles hoy</strong> (en el roster y por debajo de su máximo): uno con 7 recibe 7 veces lo de una sola. Dentro del grupo, la lista de % dice cuánto recibe cada una, <strong>la Líder incluida</strong>, y tiene que sumar 100. Si dejas vacías a las vendedoras, se reparten parejo lo que no recibe la Líder; todo vacío es parejo para todas. Las vendedoras sin grupo cuentan como una porción cada una. Si todas están en su máximo, las órdenes no esperan: se reparten en partes iguales, sin mirar estos %.
                 </Typography>
             </Alert>
 

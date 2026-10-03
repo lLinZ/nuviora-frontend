@@ -174,7 +174,7 @@ const NowCard: React.FC<{ data: MyGroupData }> = ({ data }) => {
                                         )}
                                     </TableCell>
                                     <TableCell align="right">
-                                        <Tooltip title="Asignado a vendedor y Llamado 1-3, sumando todas las tiendas. Al llegar a su máximo deja de recibir, salvo que todas estén en su máximo: entonces se sigue repartiendo con los mismos %.">
+                                        <Tooltip title="Asignado a vendedor y Llamado 1-3, sumando todas las tiendas. Al llegar a su máximo deja de recibir, salvo que todas estén en su máximo: entonces se reparte en partes iguales, sin mirar el %.">
                                             <Typography variant="body2" component="span" color={full ? "error.main" : undefined} fontWeight={full ? 700 : 400}>
                                                 {m.active_orders}{m.max_active_orders !== null ? ` / ${m.max_active_orders}` : ""}
                                             </Typography>

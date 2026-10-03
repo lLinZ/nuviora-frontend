@@ -15,6 +15,8 @@ import { useValidateSession } from "../../hooks/useValidateSession";
 import { request } from "../../common/request";
 import { useSocketStore } from "../../store/sockets/SocketStore";
 import { playNotificationSound } from "../../lib/sound";
+import { LeaderViewSelect } from "../my-group/LeaderViewSelect";
+import { appendLeaderView, LeaderView, MY_ORDERS } from "../my-group/leaderView";
 
 interface Party { id: number; name: string }
 
@@ -28,6 +30,7 @@ interface Conversation {
     last_message: { body: string; sender_id: number; created_at: string } | null;
     last_message_at: string | null;
     unread: number;
+    is_participant?: boolean; // false: la Líder mirando el hilo de una vendedora de su grupo
 }
 
 interface Message {
@@ -65,6 +68,14 @@ export const InternalChatPage = () => {
     const [input, setInput] = useState("");
     const [sending, setSending] = useState(false);
 
+    // La Líder elige ver sus hilos, los de todo su grupo o los de una vendedora (Fran, 2026-10-02)
+    const [view, setView] = useState<LeaderView>(MY_ORDERS);
+    const viewQuery = () => {
+        const params = new URLSearchParams();
+        appendLeaderView(params, view);
+        return params.toString();
+    };
+
     // ── Buscador de chats en la bandeja ───────────────────────────
     const [chatSearch, setChatSearch] = useState("");
 
@@ -83,7 +94,8 @@ export const InternalChatPage = () => {
     };
 
     const fetchConversations = async () => {
-        const { ok, response } = await request("/internal-chat/conversations", "GET");
+        const q = viewQuery();
+        const { ok, response } = await request(`/internal-chat/conversations${q ? `?${q}` : ""}`, "GET");
         if (ok) setConversations(await response.json());
     };
 
@@ -91,7 +103,7 @@ export const InternalChatPage = () => {
         if (!isValid) return;
         fetchConversations();
         if (!echo) setSocket();
-    }, [isValid]);
+    }, [isValid, view.scope, view.sellerId]);
 
     // ── Abrir un hilo y cargar mensajes ───────────────────────────
     const openConversation = async (conv: Conversation) => {
@@ -145,7 +157,7 @@ export const InternalChatPage = () => {
         setSearching(true);
         const t = setTimeout(async () => {
             const { ok, response } = await request(
-                `/internal-chat/orders/search?q=${encodeURIComponent(searchTerm)}`, "GET"
+                `/internal-chat/orders/search?q=${encodeURIComponent(searchTerm)}${viewQuery() ? `&${viewQuery()}` : ""}`, "GET"
             );
             setSearching(false);
             if (ok) setSearchResults(await response.json());
@@ -246,7 +258,7 @@ export const InternalChatPage = () => {
     // ── Etiquetas ──────────────────────────────────────────────────
     const orderLabel = (c: Conversation) => (c.order?.name ? `Orden ${c.order.name}` : "Orden");
     const partyLabel = (c: Conversation) => {
-        if (isAdmin) return `${c.vendedor?.name ?? "?"} ↔ ${c.agency?.name ?? "?"}`;
+        if (isAdmin || c.is_participant === false) return `${c.vendedor?.name ?? "?"} ↔ ${c.agency?.name ?? "?"}`;
         return c.counterpart?.name ?? "(sin agencia)";
     };
 
@@ -270,7 +282,7 @@ export const InternalChatPage = () => {
                             <Typography variant="h6" fontWeight="bold">Chat interno</Typography>
                         </Box>
                         {!isAdmin && (
-                            <Tooltip title="Nuevo chat por orden">
+                            <Tooltip title={view.scope ? "Nuevo chat por orden de tu grupo" : "Nuevo chat por orden"}>
                                 <IconButton color="primary" onClick={openPicker}>
                                     <AddCommentRounded />
                                 </IconButton>
@@ -278,6 +290,13 @@ export const InternalChatPage = () => {
                         )}
                     </Box>
                     <Divider />
+
+                    {/* ── La Líder: sus chats, los de su grupo o los de una vendedora ── */}
+                    {!isAdmin && user.leader_group && (
+                        <Box sx={{ px: 1.5, pt: 1.5 }}>
+                            <LeaderViewSelect value={view} onChange={(v) => { setView(v); setSelected(null); setMessages([]); }} minWidth={0} fullWidth />
+                        </Box>
+                    )}
 
                     {/* ── Buscador de chats ── */}
                     <Box sx={{ px: 1.5, py: 1, borderBottom: "1px solid", borderColor: "divider" }}>
@@ -374,7 +393,7 @@ export const InternalChatPage = () => {
                                         const mine = m.mine ?? m.sender_id === user.id;
                                         return (
                                             <Box key={m.id} sx={{ alignSelf: mine ? "flex-end" : "flex-start", maxWidth: "70%" }}>
-                                                {(isAdmin || !mine) && (
+                                                {(isAdmin || !mine || selected.is_participant === false) && (
                                                     <Typography variant="caption" color="text.secondary" sx={{ ml: 1 }}>
                                                         {m.sender?.name}
                                                     </Typography>

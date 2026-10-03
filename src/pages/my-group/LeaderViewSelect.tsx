@@ -8,7 +8,7 @@ import { assignmentApi } from "../round-robin/assignmentApi";
 import { MyGroupData } from "../../interfaces/assignment.types";
 import { LeaderView, MY_ORDERS } from "./leaderView";
 
-export const LeaderViewSelect: React.FC<{ value: LeaderView; onChange: (v: LeaderView) => void; minWidth?: number }> = ({ value, onChange, minWidth = 170 }) => {
+export const LeaderViewSelect: React.FC<{ value: LeaderView; onChange: (v: LeaderView) => void; minWidth?: number; fullWidth?: boolean }> = ({ value, onChange, minWidth = 170, fullWidth = false }) => {
     const user = useUserStore((s) => s.user);
     const [members, setMembers] = useState<{ id: number; name: string }[]>([]);
 
@@ -24,7 +24,7 @@ export const LeaderViewSelect: React.FC<{ value: LeaderView; onChange: (v: Leade
     const selected = value.scope === "" ? "mine" : value.sellerId || "group";
 
     return (
-        <FormControl size="small" sx={{ minWidth, bgcolor: "background.paper", borderRadius: 1 }}>
+        <FormControl size="small" fullWidth={fullWidth} sx={{ minWidth, bgcolor: "background.paper", borderRadius: 1 }}>
             <InputLabel>Ver</InputLabel>
             <Select
                 value={selected}

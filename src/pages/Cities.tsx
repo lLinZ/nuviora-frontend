@@ -105,7 +105,7 @@ export const Cities = () => {
             <Paper elevation={0} sx={{ p: 3, borderRadius: 4, mb: 4, border: '1px solid', borderColor: 'divider' }}>
                 <Typography variant="h6" fontWeight="bold">Agencias</Typography>
                 <Typography variant="caption" color="text.secondary">
-                    Activas = órdenes en Asignar a agencia, con repartidor o en ruta. Al llegar a su máximo, los pedidos van primero a las otras agencias de la ciudad; si todas están en su máximo, no esperan y se reparten igual por su %.
+                    Activas = órdenes en Asignar a agencia, con repartidor o en ruta. Al llegar a su máximo, los pedidos van primero a las otras agencias de la ciudad; si todas están en su máximo, no esperan y se reparten en partes iguales.
                 </Typography>
                 <Box sx={{ overflowX: 'auto', mt: 2 }}>
                     <Table size="small">

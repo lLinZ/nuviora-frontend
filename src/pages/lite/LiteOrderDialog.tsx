@@ -1,5 +1,4 @@
 import React, { FC, useState, useEffect } from "react";
-import { IProductVariant } from "../../interfaces/inventory.types";
 import {
     Dialog,
     AppBar,
@@ -41,6 +40,8 @@ import MessageRoundedIcon from '@mui/icons-material/MessageRounded';
 import ForumRoundedIcon from '@mui/icons-material/ForumRounded';
 import { ButtonCustom } from "../../components/custom";
 import { ProductSearchDialog } from "../../components/products/ProductsSearchDialog";
+import { UpsellConfirmDialog } from "../../components/orders/UpsellConfirmDialog";
+import { OrderInternalChat } from "../../components/orders/OrderInternalChat";
 import { fmtMoney } from "../../lib/money";
 import DenseMenu from "../../components/ui/content/DenseMenu";
 import {
@@ -142,6 +143,7 @@ export const LiteOrderDialog: FC<LiteOrderDialogProps> = ({ id, open, setOpen, o
     // Local state for Upsells and other dialogs managed locally
     const [openReminder, setOpenReminder] = useState(false);
     const [openSearch, setOpenSearch] = useState(false);
+    const [openInternalChat, setOpenInternalChat] = useState(false);
     const [openRates, setOpenRates] = useState(false);
     const [openAssign, setOpenAssign] = useState(false);
     const [openLeaderMove, setOpenLeaderMove] = useState(false);
@@ -152,9 +154,6 @@ export const LiteOrderDialog: FC<LiteOrderDialogProps> = ({ id, open, setOpen, o
     // Upsell Logic Local State
     const [showUpsellConfirm, setShowUpsellConfirm] = useState(false);
     const [upsellCandidate, setUpsellCandidate] = useState<any>(null);
-    const [upsellQty, setUpsellQty] = useState(1);
-    const [upsellPrice, setUpsellPrice] = useState(0);
-    const [upsellVariantId, setUpsellVariantId] = useState<number | ''>(''); // tarea 4: la talla del producto que se agrega
 
     const [showUpdates, setShowUpdates] = useState(false);
     const [showWhatsApp, setShowWhatsApp] = useState(false);
@@ -251,16 +250,17 @@ export const LiteOrderDialog: FC<LiteOrderDialogProps> = ({ id, open, setOpen, o
                     </Box>
 
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                        {/* CHAT INTERNO CON LA AGENCIA */}
+                        {/* CHAT INTERNO CON LA AGENCIA: dentro de la ficha (Fran, 2026-10-02) */}
                         {order.agent_id && order.agency_id && (
-                            <Tooltip title="Chat con la agencia">
-                                <IconButton
-                                    onClick={() => window.open(`/internal-chat?order=${order.id}`, "_blank")}
-                                    color="primary"
-                                >
-                                    <ForumRoundedIcon />
-                                </IconButton>
-                            </Tooltip>
+                            <Button
+                                size="small"
+                                variant="outlined"
+                                startIcon={<ForumRoundedIcon />}
+                                onClick={() => setOpenInternalChat(true)}
+                                sx={{ textTransform: 'none', whiteSpace: 'nowrap' }}
+                            >
+                                {user.role?.description === 'Agencia' ? 'Chat con la vendedora' : 'Chat con la agencia'}
+                            </Button>
                         )}
                         {/* RATES BUTTON */}
                         <IconButton
@@ -685,33 +685,16 @@ export const LiteOrderDialog: FC<LiteOrderDialogProps> = ({ id, open, setOpen, o
             <DailyRatesDialog open={openRates} onClose={() => setOpenRates(false)} />
 
             {/* Upsell Dialog */}
-            <ProductSearchDialog open={openSearch} onClose={() => setOpenSearch(false)} onPick={(product) => { setUpsellCandidate(product); setUpsellPrice(Number(product.price)); setUpsellQty(1); setUpsellVariantId(''); setOpenSearch(false); setShowUpsellConfirm(true); }} />
-            <Dialog open={showUpsellConfirm} onClose={() => setShowUpsellConfirm(false)}>
-                <DialogTitle>Confirmar Upsell</DialogTitle>
-                <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1, minWidth: 300 }}>
-                    <Typography variant="subtitle1" fontWeight="bold">{upsellCandidate?.name || upsellCandidate?.title}</Typography>
-                    <TextField label="Cantidad" type="number" value={upsellQty} onChange={(e) => setUpsellQty(Number(e.target.value))} fullWidth />
-                    <TextField label="Precio de Venta (c/u)" type="number" value={upsellPrice} onChange={(e) => setUpsellPrice(Number(e.target.value))} helperText="Puedes modificar el precio para dar un descuento" fullWidth />
-                    {(upsellCandidate?.variants ?? []).some((v: IProductVariant) => v.is_active) && (
-                        <TextField
-                            select
-                            label="Talla o variante"
-                            value={upsellVariantId}
-                            onChange={(e) => setUpsellVariantId(Number(e.target.value))}
-                            fullWidth
-                            required
-                        >
-                            {(upsellCandidate?.variants ?? []).filter((v: IProductVariant) => v.is_active).map((v: IProductVariant) => (
-                                <MenuItem key={v.id} value={v.id}>{v.title}</MenuItem>
-                            ))}
-                        </TextField>
-                    )}
-                </DialogContent>
-                <DialogActions>
-                    <Button onClick={() => setShowUpsellConfirm(false)}>Cancelar</Button>
-                    <ButtonCustom disabled={((upsellCandidate?.variants ?? []).some((v: IProductVariant) => v.is_active) && !upsellVariantId)} onClick={() => { addUpsell(upsellCandidate.id, upsellQty, upsellPrice, true, upsellVariantId || null); setShowUpsellConfirm(false); }}>Agregar</ButtonCustom>
-                </DialogActions>
-            </Dialog>
+            <ProductSearchDialog open={openSearch} onClose={() => setOpenSearch(false)} onPick={(product) => { setUpsellCandidate(product); setOpenSearch(false); setShowUpsellConfirm(true); }} />
+            <OrderInternalChat open={openInternalChat} onClose={() => setOpenInternalChat(false)} orderId={order.id} orderName={order.name} />
+            <UpsellConfirmDialog
+                open={showUpsellConfirm}
+                onClose={() => setShowUpsellConfirm(false)}
+                orderId={order.id}
+                candidate={upsellCandidate}
+                title={'Confirmar Upsell'}
+                onConfirm={(qty, price, variantId) => { addUpsell(upsellCandidate.id, qty, price, true, variantId); setShowUpsellConfirm(false); }}
+            />
 
             {/* CONFIRM RETURN/EXCHANGE DIALOG */}
             <Dialog open={confirmReturnOpen} onClose={() => setConfirmReturnOpen(false)}>

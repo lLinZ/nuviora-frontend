@@ -2,12 +2,10 @@ import React from 'react';
 import {
     Card,
     CardContent,
-    Typography,
     Box,
     Divider,
     IconButton,
     Tooltip,
-    LinearProgress,
     Chip
 } from '@mui/material';
 import {
@@ -15,7 +13,8 @@ import {
     SwapHoriz as TransferIcon,
     Edit as EditIcon,
     Tune as AdjustIcon,
-    Straighten as VariantsIcon
+    Straighten as VariantsIcon,
+    ReportProblemOutlined as DefectiveIcon
 } from '@mui/icons-material';
 import { IProductStock } from '../../interfaces/inventory.types';
 import { TypographyCustom } from '../custom';
@@ -27,6 +26,7 @@ interface InventoryCardProps {
     onEdit?: (product: IProductStock) => void;
     onVariants?: (product: IProductStock) => void;
     onViewHistory: (product: IProductStock) => void;
+    onReviewDefective?: (product: IProductStock) => void; // solo el Admin
 }
 
 export const InventoryCard: React.FC<InventoryCardProps> = ({
@@ -35,9 +35,15 @@ export const InventoryCard: React.FC<InventoryCardProps> = ({
     onAdjust,
     onEdit,
     onVariants,
-    onViewHistory
+    onViewHistory,
+    onReviewDefective
 }) => {
     const { product, warehouses, total_quantity } = productStock;
+    // Piezas defectuosas (Fran, 2026-10-02): se muestran aparte y no cuentan como disponibles
+    const defective = warehouses.filter((w) => (w.defective_stock ?? 0) > 0);
+    // "Sin variante" sin contar las defectuosas que no tienen talla (esas van en su apartado)
+    const unassignedUseful = (w: IProductStock['warehouses'][number]) =>
+        (w.unassigned ?? 0) - Math.max(0, (w.defective_stock ?? 0) - (w.variants_stock ?? []).reduce((sum, v) => sum + v.defective_stock, 0));
 
     // Calculate stock status color
     const getStockColor = (qty: number) => {
@@ -83,9 +89,9 @@ export const InventoryCard: React.FC<InventoryCardProps> = ({
                                 <TypographyCustom
                                     variant="body2"
                                     fontWeight="bold"
-                                    color={w.quantity > 0 ? 'primary.main' : 'text.disabled'}
+                                    color={w.quantity - (w.defective_stock ?? 0) > 0 ? 'primary.main' : 'text.disabled'}
                                 >
-                                    {w.quantity}
+                                    {w.quantity - (w.defective_stock ?? 0)}
                                 </TypographyCustom>
                             </Box>
                             
@@ -95,21 +101,21 @@ export const InventoryCard: React.FC<InventoryCardProps> = ({
                                     {(w.variants_stock ?? []).map((v) => (
                                         <Chip
                                             key={v.variant_id}
-                                            label={`${v.title}: ${v.quantity}${v.defective_stock > 0 ? ` (${v.defective_stock} def.)` : ''}`}
+                                            label={`${v.title}: ${v.quantity - v.defective_stock}`}
                                             size="small"
                                             variant="outlined"
                                             color={v.quantity < 0 ? 'error' : 'default'}
                                             sx={{ height: 18, fontSize: '0.65rem', borderRadius: 1, opacity: v.is_active ? 1 : 0.6 }}
                                         />
                                     ))}
-                                    {(w.unassigned ?? 0) !== 0 && (
-                                        <Tooltip title={(w.unassigned ?? 0) > 0
+                                    {unassignedUseful(w) !== 0 && (
+                                        <Tooltip title={unassignedUseful(w) > 0
                                             ? 'Cargadas sin decir la talla: no se venden por talla. Repártelas con "Ajustar".'
                                             : 'Las tallas suman más que el total: revisar en el conteo.'}>
                                             <Chip
-                                                label={`Sin variante: ${w.unassigned}`}
+                                                label={`Sin variante: ${unassignedUseful(w)}`}
                                                 size="small"
-                                                color={(w.unassigned ?? 0) > 0 ? 'warning' : 'error'}
+                                                color={unassignedUseful(w) > 0 ? 'warning' : 'error'}
                                                 sx={{ height: 18, fontSize: '0.65rem', borderRadius: 1 }}
                                             />
                                         </Tooltip>
@@ -124,6 +130,36 @@ export const InventoryCard: React.FC<InventoryCardProps> = ({
                         </TypographyCustom>
                     )}
                 </Box>
+
+                {defective.length > 0 && (
+                    <Box sx={{ mt: 1.5, p: 1, borderRadius: 1, border: '1px dashed', borderColor: 'warning.main', bgcolor: 'rgba(237,108,2,0.06)' }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1 }}>
+                            <Tooltip title="Volvieron de un cambio. Están en el almacén, pero no se venden hasta revisarlas.">
+                                <TypographyCustom variant="subtitle2" color="warning.main" sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                                    <DefectiveIcon fontSize="small" /> Piezas defectuosas
+                                </TypographyCustom>
+                            </Tooltip>
+                            {onReviewDefective && (
+                                <Chip label="Revisar" size="small" color="warning" onClick={() => onReviewDefective(productStock)} sx={{ height: 22 }} />
+                            )}
+                        </Box>
+                        {defective.map((w) => (
+                            <Box key={w.warehouse_id} sx={{ mt: 0.5 }}>
+                                <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                                    <TypographyCustom variant="caption" noWrap>{w.warehouse_name}</TypographyCustom>
+                                    <TypographyCustom variant="caption" fontWeight="bold" color="warning.main">{w.defective_stock}</TypographyCustom>
+                                </Box>
+                                {(w.variants_stock ?? []).some((v) => v.defective_stock > 0) && (
+                                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                                        {(w.variants_stock ?? []).filter((v) => v.defective_stock > 0).map((v) => (
+                                            <Chip key={v.variant_id} label={`${v.title}: ${v.defective_stock}`} size="small" variant="outlined" color="warning" sx={{ height: 18, fontSize: '0.65rem', borderRadius: 1 }} />
+                                        ))}
+                                    </Box>
+                                )}
+                            </Box>
+                        ))}
+                    </Box>
+                )}
             </CardContent>
 
             <Divider />

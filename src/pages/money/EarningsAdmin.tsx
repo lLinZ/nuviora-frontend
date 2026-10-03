@@ -294,9 +294,12 @@ export const EarningsAdmin: React.FC = () => {
                                 <Grid size={{ xs: 12, lg: 6 }}>
                                     <EarningsTable title="Upsells ($1.00 / producto adicional)" rows={data.upsells} icon={<TrendingUpRoundedIcon sx={{ color: '#ff9800' }} />} mainCountIsUpsells />
                                 </Grid>
-                                <Grid size={{ xs: 12 }}>
-                                    <EarningsTable title="Resumen Gerentes ($0.50 / venta exitosa)" rows={data.managers} icon={<GroupsRoundedIcon sx={{ color: '#e91e63' }} />} />
-                                </Grid>
+                                {/* El rol Gerente se quitó (Fran, 2026-10-02): solo sale si el período tiene lo que cobró antes */}
+                                {(data.managers ?? []).length > 0 && (
+                                    <Grid size={{ xs: 12 }}>
+                                        <EarningsTable title="Gerentes (ya no se usa: lo cobrado antes)" rows={data.managers} icon={<GroupsRoundedIcon sx={{ color: '#e91e63' }} />} />
+                                    </Grid>
+                                )}
                                 <Grid size={{ xs: 12 }}>
                                     <LeadersTable rows={data.leaders ?? []} total={data.totals.leaders_usd ?? 0} />
                                 </Grid>

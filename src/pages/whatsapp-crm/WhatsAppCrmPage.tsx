@@ -6,6 +6,8 @@ import { request } from "../../common/request";
 import { useSocketStore } from "../../store/sockets/SocketStore";
 import { useUserStore } from "../../store/user/UserStore";
 import { CrmSidebar } from "./components/CrmSidebar";
+import { LeaderViewSelect } from "../my-group/LeaderViewSelect";
+import { appendLeaderView, LeaderView, MY_ORDERS } from "../my-group/leaderView";
 import { CrmChatArea } from "./components/CrmChatArea";
 import { CrmConversation } from "./components/CrmContactCard";
 
@@ -60,6 +62,7 @@ export const WhatsAppCrmPage = () => {
     const [searchTerm, setSearchTerm] = useState("");
     const [bucket, setBucket] = useState<BucketFilter>("all");
     const [agentId, setAgentId] = useState<string>("");
+    const [leaderView, setLeaderView] = useState<LeaderView>(MY_ORDERS); // la Líder: suyos, su grupo o una vendedora
     const [page, setPage] = useState(1);
     const [hasMore, setHasMore] = useState(false);
     const [isOffline, setIsOffline] = useState(false);
@@ -126,6 +129,7 @@ export const WhatsAppCrmPage = () => {
             sort_by: sortBy,
         });
         if (agentId) params.set("agent_id", agentId);
+        appendLeaderView(params, leaderView);
 
         try {
             const { status, response } = await request(`/whatsapp-crm/conversations?${params}`, "GET");
@@ -168,14 +172,14 @@ export const WhatsAppCrmPage = () => {
             setLoading(false);
             setInitialLoad(false);
         }
-    }, [agentId, page, bucket, searchTerm, sortBy]);
+    }, [agentId, page, bucket, searchTerm, sortBy, leaderView]);
 
     // ── Triggers de re-fetch ──────────────────────────────────────────────────
     useEffect(() => {
         setLoading(true);
         const timer = setTimeout(() => fetchConversations(false), searchTerm ? 400 : 0);
         return () => clearTimeout(timer);
-    }, [searchTerm, bucket, agentId, sortBy]);
+    }, [searchTerm, bucket, agentId, sortBy, leaderView.scope, leaderView.sellerId]);
 
     // ── WebSocket hub ─────────────────────────────────────────────────────────
     useEffect(() => {
@@ -383,6 +387,7 @@ export const WhatsAppCrmPage = () => {
                                     agents={agents}
                                     agentId={agentId}
                                     onAgentChange={(id) => setAgentId(id)}
+                                    leaderSlot={user?.leader_group ? <LeaderViewSelect value={leaderView} onChange={(v) => { setLeaderView(v); setSelected(null); }} minWidth={0} fullWidth /> : undefined}
                                     sortBy={sortBy}
                                     onSortChange={(s) => setSortBy(s)}
                                 />

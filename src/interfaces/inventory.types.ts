@@ -120,6 +120,7 @@ export interface IProductStock {
         quantity: number;
         variants_stock?: IVariantStock[]; // Stock por variante en este almacén (tarea 4)
         unassigned?: number;              // Cargado sin variante
+        defective_stock?: number;         // Piezas defectuosas: están, pero no cuentan como disponibles
     }>;
     total_quantity: number;
 }

@@ -1,3 +1,4 @@
+import React from "react";
 import { FC, useRef, useCallback, useState } from "react";
 import {
     Box, Typography, TextField, InputAdornment, Divider,
@@ -34,6 +35,8 @@ interface Props {
     agents?: any[];
     agentId?: string;
     onAgentChange?: (id: string) => void;
+    /** La Líder: elegir sus chats, los de su grupo o los de una vendedora (Fran, 2026-10-02). */
+    leaderSlot?: React.ReactNode;
     sortBy: "latency" | "unread";
     onSortChange: (s: "latency" | "unread") => void;
 }
@@ -63,6 +66,7 @@ export const CrmSidebar: FC<Props> = ({
     agents,
     agentId,
     onAgentChange,
+    leaderSlot,
     sortBy,
     onSortChange,
 }) => {
@@ -207,6 +211,8 @@ export const CrmSidebar: FC<Props> = ({
                     }}
                 />
                 
+                {!isAdmin && leaderSlot}
+
                 {isAdmin && agents && onAgentChange && (
                     <FormControl size="small" fullWidth>
                         <Select
