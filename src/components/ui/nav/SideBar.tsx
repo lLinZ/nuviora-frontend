@@ -1,321 +1,93 @@
-import { useState, useEffect, ReactNode, FC, useMemo } from "react";
-import { Box, darken, IconButton, useMediaQuery, useTheme } from "@mui/material";
-import { useNavigate } from "react-router-dom";
+import { useState, useEffect, useMemo, useRef } from "react";
+import { Box, Divider, IconButton, Tooltip, Typography, darken, useMediaQuery, useTheme } from "@mui/material";
+import { useLocation, useNavigate } from "react-router-dom";
 import KeyboardArrowRightRounded from "@mui/icons-material/KeyboardArrowRightRounded";
 import KeyboardArrowLeftRounded from "@mui/icons-material/KeyboardArrowLeftRounded";
-import AttachMoneyRoundedIcon from "@mui/icons-material/AttachMoneyRounded";
-import EngineeringRoundedIcon from "@mui/icons-material/EngineeringRounded";
-import DashboardRoundedIcon from "@mui/icons-material/DashboardRounded";
 import LogoutRoundedIcon from "@mui/icons-material/LogoutRounded";
 import ManageAccountsRoundedIcon from "@mui/icons-material/ManageAccountsRounded";
-import LocalShippingRoundedIcon from "@mui/icons-material/LocalShippingRounded";
-import GroupsRoundedIcon from "@mui/icons-material/GroupsRounded";
-import DoNotDisturbAltRoundedIcon from "@mui/icons-material/DoNotDisturbAltRounded";
-import Inventory2RoundedIcon from "@mui/icons-material/Inventory2Rounded";
-import LocalMallRoundedIcon from "@mui/icons-material/LocalMallRounded";
-// import AssignmentIndRoundedIcon from "@mui/icons-material/AssignmentIndRounded";
-import SavingsRoundedIcon from "@mui/icons-material/SavingsRounded";
-import BarChartRoundedIcon from "@mui/icons-material/BarChartRounded";
-import WhatsAppIcon from "@mui/icons-material/WhatsApp";
-import ForumRoundedIcon from "@mui/icons-material/ForumRounded";
-import { InsertDriveFileRounded } from "@mui/icons-material";
+import { SearchRounded } from "@mui/icons-material";
 
 import moment from "moment";
-import { TypographyCustom } from "../../custom";
 import { useUserStore } from "../../../store/user/UserStore";
-import { AssignmentReturnRounded, StoreRounded, HistoryRounded, SwapHorizRounded, EditNoteRounded, StorefrontRounded, PollRounded, MapRounded, PaymentRounded, AccountBalanceRounded, ReceiptLongRounded, SettingsEthernetRounded, AccessTimeRounded, FileDownloadRounded, WarehouseRounded, SyncAltRounded } from "@mui/icons-material";
 import { NotificationBell } from "../notifications/NotificationBell";
 import { WhatsAppBell } from "../notifications/WhatsAppBell";
 import { InternalChatBell } from "../notifications/InternalChatBell";
+import { MENU_LINKS, NavLink, SECTIONS } from "./menuLinks";
+import { useMenuPrefs } from "./useMenuPrefs";
+import { SideBarItem } from "./SideBarItem";
+import { MenuSection } from "./MenuSection";
+import { MenuSearchInput, MenuSearchResults } from "./MenuSearch";
+import { SHORTCUT_LABEL, useMenuSearch } from "./useMenuSearch";
+import { MenuPalette } from "./MenuPalette";
 
+const DAYS = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
+const MONTHS = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
+
+/** Hora y fecha en una línea (antes ocupaban medio menú). */
 const Clock = () => {
-    const [time, setTime] = useState<string>(moment().format("h:mm A"));
+    const [now, setNow] = useState(moment());
 
     useEffect(() => {
-        const id = setInterval(() => {
-            setTime(moment().format("h:mm A"));
-        }, 1000);
+        const id = setInterval(() => setNow(moment()), 15000);
         return () => clearInterval(id);
     }, []);
 
-    const days = ["Lunes", "Martes", "Miercoles", "Jueves", "Viernes", "Sabado", "Domingo"];
-    const months = [
-        "Enero",
-        "Febrero",
-        "Marzo",
-        "Abril",
-        "Mayo",
-        "Junio",
-        "Julio",
-        "Agosto",
-        "Septiembre",
-        "Octubre",
-        "Noviembre",
-        "Diciembre",
-    ];
-
     return (
-        <Box
-            sx={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                flexFlow: "column wrap",
-                padding: 2,
-            }}
-        >
-            <TypographyCustom
-                variant="h3"
-                fontmode={5}
-                style={{ whiteSpace: "nowrap" }}
-                fontWeight={"bold"}
-            >
-                {time}
-            </TypographyCustom>
-            <TypographyCustom variant="h5" fontmode={5} color="text.secondary" fontWeight={"bold"}>
-                {days[moment().day() - 1]}
-            </TypographyCustom>
-            <TypographyCustom variant="h6" fontmode={5} color="text.secondary">
-                {`${moment().date()} de ${months[moment().month()]}, ${moment().year()}`}
-            </TypographyCustom>
+        <Box sx={{ display: "flex", alignItems: "baseline", gap: 1, px: 1.25, width: "100%" }}>
+            <Typography variant="subtitle1" fontWeight={800} sx={{ whiteSpace: "nowrap", lineHeight: 1.2 }}>
+                {now.format("h:mm A")}
+            </Typography>
+            <Typography variant="caption" color="text.secondary" noWrap>
+                {`${DAYS[now.day()]} ${now.date()} de ${MONTHS[now.month()]}`}
+            </Typography>
         </Box>
     );
 };
 
-type NavLink = {
-    text: string;
-    icon: ReactNode;
-    link: string;
-    roles?: string[]; // descriptions: 'Admin' | 'Gerente' | 'Vendedor' | 'Repartidor'
-    leaderOnly?: boolean; // solo si la usuaria lidera un grupo de venta
-};
+/** Con más opciones que esto, las secciones se pliegan para que el menú no abrume. */
+const COLLAPSE_FROM = 12;
 
 /**
- * Este componente se encarga del menu lateral izquierdo
+ * Este componente se encarga del menu lateral izquierdo.
+ * Fran (2026-10-03): con más de 30 opciones en una sola lista se sentía abrumado. Ahora: buscador arriba
+ * (Ctrl K), favoritos que cada quien fija con la estrella, y las demás opciones en secciones plegables.
+ * Cerrado (y en el teléfono) muestra solo la lupa, los favoritos y lo principal.
  */
 export const SideBar = () => {
     const theme = useTheme();
     const matches = useMediaQuery(theme.breakpoints.up("md"));
     const [open, setOpen] = useState<boolean>(matches);
+    const [paletteOpen, setPaletteOpen] = useState(false);
     const user = useUserStore((state) => state.user);
     const userLogout = useUserStore((state) => state.logout);
     const navigate = useNavigate();
+    const { pathname } = useLocation();
+    const searchRef = useRef<HTMLInputElement>(null);
 
     const roleDesc = user.role?.description ?? "Vendedor";
+    const expanded = matches && open;
 
-    const links: NavLink[] = useMemo(
-        () => [
-            {
-                text: "Dashboard",
-                icon: <DashboardRoundedIcon />,
-                link: "/dashboard",
-                roles: ["Admin", "Gerente", "Vendedor", "Repartidor", "Agencia"],
-            },
-            {
-                text: "Mi grupo",
-                icon: <GroupsRoundedIcon />,
-                link: "/mi-grupo",
-                roles: ["Vendedor"],
-                leaderOnly: true,
-            },
-            {
-                text: "WhatsApp CRM",
-                icon: <WhatsAppIcon />,
-                link: "/whatsapp",
-                roles: ["Admin", "Gerente", "Vendedor"],
-            },
-            {
-                text: "Chat interno",
-                icon: <ForumRoundedIcon />,
-                link: "/internal-chat",
-                roles: ["Admin", "Gerente", "Master", "Vendedor", "Agencia"],
-            },
-            /**             {                text: "WhatsApp (Anterior)",
-                icon: <HistoryRounded />,
-                link: "/whatsapp-old",
-                roles: ["Admin", "Gerente", "Vendedor"],
-            }, */
-            {
-                text: "Plantillas WhatsApp",
-                icon: <EditNoteRounded />,
-                link: "/admin/whatsapp-templates",
-                roles: ["Admin"],
-            },
-            {
-                text: "Integraciones Webhooks",
-                icon: <SettingsEthernetRounded />,
-                link: "/admin/webhooks",
-                roles: ["Admin"],
-            },
-            {
-                text: "Usuarios",
-                icon: <GroupsRoundedIcon />,
-                link: "/users",
-                roles: ["Admin", "Gerente"],
-            },
-            {
-                text: "Órdenes",
-                icon: <LocalShippingRoundedIcon />,
-                link: "/orders",
-                roles: ["Admin", "Gerente", "Vendedor", "Repartidor", "Agencia"],
-            },
-            {
-                text: "Órdenes canceladas",
-                icon: <DoNotDisturbAltRoundedIcon />,
-                link: "/orders/cancelled",
-                roles: ["Admin", "Gerente"],
-            },
-            {
-                text: "Inventario",
-                icon: <Inventory2RoundedIcon />,
-                link: "/inventory",
-                roles: ["Admin", "Agencia"],
-            },
-            {
-                text: "Inventario por ciudad",
-                icon: <Inventory2RoundedIcon />,
-                link: "/inventario-ciudades",
-                roles: ["Admin", "Gerente", "Vendedor"],
-            },
-            {
-                text: "Stock repartidor",
-                icon: <LocalMallRoundedIcon />,
-                link: "/deliverers/stock",
-                roles: ["Repartidor"],
-            },
-            {
-                text: "Repartidores",
-                icon: <EngineeringRoundedIcon />,
-                link: "/deliverers",
-                roles: ["Admin"],
-            },
-            {
-                text: "Ciudades y Agencias",
-                icon: <MapRounded />,
-                link: "/cities",
-                roles: ["Admin", "Gerente"],
-            },
-            {
-                text: "Cuentas Empresa",
-                icon: <PaymentRounded />,
-                link: "/admin/company-accounts",
-                roles: ["Admin", "Gerente"],
-            },
-            {
-                text: "Bancos",
-                icon: <AccountBalanceRounded />,
-                link: "/admin/banks",
-                roles: ["Admin", "Gerente"],
-            },
-            {
-                text: "Vueltos de mi grupo",
-                icon: <ReceiptLongRounded />,
-                link: "/mi-grupo/vueltos",
-                roles: ["Vendedor"],
-                leaderOnly: true,
-            },
-            {
-                text: "Vueltos Pendientes",
-                icon: <ReceiptLongRounded />,
-                link: "/admin/pending-vueltos",
-                roles: ["Admin", "Gerente"],
-            },
-            {
-                text: "Vueltos por validar",
-                icon: <ReceiptLongRounded />,
-                link: "/admin/vueltos-por-validar",
-                roles: ["Admin", "Gerente", "Master"],
-            },
-            {
-                text: "Tasa de dólar",
-                icon: <AttachMoneyRoundedIcon />,
-                link: "/currency",
-                roles: ["Admin"],
-            },
-
-            {
-                text: "Mis ganancias",
-                icon: <SavingsRoundedIcon />,
-                link: "/me/earnings",
-                roles: ["Vendedor", "Repartidor", "Gerente"],
-            },
-            {
-                text: "Ganancias globales",
-                icon: <BarChartRoundedIcon />,
-                link: "/earnings",
-                roles: ["Admin"],
-            },
-            {
-                text: "Tiendas",
-                icon: <StorefrontRounded />,
-                link: "/shops",
-                roles: ["Admin", "Gerente"],
-            },
-            {
-                text: "Reparto de órdenes",
-                icon: <SyncAltRounded />,
-                link: "/round-robin",
-                roles: ["Admin", "Gerente", "Master"],
-            },
-            {
-                text: "Grupos de venta",
-                icon: <GroupsRoundedIcon />,
-                link: "/grupos-de-venta",
-                roles: ["Admin", "Master"],
-            },
-            {
-                text: "Métricas",
-                icon: <PollRounded />,
-                link: "/metrics",
-                roles: ["Admin", "Gerente"],
-            },
-            {
-                text: "Metricas del negocio",
-                icon: <PollRounded />,
-                link: "/business-metrics",
-                roles: ["Admin"],
-            },
-            {
-                text: "Tracking de Órdenes",
-                icon: <HistoryRounded />,
-                link: "/tracking-report",
-                roles: ["Admin", "Gerente"],
-            },
-            {
-                text: "Reporte Horas Entregas",
-                icon: <AccessTimeRounded />,
-                link: "/admin/delivered-hours-report",
-                roles: ["Admin"],
-            },
-            {
-                text: "Biblioteca de Medios",
-                icon: <InsertDriveFileRounded />,
-                link: "/admin/media-explorer",
-                roles: ["Admin", "Gerente"],
-            },
-            {
-                text: "Exportar Órdenes",
-                icon: <FileDownloadRounded />,
-                link: "/admin/orders-export",
-                roles: ["Admin", "Gerente"],
-            },
-            {
-                text: "Exportar Stock",
-                icon: <WarehouseRounded />,
-                link: "/admin/stock-export",
-                roles: ["Admin", "Gerente"],
-            },
-        ],
-        []
+    const allowedLinks = useMemo(
+        () => MENU_LINKS.filter((l) => (!l.roles || l.roles.includes(roleDesc)) && (!l.leaderOnly || !!user.leader_group)),
+        [roleDesc, user.leader_group]
     );
+    const { pinned, openSections, togglePin, setSectionOpen } = useMenuPrefs(user.id);
+    const favorites = pinned.map((l) => allowedLinks.find((x) => x.link === l)).filter((x): x is NavLink => !!x);
+    const search = useMenuSearch(allowedLinks, () => searchRef.current?.blur());
+    const collapsible = allowedLinks.length > COLLAPSE_FROM;
 
-    const allowedLinks = links.filter(
-        (l) => (!l.roles || l.roles.includes(roleDesc)) && (!l.leaderOnly || !!user.leader_group)
-    );
-
-    const onClick = () => {
-        setOpen(!open);
-    };
+    // Ctrl K (⌘K en Mac): busca en el menú desde cualquier pantalla
+    useEffect(() => {
+        const onKey = (e: KeyboardEvent) => {
+            if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") {
+                e.preventDefault();
+                if (expanded) searchRef.current?.focus();
+                else setPaletteOpen(true);
+            }
+        };
+        window.addEventListener("keydown", onKey);
+        return () => window.removeEventListener("keydown", onKey);
+    }, [expanded]);
 
     const logout = async () => {
         const result = await userLogout();
@@ -324,168 +96,158 @@ export const SideBar = () => {
 
     if (user.is_lite_view) return null;
 
-    return (
-        <>
-            <Box
-                sx={{
-                    display: "flex",
-                    flexDirection: "column",
-                    minHeight: "100vh",
-                    height: "100vh",
-                    overflow: "auto",
-                    minWidth: { xs: 50, md: open ? 250 : 50 },
-                    width: { xs: 50, md: open ? 250 : 50 },
-                    background: (theme) =>
-                        theme.palette.mode === "dark"
-                            ? darken(user.color, 0.9)
-                            : `${user.color}05`,
-                    position: "sticky",
-                    top: 0,
-                    left: 0,
-                    borderRight: `2px solid ${user.color}30`,
-                }}
-            >
-                <Box
-                    sx={{
-                        minHeight: "100vh",
-                        maxHeight: "100vh",
-                        overflowY: "scroll",
-                        display: "flex",
-                        flexFlow: "column nowrap",
-                        alignItems: "center",
-                        gap: 1,
-                        pb: 2,
-                        "&::-webkit-scrollbar": {
-                            width: "0.1em",
-                        },
-                        "&::-webkit-scrollbar-track": {
-                            boxShadow: "inset 0 0 6px rgba(0,0,0,0.00)",
-                            webkitBoxShadow: "inset 0 0 6px rgba(0,0,0,0.00)",
-                        },
-                        "&::-webkit-scrollbar-thumb": {
-                            backgroundColor: "rgba(0,0,0,.1)",
-                        },
-                    }}
-                >
-                    <Box
-                        sx={{
-                            display: "flex",
-                            flexFlow: "column wrap",
-                            alignItems: "center",
-                            width: "100%",
-                            gap: 1,
-                        }}
-                    >
-                        <Box
-                            sx={{
-                                display: "flex",
-                                flexFlow: "row-reverse wrap",
-                                justifyContent: "center",
-                                alignItems: "center",
-                                width: "100%",
-                                gap: 1,
-                                pt: 1,
-                            }}
-                        >
-                            <IconButton sx={{ alignSelf: "flex-end" }} onClick={onClick}>
-                                {matches && (open ? (
-                                    <KeyboardArrowLeftRounded />
-                                ) : (
-                                    <KeyboardArrowRightRounded />
-                                ))}
-                            </IconButton>
-                            <IconButton
-                                sx={{
-                                    alignSelf: "flex-end",
-                                    background:
-                                        window.location.pathname === "/profile"
-                                            ? `${user.color}30`
-                                            : "transparent",
-                                    color: (theme) =>
-                                        theme.palette.mode === "dark" ? "#FFF" : "#000",
-                                }}
-                                onClick={() => navigate("/profile")}
-                            >
-                                <ManageAccountsRoundedIcon />
-                            </IconButton>
-
-                            <WhatsAppBell />
-                            <InternalChatBell />
-                            <NotificationBell />
-
-                            <IconButton sx={{ alignSelf: "flex-end" }} onClick={logout}>
-                                <LogoutRoundedIcon color="error" />
-                            </IconButton>
-                        </Box>
-
-                        {matches && open && <Clock />}
-
-                        {allowedLinks.map((data, i) => (
-                            <SideBarLink
-                                open={open}
-                                key={i}
-                                icon={data.icon}
-                                text={data.text}
-                                link={data.link}
-                                matches={matches}
-                            />
-                        ))}
-                    </Box>
-                </Box>
-            </Box>
-        </>
+    const item = (l: NavLink) => (
+        <SideBarItem
+            key={l.link}
+            item={l}
+            expanded={expanded}
+            active={pathname === l.link}
+            pinned={pinned.includes(l.link)}
+            onTogglePin={togglePin}
+        />
     );
-};
 
-interface SideBarLinkProps {
-    icon: ReactNode;
-    text: string;
-    link: string;
-    open: boolean;
-    matches: boolean;
-}
-
-const SideBarLink: FC<SideBarLinkProps> = ({ icon, text, link, open, matches }) => {
-    const navigate = useNavigate();
-    const user = useUserStore((state) => state.user);
-
-    const onClick = (link: string) => {
-        if (link === "/whatsapp" || link === "/whatsapp-old" || link === "/internal-chat") {
-            window.open(link, "_blank");
-        } else {
-            navigate(link);
-        }
-    };
+    const principal = allowedLinks.filter((l) => l.section === "principal");
+    const currentLink = allowedLinks.find((l) => l.link === pathname);
+    const railExtra = currentLink && !principal.includes(currentLink) && !favorites.includes(currentLink) ? currentLink : null;
 
     return (
         <Box
+            component="aside"
+            aria-label="Menú"
             sx={{
-                outline: "none",
-                borderRadius: "100em",
-                background:
-                    link === window.location.pathname ? `${user.color}19` : "transparent",
-                color: (theme) => (theme.palette.mode === "dark" ? "#FFF" : "#000"),
-                width: matches && open ? "90%" : 40,
-                height: matches && open ? "auto" : 40,
-                p: 1,
-                cursor: "pointer",
                 display: "flex",
-                alignItems: "center",
-                justifyContent: "start",
-                flexFlow: "row nowrap",
-                gap: 1,
-                transition: "0.2s ease all",
-                "&:hover": {
-                    background: `${user.color}19`,
-                    color: (theme) => (theme.palette.mode === "dark" ? "#FFF" : "#000"),
-                },
+                flexDirection: "column",
+                height: "100vh",
+                minWidth: { xs: 56, md: open ? 264 : 56 },
+                width: { xs: 56, md: open ? 264 : 56 },
+                background: (theme) => (theme.palette.mode === "dark" ? darken(user.color, 0.9) : `${user.color}05`),
+                position: "sticky",
+                top: 0,
+                left: 0,
+                borderRight: `2px solid ${user.color}30`,
+                transition: "width 0.2s, min-width 0.2s",
             }}
-            onClick={() => onClick(link)}
         >
-            {icon}
-            {matches && open && (
-                <TypographyCustom variant="subtitle2">{text}</TypographyCustom>
-            )}
+            {/* Arriba, fijo: accesos de la cuenta, hora y buscador */}
+            <Box sx={{ flexShrink: 0, display: "flex", flexDirection: "column", alignItems: "center", gap: 1, pt: 1, px: expanded ? 1 : 0.5 }}>
+                <Box sx={{ display: "flex", flexFlow: "row-reverse wrap", justifyContent: "center", alignItems: "center", width: "100%", gap: expanded ? 0.5 : 0.25 }}>
+                    {matches && (
+                        <Tooltip title={open ? "Cerrar menú" : "Abrir menú"} placement="right">
+                            <IconButton aria-label={open ? "Cerrar menú" : "Abrir menú"} onClick={() => setOpen(!open)}>
+                                {open ? <KeyboardArrowLeftRounded /> : <KeyboardArrowRightRounded />}
+                            </IconButton>
+                        </Tooltip>
+                    )}
+                    <Tooltip title="Mi perfil" placement="right">
+                        <IconButton
+                            aria-label="Mi perfil"
+                            sx={{ background: pathname === "/profile" ? `${user.color}30` : "transparent", color: "text.primary" }}
+                            onClick={() => navigate("/profile")}
+                        >
+                            <ManageAccountsRoundedIcon />
+                        </IconButton>
+                    </Tooltip>
+                    <WhatsAppBell />
+                    <InternalChatBell />
+                    <NotificationBell />
+                    <Tooltip title="Cerrar sesión" placement="right">
+                        <IconButton aria-label="Cerrar sesión" onClick={logout}>
+                            <LogoutRoundedIcon color="error" />
+                        </IconButton>
+                    </Tooltip>
+                </Box>
+
+                {expanded ? (
+                    <>
+                        <Clock />
+                        <Box sx={{ width: "100%" }}>
+                            <MenuSearchInput value={search.query} onChange={search.setQuery} onKeyDown={search.onKeyDown} inputRef={searchRef} />
+                        </Box>
+                    </>
+                ) : (
+                    <Tooltip title={`Buscar y ver todas las opciones (${SHORTCUT_LABEL})`} placement="right">
+                        <IconButton aria-label="Buscar y ver todas las opciones" onClick={() => setPaletteOpen(true)} sx={{ bgcolor: "action.hover" }}>
+                            <SearchRounded />
+                        </IconButton>
+                    </Tooltip>
+                )}
+            </Box>
+
+            {/* Las opciones, con su propio scroll */}
+            <Box
+                sx={{
+                    flex: 1,
+                    minHeight: 0,
+                    overflowY: "auto",
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                    gap: 0.5,
+                    px: expanded ? 1 : 0.5,
+                    pt: 1.5,
+                    pb: 2,
+                    "&::-webkit-scrollbar": { width: 6 },
+                    "&::-webkit-scrollbar-thumb": { backgroundColor: "rgba(128,128,128,.25)", borderRadius: 3 },
+                }}
+            >
+                {expanded ? (
+                    search.query.trim() ? (
+                        <Box sx={{ width: "100%" }}>
+                            <MenuSearchResults query={search.query} results={search.results} active={search.active} onNavigate={search.onDone} />
+                        </Box>
+                    ) : (
+                        <>
+                            {favorites.length > 0 && (
+                                <MenuSection title="Favoritos" count={favorites.length} open>
+                                    {favorites.map(item)}
+                                </MenuSection>
+                            )}
+                            {SECTIONS.map((s) => {
+                                // Lo fijado se ve en Favoritos y no se repite en su sección
+                                const links = allowedLinks.filter((l) => l.section === s.id && !favorites.includes(l));
+                                if (!links.length) return null;
+                                const isPrincipal = s.id === "principal";
+                                const current = links.some((l) => l.link === pathname);
+                                const isOpen = isPrincipal || !collapsible || (openSections[s.id] ?? current);
+                                return (
+                                    <MenuSection
+                                        key={s.id}
+                                        title={s.title}
+                                        count={links.length}
+                                        open={isOpen}
+                                        current={current}
+                                        onToggle={isPrincipal || !collapsible ? undefined : () => setSectionOpen(s.id, !isOpen)}
+                                    >
+                                        {links.map(item)}
+                                    </MenuSection>
+                                );
+                            })}
+                            {favorites.length === 0 && collapsible && (
+                                <Typography variant="caption" color="text.secondary" sx={{ px: 1.25, pt: 1, width: "100%" }}>
+                                    Consejo: pasa el mouse por una opción y toca la ☆ para fijarla arriba.
+                                </Typography>
+                            )}
+                        </>
+                    )
+                ) : !collapsible ? (
+                    allowedLinks.map(item)
+                ) : (
+                    <>
+                        {favorites.map(item)}
+                        {favorites.length > 0 && <Divider flexItem sx={{ my: 0.5 }} />}
+                        {principal.filter((l) => !favorites.includes(l)).map(item)}
+                        {railExtra && (
+                            <>
+                                <Divider flexItem sx={{ my: 0.5 }} />
+                                {item(railExtra)}
+                            </>
+                        )}
+                    </>
+                )}
+            </Box>
+
+            <MenuPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} links={allowedLinks} pinned={pinned} onTogglePin={togglePin} />
         </Box>
     );
 };
