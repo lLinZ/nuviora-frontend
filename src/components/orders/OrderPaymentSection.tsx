@@ -17,6 +17,8 @@ import { toast } from "react-toastify";
 import { IResponse } from "../../interfaces/response-type";
 import { ButtonCustom } from "../custom";
 import { useUserStore } from "../../store/user/UserStore";
+import { useReceiptChecks } from "./receipt-checks/receiptChecks";
+import { ReceiptCheckChip, ReceiptChecksPanel } from "./receipt-checks/ReceiptCheckViews";
 
 interface OrderPaymentSectionProps {
     order: any;
@@ -115,6 +117,8 @@ export const OrderPaymentSection: React.FC<OrderPaymentSectionProps> = ({ order,
 
     const receipts = getReceiptsList();
     const currentImage = receipts[viewerIndex]?.url;
+    // Revisión de cada comprobante con IA (Fran, 2026-10-03)
+    const receiptChecks = useReceiptChecks(order.id, receipts.map((r) => r.id).join(","), receipts.length > 0 && order.receipt_checks_mode !== "off");
 
     const handleReceiptUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
         const files = event.target.files;
@@ -418,6 +422,7 @@ export const OrderPaymentSection: React.FC<OrderPaymentSectionProps> = ({ order,
                                         backgroundColor: '#f5f5f5'
                                     }}
                                 />
+                                <ReceiptCheckChip check={receiptChecks.byReceipt(receipt.id)} />
                             </Card>
                         ))}
                     </Box>
@@ -426,6 +431,15 @@ export const OrderPaymentSection: React.FC<OrderPaymentSectionProps> = ({ order,
                         No hay comprobantes subidos
                     </Typography>
                 )}
+
+                <ReceiptChecksPanel
+                    orderId={order.id}
+                    receiptIds={receipts.map((r) => r.id)}
+                    checks={receiptChecks.checks}
+                    block={receiptChecks.block}
+                    mode={receiptChecks.mode}
+                    onChanged={() => { receiptChecks.reload(); onUpdate?.(); }}
+                />
 
                 <ButtonCustom
                     component="label"

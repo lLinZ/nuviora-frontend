@@ -18,7 +18,7 @@ import {
     AccessTimeRounded, AccountBalanceRounded, EditNoteRounded, FactCheckRounded, FileDownloadRounded, HistoryRounded,
     InsertDriveFileRounded, MapRounded, PaymentRounded, PeopleAltRounded, PollRounded, ReceiptLongRounded,
     SettingsEthernetRounded, SettingsRounded, ShoppingBagRounded, StorefrontRounded, SyncAltRounded, WarehouseRounded,
-    AssessmentRounded, Diversity3Rounded, PaymentsRounded,
+    AssessmentRounded, Diversity3Rounded, PaymentsRounded, ImageSearchRounded,
 } from "@mui/icons-material";
 
 export type SectionId = "principal" | "ventas" | "inventario" | "dinero" | "reportes" | "config";
@@ -64,6 +64,7 @@ export const MENU_LINKS: NavLink[] = [
     { section: "inventario", text: "Exportar Stock", icon: <WarehouseRounded />, link: "/admin/stock-export", roles: ["Admin", "Gerente"], keywords: "excel descargar inventario" },
 
     // Dinero
+    { section: "dinero", text: "Comprobantes por revisar", icon: <ImageSearchRounded />, link: "/admin/comprobantes", roles: ["Admin", "Gerente", "Master"], keywords: "comprobante capture pago movil foto ia verificar validar billetes referencia" },
     { section: "dinero", text: "Vueltos por validar", icon: <FactCheckRounded />, link: "/admin/vueltos-por-validar", roles: ["Admin", "Gerente", "Master"], keywords: "vuelto cambio pago mixto aprobar agencia" },
     { section: "dinero", text: "Vueltos Pendientes", icon: <ReceiptLongRounded />, link: "/admin/pending-vueltos", roles: ["Admin", "Gerente"], keywords: "vuelto cambio pagar pago movil" },
     { section: "dinero", text: "Vueltos de mi grupo", icon: <ReceiptLongRounded />, link: "/mi-grupo/vueltos", roles: ["Vendedor"], leaderOnly: true, keywords: "vuelto cambio pagar" },

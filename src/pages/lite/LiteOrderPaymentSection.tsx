@@ -23,6 +23,8 @@ import { receiptUrl, orderPaymentReceiptUrl } from "../../common/receipts";
 import { toast } from "react-toastify";
 import { IResponse } from "../../interfaces/response-type";
 import { green, red, blue } from "@mui/material/colors";
+import { STATUS_META, useReceiptChecks } from "../../components/orders/receipt-checks/receiptChecks";
+import { ReceiptChecksPanel } from "../../components/orders/receipt-checks/ReceiptCheckViews";
 
 export type PaymentMethodType =
     | "DOLARES_EFECTIVO"
@@ -191,6 +193,15 @@ export const LiteOrderPaymentSection: React.FC<OrderPaymentSectionProps> = ({ or
     };
 
     const receipts = getReceiptsList();
+    // Revisión de cada comprobante con IA (Fran, 2026-10-03)
+    const receiptChecks = useReceiptChecks(order.id, receipts.map((r) => r.id).join(","), receipts.length > 0 && order.receipt_checks_mode !== "off");
+    const borderFor = (id?: number) => {
+        const c = receiptChecks.byReceipt(id);
+        if (!c) return '1px solid #ddd';
+        const color = c.approved ? 'success' : STATUS_META[c.status].color;
+        const hex = { success: green[700], warning: '#ed6c02', error: red[700], info: blue[600] }[color as string];
+        return hex ? `3px solid ${hex}` : '1px solid #ddd';
+    };
 
     const totalPaid = rows.reduce((acc, row) => acc + (Number(row.amount) || 0), 0);
     const totalOrder = Number(order.current_total_price) || 0;
@@ -280,7 +291,8 @@ export const LiteOrderPaymentSection: React.FC<OrderPaymentSectionProps> = ({ or
                                 <CardMedia
                                     component="img"
                                     image={r.url}
-                                    sx={{ width: 60, height: 60, borderRadius: 2, cursor: 'pointer', border: '1px solid #ddd' }}
+                                    alt={`Comprobante ${i + 1}`}
+                                    sx={{ width: 60, height: 60, borderRadius: 2, cursor: 'pointer', border: borderFor(r.id), boxSizing: 'border-box' }}
                                     onClick={() => window.open(r.url, '_blank')}
                                 />
                                 <IconButton
@@ -299,6 +311,15 @@ export const LiteOrderPaymentSection: React.FC<OrderPaymentSectionProps> = ({ or
                         ))}
                     </Box>
                 )}
+
+                <ReceiptChecksPanel
+                    orderId={order.id}
+                    receiptIds={receipts.map((r) => r.id)}
+                    checks={receiptChecks.checks}
+                    block={receiptChecks.block}
+                    mode={receiptChecks.mode}
+                    onChanged={() => { receiptChecks.reload(); onUpdate?.(); }}
+                />
 
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <Typography
