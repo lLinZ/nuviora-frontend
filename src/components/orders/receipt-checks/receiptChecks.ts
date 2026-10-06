@@ -29,6 +29,12 @@ export const STATUS_META: Record<ReceiptCheckStatus, { label: string; short: str
     error: { label: "No se pudo revisar", short: "Sin revisar", color: "default" },
 };
 
+/** Una foto de billetes que está bien no dice "Verificado": la IA no cuenta los billetes, solo ve que son efectivo. */
+export const statusMeta = (check: ReceiptCheckView) =>
+    check.kind === "efectivo" && check.status === "ok"
+        ? { ...STATUS_META.ok, label: "Foto de billetes", short: "Billetes" }
+        : STATUS_META[check.status];
+
 const POLL_MS = 4000;
 const MAX_POLLS = 30;
 

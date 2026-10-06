@@ -10,7 +10,7 @@ import moment from "moment";
 import { toast } from "react-toastify";
 import { request } from "../../../common/request";
 import { useUserStore } from "../../../store/user/UserStore";
-import { ReceiptCheckStatus, ReceiptCheckView, STATUS_META } from "./receiptChecks";
+import { ReceiptCheckStatus, ReceiptCheckView, statusMeta } from "./receiptChecks";
 
 const ICON: Record<ReceiptCheckStatus, React.ReactElement> = {
     pending: <CircularProgress size={14} color="inherit" />,
@@ -24,7 +24,7 @@ const ICON: Record<ReceiptCheckStatus, React.ReactElement> = {
 /** Marca pequeña sobre la miniatura del comprobante. */
 export const ReceiptCheckChip: React.FC<{ check?: ReceiptCheckView }> = ({ check }) => {
     if (!check) return null;
-    const meta = STATUS_META[check.status];
+    const meta = statusMeta(check);
     const label = check.approved ? "Aprobado" : meta.short;
     return (
         <Chip
@@ -105,7 +105,7 @@ export const ReceiptChecksPanel: React.FC<PanelProps> = ({ orderId, receiptIds, 
             )}
             <Stack spacing={1}>
                 {ordered.map(({ index, check }) => {
-                    const meta = STATUS_META[check.status];
+                    const meta = statusMeta(check);
                     const severity = check.approved ? "success" : meta.color === "default" ? "info" : meta.color;
                     const summary = fmtSummary(check.summary ?? {});
                     return (
