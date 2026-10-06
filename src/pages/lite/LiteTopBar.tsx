@@ -107,7 +107,8 @@ export const LiteTopBar: React.FC<Props> = ({
         <AppBar position="sticky" elevation={0} sx={{ bgcolor: "background.paper", borderBottom: "1px solid", borderColor: "divider", color: "text.primary" }}>
             <Toolbar sx={{ minHeight: 60, gap: 1, px: { xs: 1, sm: 2 } }}>
                 {brand}
-                {commissionsPill}
+                {/* Lo de una agencia son sus carreras, que solo ve el Admin */}
+                {user.role?.description !== "Agencia" && commissionsPill}
                 <Box sx={{ flex: 1 }} />
 
                 {compact ? (

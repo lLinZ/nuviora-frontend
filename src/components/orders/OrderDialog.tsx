@@ -925,9 +925,10 @@ export const OrderDialog: FC<OrderDialogProps> = ({ id, open, setOpen }) => {
                                                 />
                                             </Grid>
                                         )}
-                                        {['Admin', 'Gerente', 'Master', 'Agencia'].includes(user.role?.description || '') && (
+                                        {/* Las carreras solo las ve el Admin; la agencia no (Fran, 2026-10-06) */}
+                                        {['Admin', 'Master'].includes(user.role?.description || '') && (
                                             <Grid size={{ xs: 12, md: 6 }}>
-                                                <OrderTripsCard orderId={order.id} canVoid={['Admin', 'Master'].includes(user.role?.description || '')} />
+                                                <OrderTripsCard orderId={order.id} canVoid />
                                             </Grid>
                                         )}
                                     </Grid>
