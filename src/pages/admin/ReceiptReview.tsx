@@ -15,7 +15,7 @@ import { OrderDialog } from "../../components/orders/OrderDialog";
 import { request } from "../../common/request";
 import { useValidateSession } from "../../hooks/useValidateSession";
 import { orderNo } from "../../lib/functions";
-import { ReceiptCheckStatus, ReceiptCheckView, STATUS_META } from "../../components/orders/receipt-checks/receiptChecks";
+import { ReceiptCheckStatus, ReceiptCheckView, statusMeta } from "../../components/orders/receipt-checks/receiptChecks";
 
 type Row = ReceiptCheckView & {
     created_at: string | null;
@@ -119,7 +119,7 @@ export const ReceiptReview: React.FC = () => {
                 ) : (
                     <Grid container spacing={2} sx={{ mt: 1 }}>
                         {shown.map((r) => {
-                            const meta = STATUS_META[r.status];
+                            const meta = statusMeta(r);
                             return (
                                 <Grid key={r.id} size={{ xs: 12, md: 6, xl: 4 }}>
                                     <Card elevation={0} sx={{ borderRadius: 3, border: "1px solid", borderColor: "divider", height: "100%", display: "flex" }}>

@@ -33,6 +33,7 @@ import { IResponse } from "../interfaces/response-type";
 import { OrderDialog } from "../components/orders/OrderDialog";
 import { PaymentMethodsReport } from "../components/reports/PaymentMethodsReport";
 import { StockAlertWidget } from "../components/inventory/StockAlertWidget";
+import { ConciliationWidget } from "../components/reconciliation/ConciliationWidget";
 import { orderNo } from "../lib/functions";
 
 interface DashboardStats {
@@ -321,6 +322,13 @@ export const Dashboard = () => {
                                 ))}
                             </Grid>
                         </Grid>
+
+                        {/* Conciliaciones de pagos digitales (documento de Fran del 2026-10-06, §15): solo el Admin (§29) */}
+                        {role === 'Admin' && (
+                            <Grid size={{ xs: 12 }}>
+                                <ConciliationWidget />
+                            </Grid>
+                        )}
 
                         {/* 📦 SCM STOCK ALERT WIDGET */}
                         {role === 'Admin' && (

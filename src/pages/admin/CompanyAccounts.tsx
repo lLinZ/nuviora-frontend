@@ -22,6 +22,8 @@ import {
     Select,
     FormControl,
     InputLabel,
+    Autocomplete,
+    Chip,
 } from '@mui/material';
 import {
     AddRounded,
@@ -40,7 +42,7 @@ import { Layout } from '../../components/ui/Layout';
 import { DescripcionDeVista } from '../../components/ui/content/DescripcionDeVista';
 import { request } from '../../common/request';
 import { IResponse } from '../../interfaces/response-type';
-import { ICompanyAccount, ICompanyAccountDetail } from '../../interfaces/company-account.types';
+import { ICompanyAccount, ICompanyAccountDetail, ICompanyAccountOptions } from '../../interfaces/company-account.types';
 import { Loading } from '../../components/ui/content/Loading';
 import { toast } from 'react-toastify';
 import { useValidateSession } from '../../hooks/useValidateSession';
@@ -71,10 +73,16 @@ export const CompanyAccounts: React.FC = () => {
     const [dialogOpen, setDialogOpen] = useState(false);
     const [selectedAccount, setSelectedAccount] = useState<ICompanyAccount | null>(null);
 
+    // Documento de Fran (Módulo 1, §2): método, moneda y extracto de cada cuenta
+    const [options, setOptions] = useState<ICompanyAccountOptions>({ methods: {}, currencies: [], sources: [] });
+
     // Form states
     const [formData, setFormData] = useState({
         name: '',
         icon: 'AccountBalanceRounded',
+        method: '',
+        currency: '',
+        statement_source_name: '',
         is_active: true,
         details: [{ label: '', value: '' }] as ICompanyAccountDetail[]
     });
@@ -82,8 +90,18 @@ export const CompanyAccounts: React.FC = () => {
     useEffect(() => {
         if (isValid) {
             loadAccounts();
+            loadOptions();
         }
     }, [isValid]);
+
+    const loadOptions = async () => {
+        try {
+            const { status, response }: IResponse = await request('/company-accounts-options', 'GET');
+            if (status) setOptions(await response.json());
+        } catch (error) {
+            console.error(error);
+        }
+    };
 
     const loadAccounts = async () => {
         setLoading(true);
@@ -107,6 +125,9 @@ export const CompanyAccounts: React.FC = () => {
             setFormData({
                 name: account.name,
                 icon: account.icon || 'AccountBalanceRounded',
+                method: account.method ?? '',
+                currency: account.currency ?? '',
+                statement_source_name: account.statement_source_name ?? '',
                 is_active: account.is_active,
                 details: account.details && account.details.length > 0 ? [...account.details] : [{ label: '', value: '' }]
             });
@@ -115,6 +136,9 @@ export const CompanyAccounts: React.FC = () => {
             setFormData({
                 name: '',
                 icon: 'AccountBalanceRounded',
+                method: '',
+                currency: '',
+                statement_source_name: '',
                 is_active: true,
                 details: [{ label: '', value: '' }]
             });
@@ -152,6 +176,9 @@ export const CompanyAccounts: React.FC = () => {
 
         const payload = {
             ...formData,
+            method: formData.method || null,
+            currency: formData.currency || null,
+            statement_source_name: formData.statement_source_name.trim() || null,
             details: filteredDetails
         };
 
@@ -269,9 +296,18 @@ export const CompanyAccounts: React.FC = () => {
                                                 }}>
                                                     <IconRenderer iconName={account.icon} />
                                                 </Box>
-                                                <Typography variant="h6" fontWeight="bold">
-                                                    {account.name}
-                                                </Typography>
+                                                <Box>
+                                                    <Typography variant="h6" fontWeight="bold">
+                                                        {account.name}
+                                                    </Typography>
+                                                    {account.method && (
+                                                        <Stack direction="row" spacing={0.5} sx={{ mt: 0.5, flexWrap: 'wrap', rowGap: 0.5 }}>
+                                                            <Chip size="small" variant="outlined" label={options.methods[account.method] ?? account.method} />
+                                                            {account.currency && <Chip size="small" variant="outlined" label={account.currency} />}
+                                                            {account.statement_source_name && <Chip size="small" variant="outlined" label={`Extracto: ${account.statement_source_name}`} />}
+                                                        </Stack>
+                                                    )}
+                                                </Box>
                                             </Stack>
                                             <Tooltip title={account.is_active ? "Activo" : "Inactivo"}>
                                                 <Switch
@@ -351,6 +387,50 @@ export const CompanyAccounts: React.FC = () => {
                                     ))}
                                 </Select>
                             </FormControl>
+
+                            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+                                <FormControl fullWidth>
+                                    <InputLabel>Método de pago</InputLabel>
+                                    <Select
+                                        value={formData.method}
+                                        label="Método de pago"
+                                        onChange={(e) => setFormData({ ...formData, method: e.target.value })}
+                                    >
+                                        <MenuItem value=""><em>Ninguno</em></MenuItem>
+                                        {Object.entries(options.methods).map(([value, label]) => (
+                                            <MenuItem key={value} value={value}>{label}</MenuItem>
+                                        ))}
+                                    </Select>
+                                </FormControl>
+                                <FormControl fullWidth sx={{ maxWidth: { sm: 140 } }}>
+                                    <InputLabel>Moneda</InputLabel>
+                                    <Select
+                                        value={formData.currency}
+                                        label="Moneda"
+                                        onChange={(e) => setFormData({ ...formData, currency: e.target.value })}
+                                    >
+                                        <MenuItem value=""><em>Ninguna</em></MenuItem>
+                                        {options.currencies.map((c) => (
+                                            <MenuItem key={c} value={c}>{c}</MenuItem>
+                                        ))}
+                                    </Select>
+                                </FormControl>
+                            </Stack>
+
+                            <Autocomplete
+                                freeSolo
+                                options={options.sources}
+                                inputValue={formData.statement_source_name}
+                                onInputChange={(_, value) => setFormData((f) => ({ ...f, statement_source_name: value }))}
+                                renderInput={(params) => (
+                                    <TextField
+                                        {...params}
+                                        label="Extracto donde se verifica"
+                                        placeholder="Ej. Banesco, Binance"
+                                        helperText="El banco o la plataforma de la que se sube el extracto. Si dos cuentas llegan al mismo banco (pago móvil y transferencia), pon el mismo nombre."
+                                    />
+                                )}
+                            />
 
                             <Box>
                                 <Typography variant="subtitle2" fontWeight="bold" sx={{ mb: 1, display: 'flex', alignItems: 'center', gap: 1 }}>

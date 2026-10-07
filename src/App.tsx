@@ -31,6 +31,8 @@ import { Banks } from './pages/admin/Banks';
 import { PendingVueltos } from './pages/admin/PendingVueltos';
 import { ChangeApprovals } from './pages/admin/ChangeApprovals';
 import { ReceiptReview } from './pages/admin/ReceiptReview';
+import { Reconciliation } from './pages/admin/Reconciliation';
+import { ReconciliationDay } from './pages/admin/ReconciliationDay';
 import { SalesLite } from './pages/lite/SalesLite';
 import { OrderTrackingReport } from './pages/OrderTrackingReport';
 import { Javascript } from '@mui/icons-material';
@@ -130,6 +132,9 @@ function App() {
           <Route path="/admin/pending-vueltos" element={<RequireRole allowedRoles={['Admin', 'Gerente']}><PendingVueltos /></RequireRole>} />
           <Route path="/admin/vueltos-por-validar" element={<RequireRole allowedRoles={['Admin', 'Gerente', 'Master']}><ChangeApprovals /></RequireRole>} />
           <Route path="/admin/comprobantes" element={<RequireRole allowedRoles={['Admin', 'Gerente', 'Master']}><ReceiptReview /></RequireRole>} />
+          {/* Conciliación de pagos digitales (documento de Fran del 2026-10-06): solo el Administrador (§29) */}
+          <Route path="/conciliacion" element={<RequireRole allowedRoles={['Admin']}><Reconciliation /></RequireRole>} />
+          <Route path="/conciliacion/:date" element={<RequireRole allowedRoles={['Admin']}><ReconciliationDay /></RequireRole>} />
           <Route path="/mi-grupo/vueltos" element={<RequireRole allowedRoles={['Vendedor']}><PendingVueltos /></RequireRole>} />
           <Route path="/admin/whatsapp-templates" element={<RequireRole allowedRoles={['Admin']}><WhatsappTemplates /></RequireRole>} />
           <Route path="/admin/webhooks" element={<RequireRole allowedRoles={['Admin']}><WebhooksPage /></RequireRole>} />

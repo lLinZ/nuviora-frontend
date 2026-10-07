@@ -11,7 +11,7 @@ export interface ReceiptCheckView {
     status: ReceiptCheckStatus;
     kind: string | null;
     kind_label: string | null;
-    issues: { level: "fail" | "warning"; text: string }[];
+    issues: { level: "fail" | "warning"; text: string; code?: string }[];
     error: string | null;
     summary: Record<string, string | number>;
     approved: boolean;
@@ -29,11 +29,19 @@ export const STATUS_META: Record<ReceiptCheckStatus, { label: string; short: str
     error: { label: "No se pudo revisar", short: "Sin revisar", color: "default" },
 };
 
-/** Una foto de billetes que está bien no dice "Verificado": la IA no cuenta los billetes, solo ve que son efectivo. */
-export const statusMeta = (check: ReceiptCheckView) =>
-    check.kind === "efectivo" && check.status === "ok"
-        ? { ...STATUS_META.ok, label: "Foto de billetes", short: "Billetes" }
-        : STATUS_META[check.status];
+/**
+ * Una foto de billetes que está bien no dice "Verificado": la IA no cuenta los billetes, solo ve que son efectivo.
+ * Si la única advertencia es que el cliente pagó más del 5 %, se llama como en el documento de Fran (§8).
+ */
+export const statusMeta = (check: ReceiptCheckView) => {
+    if (check.kind === "efectivo" && check.status === "ok") {
+        return { ...STATUS_META.ok, label: "Foto de billetes", short: "Billetes" };
+    }
+    if (check.status === "warning" && check.issues.length > 0 && check.issues.every((i) => i.code === "overpaid")) {
+        return { ...STATUS_META.warning, label: "Validado con advertencia", short: "Con advertencia" };
+    }
+    return STATUS_META[check.status];
+};
 
 const POLL_MS = 4000;
 const MAX_POLLS = 30;
