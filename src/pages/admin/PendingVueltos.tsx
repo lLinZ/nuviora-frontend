@@ -131,7 +131,12 @@ export const PendingVueltos: React.FC = () => {
         const amountLine = bs !== null ? `\nMonto: Bs. ${fmtBs(bs)}` : '';
 
         if (method === 'BOLIVARES_PAGOMOVIL') {
-            text = `PAGO MÓVIL\nCédula: ${details.cedula}\nBanco: ${getBankName(details.bank_id)}\nTeléfono: ${details.phone_prefix}${details.phone_number}${amountLine}`;
+            // Fran (2026-10-06): solo los datos para pegar en el pago móvil, igual que el botón de la ficha
+            // (OrderChangeSection): CÓDIGO_BANCO CÉDULA TELÉFONO MONTO, sin rótulos ni nombre del banco.
+            const code = banks.find(b => b.id === details.bank_id)?.code;
+            const phone = `${details.phone_prefix || ''}${details.phone_number || ''}`;
+            const amount = bs !== null ? bs.toFixed(2).replace('.', ',') : '';
+            text = [code, details.cedula, phone, amount].filter(Boolean).join(' ');
         } else if (method === 'BOLIVARES_TRANSFERENCIA') {
             text = `TRANSFERENCIA BANCARIA\nCuenta: ${details.account_number}\nCédula: ${details.cedula}\nBanco: ${getBankName(details.bank_id)}${amountLine}`;
         } else if (['ZELLE_DOLARES', 'BINANCE_DOLARES', 'PAYPAL_DOLARES', 'ZINLI_DOLARES'].includes(method)) {
