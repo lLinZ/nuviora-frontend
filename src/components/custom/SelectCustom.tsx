@@ -88,7 +88,7 @@ export function SelectCustom(
                 borderRadius: 4,
             },
             '& .MuiSelect-select': {
-                fontFamily: 'Noto Sans Warang Citi',
+                fontFamily: 'inherit',
             },
         }
     }
@@ -108,7 +108,7 @@ export function SelectCustom(
     return (
         <FormControl fullWidth error={error} variant={variant}>
             <InputLabel id={labelId} sx={{
-                fontFamily: 'Noto Sans Warang Citi',
+                fontFamily: 'inherit',
                 color: variant === 'filled' ? theme.palette.getContrastText(user.color) : theme.palette.getContrastText(theme.palette.background.default),
                 position: 'absolute',
                 left: 0,

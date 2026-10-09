@@ -20,20 +20,8 @@ export function TypographyCustom<C extends React.ElementType>(
         'error': red[500],
     }
 
-    const fontFamilyHash: any = {
-        '1': 'Geologica',
-        '3': 'Open Sans',
-        '2': 'Ubuntu',
-        '4': 'Noto Sans Warang Citi',
-        '5': 'Poppins',
-    }
-    let styles = {};
-
-    styles = rest._color ? {
-        fontFamily: fontFamilyHash[mode],
-        color: colorHash[rest._color]
-    } : {
-        fontFamily: fontFamilyHash[mode],
-    };
+    // fontmode quedó por compatibilidad: todo el sistema usa la fuente del tema (Inter)
+    void mode;
+    const styles = rest._color ? { color: colorHash[rest._color] } : {};
     return <Typography sx={{ ...styles }} {...rest}>{children}</Typography>;
 }

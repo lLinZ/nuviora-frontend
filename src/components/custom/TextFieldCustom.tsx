@@ -13,12 +13,12 @@ export function TextFieldCustom(props: TextFieldProps) {
         variant="outlined"
         sx={{
             '& input': {
-                fontFamily: 'Poppins',
+                fontFamily: 'inherit',
                 p: 1.5
             },
             '& fieldset': {
                 borderRadius: 4,
-                fontFamily: 'Poppins',
+                fontFamily: 'inherit',
                 border: rest.variant === 'filled' ? 'transparent' : '',
                 color: (theme) => theme.palette.getContrastText('rgba(200, 200, 200, 0.2)'),
                 background: rest.variant === 'filled' ? 'rgba(200, 200, 200, 0.2)' : 'transparent',
@@ -27,7 +27,7 @@ export function TextFieldCustom(props: TextFieldProps) {
                 color: darken(user.color, 0.3),
             },
             '& label': {
-                fontFamily: 'Poppins',
+                fontFamily: 'inherit',
                 fontSize: 13
             },
             '& .MuiOutlinedInput-root': {

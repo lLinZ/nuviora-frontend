@@ -14,7 +14,7 @@ export function ButtonCancelCustom<C extends React.ElementType>(
     return <Button
         disableElevation
         sx={{
-            fontFamily: 'Geologica',
+            fontFamily: 'inherit',
             borderRadius: 4,
             textTransform: 'none',
             p: 1.5,

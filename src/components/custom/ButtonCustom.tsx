@@ -58,7 +58,7 @@ export function ButtonCustom<C extends React.ElementType>(
         fullWidth={nofull ? false : true}
         disableElevation
         sx={{
-            fontFamily: 'Poppins',
+            fontFamily: 'inherit',
             borderRadius: 4,
             textTransform: 'none',
             p: 1.5,

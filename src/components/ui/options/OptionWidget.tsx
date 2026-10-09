@@ -33,7 +33,7 @@ export const OptionWidget = (props: Props) => {
                     padding: 2,
                     border: '1px solid rgba(150,150,150,0.2)',
                     [`& .${chipClasses.icon}`]: { color: theme.palette.mode === 'dark' ? user : user.darken },
-                    fontFamily: 'Geologica',
+                    fontFamily: 'inherit',
                     width: '100%'
                 }}
             />

@@ -13,11 +13,11 @@ export function TextFieldWithIconCustom(
             fullWidth
             sx={{
                 '& input': {
-                    fontFamily: 'Geologica',
+                    fontFamily: 'inherit',
                 },
                 '& fieldset': {
                     borderRadius: 4,
-                    fontFamily: 'Geologica',
+                    fontFamily: 'inherit',
                     background: 'rgba(100,100,100,0.1)',
                     border: 'none'
                 },
@@ -25,7 +25,7 @@ export function TextFieldWithIconCustom(
                     color: user.color,
                 },
                 '& label': {
-                    fontFamily: 'Geologica'
+                    fontFamily: 'inherit'
                 },
                 '& .MuiOutlinedInput-root': {
                     '&.Mui-focused fieldset': {

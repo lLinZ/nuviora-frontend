@@ -1,6 +1,6 @@
 import { FC, ReactNode } from 'react';
 import Box from '@mui/material/Box';
-import { Toolbar, Typography, useTheme } from '@mui/material';
+import { Typography, useTheme } from '@mui/material';
 import IconButton from '@mui/material/IconButton';
 import { To, useNavigate } from 'react-router-dom';
 import NavigateBeforeRounded from '@mui/icons-material/NavigateBeforeRounded';
@@ -20,8 +20,10 @@ export const DescripcionDeVista: FC<Props> = ({ description, title, backPath = u
     const theme = useTheme();
     const user = useUserStore(state => state.user);
     const styles: any = {
+        // Sin el espacio de 64 px que dejaba arriba un Toolbar vacío (no hay barra fija encima)
         nameContainer: {
             borderRadius: 3,
+            marginTop: 1,
             marginBottom: 2,
         },
         buttons: {
@@ -29,7 +31,7 @@ export const DescripcionDeVista: FC<Props> = ({ description, title, backPath = u
             textTransform: 'none',
             borderRadius: '10em',
             color: 'text.secondary',
-            fontFamily: 'Open Sans',
+            fontFamily: 'inherit',
             mb: 2,
             '&:hover': {
                 background: user.color,
@@ -51,7 +53,6 @@ export const DescripcionDeVista: FC<Props> = ({ description, title, backPath = u
             {/* {buttons && (<Button size='small' onClick={redirect} variant="text" sx={styles.buttons} startIcon={< HomeRounded />}>
                 Volver al inicio
             </Button >)} */}
-            <Toolbar />
             <Box sx={styles.container}>
                 {buttons && (<IconButton onClick={() => router(backPath ? backPath : -1 as To)}>
                     <NavigateBeforeRounded />

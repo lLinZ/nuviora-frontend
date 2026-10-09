@@ -32,18 +32,18 @@ export const CalendarCustom = (props: Props) => {
                 sx={{
                     width: '100%',
                     '& input': {
-                        fontFamily: 'Noto Sans Warang Citi',
+                        fontFamily: 'inherit',
                         p: 1.5
                     },
                     '& fieldset': {
                         borderRadius: 10,
-                        fontFamily: 'Noto Sans Warang Citi',
+                        fontFamily: 'inherit',
                     },
                     '& label.Mui-focused': {
                         color: darken(user.color, 0.3),
                     },
                     '& label': {
-                        fontFamily: 'Noto Sans Warang Citi'
+                        fontFamily: 'inherit'
                     },
                     '& .MuiOutlinedInput-root': {
                         '&.Mui-focused fieldset': {
