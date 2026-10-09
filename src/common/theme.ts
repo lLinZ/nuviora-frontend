@@ -1,17 +1,18 @@
-import { createTheme, darken, lighten, Theme, ThemeOptions } from "@mui/material/styles";
+import { alpha, createTheme, darken, lighten, Theme, ThemeOptions } from "@mui/material/styles";
 
 /** Inter en todo el sistema; las demás son de reserva mientras carga. */
 export const FONT_FAMILY = ['"Inter"', 'system-ui', '-apple-system', '"Segoe UI"', 'Roboto', 'Arial', 'sans-serif'].join(',');
 
 /**
- * Colores del borde con brillo de las tarjetas, sacados del color que eligió el usuario: las esquinas superior
- * izquierda e inferior derecha llevan el color más brillante; las otras dos, uno más oscuro que el fondo.
+ * Colores del borde con brillo de las tarjetas, sacados del color que eligió el usuario. Todo el borde brilla (como el
+ * filo de los íconos de un teléfono): las esquinas superior izquierda e inferior derecha con el tono más claro, y las
+ * otras dos con uno algo menos claro, pero siempre más claro que el fondo, nunca oscuro.
  */
 export const glowColors = (theme: Theme) => {
     const c = theme.palette.primary.main;
     return theme.palette.mode === "dark"
-        ? { light: darken(c, 0.25), dark: darken(c, 0.9) }
-        : { light: lighten(c, 0.35), dark: lighten(c, 0.88) };
+        ? { light: lighten(c, 0.5), dark: alpha(lighten(c, 0.15), 0.45) }
+        : { light: lighten(c, 0.2), dark: lighten(c, 0.68) };
 };
 
 const typography: ThemeOptions["typography"] = {
