@@ -18,7 +18,7 @@ import {
     AccessTimeRounded, AccountBalanceRounded, EditNoteRounded, FactCheckRounded, FileDownloadRounded, HistoryRounded,
     InsertDriveFileRounded, MapRounded, PaymentRounded, PeopleAltRounded, PollRounded, ReceiptLongRounded,
     SettingsEthernetRounded, SettingsRounded, ShoppingBagRounded, StorefrontRounded, SyncAltRounded, WarehouseRounded,
-    AssessmentRounded, Diversity3Rounded, PaymentsRounded, ImageSearchRounded,
+    AssessmentRounded, Diversity3Rounded, PaymentsRounded, ImageSearchRounded, CampaignRounded, InsightsRounded,
 } from "@mui/icons-material";
 
 export type SectionId = "principal" | "ventas" | "inventario" | "dinero" | "reportes" | "config";
@@ -76,6 +76,7 @@ export const MENU_LINKS: NavLink[] = [
 
     // Reportes
     { section: "reportes", text: "Métricas", icon: <PollRounded />, link: "/metrics", roles: ["Admin", "Gerente"], keywords: "estadisticas reportes graficos" },
+    { section: "reportes", text: "Meta Ads", icon: <InsightsRounded />, link: "/meta-ads", roles: ["Admin"], keywords: "facebook anuncios campañas publicidad cpa ctr cpm creativos" },
     { section: "reportes", text: "Métricas del negocio", icon: <PollRounded />, link: "/business-metrics", roles: ["Admin"], keywords: "ganancias ventas estadisticas" },
     { section: "reportes", text: "Tracking de Órdenes", icon: <HistoryRounded />, link: "/tracking-report", roles: ["Admin", "Gerente"], keywords: "historial seguimiento" },
     { section: "reportes", text: "Reporte Horas Entregas", icon: <AccessTimeRounded />, link: "/admin/delivered-hours-report", roles: ["Admin"], keywords: "tiempos entregas horas agencias" },
@@ -86,6 +87,7 @@ export const MENU_LINKS: NavLink[] = [
     { section: "config", text: "Repartidores", icon: <EngineeringRoundedIcon />, link: "/deliverers", roles: ["Admin"], keywords: "motorizados delivery" },
     { section: "config", text: "Ciudades y Agencias", icon: <MapRounded />, link: "/cities", roles: ["Admin", "Gerente"], keywords: "agencias reparto porcentajes cupo" },
     { section: "config", text: "Plantillas WhatsApp", icon: <EditNoteRounded />, link: "/admin/whatsapp-templates", roles: ["Admin"], keywords: "mensajes" },
+    { section: "config", text: "Meta Ads (conexiones)", icon: <CampaignRounded />, link: "/admin/meta-ads", roles: ["Admin"], keywords: "facebook business manager bm token cuentas publicitarias clasificar campañas objetivos cpa reglas" },
     { section: "config", text: "Integraciones Webhooks", icon: <SettingsEthernetRounded />, link: "/admin/webhooks", roles: ["Admin"], keywords: "n8n integraciones" },
     { section: "config", text: "Biblioteca de Medios", icon: <InsertDriveFileRounded />, link: "/admin/media-explorer", roles: ["Admin", "Gerente"], keywords: "imagenes archivos fotos videos" },
 ];

@@ -33,6 +33,9 @@ import { ChangeApprovals } from './pages/admin/ChangeApprovals';
 import { ReceiptReview } from './pages/admin/ReceiptReview';
 import { Reconciliation } from './pages/admin/Reconciliation';
 import { ReconciliationDay } from './pages/admin/ReconciliationDay';
+import { MetaAdsSettings } from './pages/admin/MetaAdsSettings';
+import { MetaAdsDashboard } from './pages/admin/MetaAdsDashboard';
+import { MetaCreativePage } from './pages/admin/MetaCreativePage';
 import { SalesLite } from './pages/lite/SalesLite';
 import { OrderTrackingReport } from './pages/OrderTrackingReport';
 import { Javascript } from '@mui/icons-material';
@@ -135,6 +138,10 @@ function App() {
           {/* Conciliación de pagos digitales (documento de Fran del 2026-10-06): solo el Administrador (§29) */}
           <Route path="/conciliacion" element={<RequireRole allowedRoles={['Admin']}><Reconciliation /></RequireRole>} />
           <Route path="/conciliacion/:date" element={<RequireRole allowedRoles={['Admin']}><ReconciliationDay /></RequireRole>} />
+          {/* Meta Ads, solo lectura (Módulo 2 de Fran): solo el Administrador (§44) */}
+          <Route path="/meta-ads" element={<RequireRole allowedRoles={['Admin']}><MetaAdsDashboard /></RequireRole>} />
+          <Route path="/meta-ads/creativos/:id" element={<RequireRole allowedRoles={['Admin']}><MetaCreativePage /></RequireRole>} />
+          <Route path="/admin/meta-ads" element={<RequireRole allowedRoles={['Admin']}><MetaAdsSettings /></RequireRole>} />
           <Route path="/mi-grupo/vueltos" element={<RequireRole allowedRoles={['Vendedor']}><PendingVueltos /></RequireRole>} />
           <Route path="/admin/whatsapp-templates" element={<RequireRole allowedRoles={['Admin']}><WhatsappTemplates /></RequireRole>} />
           <Route path="/admin/webhooks" element={<RequireRole allowedRoles={['Admin']}><WebhooksPage /></RequireRole>} />
