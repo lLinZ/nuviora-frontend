@@ -1,12 +1,13 @@
-import { Badge, Box, CircularProgress, Typography } from "@mui/material";
+import { Box, CircularProgress, IconButton, Tooltip, Typography } from "@mui/material";
 import { darken } from "@mui/material/styles";
+import { RefreshRounded } from "@mui/icons-material";
 import React, { FC, useCallback, useEffect, useRef } from "react";
 import { OrderItem, statusColors } from "./OrderItem";
 import { useOrdersStore } from "../../store/orders/OrdersStore";
 import { useUserStore } from "../../store/user/UserStore";
 import { grey } from "@mui/material/colors";
 import { request } from "../../common/request";
-import { toast } from "react-toastify";
+import { glowBorder } from "../ui/surface/glow";
 
 interface OrderListProps {
     title: string;
@@ -164,74 +165,69 @@ export const OrderList: FC<OrderListProps> = ({ title }) => {
         }
     };
 
+    const color = statusColors[title] || grey[500];
+
+    // La columna ocupa el alto del tablero: el encabezado queda fijo y solo baja la lista, así siempre se ve en qué
+    // columna estás
     return (
         <Box
             id={`order-list-${title}`}
-            onScroll={handleScroll}
-            sx={{
-                zIndex: 999,
-                background: (theme) =>
-                    theme.palette.mode === "dark"
-                        ? darken(user.color, 0.8)
-                        : "white",
-                p: 2,
-                boxShadow: "0 8px 20px rgba(150,150,150,0.1)",
-                overflowX: "hidden",
-                minHeight: "600px",
-                maxHeight: "600px",
-                gap: 2,
-                borderRadius: 5,
-                height: "fit-content",
-                overflowY: "scroll",
-                "&::-webkit-scrollbar": {
-                    width: "5px",
-                },
-            }}
+            component="section"
+            aria-label={title}
+            sx={(theme) => ({
+                ...glowBorder(theme),
+                display: "flex",
+                flexDirection: "column",
+                width: 300,
+                flexShrink: 0,
+                height: "100%",
+                borderRadius: 4,
+                overflow: "hidden",
+                bgcolor: theme.palette.mode === "dark" ? darken(user.color, 0.82) : "background.paper",
+            })}
         >
-            <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 2 }}>
-                <Box display="flex" alignItems="center" gap={1}>
-                    <Typography variant="h6">
-                        {title}
-                    </Typography>
-                    <Badge
-                        badgeContent={column?.total || 0}
-                        max={999}
-                        sx={{
-                            "& .MuiBadge-badge": {
-                                backgroundColor: statusColors[title] || grey[400],
-                                color: "#fff",
-                                fontSize: 12,
-                                height: 20,
-                                minWidth: 20,
-                            },
-                        }}
-                    />
-                </Box>
-
-                {/* Controls */}
-                <Box display="flex" alignItems="center" gap={1}>
-                    <Typography
-                        variant="caption"
-                        onClick={handleManualRefresh}
-                        sx={{
-                            cursor: 'pointer',
-                            fontSize: '1rem',
-                            '&:hover': { transform: 'rotate(180deg)', transition: '0.3s' }
-                        }}
-                        title="Actualizar lista manualmente"
-                    >
-                        🔄
-                    </Typography>
-                </Box>
-            </Box>
             <Box
                 sx={{
-                    p: 2,
-                    gap: 2,
+                    display: "flex", alignItems: "center", gap: 1, px: 2, py: 1.25, flexShrink: 0,
+                    borderBottom: "1px solid", borderColor: "divider",
+                    // Una franja del color del estado, para reconocer la columna de lejos
+                    boxShadow: `inset 0 3px 0 ${color}`,
+                }}
+            >
+                <Tooltip title={title} placement="top" enterDelay={600}>
+                    <Typography variant="subtitle1" component="h2" noWrap sx={{ flex: 1, minWidth: 0 }}>
+                        {title}
+                    </Typography>
+                </Tooltip>
+                <Box
+                    component="span"
+                    aria-label={`${column?.total || 0} órdenes`}
+                    sx={{
+                        flexShrink: 0, px: 1, minWidth: 28, height: 22, borderRadius: 11, display: "inline-flex",
+                        alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 700, color: "#fff", bgcolor: color,
+                    }}
+                >
+                    {(column?.total || 0) > 999 ? "999+" : column?.total || 0}
+                </Box>
+                <Tooltip title="Actualizar la lista">
+                    <IconButton size="small" onClick={handleManualRefresh} aria-label={`Actualizar ${title}`} sx={{ flexShrink: 0 }}>
+                        <RefreshRounded fontSize="small" />
+                    </IconButton>
+                </Tooltip>
+            </Box>
+            <Box
+                onScroll={handleScroll}
+                sx={{
+                    flex: 1,
+                    minHeight: 0,
+                    overflowY: "auto",
+                    overflowX: "hidden",
+                    p: 1.5,
+                    gap: 1.5,
                     display: "flex",
                     flexDirection: "column",
-                    alignItems: "center",
-                    minWidth: "300px",
+                    "&::-webkit-scrollbar": { width: 6 },
+                    "&::-webkit-scrollbar-thumb": { borderRadius: 3, bgcolor: "action.disabled" },
                 }}
             >
                 {items.map((order: any) => (

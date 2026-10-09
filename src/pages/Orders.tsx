@@ -1,19 +1,17 @@
-import { Box, darken, Fab, lighten } from "@mui/material";
+import { Box, Button, Fab, IconButton, Stack, Tooltip } from "@mui/material";
 import React, { useEffect, useState, useCallback, useRef } from "react";
 import { DescripcionDeVista } from "../components/ui/content/DescripcionDeVista";
 import { Loading } from "../components/ui/content/Loading";
 import { Layout } from "../components/ui/Layout";
 import { useUserStore } from "../store/user/UserStore";
-import { LeaderViewSelect } from "./my-group/LeaderViewSelect";
 import { request } from "../common/request";
 import { IResponse } from "../interfaces/response-type";
 import { useOrdersStore } from "../store/orders/OrdersStore";
 import { OrderList } from "../components/orders/OrderList";
 import { toast } from "react-toastify";
-import { ButtonCustom } from "../components/custom";
 import { ProductSearchDialog } from "../components/products/ProductsSearchDialog";
-import { SearchRounded, FilterListOffRounded } from "@mui/icons-material";
-import { TextField, MenuItem, Select, FormControl, InputLabel, IconButton, Tooltip } from "@mui/material";
+import { SearchRounded } from "@mui/icons-material";
+import { KanbanFilters } from "../components/orders/KanbanFilters";
 import { OrderDialog } from "../components/orders/OrderDialog";
 import { CreateOrderDialog } from "../components/orders/CreateOrderDialog";
 import { BankAccountsDialog } from "../components/orders/BankAccountsDialog";
@@ -31,11 +29,14 @@ import { ORDER_STATUS } from "../constants/OrderStatus";
 
 import { useLocation } from "react-router-dom";
 
+/** Los botones redondos del encabezado (cuentas bancarias, tasas). */
+const actionButtonSx = { bgcolor: "background.paper", border: "1px solid", borderColor: "divider" } as const;
+
 export const Orders = () => {
     const { isAdmin, isSupervisor, canCreateOrders, userRole, isAgency, isDeliverer } = usePermissions();
     const userStore = useUserStore();
     const location = useLocation();
-    const { searchTerm, setSearchTerm, selectedOrder, setSelectedOrder, filters, setFilters: setStoreFilters, activeModal, setActiveModal, setBulkColumns, changeStatus, registerNovelty } = useOrdersStore();
+    const { searchTerm, selectedOrder, setSelectedOrder, filters, activeModal, setActiveModal, setBulkColumns, changeStatus, registerNovelty } = useOrdersStore();
     const validateToken = useUserStore((state) => state.validateToken);
 
     const [openSearch, setOpenSearch] = useState(false);
@@ -148,262 +149,117 @@ export const Orders = () => {
         return () => clearTimeout(timer);
     }, [filters, searchTerm, setBulkColumns]);
 
-
-    const handleClearFilters = () => {
-        const emptyFilters = {
-            city_id: '',
-            agency_id: '',
-            seller_id: '',
-            date_from: '',
-            date_to: '',
-            scope: '' as const
-        };
-        setStoreFilters(emptyFilters);
-        setSearchTerm("");
-        toast.info("Filtros limpiados ✨");
-    };
-
-
     if (!userStore.user.token) return <Loading />;
 
     return (
         <Layout>
-            <Box
-                display="flex"
-                justifyContent="space-between"
-                alignItems="center"
-                flexWrap="wrap"
-                gap={2}
-                sx={{ width: '100%', mb: 2 }}
-            >
-                <Box display="flex" alignItems="center" gap={2} flexWrap="wrap">
-                    <DescripcionDeVista title={"Kanban de ordenes"} description={"Gestiona el flujo de entregas y novedades"} />
-                </Box>
-                <Box flexGrow={1} display="flex" justifyContent="center">
-                    <TextField
-                        size="small"
-                        placeholder="Buscar por orden, cliente, telf..."
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        slotProps={{
-                            input: {
-                                startAdornment: <SearchRounded sx={{ color: 'action.active', mr: 1 }} />,
-                            },
-                        }}
-                        sx={{ maxWidth: 400, width: '100%', bgcolor: 'background.paper', borderRadius: 1 }}
-                    />
-                </Box>
-                {!isSupervisor && (
-                    <LeaderViewSelect
-                        value={{ scope: filters.scope, sellerId: filters.seller_id }}
-                        onChange={(v) => setStoreFilters({ scope: v.scope, seller_id: v.sellerId })}
-                    />
-                )}
-                {isSupervisor && (
-                    <Box display="flex" gap={1} alignItems="center" flexWrap="wrap">
-                        <FormControl size="small" sx={{ minWidth: 140 }}>
-                            <InputLabel>Ciudad</InputLabel>
-                            <Select
-                                value={filters.city_id}
-                                label="Ciudad"
-                                onChange={(e) => {
-                                    setStoreFilters({ city_id: e.target.value });
-                                }}
-                            >
-                                <MenuItem value="">Todas</MenuItem>
-                                {cities.map(c => <MenuItem key={c.id} value={c.id}>{c.name}</MenuItem>)}
-                            </Select>
-                        </FormControl>
-                        <FormControl size="small" sx={{ minWidth: 140 }}>
-                            <InputLabel>Agencia</InputLabel>
-                            <Select
-                                value={filters.agency_id}
-                                label="Agencia"
-                                onChange={(e) => {
-                                    setStoreFilters({ agency_id: e.target.value });
-                                }}
-                            >
-                                <MenuItem value="">Todas</MenuItem>
-                                {agencies.map(a => <MenuItem key={a.id} value={a.id}>{a.names}</MenuItem>)}
-                            </Select>
-                        </FormControl>
-                        <FormControl size="small" sx={{ minWidth: 140 }}>
-                            <InputLabel>Vendedora</InputLabel>
-                            <Select
-                                value={filters.seller_id}
-                                label="Vendedora"
-                                onChange={(e) => {
-                                    setStoreFilters({ seller_id: e.target.value });
-                                }}
-                            >
-                                <MenuItem value="">Todas</MenuItem>
-                                {sellers.map(s => <MenuItem key={s.id} value={s.id}>{s.names}</MenuItem>)}
-                            </Select>
-                        </FormControl>
-                        <Tooltip title="Limpiar Filtros">
-                            <IconButton onClick={handleClearFilters}>
-                                <FilterListOffRounded color="error" />
+            {/* El Kanban ocupa el alto de la ventana: encabezado, filtros y un tablero donde cada columna baja por su cuenta */}
+            <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5, height: "calc(100dvh - 32px)", minHeight: 560 }}>
+                <Stack direction="row" alignItems="flex-end" justifyContent="space-between" gap={2} flexWrap="wrap">
+                    <DescripcionDeVista title="Kanban de órdenes" description="Gestiona el flujo de entregas y novedades" />
+                    <Stack direction="row" alignItems="center" gap={1} sx={{ mb: 2 }}>
+                        <Tooltip title="Cuentas bancarias">
+                            <IconButton aria-label="Cuentas bancarias" onClick={() => setOpenBankDialog(true)} sx={actionButtonSx}>
+                                <AccountBalanceRounded color="primary" />
                             </IconButton>
                         </Tooltip>
-                        {/* Remove manual filter button as it updates automatically via store */}
-                    </Box>
-                )}
-                {isSupervisor && (
-                    <Box display="flex" gap={1} alignItems="center">
-                        <TextField
-                            label="Desde"
-                            type="date"
-                            size="small"
-                            InputLabelProps={{ shrink: true }}
-                            value={filters.date_from}
-                            onChange={(e) => {
-                                setStoreFilters({ date_from: e.target.value });
-                            }}
-                        />
-                        <TextField
-                            label="Hasta"
-                            type="date"
-                            size="small"
-                            InputLabelProps={{ shrink: true }}
-                            value={filters.date_to}
-                            onChange={(e) => {
-                                setStoreFilters({ date_to: e.target.value });
-                            }}
-                        />
-                    </Box>
-                )}
+                        <Tooltip title="Tasas del día">
+                            <IconButton aria-label="Tasas del día" onClick={() => setOpenRatesDialog(true)} sx={actionButtonSx}>
+                                <CurrencyExchange color="success" />
+                            </IconButton>
+                        </Tooltip>
+                        {canCreateOrders && (
+                            <Button variant="contained" disableElevation startIcon={<AddCircleOutline />} onClick={() => setOpenCreateDialog(true)}>
+                                Crear orden
+                            </Button>
+                        )}
+                    </Stack>
+                </Stack>
 
-                <Tooltip title="Cuentas Bancarias">
-                    <IconButton
-                        onClick={() => setOpenBankDialog(true)}
-                        sx={{ bgcolor: 'background.paper', border: '1px solid', borderColor: 'divider' }}
-                    >
-                        <AccountBalanceRounded color="primary" />
-                    </IconButton>
-                </Tooltip>
-                <Tooltip title="Tasas del Día">
-                    <IconButton
-                        onClick={() => setOpenRatesDialog(true)}
-                        sx={{ bgcolor: 'background.paper', border: '1px solid', borderColor: 'divider' }}
-                    >
-                        <CurrencyExchange color="success" />
-                    </IconButton>
-                </Tooltip>
-                {canCreateOrders && (
-                    <Box sx={{ width: { xs: '100%', lg: '10%' } }}>
-                        <ButtonCustom
-                            variant="outlined"
-                            startIcon={<AddCircleOutline />}
-                            onClick={() => setOpenCreateDialog(true)}
-                        >
-                            Crear Orden
-                        </ButtonCustom>
-                    </Box>
-                )}
-            </Box>
+                <KanbanFilters
+                    isSupervisor={isSupervisor}
+                    cities={cities.map((c) => ({ id: c.id, name: c.name }))}
+                    agencies={agencies.map((a) => ({ id: a.id, name: a.names }))}
+                    sellers={sellers.map((v) => ({ id: v.id, name: v.names }))}
+                />
 
-            <Fab sx={{ position: 'fixed', right: 24, bottom: 24 }} onClick={() => setOpenSearch(true)}>
-                <SearchRounded />
-            </Fab>
-
-            <Box
-                sx={{
-                    display: "flex",
-                    flexFlow: "row nowrap",
-                    overflow: "hidden",
-                    width: "100%",
-                    mt: 2
-                }}
-            >
                 <Box
                     sx={{
-                        cursor: "pointer",
-                        pb: 2,
+                        flex: 1,
+                        minHeight: 0,
                         display: "flex",
-                        flexFlow: "row nowrap",
-                        overflowX: "auto", // Cambiar scroll por auto para que sea más limpio
+                        gap: 2,
+                        overflowX: "auto",
                         overflowY: "hidden",
-                        width: "100%",
-                        minHeight: "75vh",
-                        "&::-webkit-scrollbar": {
-                            height: "15px",
-                            width: "15px",
-                        },
-                        "&::-webkit-scrollbar-track": {
-                            borderRadius: "15px",
-                            backgroundColor: darken(userStore.user.color, 0.8),
-                        },
-                        "&::-webkit-scrollbar-thumb": {
-                            borderRadius: "15px",
-                            backgroundColor: lighten(userStore.user.color, 0.2),
-                        },
+                        pb: 1.5,
+                        "&::-webkit-scrollbar": { height: 10 },
+                        "&::-webkit-scrollbar-track": { borderRadius: 5, bgcolor: "action.hover" },
+                        "&::-webkit-scrollbar-thumb": { borderRadius: 5, bgcolor: "primary.main" },
                     }}
                 >
+                    {visibleColumns && visibleColumns.length > 0 ? (
+                        // 🌟 Renderizado Dinámico basado en Configuración
+                        visibleColumns.map((col) => (
+                            <OrderList key={col} title={col} />
+                        ))
+                    ) : (
+                        // 🔒 Renderizado Fallback / Admin (Vista Completa Legacy)
+                        <>
+                            <OrderList title="Novedades" />
+                            <OrderList title="Novedad Solucionada" />
 
+                            {isSupervisor && (
+                                <>
+                                    <OrderList title="Nuevo" />
+                                    <OrderList title="Sin Stock" />
+                                </>
+                            )}
 
-                    <ProductSearchDialog
-                        open={openSearch}
-                        onClose={() => setOpenSearch(false)}
-                        onPick={handlePickProduct}
-                    />
-                    <Box sx={{ display: "flex", gap: 2, flexFlow: "row nowrap" }}>
-                        {visibleColumns && visibleColumns.length > 0 ? (
-                            // 🌟 Renderizado Dinámico basado en Configuración
-                            visibleColumns.map((col) => (
-                                <OrderList key={col} title={col} />
-                            ))
-                        ) : (
-                            // 🔒 Renderizado Fallback / Admin (Vista Completa Legacy)
-                            <>
-                                <OrderList title="Novedades" />
-                                <OrderList title="Novedad Solucionada" />
+                            {!isAgency && (
+                                <>
+                                    <OrderList title="Reprogramado para hoy" />
+                                    <OrderList title="Asignado a vendedor" />
+                                    <OrderList title="Llamado 1" />
+                                    <OrderList title="Llamado 2" />
+                                    <OrderList title="Llamado 3" />
+                                    <OrderList title="Esperando Ubicacion" />
+                                    <OrderList title="Confirmado" />
+                                </>
+                            )}
 
-                                {isSupervisor && (
-                                    <>
-                                        <OrderList title="Nuevo" />
-                                        <OrderList title="Sin Stock" />
-                                    </>
-                                )}
+                            {/* Todas las agencias de la ciudad llenas: se asigna sola al liberarse cupo */}
+                            {!isAgency && <OrderList title="Pendiente de asignación a agencia" />}
+                            <OrderList title="Asignar a agencia" />
 
-                                {!isAgency && (
-                                    <>
-                                        <OrderList title="Reprogramado para hoy" />
-                                        <OrderList title="Asignado a vendedor" />
-                                        <OrderList title="Llamado 1" />
-                                        <OrderList title="Llamado 2" />
-                                        <OrderList title="Llamado 3" />
-                                        <OrderList title="Esperando Ubicacion" />
-                                        <OrderList title="Confirmado" />
-                                    </>
-                                )}
+                            {(isSupervisor || isAgency) && (
+                                <>
+                                    <OrderList title="Asignado a repartidor" />
+                                    <OrderList title="En ruta" />
+                                </>
+                            )}
 
-                                {/* Todas las agencias de la ciudad llenas: se asigna sola al liberarse cupo */}
-                                {!isAgency && <OrderList title="Pendiente de asignación a agencia" />}
-                                <OrderList title="Asignar a agencia" />
+                            {!isAgency && (
+                                <>
+                                    <OrderList title="Programado para mas tarde" />
+                                    <OrderList title="Programado para otro dia" />
+                                </>
+                            )}
 
-                                {(isSupervisor || isAgency) && (
-                                    <>
-                                        <OrderList title="Asignado a repartidor" />
-                                        <OrderList title="En ruta" />
-                                    </>
-                                )}
-
-                                {!isAgency && (
-                                    <>
-                                        <OrderList title="Programado para mas tarde" />
-                                        <OrderList title="Programado para otro dia" />
-                                    </>
-                                )}
-
-                                <OrderList title="Entregado" />
-                                {!(isAgency || isDeliverer) && (
-                                    <OrderList title="Cancelado" />
-                                )}
-                            </>
-                        )}
-                    </Box>
+                            <OrderList title="Entregado" />
+                            {!(isAgency || isDeliverer) && (
+                                <OrderList title="Cancelado" />
+                            )}
+                        </>
+                    )}
                 </Box>
             </Box>
+
+            <ProductSearchDialog open={openSearch} onClose={() => setOpenSearch(false)} onPick={handlePickProduct} />
+            <Tooltip title="Buscar productos" placement="left">
+                <Fab color="primary" aria-label="Buscar productos" sx={{ position: "fixed", right: 24, bottom: 24 }} onClick={() => setOpenSearch(true)}>
+                    <SearchRounded />
+                </Fab>
+            </Tooltip>
             <BankAccountsDialog open={openBankDialog} onClose={() => setOpenBankDialog(false)} />
             <DailyRatesDialog open={openRatesDialog} onClose={() => setOpenRatesDialog(false)} />
             <CreateOrderDialog

@@ -32,6 +32,7 @@ import { ORDER_STATUS, STATUS_COLORS } from "../../constants/OrderStatus";
 import { usePermissions, ROLES } from "../../hooks/usePermissions";
 import { grey, orange, red } from "@mui/material/colors";
 import { orderNo } from "../../lib/functions";
+import { glowBorder } from "../ui/surface/glow";
 
 interface OrderItemProps {
     order: any;
@@ -212,25 +213,22 @@ export const OrderItem: FC<OrderItemProps> = ({ order }) => {
         <Box
             onClick={handleOpen}
             sx={{
-                p: 2,
+                ...glowBorder(theme),
+                p: 1.75,
                 cursor: 'pointer',
+                flexShrink: 0,
                 background:
                     theme.palette.mode === "dark"
                         ? darken(userStore.user.color, 0.7)
-                        : "#f2f2f2",
-                border:
-                    theme.palette.mode === "dark"
-                        ? `1px solid ${darken(userStore.user.color, 0.6)}`
-                        : "1px solid #f0f0f0",
-                borderRadius: 5,
-                width: "250px",
-                maxWidth: "250px",
+                        : "#f7f7f8",
+                borderRadius: 3,
+                width: "100%",
                 display: "flex",
                 flexFlow: "column wrap",
-                transition: 'transform 0.2s ease, box-shadow 0.2s ease',
+                transition: 'transform 0.15s ease, box-shadow 0.15s ease',
                 '&:hover': {
-                    transform: 'translateY(-4px)',
-                    boxShadow: '0 4px 20px rgba(0,0,0,0.15)'
+                    transform: 'translateY(-2px)',
+                    boxShadow: '0 6px 16px rgba(0,0,0,0.18)'
                 }
             }}
         >
