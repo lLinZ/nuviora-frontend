@@ -10,9 +10,11 @@ export const FONT_FAMILY = ['"Inter"', 'system-ui', '-apple-system', '"Segoe UI"
  */
 export const glowColors = (theme: Theme) => {
     const c = theme.palette.primary.main;
+    // En oscuro, el mismo color (no aclarado hacia el blanco): las esquinas brillantes casi enteras y las otras más
+    // transparentes. En claro, tintes suaves del color.
     return theme.palette.mode === "dark"
-        ? { light: lighten(c, 0.5), dark: alpha(lighten(c, 0.15), 0.45) }
-        : { light: lighten(c, 0.2), dark: lighten(c, 0.68) };
+        ? { light: alpha(lighten(c, 0.1), 0.85), dark: alpha(c, 0.32) }
+        : { light: lighten(c, 0.55), dark: lighten(c, 0.85) };
 };
 
 const typography: ThemeOptions["typography"] = {
