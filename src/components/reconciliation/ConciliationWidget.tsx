@@ -4,11 +4,12 @@
 // entra directamente a completar esa conciliación. Si todo está al día: Conciliaciones al día".
 // §32: "Tienes una conciliación pendiente de ayer."
 import React, { useEffect, useState } from "react";
-import { Box, Button, ButtonBase, Paper, Skeleton, Stack, Typography } from "@mui/material";
+import { Box, Button, ButtonBase, Skeleton, Stack, Typography } from "@mui/material";
 import { ChevronRightRounded, HistoryRounded } from "@mui/icons-material";
 import { useNavigate } from "react-router-dom";
 import { request } from "../../common/request";
 import { DAY_META, DayCard, dayNeeds, plural, shortDate } from "./reconciliation";
+import { Panel } from "../ui/surface/Panel";
 
 const yesterday = () => {
     const d = new Date();
@@ -33,20 +34,17 @@ export const ConciliationWidget: React.FC = () => {
 
     if (pending === null) {
         return (
-            <Paper elevation={0} sx={{ p: 2, borderRadius: 3, border: "1px solid", borderColor: "divider" }}>
+            <Panel>
                 <Skeleton width={180} height={24} />
                 <Skeleton width="60%" height={20} />
-            </Paper>
+            </Panel>
         );
     }
 
     const fromYesterday = pending.some((d) => d.date === yesterday());
 
     return (
-        <Paper
-            elevation={0}
-            sx={{ p: 2, borderRadius: 3, border: "1px solid", borderColor: pending.length ? "warning.main" : "divider" }}
-        >
+        <Panel sx={(t) => ({ boxShadow: pending.length ? `inset 3px 0 0 ${t.palette.warning.main}` : "none" })}>
             <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 1, mb: pending.length ? 1.5 : 0 }}>
                 <Box sx={{ minWidth: 0 }}>
                     <Typography variant="subtitle2" fontWeight="bold">
@@ -76,7 +74,7 @@ export const ConciliationWidget: React.FC = () => {
                                 aria-label={`Conciliación del ${shortDate(d.date)}: ${meta.label}, ${dayNeeds(d)}`}
                                 sx={{
                                     display: "flex", alignItems: "center", gap: 1.5, textAlign: "left", px: 1.5, py: 1, borderRadius: 2,
-                                    border: "1px solid", borderColor: "divider", minWidth: { xs: "100%", sm: 220 },
+                                    border: "1px solid", borderColor: "divider", flex: "1 1 200px",
                                     "&:hover, &:focus-visible": { borderColor: "warning.main", bgcolor: "action.hover" },
                                 }}
                             >
@@ -91,6 +89,6 @@ export const ConciliationWidget: React.FC = () => {
                     })}
                 </Stack>
             )}
-        </Paper>
+        </Panel>
     );
 };

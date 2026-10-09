@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import {
-    Paper,
     Typography,
     Box,
-    Grid,
+    Stack,
     TextField,
     Button,
     CircularProgress,
@@ -14,12 +13,12 @@ import {
     TableContainer,
     TableHead,
     TableRow,
-    Chip
 } from '@mui/material';
 import { AccountBalanceWalletRounded, DateRangeRounded } from '@mui/icons-material';
 import { request } from '../../common/request';
 import { IResponse } from '../../interfaces/response-type';
 import { fmtMoney } from '../../lib/money';
+import { Panel, PanelHeader } from '../ui/surface/Panel';
 
 interface PaymentMethodData {
     method: string;
@@ -94,49 +93,42 @@ export const PaymentMethodsReport: React.FC = () => {
     };
 
     return (
-        <Paper elevation={0} sx={{ p: 3, borderRadius: 3, height: '100%' }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
-                <AccountBalanceWalletRounded fontSize="large" color="primary" />
-                <Box>
-                    <Typography variant="h6" fontWeight="bold">
-                        Pagos por Método
-                    </Typography>
-                    <Typography variant="caption" color="text.secondary">
-                        Resumen de pagos recibidos según método de pago
-                    </Typography>
-                </Box>
-            </Box>
+        <Panel sx={{ height: '100%' }}>
+            <PanelHeader
+                icon={<AccountBalanceWalletRounded />}
+                title="Pagos por método"
+                subtitle="Pagos recibidos en el rango, según el método"
+            />
 
-            {/* Date Range Filters */}
-            <Box sx={{ mb: 3, display: 'flex', gap: 2, flexWrap: 'wrap', alignItems: 'flex-end' }}>
+            <Stack direction="row" gap={1} flexWrap="wrap" alignItems="center" sx={{ mb: 2 }}>
                 <TextField
-                    label="Fecha Desde"
+                    label="Desde"
                     type="date"
                     value={dateFrom}
                     onChange={(e) => setDateFrom(e.target.value)}
-                    InputLabelProps={{ shrink: true }}
+                    slotProps={{ inputLabel: { shrink: true } }}
                     size="small"
-                    sx={{ minWidth: 180 }}
+                    sx={{ width: 160 }}
                 />
                 <TextField
-                    label="Fecha Hasta"
+                    label="Hasta"
                     type="date"
                     value={dateTo}
                     onChange={(e) => setDateTo(e.target.value)}
-                    InputLabelProps={{ shrink: true }}
+                    slotProps={{ inputLabel: { shrink: true } }}
                     size="small"
-                    sx={{ minWidth: 180 }}
+                    sx={{ width: 160 }}
                 />
                 <Button
                     variant="contained"
+                    disableElevation
                     onClick={fetchReport}
                     disabled={loading}
                     startIcon={loading ? <CircularProgress size={16} /> : <DateRangeRounded />}
-                    sx={{ borderRadius: 2 }}
                 >
-                    {loading ? 'Cargando...' : 'Consultar'}
+                    {loading ? 'Cargando…' : 'Consultar'}
                 </Button>
-            </Box>
+            </Stack>
 
             {error && (
                 <Alert severity="error" sx={{ mb: 2 }}>
@@ -149,102 +141,59 @@ export const PaymentMethodsReport: React.FC = () => {
                     <CircularProgress />
                 </Box>
             ) : data && paymentMethods.length > 0 ? (
-                <>
-                    <TableContainer>
-                        <Table size="small">
-                            <TableHead>
-                                <TableRow>
-                                    <TableCell><strong>Método de Pago</strong></TableCell>
-                                    <TableCell align="right"><strong>Transacciones</strong></TableCell>
-                                    <TableCell align="right"><strong>Total (USD)</strong></TableCell>
-                                </TableRow>
-                            </TableHead>
-                            <TableBody>
-                                {paymentMethods.map((method) => (
+                <TableContainer sx={{ borderRadius: 2, border: '1px solid', borderColor: 'divider' }}>
+                    <Table size="small">
+                        <TableHead>
+                            <TableRow>
+                                <TableCell sx={{ fontWeight: 600, color: 'text.secondary' }}>Método</TableCell>
+                                <TableCell align="right" sx={{ fontWeight: 600, color: 'text.secondary' }}>Transacciones</TableCell>
+                                <TableCell align="right" sx={{ fontWeight: 600, color: 'text.secondary' }}>Total (USD)</TableCell>
+                                <TableCell sx={{ fontWeight: 600, color: 'text.secondary', width: '32%' }}>Del total</TableCell>
+                            </TableRow>
+                        </TableHead>
+                        <TableBody>
+                            {paymentMethods.map((method) => {
+                                const pct = data.totals.grand_total ? (method.total_amount / data.totals.grand_total) * 100 : 0;
+                                const color = getMethodColor(method.method);
+                                return (
                                     <TableRow key={method.method} hover>
                                         <TableCell>
-                                            <Chip
-                                                label={method.method}
-                                                size="small"
-                                                sx={{
-                                                    bgcolor: getMethodColor(method.method),
-                                                    color: 'white',
-                                                    fontWeight: 'bold'
-                                                }}
-                                            />
+                                            <Stack direction="row" alignItems="center" gap={1}>
+                                                <Box sx={{ width: 10, height: 10, borderRadius: '50%', bgcolor: color, flexShrink: 0 }} />
+                                                <Typography variant="body2" fontWeight={600}>{method.method}</Typography>
+                                            </Stack>
                                         </TableCell>
+                                        <TableCell align="right">{method.transaction_count}</TableCell>
                                         <TableCell align="right">
-                                            <Typography variant="body2">
-                                                {method.transaction_count}
-                                            </Typography>
+                                            <Typography variant="body2" fontWeight={600}>{fmtMoney(method.total_amount, 'USD')}</Typography>
                                         </TableCell>
-                                        <TableCell align="right">
-                                            <Typography variant="body2" fontWeight="bold" color="primary">
-                                                {fmtMoney(method.total_amount, 'USD')}
-                                            </Typography>
+                                        <TableCell>
+                                            <Stack direction="row" alignItems="center" gap={1}>
+                                                <Box sx={{ flex: 1, height: 6, borderRadius: 3, bgcolor: 'action.hover' }}>
+                                                    <Box sx={{ width: `${pct}%`, height: '100%', borderRadius: 3, bgcolor: color }} />
+                                                </Box>
+                                                <Typography variant="caption" color="text.secondary" sx={{ width: 44, textAlign: 'right' }}>{pct.toFixed(1)} %</Typography>
+                                            </Stack>
                                         </TableCell>
                                     </TableRow>
-                                ))}
-                                <TableRow sx={{ bgcolor: 'action.hover' }}>
-                                    <TableCell><strong>TOTAL GENERAL</strong></TableCell>
-                                    <TableCell align="right">
-                                        <Typography variant="body2" fontWeight="bold">
-                                            {data.totals.total_transactions}
-                                        </Typography>
-                                    </TableCell>
-                                    <TableCell align="right">
-                                        <Typography variant="h6" fontWeight="black" color="primary">
-                                            {fmtMoney(data.totals.grand_total, 'USD')}
-                                        </Typography>
-                                    </TableCell>
-                                </TableRow>
-                            </TableBody>
-                        </Table>
-                    </TableContainer>
-
-                    {/* Visual Summary */}
-                    <Box sx={{ mt: 3 }}>
-                        <Typography variant="caption" color="text.secondary" gutterBottom>
-                            Distribución Visual
-                        </Typography>
-                        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, mt: 1 }}>
-                            {paymentMethods.map((method) => {
-                                const percentage = (method.total_amount / data.totals.grand_total) * 100;
-                                return (
-                                    <Box
-                                        key={method.method}
-                                        sx={{
-                                            flex: `0 0 ${Math.max(percentage, 10)}%`,
-                                            minWidth: 100,
-                                            p: 2,
-                                            bgcolor: getMethodColor(method.method) + '20',
-                                            border: `2px solid ${getMethodColor(method.method)}`,
-                                            borderRadius: 2,
-                                            textAlign: 'center'
-                                        }}
-                                    >
-                                        <Typography variant="caption" fontWeight="bold" display="block">
-                                            {method.method}
-                                        </Typography>
-                                        <Typography variant="h6" fontWeight="black" color={getMethodColor(method.method)}>
-                                            {percentage.toFixed(1)}%
-                                        </Typography>
-                                        <Typography variant="caption" color="text.secondary">
-                                            {fmtMoney(method.total_amount, 'USD')}
-                                        </Typography>
-                                    </Box>
                                 );
                             })}
-                        </Box>
-                    </Box>
-                </>
+                            <TableRow sx={{ bgcolor: 'action.hover', '& td': { borderBottom: 0 } }}>
+                                <TableCell><Typography variant="body2" fontWeight={700}>Total</Typography></TableCell>
+                                <TableCell align="right"><Typography variant="body2" fontWeight={700}>{data.totals.total_transactions}</Typography></TableCell>
+                                <TableCell align="right">
+                                    <Typography variant="body1" fontWeight={700} color="primary">{fmtMoney(data.totals.grand_total, 'USD')}</Typography>
+                                </TableCell>
+                                <TableCell />
+                            </TableRow>
+                        </TableBody>
+                    </Table>
+                </TableContainer>
             ) : (
-                <Box sx={{ textAlign: 'center', py: 4 }}>
-                    <Typography variant="body2" color="text.secondary">
-                        No hay datos para el rango seleccionado
-                    </Typography>
-                </Box>
+                <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center', py: 4 }}>
+                    No hay pagos en el rango elegido.
+                </Typography>
             )}
-        </Paper>
+        </Panel>
     );
 };

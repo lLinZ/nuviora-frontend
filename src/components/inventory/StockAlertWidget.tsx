@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import {
-    Box, Paper, Typography, Chip, Stack, Skeleton, Tooltip, IconButton
+    Box, Typography, Chip, Stack, Skeleton, Tooltip, IconButton
 } from '@mui/material';
+import { Panel } from '../ui/surface/Panel';
 import {
     ErrorRounded as RedIcon,
     WarningAmberRounded as OrangeIcon,
@@ -43,32 +44,21 @@ export const StockAlertWidget: React.FC = () => {
     const hasAlerts = meta && (meta.red_count > 0 || meta.orange_count > 0);
 
     if (loading) return (
-        <Paper elevation={0} sx={{ p: 2, borderRadius: 3, border: '1px solid', borderColor: 'divider' }}>
+        <Panel>
             <Skeleton width={160} height={24} />
             <Stack direction="row" spacing={1} sx={{ mt: 1.5 }}>
                 {[1, 2, 3, 4].map(i => <Skeleton key={i} width={80} height={32} sx={{ borderRadius: 5 }} />)}
             </Stack>
-        </Paper>
+        </Panel>
     );
 
     if (!meta) return null;
 
     return (
-        <Paper
-            elevation={0}
-            sx={{
-                p: 2,
-                borderRadius: 3,
-                border: '1px solid',
-                borderColor: hasAlerts ? 'error.main' : 'divider',
-                background: hasAlerts
-                    ? 'linear-gradient(135deg, rgba(239,68,68,0.04) 0%, rgba(249,115,22,0.03) 100%)'
-                    : undefined,
-            }}
-        >
+        <Panel sx={(t) => ({ boxShadow: hasAlerts ? `inset 3px 0 0 ${t.palette.error.main}` : 'none' })}>
             <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1.5 }}>
                 <Typography variant="subtitle2" fontWeight="bold" color={hasAlerts ? 'error.main' : 'text.primary'}>
-                    {hasAlerts ? '⚠️ Alertas de Inventario' : '✅ Inventario'}
+                    {hasAlerts ? 'Alertas de inventario' : 'Inventario'}
                 </Typography>
                 <Stack direction="row" spacing={0.5}>
                     <Tooltip title="Actualizar">
@@ -127,6 +117,6 @@ export const StockAlertWidget: React.FC = () => {
                     Todos los productos tienen cobertura suficiente.
                 </Typography>
             )}
-        </Paper>
+        </Panel>
     );
 };

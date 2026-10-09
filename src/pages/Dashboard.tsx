@@ -1,22 +1,19 @@
-import { Toolbar, Box, Grid, Paper, Stack, Avatar, Divider, Tooltip, Chip, Checkbox, TextField } from "@mui/material";
+import { Box, Grid, Paper, Stack, Avatar, Divider, Tooltip, Chip, Checkbox, TextField } from "@mui/material";
 import {
-    ShoppingCartRounded,
     AttachMoneyRounded,
     TrendingUpRounded,
-    WarningAmberRounded,
     AssignmentIndRounded,
     LocalShippingRounded,
     CancelRounded,
     ApartmentRounded,
     LocationOnRounded,
-    StarRounded,
     CheckCircleRounded,
     HistoryRounded,
     Inventory2Outlined as Inventory2OutlinedIcon,
     FileDownloadRounded as FileDownloadRoundedIcon
 } from "@mui/icons-material";
 import Masonry from "@mui/lab/Masonry";
-import { useEffect, useState, FC } from "react";
+import { useEffect, useState } from "react";
 import * as XLSX from 'xlsx';
 import dayjs from "dayjs";
 import { darken, lighten } from "@mui/material/styles";
@@ -31,80 +28,15 @@ import { request } from "../common/request";
 import { changeReceiptUrl } from "../common/receipts";
 import { IResponse } from "../interfaces/response-type";
 import { OrderDialog } from "../components/orders/OrderDialog";
-import { PaymentMethodsReport } from "../components/reports/PaymentMethodsReport";
-import { StockAlertWidget } from "../components/inventory/StockAlertWidget";
-import { ConciliationWidget } from "../components/reconciliation/ConciliationWidget";
 import { orderNo } from "../lib/functions";
-
-interface DashboardStats {
-    total_sales?: number;
-    orders_sin_stock_count?: number;
-    orders_sin_stock?: Array<{ id: number; name: string; current_total_price: number; created_at: string }>;
-    unassigned_agency_count?: number;
-    unassigned_agency_orders?: Array<{ id: number; name: string; current_total_price: number; created_at: string }>;
-    inventory_deficit?: Array<{
-        agency_id: number;
-        agency_name: string;
-        products: Array<{ name: string; current_stock: number; total_required: number }>;
-    }>;
-    low_stock_alerts?: Array<{
-        warehouse_name: string;
-        products: Array<{ name: string; quantity: number }>;
-    }>;
-    unassigned_city_count?: number;
-    unassigned_city_orders?: Array<{ id: number; name: string; current_total_price: number, client?: any }>;
-    missing_cities_summary?: Record<string, number>;
-    pending_reviews?: {
-        rejections: number;
-        locations: number;
-    };
-    orders_today?: {
-        created?: number;
-        delivered?: number;
-        cancelled?: number;
-        assigned?: number;
-        pending?: number;
-    };
-    top_sellers?: Array<{ id: number; names: string; agent_orders_count: number }>;
-    top_deliverers?: Array<{ id: number; names: string; deliverer_orders_count: number }>;
-    sales_history?: Array<{ date: string; count: number }>;
-    pending_route_orders?: Array<any>;
-
-    // Legacy support for non-admin roles
-    orders?: {
-        assigned?: number;
-        completed?: number;
-        delivered?: number;
-        cancelled?: number;
-    };
-    recent_orders?: Array<any>;
-    earnings_breakdown?: {
-        orders?: number;
-        upsells?: number;
-        upsell_count?: number;
-    };
-    pending_vueltos?: Array<any>;
-    earnings_usd?: number;
-    earnings_local?: number;
-    rule?: string;
-    message?: string;
-}
+import { AdminDashboard } from "../components/dashboard/admin/AdminDashboard";
+import { DashboardStats, PendingVuelto } from "../components/dashboard/admin/types";
 
 interface DashboardData {
     role: string;
     today: string;
     rate: number;
     stats: DashboardStats;
-}
-
-interface PendingVuelto {
-    id: number;
-    name: string;
-    change_amount: number;
-    change_amount_company: number;
-    change_method_company: string;
-    client: { first_name: string; last_name: string };
-    agency?: { names: string };
 }
 
 export const Dashboard = () => {
@@ -114,6 +46,7 @@ export const Dashboard = () => {
     const [pendingVueltos, setPendingVueltos] = useState<PendingVuelto[]>([]);
     const [loading, setLoading] = useState(true);
     const [autoAssigning, setAutoAssigning] = useState(false);
+    const [assigningCities, setAssigningCities] = useState(false);
     const [agencySettlement, setAgencySettlement] = useState<any[]>([]);
     const [fromDate, setFromDate] = useState(dayjs().startOf('month').format("YYYY-MM-DD"));
     const [toDate, setToDate] = useState(dayjs().format("YYYY-MM-DD"));
@@ -226,7 +159,7 @@ export const Dashboard = () => {
     };
 
     const autoAssignCities = async () => {
-        setLoading(true); // Reuse loading state or add a new one
+        setAssigningCities(true);
         try {
             const { status, response }: IResponse = await request("/orders/auto-assign-cities", "POST");
             if (status) {
@@ -239,7 +172,7 @@ export const Dashboard = () => {
         } catch (e) {
             toast.error("Error en el servidor");
         } finally {
-            setLoading(false);
+            setAssigningCities(false);
         }
     };
 
@@ -274,392 +207,16 @@ export const Dashboard = () => {
             case "Gerente":
             case "Master":
                 return (
-                    <Grid container spacing={3}>
-                        {/* 💰 PRIMARY METRICS */}
-                        <Grid size={{ xs: 12, md: 4 }}>
-                            <Paper elevation={0} sx={{
-                                p: 3, borderRadius: 5,
-                                background: `linear-gradient(135deg, ${user.color} 0%, ${darken(user.color, 0.4)} 100%)`,
-                                color: 'white', position: 'relative', overflow: 'hidden'
-                            }}>
-                                <Box sx={{ position: 'relative', zIndex: 1 }}>
-                                    <TypographyCustom variant="overline" sx={{ opacity: 0.8, fontWeight: 'bold' }}>Ventas Entregadas Hoy</TypographyCustom>
-                                    <TypographyCustom variant="h3" fontWeight="900" sx={{ my: 1 }}>
-                                        ${Number(stats.total_sales || 0).toFixed(2)}
-                                    </TypographyCustom>
-                                    <Stack direction="row" spacing={1} alignItems="center">
-                                        <TrendingUpRounded fontSize="small" />
-                                        <TypographyCustom variant="caption">Actualizado en tiempo real</TypographyCustom>
-                                    </Stack>
-                                </Box>
-                                <AttachMoneyRounded sx={{ position: 'absolute', right: -20, bottom: -20, fontSize: 180, opacity: 0.1, transform: 'rotate(-15deg)' }} />
-                            </Paper>
-                        </Grid>
-
-                        <Grid size={{ xs: 12, md: 8 }}>
-                            <Grid container spacing={2}>
-                                {[
-                                    { label: 'Nuevas Hoy', value: stats.orders_today?.created, color: 'info.main', icon: <ShoppingCartRounded /> },
-                                    { label: 'Entregadas Hoy', value: stats.orders_today?.delivered, color: 'success.main', icon: <LocalShippingRounded /> },
-                                    { label: 'Canceladas Hoy', value: stats.orders_today?.cancelled, color: 'error.main', icon: <CancelRounded /> },
-                                ].map((item, idx) => (
-                                    <Grid size={{ xs: 12, sm: 4 }} key={idx}>
-                                        <Paper elevation={0} sx={{
-                                            p: 2.5, borderRadius: 4, bgcolor: 'background.paper',
-                                            border: '1px solid', borderColor: 'divider',
-                                            display: 'flex', alignItems: 'center', gap: 2,
-                                            height: '100%'
-                                        }}>
-                                            <Avatar sx={{ bgcolor: `${item.color}15`, color: item.color, borderRadius: 3 }}>
-                                                {item.icon}
-                                            </Avatar>
-                                            <Box>
-                                                <TypographyCustom variant="h5" fontWeight="bold">{item.value ?? 0}</TypographyCustom>
-                                                <TypographyCustom variant="caption" color="text.secondary">{item.label}</TypographyCustom>
-                                            </Box>
-                                        </Paper>
-                                    </Grid>
-                                ))}
-                            </Grid>
-                        </Grid>
-
-                        {/* Conciliaciones de pagos digitales (documento de Fran del 2026-10-06, §15): solo el Admin (§29) */}
-                        {role === 'Admin' && (
-                            <Grid size={{ xs: 12 }}>
-                                <ConciliationWidget />
-                            </Grid>
-                        )}
-
-                        {/* 📦 SCM STOCK ALERT WIDGET */}
-                        {role === 'Admin' && (
-                            <Grid size={{ xs: 12 }}>
-                                <StockAlertWidget />
-                            </Grid>
-                        )}
-
-                        {/* ⚠️ ACTION CENTER (ALERTS) */}
-                        <Grid size={{ xs: 12, md: 5 }}>
-                            <TypographyCustom variant="h6" fontWeight="bold" sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
-                                <WarningAmberRounded color="warning" /> Centro de Acción
-                            </TypographyCustom>
-                            <Stack spacing={2}>
-                                {pendingVueltos.length > 0 && (
-                                    <Paper elevation={0} sx={{ p: 2.5, borderRadius: 4, bgcolor: 'rgba(25, 118, 210, 0.05)', border: '2px solid', borderColor: 'primary.main' }}>
-                                        <Stack spacing={2}>
-                                            <Stack direction="row" spacing={2} alignItems="center">
-                                                <Avatar sx={{ bgcolor: 'primary.main', color: 'white' }}>
-                                                    <AttachMoneyRounded />
-                                                </Avatar>
-                                                <Box>
-                                                    <TypographyCustom variant="subtitle1" fontWeight="900" color="primary.main">VUELTOS PENDIENTES</TypographyCustom>
-                                                    <TypographyCustom variant="body2" color="text.secondary">Órdenes entregadas que requieren pago de vuelto</TypographyCustom>
-                                                </Box>
-                                            </Stack>
-                                            <Divider />
-                                            <Stack spacing={1} sx={{ maxHeight: 300, overflowY: 'auto' }}>
-                                                {pendingVueltos.map((pv) => (
-                                                    <Box key={pv.id}
-                                                        onClick={() => handleOpenOrder(pv.id)}
-                                                        sx={{
-                                                            p: 2, bgcolor: 'background.paper', borderRadius: 3, border: '1px solid', borderColor: 'divider',
-                                                            cursor: 'pointer', '&:hover': { bgcolor: 'action.hover' }
-                                                        }}>
-                                                        <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-                                                            <TypographyCustom variant="subtitle2" fontWeight="bold">{orderNo(pv.name)} - {pv.client?.first_name} {pv.client?.last_name}</TypographyCustom>
-                                                            <Chip label={`$${pv.change_amount}`} size="small" color="primary" sx={{ fontWeight: 'bold' }} />
-                                                        </Box>
-                                                        <Stack direction="row" spacing={1} alignItems="center">
-                                                            <TypographyCustom variant="caption" sx={{ bgcolor: 'action.selected', px: 1, py: 0.5, borderRadius: 1 }}>
-                                                                {pv.change_method_company || 'Por definir'}
-                                                            </TypographyCustom>
-                                                            {pv.agency && (
-                                                                <TypographyCustom variant="caption" color="text.secondary">
-                                                                    Agencia: {pv.agency.names}
-                                                                </TypographyCustom>
-                                                            )}
-                                                        </Stack>
-                                                        <Box sx={{ mt: 1, display: 'flex', gap: 1 }}>
-                                                            <ButtonCustom size="small" variant="contained" fullWidth onClick={(e: any) => {
-                                                                e.stopPropagation();
-                                                                handleOpenOrder(pv.id);
-                                                            }}>
-                                                                Gestionar Vuelto
-                                                            </ButtonCustom>
-                                                        </Box>
-                                                    </Box>
-                                                ))}
-                                            </Stack>
-                                        </Stack>
-                                    </Paper>
-                                )}
-
-                                {stats.inventory_deficit && stats.inventory_deficit.length > 0 && (
-                                    <Paper elevation={0} sx={{ p: 2.5, borderRadius: 4, bgcolor: 'rgba(211, 47, 47, 0.05)', border: '2px solid', borderColor: 'error.main' }}>
-                                        <Stack spacing={2}>
-                                            <Stack direction="row" spacing={2} alignItems="center">
-                                                <Avatar sx={{ bgcolor: 'error.main', color: 'white' }}>
-                                                    <Inventory2OutlinedIcon />
-                                                </Avatar>
-                                                <Box>
-                                                    <TypographyCustom variant="subtitle1" fontWeight="900" color="error.main">DÉFICIT DE INVENTARIO</TypographyCustom>
-                                                    <TypographyCustom variant="body2" color="text.secondary">Productos faltantes para procesar órdenes "Sin Stock"</TypographyCustom>
-                                                </Box>
-                                            </Stack>
-
-                                            <Divider />
-
-                                            <Stack spacing={2.5}>
-                                                {stats.inventory_deficit.map((agency, i) => (
-                                                    <Box key={i}>
-                                                        <TypographyCustom variant="caption" fontWeight="bold" sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1, color: 'text.primary', textTransform: 'uppercase' }}>
-                                                            <ApartmentRounded sx={{ fontSize: '1rem' }} /> {agency.agency_name}
-                                                        </TypographyCustom>
-                                                        <Stack spacing={1}>
-                                                            {agency.products.map((p, j) => (
-                                                                <Box key={j} sx={{
-                                                                    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                                                                    bgcolor: 'background.paper', p: 1.5, borderRadius: 3, border: '1px solid', borderColor: 'divider'
-                                                                }}>
-                                                                    <Box>
-                                                                        <TypographyCustom variant="body2" fontWeight="bold">{p.name}</TypographyCustom>
-                                                                        <TypographyCustom variant="caption" color={p.current_stock === 0 ? "error" : "warning.main"}>
-                                                                            Stock actual: {p.current_stock} un.
-                                                                        </TypographyCustom>
-                                                                    </Box>
-                                                                    <Chip
-                                                                        label={`Faltan ${p.total_required - p.current_stock} un.`}
-                                                                        size="small"
-                                                                        color="error"
-                                                                        sx={{ fontWeight: 'bold' }}
-                                                                    />
-                                                                </Box>
-                                                            ))}
-                                                        </Stack>
-                                                    </Box>
-                                                ))}
-                                            </Stack>
-                                        </Stack>
-                                    </Paper>
-                                )}
-
-                                {stats.low_stock_alerts && stats.low_stock_alerts.length > 0 && (
-                                    <Paper elevation={0} sx={{ p: 2, borderRadius: 4, bgcolor: 'rgba(255, 152, 0, 0.05)', border: '1px solid', borderColor: 'warning.main' }}>
-                                        <Stack spacing={1.5}>
-                                            <Stack direction="row" justifyContent="space-between" alignItems="center">
-                                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                                                    <WarningAmberRounded color="warning" />
-                                                    <Box>
-                                                        <TypographyCustom variant="subtitle2" fontWeight="bold">Alertas de Stock Bajo</TypographyCustom>
-                                                        <TypographyCustom variant="body2">Hay {stats.low_stock_alerts.reduce((acc, group) => acc + group.products.length, 0)} productos con menos de 15 unidades</TypographyCustom>
-                                                    </Box>
-                                                </Box>
-                                                <Chip label="Reponer" color="warning" size="small" sx={{ fontWeight: 'bold' }} />
-                                            </Stack>
-
-                                            <Divider sx={{ borderColor: 'rgba(255, 152, 0, 0.1)' }} />
-
-                                            <Stack spacing={2}>
-                                                {stats.low_stock_alerts.map((group, i) => (
-                                                    <Box key={i}>
-                                                        <TypographyCustom variant="caption" fontWeight="bold" sx={{ color: 'warning.main', mb: 1, display: 'block', textTransform: 'uppercase', letterSpacing: 1 }}>
-                                                            {group.warehouse_name}
-                                                        </TypographyCustom>
-                                                        <Stack spacing={1}>
-                                                            {group.products.map((p, j) => (
-                                                                <Box key={j} sx={{
-                                                                    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                                                                    bgcolor: 'background.paper', p: 1, borderRadius: 2, border: '1px solid', borderColor: 'divider'
-                                                                }}>
-                                                                    <TypographyCustom variant="body2">{p.name}</TypographyCustom>
-                                                                    <Chip label={`${p.quantity} u.`} size="small" color="warning" variant="outlined" sx={{ height: 20, fontWeight: 'bold' }} />
-                                                                </Box>
-                                                            ))}
-                                                        </Stack>
-                                                    </Box>
-                                                ))}
-                                            </Stack>
-                                        </Stack>
-                                    </Paper>
-                                )}
-
-                                {Number(stats.unassigned_agency_count) > 0 && (
-                                    <Paper elevation={0} sx={{ p: 2, borderRadius: 4, bgcolor: 'rgba(255, 152, 0, 0.1)', border: '1px solid', borderColor: 'warning.main' }}>
-                                        <Stack spacing={1.5}>
-                                            <Stack direction="row" justifyContent="space-between" alignItems="center">
-                                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                                                    <ApartmentRounded color="warning" />
-                                                    <Box>
-                                                        <TypographyCustom variant="subtitle2" fontWeight="bold">Sin Agencia Asignada</TypographyCustom>
-                                                        <TypographyCustom variant="body2">Hay {stats.unassigned_agency_count} órdenes pendientes de ruta</TypographyCustom>
-                                                    </Box>
-                                                </Box>
-                                                <Stack direction="row" spacing={1} alignItems="center">
-                                                    <ButtonCustom
-                                                        variant="contained"
-                                                        size="small"
-                                                        color="warning"
-                                                        onClick={autoAssignLogistics}
-                                                        loading={autoAssigning}
-                                                        disabled={autoAssigning}
-                                                        sx={{ fontSize: '0.7rem', py: 0.5 }}
-                                                    >
-                                                        Auto-Asignar
-                                                    </ButtonCustom>
-                                                    <Chip label="Urgente" color="warning" size="small" sx={{ fontWeight: 'bold' }} />
-                                                </Stack>
-                                            </Stack>
-
-                                            <Divider sx={{ borderColor: 'rgba(255, 152, 0, 0.2)' }} />
-
-                                            <Stack spacing={1}>
-                                                {stats.unassigned_agency_orders?.map((o: any, i: number) => (
-                                                    <Box
-                                                        key={i}
-                                                        onClick={() => handleOpenOrder(o.id)}
-                                                        sx={{
-                                                            display: 'flex', justifyContent: 'space-between', p: 1,
-                                                            borderRadius: 2, bgcolor: 'rgba(255, 152, 0, 0.05)',
-                                                            cursor: 'pointer', transition: '0.2s',
-                                                            '&:hover': { bgcolor: 'rgba(255, 152, 0, 0.15)' }
-                                                        }}
-                                                    >
-                                                        <TypographyCustom variant="caption" fontWeight="bold">{orderNo(o.name)}</TypographyCustom>
-                                                        <TypographyCustom variant="caption">${o.current_total_price}</TypographyCustom>
-                                                    </Box>
-                                                ))}
-                                            </Stack>
-                                        </Stack>
-                                    </Paper>
-                                )}
-
-                                {Number(stats.unassigned_city_count) > 0 && (
-                                    <Paper elevation={0} sx={{ p: 2, borderRadius: 4, bgcolor: 'rgba(244, 67, 54, 0.1)', border: '1px solid', borderColor: 'error.main' }}>
-                                        <Stack spacing={1.5}>
-                                            <Stack direction="row" justifyContent="space-between" alignItems="center">
-                                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                                                    <LocationOnRounded color="error" />
-                                                    <Box>
-                                                        <TypographyCustom variant="subtitle2" fontWeight="bold">Ciudades No Registradas</TypographyCustom>
-                                                        <TypographyCustom variant="body2">Hay {stats.unassigned_city_count} órdenes pendientes</TypographyCustom>
-                                                    </Box>
-                                                </Box>
-                                                <ButtonCustom
-                                                    variant="contained"
-                                                    size="small"
-                                                    color="error"
-                                                    onClick={autoAssignCities}
-                                                    loading={loading}
-                                                    disabled={loading}
-                                                    sx={{ fontSize: '0.7rem', py: 0.5 }}
-                                                >
-                                                    Asignar Automáticamente
-                                                </ButtonCustom>
-                                            </Stack>
-
-                                            <Divider sx={{ borderColor: 'rgba(244, 67, 54, 0.2)' }} />
-
-                                            {/* Summary List */}
-                                            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-                                                {Object.entries(stats.missing_cities_summary || {}).slice(0, 5).map(([city, count], i) => (
-                                                    <Box key={i} sx={{
-                                                        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                                                        bgcolor: 'rgba(244, 67, 54, 0.1)', p: 1, borderRadius: 2
-                                                    }}>
-                                                        <TypographyCustom variant="body2" fontWeight="bold">{city}</TypographyCustom>
-                                                        <Chip label={`${count} órdenes`} size="small" color="error" sx={{ height: 20, fontSize: '0.7rem' }} />
-                                                    </Box>
-                                                ))}
-                                                {Object.keys(stats.missing_cities_summary || {}).length > 5 && (
-                                                    <TypographyCustom variant="caption" align="center" sx={{ opacity: 0.7 }}>
-                                                        + {Object.keys(stats.missing_cities_summary || {}).length - 5} ciudades más
-                                                    </TypographyCustom>
-                                                )}
-                                            </Box>
-
-                                            {/* Scrollable Order List (Collapsed by default or small) */}
-                                            <Box sx={{ maxHeight: 150, overflowY: 'auto', mt: 1, pr: 1 }}>
-                                                <TypographyCustom variant="caption" sx={{ opacity: 0.7, mb: 1, display: 'block' }}>Detalle de órdenes:</TypographyCustom>
-                                                <Stack spacing={0.5}>
-                                                    {stats.unassigned_city_orders?.map((o: any, i: number) => (
-                                                        <Box key={i} sx={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', opacity: 0.8 }}>
-                                                            <span>{orderNo(o.name)} ({o.city_name})</span>
-                                                            <span>${o.current_total_price}</span>
-                                                        </Box>
-                                                    ))}
-                                                </Stack>
-                                            </Box>
-                                        </Stack>
-                                    </Paper>
-                                )}
-                                {(Number(stats.pending_reviews?.rejections) > 0 || Number(stats.pending_reviews?.locations) > 0) && (
-                                    <Paper elevation={0} sx={{ p: 2, borderRadius: 4, bgcolor: 'rgba(33, 150, 243, 0.1)', border: '1px solid', borderColor: 'info.main' }}>
-                                        <Stack direction="row" justifyContent="space-between" alignItems="center">
-                                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                                                <StarRounded color="info" />
-                                                <Box>
-                                                    <TypographyCustom variant="subtitle2" fontWeight="bold">Validaciones Pendientes</TypographyCustom>
-                                                    <TypographyCustom variant="body2">
-                                                        {stats.pending_reviews?.rejections || 0} Rechazos y {stats.pending_reviews?.locations || 0} Ubicaciones
-                                                    </TypographyCustom>
-                                                </Box>
-                                            </Box>
-                                            <Chip label="Revisar" color="info" size="small" sx={{ fontWeight: 'bold' }} />
-                                        </Stack>
-                                    </Paper>
-                                )}
-                                {!stats.unassigned_agency_count && !stats.pending_reviews?.rejections && (
-                                    <Paper elevation={0} sx={{ p: 4, borderRadius: 4, bgcolor: 'background.paper', border: '1px dashed', borderColor: 'divider', textAlign: 'center' }}>
-                                        <TypographyCustom variant="body2" color="text.secondary">✨ ¡Todo al día! No hay acciones pendientes.</TypographyCustom>
-                                    </Paper>
-                                )}
-                            </Stack>
-                        </Grid>
-
-                        {/* 🏆 TOP PERFORMERS */}
-                        <Grid size={{ xs: 12, md: 7 }}>
-                            <Grid container spacing={2}>
-                                <Grid size={{ xs: 12, sm: 6 }}>
-                                    <TypographyCustom variant="h6" fontWeight="bold" sx={{ mb: 2 }}>Top Vendedoras (7 días)</TypographyCustom>
-                                    <Paper elevation={0} sx={{ p: 2, borderRadius: 4, bgcolor: 'background.paper', border: '1px solid', borderColor: 'divider' }}>
-                                        <Stack spacing={2}>
-                                            {stats.top_sellers?.map((s: any, i: number) => (
-                                                <Box key={i} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                                                        <Avatar sx={{ width: 32, height: 32, fontSize: '0.8rem', bgcolor: user.color }}>{s.names.split(' ').map((n: string) => n[0]).join('')}</Avatar>
-                                                        <TypographyCustom variant="body2">{s.names}</TypographyCustom>
-                                                    </Box>
-                                                    <TypographyCustom variant="caption" fontWeight="bold">{s.agent_orders_count} órdenes</TypographyCustom>
-                                                </Box>
-                                            ))}
-                                            {!stats.top_sellers?.length && <TypographyCustom variant="caption">Sin datos en los últimos 7 días</TypographyCustom>}
-                                        </Stack>
-                                    </Paper>
-                                </Grid>
-                                <Grid size={{ xs: 12, sm: 6 }}>
-                                    <TypographyCustom variant="h6" fontWeight="bold" sx={{ mb: 2 }}>Top Repartidores (7 días)</TypographyCustom>
-                                    <Paper elevation={0} sx={{ p: 2, borderRadius: 4, bgcolor: 'background.paper', border: '1px solid', borderColor: 'divider' }}>
-                                        <Stack spacing={2}>
-                                            {stats.top_deliverers?.map((s: any, i: number) => (
-                                                <Box key={i} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                                                        <Avatar sx={{ width: 32, height: 32, fontSize: '0.8rem', bgcolor: 'secondary.main' }}>{s.names.split(' ').map((n: string) => n[0]).join('')}</Avatar>
-                                                        <TypographyCustom variant="body2">{s.names}</TypographyCustom>
-                                                    </Box>
-                                                    <TypographyCustom variant="caption" fontWeight="bold">{s.deliverer_orders_count} entr.</TypographyCustom>
-                                                </Box>
-                                            ))}
-                                            {!stats.top_deliverers?.length && <TypographyCustom variant="caption">Sin datos en los últimos 7 días</TypographyCustom>}
-                                        </Stack>
-                                    </Paper>
-                                </Grid>
-                            </Grid>
-                        </Grid>
-
-                        {/* 💳 PAYMENT METHODS REPORT */}
-                        <Grid size={{ xs: 12 }}>
-                            <PaymentMethodsReport />
-                        </Grid>
-                    </Grid >
+                    <AdminDashboard
+                        role={role}
+                        stats={stats}
+                        vueltos={pendingVueltos}
+                        onOpenOrder={handleOpenOrder}
+                        onAutoAssignAgency={autoAssignLogistics}
+                        assigningAgency={autoAssigning}
+                        onAutoAssignCities={autoAssignCities}
+                        assigningCities={assigningCities}
+                    />
                 );
 
 
@@ -1063,13 +620,12 @@ export const Dashboard = () => {
 
     return (
         <Layout>
-            <Toolbar />
-            <Box sx={{ mb: 2 }}>
-                <TypographyCustom fontWeight={"bold"} variant="h4">
-                    ¡Bienvenido {user.names}!
+            <Box sx={{ mt: 1, mb: 2.5 }}>
+                <TypographyCustom component="h1" variant="h4">
+                    ¡Hola, {user.names}!
                 </TypographyCustom>
                 <TypographyCustom color={"text.secondary"} variant="body1">
-                    Hoy es {today}. Aquí tienes un resumen de tu día como {role || user.role?.description || "usuario"}.
+                    Hoy es {dayjs(today).isValid() ? new Date(dayjs(today).valueOf()).toLocaleDateString("es-VE", { weekday: "long", day: "numeric", month: "long" }) : today}. Aquí tienes un resumen de tu día como {role || user.role?.description || "usuario"}.
                 </TypographyCustom>
             </Box>
 
