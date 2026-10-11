@@ -329,21 +329,26 @@ export const Shops = () => {
                                 placeholder="tutienda.myshopify.com"
                                 helperText="El dominio de tu tienda en Shopify"
                             />
+                            {/* El backend no devuelve el token ni el secreto: solo si están cargados. Vacío = no cambia */}
                             <TextField
                                 name="shopify_access_token"
                                 label="Access Token de Shopify"
                                 fullWidth
-                                defaultValue={editingShop?.shopify_access_token}
                                 type="password"
-                                helperText="Token de acceso a la API de Shopify"
+                                autoComplete="new-password"
+                                placeholder={editingShop?.has_access_token ? "••••••••" : undefined}
+                                InputLabelProps={editingShop?.has_access_token ? { shrink: true } : undefined}
+                                helperText={editingShop?.has_access_token ? "Ya está guardado. Déjalo vacío para no cambiarlo." : "Token de acceso a la API de Shopify"}
                             />
                             <TextField
                                 name="shopify_webhook_secret"
                                 label="Webhook Secret de Shopify"
                                 fullWidth
-                                defaultValue={editingShop?.shopify_webhook_secret}
                                 type="password"
-                                helperText="Secreto para validar webhooks de Shopify"
+                                autoComplete="new-password"
+                                placeholder={editingShop?.has_webhook_secret ? "••••••••" : undefined}
+                                InputLabelProps={editingShop?.has_webhook_secret ? { shrink: true } : undefined}
+                                helperText={editingShop?.has_webhook_secret ? "Ya está guardado. Déjalo vacío para no cambiarlo." : "Secreto para validar webhooks de Shopify"}
                             />
 
                             <Box mt={1} pt={2} borderTop="1px solid #eee">
