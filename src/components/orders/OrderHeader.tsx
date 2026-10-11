@@ -182,6 +182,13 @@ export const OrderHeader: React.FC<OrderHeaderProps> = ({
                             ) : (
                                 <Typography variant="body2" color="error" fontWeight="bold">Pendiente de Link</Typography>
                             )}
+                            {/* Módulo 3, §7: si el link no trae coordenadas, se avisa a quien puede corregirlo */}
+                            {order.location && ['pending', 'invalid'].includes(order.location_status) && !['Repartidor', 'Agencia'].includes(user.role?.description || '') && (
+                                <Typography variant="caption" sx={{ display: 'block', mt: 0.25 }}
+                                    color={order.location_note === 'Leyendo el enlace…' ? 'text.secondary' : order.location_status === 'invalid' ? 'error.main' : 'warning.main'}>
+                                    {order.location_note || (order.location_status === 'invalid' ? 'No es un link de Google Maps.' : 'No se pudieron leer las coordenadas del link.')}
+                                </Typography>
+                            )}
                         </Box>
                     </Box>
                 </Stack>

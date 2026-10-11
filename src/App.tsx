@@ -34,6 +34,9 @@ import { ReceiptReview } from './pages/admin/ReceiptReview';
 import { Reconciliation } from './pages/admin/Reconciliation';
 import { ReconciliationDay } from './pages/admin/ReconciliationDay';
 import { MetaAdsSettings } from './pages/admin/MetaAdsSettings';
+import { DeliveryTariffs } from './pages/admin/DeliveryTariffs';
+import { AgencyClosures } from './pages/admin/AgencyClosures';
+import { MyClosures } from './pages/agency/MyClosures';
 import { MetaAdsDashboard } from './pages/admin/MetaAdsDashboard';
 import { MetaCreativePage } from './pages/admin/MetaCreativePage';
 import { SalesLite } from './pages/lite/SalesLite';
@@ -142,6 +145,10 @@ function App() {
           <Route path="/meta-ads" element={<RequireRole allowedRoles={['Admin']}><MetaAdsDashboard /></RequireRole>} />
           <Route path="/meta-ads/creativos/:id" element={<RequireRole allowedRoles={['Admin']}><MetaCreativePage /></RequireRole>} />
           <Route path="/admin/meta-ads" element={<RequireRole allowedRoles={['Admin']}><MetaAdsSettings /></RequireRole>} />
+          <Route path="/admin/tarifas-delivery" element={<RequireRole allowedRoles={['Admin']}><DeliveryTariffs /></RequireRole>} />
+          <Route path="/admin/cierres-agencias" element={<RequireRole allowedRoles={['Admin']}><AgencyClosures /></RequireRole>} />
+          <Route path="/admin/cierres-agencias/:id" element={<RequireRole allowedRoles={['Admin']}><AgencyClosures /></RequireRole>} />
+          <Route path="/cierres" element={<RequireRole allowedRoles={['Agencia']}><MyClosures /></RequireRole>} />
           <Route path="/mi-grupo/vueltos" element={<RequireRole allowedRoles={['Vendedor']}><PendingVueltos /></RequireRole>} />
           <Route path="/admin/whatsapp-templates" element={<RequireRole allowedRoles={['Admin']}><WhatsappTemplates /></RequireRole>} />
           <Route path="/admin/webhooks" element={<RequireRole allowedRoles={['Admin']}><WebhooksPage /></RequireRole>} />

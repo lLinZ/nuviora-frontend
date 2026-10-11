@@ -30,6 +30,7 @@ import { IResponse } from "../interfaces/response-type";
 import { OrderDialog } from "../components/orders/OrderDialog";
 import { orderNo } from "../lib/functions";
 import { AdminDashboard } from "../components/dashboard/admin/AdminDashboard";
+import { ClosureReminder } from "../components/agency-closures/ClosureReminder";
 import { DashboardStats, PendingVuelto } from "../components/dashboard/admin/types";
 
 interface DashboardData {
@@ -472,6 +473,10 @@ export const Dashboard = () => {
             case "Agencia":
                 return (
                     <Grid container spacing={3}>
+                        {/* Aviso del cierre semanal (Módulo 3, §22): hasta que suba el archivo de la semana anterior */}
+                        <Grid size={{ xs: 12 }} sx={{ "&:empty": { display: "none" } }}>
+                            <ClosureReminder />
+                        </Grid>
                         {/* 📊 AGENCY PRIMARY METRICS */}
                         {/* 📊 AGENCY PRIMARY METRICS */}
                         {/* <Grid size={{ xs: 12, md: 4 }}>

@@ -16,9 +16,9 @@ import WhatsAppIcon from "@mui/icons-material/WhatsApp";
 import ForumRoundedIcon from "@mui/icons-material/ForumRounded";
 import {
     AccessTimeRounded, AccountBalanceRounded, EditNoteRounded, FactCheckRounded, FileDownloadRounded, HistoryRounded,
-    InsertDriveFileRounded, MapRounded, PaymentRounded, PeopleAltRounded, PollRounded, ReceiptLongRounded,
+    InsertDriveFileRounded, MapRounded, PaymentRounded, RouteRounded, PeopleAltRounded, PollRounded, ReceiptLongRounded,
     SettingsEthernetRounded, SettingsRounded, ShoppingBagRounded, StorefrontRounded, SyncAltRounded, WarehouseRounded,
-    AssessmentRounded, Diversity3Rounded, PaymentsRounded, ImageSearchRounded, CampaignRounded, InsightsRounded,
+    AssessmentRounded, Diversity3Rounded, PaymentsRounded, ImageSearchRounded, CampaignRounded, InsightsRounded, RequestQuoteRounded,
 } from "@mui/icons-material";
 
 export type SectionId = "principal" | "ventas" | "inventario" | "dinero" | "reportes" | "config";
@@ -68,6 +68,8 @@ export const MENU_LINKS: NavLink[] = [
     { section: "dinero", text: "Vueltos por validar", icon: <FactCheckRounded />, link: "/admin/vueltos-por-validar", roles: ["Admin", "Gerente", "Master"], keywords: "vuelto cambio pago mixto aprobar agencia" },
     { section: "dinero", text: "Vueltos Pendientes", icon: <ReceiptLongRounded />, link: "/admin/pending-vueltos", roles: ["Admin", "Gerente"], keywords: "vuelto cambio pagar pago movil" },
     { section: "dinero", text: "Vueltos de mi grupo", icon: <ReceiptLongRounded />, link: "/mi-grupo/vueltos", roles: ["Vendedor"], leaderOnly: true, keywords: "vuelto cambio pagar" },
+    { section: "dinero", text: "Cierres de agencias", icon: <RequestQuoteRounded />, link: "/admin/cierres-agencias", roles: ["Admin"], keywords: "cierre semanal agencias carreras excel discrepancias pagar delivery pyp dalgo rapi2" },
+    { section: "dinero", text: "Cierres / Servicios", icon: <RequestQuoteRounded />, link: "/cierres", roles: ["Agencia"], keywords: "cierre semanal subir excel carreras pago" },
     { section: "dinero", text: "Ganancias globales", icon: <BarChartRoundedIcon />, link: "/earnings", roles: ["Admin"], keywords: "comisiones pagos liquidacion agencias vendedoras" },
     { section: "dinero", text: "Mis ganancias", icon: <SavingsRoundedIcon />, link: "/me/earnings", roles: ["Vendedor", "Repartidor", "Gerente"], keywords: "comisiones pagos" },
     { section: "dinero", text: "Tasa de dólar", icon: <AttachMoneyRoundedIcon />, link: "/currency", roles: ["Admin"], keywords: "bcv binance euro tasas cambio" },
@@ -86,6 +88,7 @@ export const MENU_LINKS: NavLink[] = [
     { section: "config", text: "Usuarios", icon: <PeopleAltRounded />, link: "/users", roles: ["Admin", "Gerente"], keywords: "vendedoras empleados roles contraseña agencias" },
     { section: "config", text: "Repartidores", icon: <EngineeringRoundedIcon />, link: "/deliverers", roles: ["Admin"], keywords: "motorizados delivery" },
     { section: "config", text: "Ciudades y Agencias", icon: <MapRounded />, link: "/cities", roles: ["Admin", "Gerente"], keywords: "agencias reparto porcentajes cupo" },
+    { section: "config", text: "Tarifas de delivery", icon: <RouteRounded />, link: "/admin/tarifas-delivery", roles: ["Admin"], keywords: "agencias carreras tarifario kilometros distancia google routes almacenes coordenadas cierre" },
     { section: "config", text: "Plantillas WhatsApp", icon: <EditNoteRounded />, link: "/admin/whatsapp-templates", roles: ["Admin"], keywords: "mensajes" },
     { section: "config", text: "Meta Ads (conexiones)", icon: <CampaignRounded />, link: "/admin/meta-ads", roles: ["Admin"], keywords: "facebook business manager bm token cuentas publicitarias clasificar campañas objetivos cpa reglas" },
     { section: "config", text: "Integraciones Webhooks", icon: <SettingsEthernetRounded />, link: "/admin/webhooks", roles: ["Admin"], keywords: "n8n integraciones" },
