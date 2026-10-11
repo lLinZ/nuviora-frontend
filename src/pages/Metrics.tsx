@@ -164,7 +164,14 @@ export const Metrics = () => {
                                     <TableBody>
                                         {metrics?.products?.map((p: any) => (
                                             <TableRow key={p.id}>
-                                                <TableCell>{p.title || p.name}</TableCell>
+                                                <TableCell>
+                                                    {p.title || p.name}
+                                                    {p.ad_spend > 0 && (
+                                                        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', lineHeight: 1.2 }}>
+                                                            Ad Spend {fmtMoney(p.ad_spend, 'USD')} · {SPEND_SOURCE_LABEL[p.ad_spend_source] ?? p.ad_spend_source}
+                                                        </Typography>
+                                                    )}
+                                                </TableCell>
                                                 <TableCell align="right">{p.effectiveness}%</TableCell>
                                                 <TableCell align="right" sx={{ color: p.net_profit >= 0 ? 'success.main' : 'error.main' }}>
                                                     {fmtMoney(p.net_profit, 'USD')}
@@ -409,6 +416,9 @@ export const Metrics = () => {
                     <Card elevation={3} sx={{ borderRadius: 4 }}>
                         <CardContent>
                             <Typography variant="h6" gutterBottom>Ganancia Neta Diaria</Typography>
+                            <Typography variant="caption" color="text.secondary" sx={{ mb: 1, display: 'block' }}>
+                                El Ad Spend sale de <b>Meta Ads</b> (campañas clasificadas por producto y ciudad). Lo registrado a mano solo cuenta los días en que Meta no tiene gasto de ese producto.
+                            </Typography>
                             <TableContainer component={Paper} elevation={0}>
                                 <Table size="small">
                                     <TableHead>
@@ -427,7 +437,10 @@ export const Metrics = () => {
                                                 <TableCell>{d.date}</TableCell>
                                                 <TableCell align="right">{fmtMoney(d.revenue, 'USD')}</TableCell>
                                                 <TableCell align="right" sx={{ color: 'error.main' }}>-{fmtMoney(d.cost, 'USD')}</TableCell>
-                                                <TableCell align="right" sx={{ color: 'error.main' }}>-{fmtMoney(d.ad_spend, 'USD')}</TableCell>
+                                                <TableCell align="right" sx={{ color: 'error.main' }}>
+                                                    -{fmtMoney(d.ad_spend, 'USD')}
+                                                    {d.ad_spend_source && <SpendSource source={d.ad_spend_source} />}
+                                                </TableCell>
                                                 <TableCell align="right" sx={{ color: 'error.main' }}>-{fmtMoney(d.commissions || 0, 'USD')}</TableCell>
                                                 <TableCell align="right" sx={{ fontWeight: 'bold', color: d.net_profit >= 0 ? 'success.main' : 'error.main' }}>
                                                     {fmtMoney(d.net_profit, 'USD')}
@@ -455,6 +468,9 @@ export const Metrics = () => {
                             </TextField>
                             <TextField name="date" label="Fecha" type="date" fullWidth required defaultValue={new Date().toISOString().split('T')[0]} InputLabelProps={{ shrink: true }} />
                             <TextField name="amount" label="Monto Invertido ($)" type="number" fullWidth required inputProps={{ step: "0.01" }} />
+                            <Typography variant="caption" color="text.secondary" sx={{ maxWidth: 300 }}>
+                                Solo hace falta para lo que no está en Meta Ads. Si Meta tiene gasto de ese producto ese día, se usa el de Meta.
+                            </Typography>
                         </Box>
                     </DialogContent>
                     <DialogActions>
@@ -466,6 +482,14 @@ export const Metrics = () => {
         </Layout>
     );
 };
+
+/** De dónde salió el Ad Spend (Fran, 2026-10-09, punto 7: el gasto real de Meta). */
+const SPEND_SOURCE_LABEL: Record<string, string> = { meta: 'Meta', manual: 'manual', mixed: 'Meta + manual' };
+const SpendSource = ({ source }: { source: string }) => (
+    <Typography component="span" variant="caption" color="text.secondary" sx={{ display: 'block', lineHeight: 1.2 }}>
+        {SPEND_SOURCE_LABEL[source] ?? source}
+    </Typography>
+);
 
 const SummaryCard = ({ title, value, sub, icon }: any) => (
     <Grid size={{ xs: 12, sm: 6, md: 2 }}>

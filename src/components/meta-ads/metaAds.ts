@@ -151,14 +151,15 @@ export const RANGES: { key: string; label: string }[] = [
     { key: "this_month", label: "Este mes" }, { key: "last_month", label: "Mes pasado" }, { key: "custom", label: "Personalizado" },
 ];
 
-/** Las métricas que se pueden graficar (§26). "lower" = más bajo es mejor (para el color de la variación). */
+/**
+ * Las métricas que se pueden graficar (§26). "lower" = más bajo es mejor (para el color de la variación). CTR y CPC
+ * solo del enlace: los de todos los clics no interesan (Fran, 2026-10-09, pregunta 2).
+ */
 export const CHART_METRICS: { key: string; label: string; kind: "money" | "pct" | "num" | "freq"; lower?: boolean; video?: boolean }[] = [
     { key: "cpa", label: "CPA", kind: "money", lower: true },
     { key: "link_ctr", label: "CTR (enlace)", kind: "pct" },
-    { key: "ctr", label: "CTR (todos)", kind: "pct" },
     { key: "cpm", label: "CPM", kind: "money", lower: true },
     { key: "link_cpc", label: "CPC (enlace)", kind: "money", lower: true },
-    { key: "cpc", label: "CPC (todos)", kind: "money", lower: true },
     { key: "frequency", label: "Frequency", kind: "freq", lower: true },
     { key: "purchases", label: "Purchases", kind: "num" },
     { key: "hook_rate", label: "Hook Rate", kind: "pct", video: true },

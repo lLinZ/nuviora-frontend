@@ -17,6 +17,19 @@ type Campaign = {
     id: number; meta_id: string; name: string | null; account: string | null; effective_status: string | null; missing: boolean;
     product_id: number | null; product: string | null; city_id: number | null; city: string | null; classified: boolean;
     classified_by: string | null; classified_at: string | null; spend_30d?: number;
+    suggestion?: Suggestion | null;
+};
+type SuggestionFrom = "name" | "similar" | "account" | null;
+type Suggestion = { product_id: number | null; city_id: number | null; product_from: SuggestionFrom; city_from: SuggestionFrom; similar_to: string | null };
+
+/** De dónde salió lo sugerido (Fran, 2026-10-09, punto 6). */
+const suggestionText = (s: Suggestion, showProduct: boolean, showCity: boolean) => {
+    const from = (f: SuggestionFrom) => f === "name" ? "por el nombre" : f === "similar" ? `como en «${s.similar_to}»` : "por la cuenta";
+    const parts = [
+        showProduct && s.product_id ? `producto ${from(s.product_from)}` : null,
+        showCity && s.city_id ? `ciudad ${from(s.city_from)}` : null,
+    ].filter(Boolean);
+    return parts.length ? `Sugerido: ${parts.join(", ")}. Revísalo y guarda.` : null;
 };
 
 const useOptions = () => {
@@ -26,10 +39,13 @@ const useOptions = () => {
 };
 
 const CampaignRow: React.FC<{ c: Campaign; opts: { products: Option[]; cities: Option[] }; onSaved: () => void }> = ({ c, opts, onSaved }) => {
-    const [product, setProduct] = useState<Option | null>(opts.products.find((p) => p.id === c.product_id) ?? null);
-    const [city, setCity] = useState<Option | null>(opts.cities.find((x) => x.id === c.city_id) ?? null);
+    const s = c.suggestion ?? null;
+    const [product, setProduct] = useState<Option | null>(opts.products.find((p) => p.id === (c.product_id ?? s?.product_id)) ?? null);
+    const [city, setCity] = useState<Option | null>(opts.cities.find((x) => x.id === (c.city_id ?? s?.city_id)) ?? null);
     const [saving, setSaving] = useState(false);
     const changed = product?.id !== c.product_id || city?.id !== c.city_id;
+    // Se dice de dónde salió mientras siga puesto lo sugerido
+    const hint = s ? suggestionText(s, !c.product_id && product?.id === s.product_id, !c.city_id && city?.id === s.city_id) : null;
 
     const save = async () => {
         setSaving(true);
@@ -49,13 +65,14 @@ const CampaignRow: React.FC<{ c: Campaign; opts: { products: Option[]; cities: O
                     {c.spend_30d !== undefined ? ` · gasto 30 días ${fmt.money(c.spend_30d)}` : ""}
                     {c.classified && c.classified_by ? ` · clasificada por ${c.classified_by} ${dateTime(c.classified_at)}` : ""}
                 </Typography>
+                {hint && <Typography variant="caption" color="info.main" sx={{ display: "block" }}>{hint}</Typography>}
             </TableCell>
             <TableCell sx={{ minWidth: 200 }}>
                 <Autocomplete size="small" options={opts.products} value={product} onChange={(_, v) => setProduct(v)}
                     getOptionLabel={(o) => o.name} isOptionEqualToValue={(a, b) => a.id === b.id}
                     renderInput={(p) => <TextField {...p} label="Producto" />} />
             </TableCell>
-            <TableCell sx={{ minWidth: 170 }}>
+            <TableCell sx={{ minWidth: 210 }}>
                 <Autocomplete size="small" options={opts.cities} value={city} onChange={(_, v) => setCity(v)}
                     getOptionLabel={(o) => o.name} isOptionEqualToValue={(a, b) => a.id === b.id}
                     renderInput={(p) => <TextField {...p} label="Ciudad" />} />
@@ -132,7 +149,7 @@ export const MetaTargetsTab: React.FC = () => {
     return (
         <Stack spacing={2}>
             <Typography variant="body2" color="text.secondary">
-                Target CPA y Break-even CPA de cada producto. Cada cambio queda guardado con su fecha, así las gráficas muestran el objetivo que regía cada día.
+                Target CPA y Break-even CPA de cada producto. Cada cambio queda guardado con su fecha, así las gráficas muestran el objetivo que regía cada día. El primer valor de cada producto vale también para los días anteriores.
             </Typography>
             <Paper elevation={0} sx={{ borderRadius: 3, border: "1px solid", borderColor: "divider", p: 2 }}>
                 <Stack direction={{ xs: "column", md: "row" }} spacing={1} alignItems={{ md: "center" }}>
@@ -171,24 +188,32 @@ export const MetaTargetsTab: React.FC = () => {
     );
 };
 
-type Rule = { id: number; type: "spend_no_purchases" | "limited_sample" | "trend"; metric: string | null; direction: "up" | "down" | null; threshold: number | null; severity: "info" | "alert" | "critical"; is_active: boolean };
+type Rule = { id: number; type: "spend_no_purchases" | "limited_sample" | "trend"; metric: string | null; direction: "up" | "down" | null; threshold: number | null; min_spend: number | null; severity: "info" | "alert" | "critical"; is_active: boolean };
 type RulesData = { rules: Rule[]; metrics: string[] };
 const SEVERITY_LABEL: Record<string, string> = { info: "Información", alert: "Alerta", critical: "Crítica" };
 const METRIC_LABEL: Record<string, string> = {
-    cpa: "CPA", cpm: "CPM", ctr: "CTR", link_ctr: "CTR enlace", cpc: "CPC", frequency: "Frequency", hook_rate: "Hook Rate", hold_rate: "Hold Rate",
+    cpa: "CPA", cpm: "CPM", link_ctr: "CTR enlace", link_cpc: "CPC enlace", frequency: "Frequency", hook_rate: "Hook Rate", hold_rate: "Hold Rate",
     lpv_rate: "LPV Rate", conversion_rate: "Conversion Rate", spend: "Gasto", purchases: "Purchases",
 };
 
+/** Un número de la regla que se guarda al salir del campo. */
+const useNumberField = (value: number | null, save: (v: number | null) => void) => {
+    const [text, setText] = useState(value?.toString() ?? "");
+    useEffect(() => setText(value?.toString() ?? ""), [value]);
+    const commit = () => { if (text !== (value?.toString() ?? "")) save(text === "" ? null : Number(text)); };
+    return { text, setText, commit };
+};
+
 const RuleRow: React.FC<{ r: Rule; metrics: string[]; onChange: (patch: Partial<Rule>) => void; onDelete?: () => void }> = ({ r, metrics, onChange, onDelete }) => {
-    const [threshold, setThreshold] = useState(r.threshold?.toString() ?? "");
-    useEffect(() => setThreshold(r.threshold?.toString() ?? ""), [r.threshold]);
-    const commit = () => { if (threshold !== (r.threshold?.toString() ?? "")) onChange({ threshold: threshold === "" ? null : Number(threshold) }); };
+    const { text: threshold, setText: setThreshold, commit } = useNumberField(r.threshold, (v) => onChange({ threshold: v }));
+    const minSpend = useNumberField(r.min_spend, (v) => onChange({ min_spend: v }));
     return (
         <Stack direction={{ xs: "column", sm: "row" }} spacing={1} alignItems={{ sm: "center" }} sx={{ py: 1 }}>
             <Switch checked={r.is_active} onChange={(e) => onChange({ is_active: e.target.checked })} inputProps={{ "aria-label": "Activa" }} />
             <Typography variant="body2" sx={{ minWidth: 260, flex: 1 }}>
                 {r.type === "spend_no_purchases" && <>Gasto ≥ <b>{threshold || "?"}</b> × Target CPA y 0 compras</>}
-                {r.type === "limited_sample" && <>Muestra limitada: hay compras, pero menos de <b>{threshold || "?"}</b></>}
+                {/* Fran (2026-10-09, pregunta 5): depende del gasto acumulado y de las compras, con los mínimos que él ponga */}
+                {r.type === "limited_sample" && <>Muestra limitada: hay compras, pero <b>{[threshold ? `menos de ${threshold} compras` : null, minSpend.text ? `menos de $${minSpend.text} de gasto` : null].filter(Boolean).join(" o ") || "faltan los mínimos"}</b></>}
                 {r.type === "trend" && <><b>{METRIC_LABEL[r.metric ?? ""] ?? r.metric}</b> {r.direction === "up" ? "aumenta" : "disminuye"} ≥ <b>{threshold || "?"} %</b> contra el período anterior</>}
             </Typography>
             {r.type === "trend" && (
@@ -201,8 +226,12 @@ const RuleRow: React.FC<{ r: Rule; metrics: string[]; onChange: (patch: Partial<
                     </TextField>
                 </>
             )}
-            <TextField size="small" type="number" label={r.type === "spend_no_purchases" ? "× Target CPA" : r.type === "trend" ? "%" : "Compras"} value={threshold}
-                onChange={(e) => setThreshold(e.target.value)} onBlur={commit} sx={{ width: 120 }} inputProps={{ min: 0, step: "0.1" }} />
+            <TextField size="small" type="number" label={r.type === "spend_no_purchases" ? "× Target CPA" : r.type === "trend" ? "%" : "Compras mín."} value={threshold}
+                onChange={(e) => setThreshold(e.target.value)} onBlur={commit} sx={{ width: 120 }} inputProps={{ min: 0, step: r.type === "limited_sample" ? "1" : "0.1" }} />
+            {r.type === "limited_sample" && (
+                <TextField size="small" type="number" label="Gasto mín. (USD)" value={minSpend.text}
+                    onChange={(e) => minSpend.setText(e.target.value)} onBlur={minSpend.commit} sx={{ width: 140 }} inputProps={{ min: 0, step: "1" }} />
+            )}
             <TextField select size="small" label="Severidad" value={r.severity} onChange={(e) => onChange({ severity: e.target.value as Rule["severity"] })} sx={{ width: 140 }}>
                 {Object.entries(SEVERITY_LABEL).map(([k, v]) => <MenuItem key={k} value={k}>{v}</MenuItem>)}
             </TextField>
