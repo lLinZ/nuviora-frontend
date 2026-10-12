@@ -64,7 +64,7 @@ export type Trip = {
 };
 
 export type ClosureSetting = {
-    closing_day: number; closing_time: string; reminder_active: boolean; tolerance_amount: number; tolerance_percent: number | null;
+    closing_day: number; closing_time: string; reminder_active: boolean; tolerance_amount: number; tolerance_percent: number | null; review_distance_km: number;
     mapping: { header_row: number; columns: Record<string, string>; source?: string; manual?: boolean } | null;
 };
 

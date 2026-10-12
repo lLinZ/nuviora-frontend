@@ -1,6 +1,7 @@
 // src/components/delivery-tariffs/RoutesTab.tsx
 // Las carreras calculadas (Módulo 3, §15, §42): orden, almacén, distancia por carretera, rango, versión del tarifario y
-// costo esperado. Las que no se pudieron calcular dicen por qué y se pueden reintentar. Solo administración (§14).
+// costo esperado. Las que no se pudieron calcular dicen por qué y se pueden reintentar. Las que pasan el límite de km de
+// su agencia (Fran, 2026-10-12: 25 km) quedan por revisar hasta que el Admin las aprueba. Solo administración (§14).
 import React, { useCallback, useEffect, useState } from "react";
 import {
     Alert, Box, Button, Chip, FormControlLabel, Link, MenuItem, Pagination, Stack, Switch, Table, TableBody, TableCell, TableContainer,
@@ -38,6 +39,16 @@ export const RoutesTab: React.FC = () => {
         setBusy(id);
         try {
             const r = await api<{ message: string }>(`/delivery/routes/${id}/retry`, "POST");
+            toast.success(r.message);
+            load();
+        } catch (e) { toast.error((e as Error).message); } finally { setBusy(null); }
+    };
+
+    // Fran (2026-10-12): una carrera de más km que el límite de su agencia se revisa antes de pagarla
+    const approveDistance = async (id: number) => {
+        setBusy(id);
+        try {
+            const r = await api<{ message: string }>(`/delivery/routes/${id}/approve-distance`, "POST");
             toast.success(r.message);
             load();
         } catch (e) { toast.error((e as Error).message); } finally { setBusy(null); }
@@ -105,8 +116,17 @@ export const RoutesTab: React.FC = () => {
                                                 <Chip size="small" color={routeStatusColor(r.status)} label={r.status_label + (r.status === "error" && r.attempts ? ` (${r.attempts})` : "")} />
                                             </Tooltip>
                                             {!r.is_active && <Typography variant="caption" color="text.secondary" sx={{ display: "block" }}>reemplazada</Typography>}
+                                            {r.status === "distance_review" && (
+                                                <Typography variant="caption" color="text.secondary" sx={{ display: "block", maxWidth: 220 }}>
+                                                    Pasa el límite de km de la agencia. No cuenta en el cierre hasta aprobarla o corregir la ubicación.
+                                                </Typography>
+                                            )}
+                                            {r.distance_approved_at && <Typography variant="caption" color="text.secondary" sx={{ display: "block" }}>distancia aprobada</Typography>}
                                         </TableCell>
                                         <TableCell align="right">
+                                            {r.status === "distance_review" && (
+                                                <Button size="small" disabled={busy === r.id} onClick={() => approveDistance(r.id)}>Aprobar distancia</Button>
+                                            )}
                                             {(r.status === "error" || (r.is_active && r.status === "pending")) && (
                                                 <Button size="small" startIcon={<RefreshRounded />} disabled={busy === r.id} onClick={() => retry(r.id)}>Reintentar</Button>
                                             )}

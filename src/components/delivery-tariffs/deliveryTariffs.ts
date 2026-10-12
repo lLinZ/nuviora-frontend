@@ -22,7 +22,7 @@ export type DeliveryRoute = {
     id: number; order_id: number; order: string | null; order_status: string | null; agency: string | null; warehouse: string | null;
     distance_km: number | null; range: string | null; tariff_version: number | null; tariff_date: string | null;
     expected_cost: number | null; status: string; status_label: string; error: string | null; attempts: number;
-    is_active: boolean; reason: string; requires_review: boolean; review_note: string | null; trips: number;
+    is_active: boolean; reason: string; requires_review: boolean; review_note: string | null; distance_approved_at: string | null; trips: number;
     maps_url: string | null; calculated_at: string | null; created_at: string | null;
 };
 export type RoutesResponse = {

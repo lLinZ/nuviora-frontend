@@ -16,6 +16,7 @@ const AgencySettings: React.FC<{ agency: { id: number; name: string }; initial: 
     const [form, setForm] = useState({
         closing_day: String(initial.closing_day), closing_time: initial.closing_time, reminder_active: initial.reminder_active,
         tolerance_amount: String(initial.tolerance_amount), tolerance_percent: initial.tolerance_percent === null ? "" : String(initial.tolerance_percent),
+        review_distance_km: String(initial.review_distance_km ?? 25),
     });
     const [mapping, setMapping] = useState<{ header_row: string; columns: Record<string, string> } | null>(
         initial.mapping ? { header_row: String(initial.mapping.header_row), columns: { ...initial.mapping.columns } } : null,
@@ -31,6 +32,7 @@ const AgencySettings: React.FC<{ agency: { id: number; name: string }; initial: 
                 closing_day: Number(form.closing_day), closing_time: form.closing_time, reminder_active: form.reminder_active,
                 tolerance_amount: Number(form.tolerance_amount.replace(",", ".")) || 0,
                 tolerance_percent: form.tolerance_percent.trim() === "" ? null : Number(form.tolerance_percent.replace(",", ".")),
+                review_distance_km: Number(form.review_distance_km.replace(",", ".")) || 25,
                 ...(mappingTouched ? { mapping: mapping ? { header_row: Number(mapping.header_row) || 0, columns: mapping.columns } : null } : {}),
             });
             toast.success(`Configuración de ${agency.name} guardada.`);
@@ -67,6 +69,14 @@ const AgencySettings: React.FC<{ agency: { id: number; name: string }; initial: 
                     </Stack>
                     <Typography variant="caption" color="text.secondary">
                         Si lo que cobra la agencia difiere del cálculo en esto o menos, la carrera cuenta como correcta y no te la muestra. Con los dos, vale el mayor.
+                    </Typography>
+                </div>
+                <div>
+                    <Typography variant="subtitle2" gutterBottom>Carreras largas</Typography>
+                    <TextField size="small" label="Revisar las de más de" value={form.review_distance_km} onChange={(e) => setForm({ ...form, review_distance_km: e.target.value })}
+                        InputProps={{ endAdornment: <InputAdornment position="end">km</InputAdornment> }} inputProps={{ inputMode: "decimal" }} sx={{ width: 200 }} />
+                    <Typography variant="caption" color="text.secondary" sx={{ display: "block" }}>
+                        Una carrera más larga casi siempre es una ubicación equivocada. Queda "Distancia por revisar" en Tarifas de delivery › Carreras, y no cuenta en el cierre hasta aprobarla o corregir la ubicación.
                     </Typography>
                 </div>
                 <div>
