@@ -1,7 +1,8 @@
 // src/components/delivery-tariffs/TariffsTab.tsx
 // Tarifarios de las agencias (Módulo 3, §10 a §13): uno por agencia y ciudad, con rangos continuos (desde < km ≤ hasta)
 // y versiones. Guardar nunca cambia una versión: crea otra, vigente desde la fecha indicada, y las carreras ya
-// calculadas conservan la suya (§13, §41). Solo administración (§12, §14).
+// calculadas conservan la suya (§13, §41). Con la misma fecha que la última, la corrige (un error al cargarla) y sus
+// carreras se recalculan. Solo administración (§12, §14).
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
     Alert, Box, Button, Collapse, IconButton, MenuItem, Stack, Table, TableBody, TableCell, TableHead, TableRow, TextField, Typography,
@@ -35,6 +36,9 @@ const TariffForm: React.FC<{ agencies: AgencyWithWarehouses[]; cities: Option[];
     const agency = agencies.find((a) => a.id === agencyId);
     const cityOptions = agency?.cities.length ? agency.cities : cities;
     const current = groups.find((g) => g.agency_id === agencyId && g.city_id === cityId);
+    // La misma fecha que la última versión: la corrige en vez de crear otra (un error al cargarla)
+    const latest = current?.versions.filter((v) => v.is_active).sort((a, b) => b.valid_from.localeCompare(a.valid_from) || b.version - a.version)[0];
+    const correcting = latest && latest.valid_from === validFrom ? latest : undefined;
 
     // "Desde" de cada rango = "hasta" del anterior: así no hay huecos ni solapes (§11)
     const ranges: TariffRange[] = useMemo(() => {
@@ -66,7 +70,8 @@ const TariffForm: React.FC<{ agencies: AgencyWithWarehouses[]; cities: Option[];
 
     return (
         <Panel>
-            <PanelHeader title="Nuevo tarifario o nueva versión" subtitle="La versión anterior queda cerrada el día antes. Las carreras ya calculadas no cambian." />
+            <PanelHeader title="Nuevo tarifario o nueva versión"
+                subtitle="La versión anterior queda cerrada el día antes. Las carreras ya calculadas no cambian. Para corregir un error, guarda la versión con la misma fecha de la equivocada." />
             <Stack direction={{ xs: "column", sm: "row" }} gap={1} sx={{ mb: 1.5 }}>
                 <TextField select size="small" label="Agencia" value={agencyId} onChange={(e) => { setAgencyId(Number(e.target.value)); setCityId(""); }} sx={{ minWidth: 180 }}>
                     {agencies.map((a) => <MenuItem key={a.id} value={a.id}>{a.name}</MenuItem>)}
@@ -100,7 +105,17 @@ const TariffForm: React.FC<{ agencies: AgencyWithWarehouses[]; cities: Option[];
                 <Box><Button size="small" startIcon={<AddRounded />} onClick={() => setRows([...rows, { max: "", price: "", perKm: "" }])} disabled={ranges[ranges.length - 1].max_km === null}>Agregar rango</Button></Box>
                 <TextField size="small" label="Nota (opcional)" value={notes} onChange={(e) => setNotes(e.target.value)} inputProps={{ maxLength: 300 }} />
                 {problem && agencyId !== "" && cityId !== "" && <Alert severity="info">{problem}</Alert>}
-                <Box><Button variant="contained" onClick={save} disabled={saving || agencyId === "" || cityId === "" || !!problem}>Guardar versión</Button></Box>
+                {correcting && (
+                    <Alert severity="warning">
+                        La versión {correcting.version} también empieza el {day(correcting.valid_from)}. Al guardar, esta la corrige: la versión {correcting.version} queda
+                        anulada{correcting.routes > 0 ? ` y sus ${correcting.routes} carreras se recalculan con estos rangos` : ""}.
+                    </Alert>
+                )}
+                <Box>
+                    <Button variant="contained" color={correcting ? "warning" : "primary"} onClick={save} disabled={saving || agencyId === "" || cityId === "" || !!problem}>
+                        {correcting ? `Corregir versión ${correcting.version}` : "Guardar versión"}
+                    </Button>
+                </Box>
             </Stack>
         </Panel>
     );
@@ -125,8 +140,12 @@ const TariffGroupPanel: React.FC<{ g: TariffGroup }> = ({ g }) => {
                         <Stack spacing={1.5} sx={{ mt: 1 }}>
                             {others.map((v) => (
                                 <Box key={v.id}>
-                                    <Typography variant="body2" fontWeight={600}>Versión {v.version}: {day(v.valid_from)} → {v.valid_to ? day(v.valid_to) : "en adelante"}</Typography>
-                                    <Typography variant="caption" color="text.secondary">{v.routes} carreras calculadas con esta versión{v.created_by ? ` · ${v.created_by}` : ""}</Typography>
+                                    <Typography variant="body2" fontWeight={600}>
+                                        Versión {v.version}: {v.is_active ? `${day(v.valid_from)} → ${v.valid_to ? day(v.valid_to) : "en adelante"}` : `anulada (se corrigió con otra del ${day(v.valid_from)})`}
+                                    </Typography>
+                                    <Typography variant="caption" color="text.secondary">
+                                        {v.is_active ? `${v.routes} carreras calculadas con esta versión` : "No se usa"}{v.created_by ? ` · ${v.created_by}` : ""}
+                                    </Typography>
                                     <RangesTable ranges={v.ranges} />
                                 </Box>
                             ))}

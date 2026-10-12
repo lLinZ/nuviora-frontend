@@ -13,7 +13,7 @@ export type AgencyWithWarehouses = { id: number; name: string; cities: Option[];
 
 export type TariffRange = { min_km: number; max_km: number | null; price: number | null; price_per_km: number | null; label?: string };
 export type TariffVersion = {
-    id: number; version: number; valid_from: string; valid_to: string | null; notes: string | null;
+    id: number; version: number; is_active: boolean; valid_from: string; valid_to: string | null; notes: string | null;
     created_by: string | null; created_at: string | null; routes: number; ranges: TariffRange[];
 };
 export type TariffGroup = { agency_id: number; agency: string; city_id: number; city: string; current_id: number | null; versions: TariffVersion[] };
