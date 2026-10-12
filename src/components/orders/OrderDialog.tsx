@@ -726,6 +726,7 @@ export const OrderDialog: FC<OrderDialogProps> = ({ id, open, setOpen }) => {
                                             sendLocation={sendLocation}
                                             handleChangeNewLocation={handleChangeNewLocation}
                                             onEditLogistics={() => setOpenLogistics(true)}
+                                            onOrderSaved={updateOrder}
                                         />
                                     </Paper>
                                 </Grid>

@@ -93,7 +93,9 @@ export const useOrderDialogLogic = (
                 updateOrderInColumns(data.data); // Backend returns the order in 'data' key for this specific endpoint
                 toast.success('Ubicacion actualizada');
             } else {
-                toast.error('No se logro añadir la ubicacion');
+                // Fran (2026-10-12): solo se acepta un link de Google Maps; el backend dice por qué no
+                const data = await response.json().catch(() => null);
+                toast.error(data?.message ?? 'No se logro añadir la ubicacion');
             }
         } catch (e) {
             toast.error('No se logro conectar con el servidor');

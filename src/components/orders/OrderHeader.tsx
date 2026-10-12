@@ -9,6 +9,7 @@ import StorefrontIcon from '@mui/icons-material/Storefront';
 import LocalShippingIcon from '@mui/icons-material/LocalShipping';
 import MapIcon from '@mui/icons-material/Map';
 import { PhoneActionMenu } from './PhoneActionMenu';
+import { CourierShipmentSection } from './CourierShipmentSection';
 
 interface OrderHeaderProps {
     order: any;
@@ -17,6 +18,7 @@ interface OrderHeaderProps {
     sendLocation: () => Promise<void>;
     handleChangeNewLocation: (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => void;
     onEditLogistics?: () => void;
+    onOrderSaved?: (order: unknown) => void;
 }
 
 export const OrderHeader: React.FC<OrderHeaderProps> = ({
@@ -26,6 +28,7 @@ export const OrderHeader: React.FC<OrderHeaderProps> = ({
     sendLocation,
     handleChangeNewLocation,
     onEditLogistics,
+    onOrderSaved,
 }) => {
     return (
         <Grid container spacing={4}>
@@ -172,7 +175,7 @@ export const OrderHeader: React.FC<OrderHeaderProps> = ({
                             <MapIcon fontSize="small" />
                         </Paper>
                         <Box sx={{ flex: 1 }}>
-                            <Typography variant="caption" color="text.secondary" display="block">Link de Ubicación</Typography>
+                            <Typography variant="caption" color="text.secondary" display="block">{order.courier_shipment ? 'Link de la oficina de encomiendas' : 'Link de Ubicación'}</Typography>
                             {order.location ? (
                                 <Link to={order.location} target="_blank" style={{ textDecoration: 'none', color: user.color }}>
                                     <Typography variant="body2" fontWeight="bold" sx={{ textDecoration: 'underline' }}>
@@ -202,12 +205,17 @@ export const OrderHeader: React.FC<OrderHeaderProps> = ({
                             onBlur={sendLocation}
                             onChange={handleChangeNewLocation}
                             value={newLocation}
-                            label="Actualizar Enlace de Google Maps"
+                            label={order.courier_shipment ? "Link de Google Maps de la oficina de encomiendas" : "Actualizar Enlace de Google Maps"}
                             fullWidth
                             variant="outlined"
                             placeholder="Pega aquí el link de la ubicación exacta..."
                         />
                     </Box>
+                </Grid>
+            )}
+            {onOrderSaved && (
+                <Grid size={{ xs: 12 }}>
+                    <CourierShipmentSection order={order} user={user} onSaved={onOrderSaved} />
                 </Grid>
             )}
         </Grid>

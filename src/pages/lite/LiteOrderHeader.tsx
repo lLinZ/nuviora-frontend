@@ -3,6 +3,7 @@ import { Box, Typography, Grid, Stack, IconButton, Tooltip, Link as MuiLink, Ale
 import { TextFieldCustom } from "../../components/custom";
 import { Link } from "react-router-dom";
 import { PhoneActionMenu } from '../../components/orders/PhoneActionMenu';
+import { CourierShipmentSection } from '../../components/orders/CourierShipmentSection';
 import MapIcon from '@mui/icons-material/Map';
 import StorefrontIcon from '@mui/icons-material/Storefront';
 
@@ -13,6 +14,7 @@ interface LiteOrderHeaderProps {
     sendLocation: () => Promise<void>;
     handleChangeNewLocation: (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => void;
     onEditLogistics?: () => void;
+    onOrderSaved?: (order: unknown) => void;
 }
 
 const InfoRow = ({ label, children, action }: { label: string, children: React.ReactNode, action?: React.ReactNode }) => (
@@ -36,6 +38,7 @@ export const LiteOrderHeader: React.FC<LiteOrderHeaderProps> = ({
     sendLocation,
     handleChangeNewLocation,
     onEditLogistics,
+    onOrderSaved,
 }) => {
     const isNovedad = order.status?.description === 'Novedades';
 
@@ -123,7 +126,7 @@ export const LiteOrderHeader: React.FC<LiteOrderHeaderProps> = ({
                     </Typography>
                 </InfoRow>
 
-                <InfoRow label="Link de Mapa">
+                <InfoRow label={order.courier_shipment ? "Link de la oficina de encomiendas" : "Link de Mapa"}>
                     {order.location ? (
                         <MuiLink href={order.location} target="_blank" underline="hover" sx={{ fontWeight: 'bold', fontSize: '0.9rem' }}>
                             Abrir en Google Maps ↗
@@ -142,7 +145,7 @@ export const LiteOrderHeader: React.FC<LiteOrderHeaderProps> = ({
                             onBlur={sendLocation}
                             onChange={handleChangeNewLocation}
                             value={newLocation}
-                            label="Actualizar Enlace de Mapa"
+                            label={order.courier_shipment ? "Link de Maps de la oficina de encomiendas" : "Actualizar Enlace de Mapa"}
                             size="small"
                             fullWidth
                             variant="outlined"
@@ -150,6 +153,11 @@ export const LiteOrderHeader: React.FC<LiteOrderHeaderProps> = ({
                             sx={{ '& .MuiInputBase-root': { fontSize: '0.9rem' } }}
                         />
                     </Box>
+                </Grid>
+            )}
+            {onOrderSaved && (
+                <Grid size={{ xs: 12 }}>
+                    <CourierShipmentSection order={order} user={user} onSaved={onOrderSaved} dense />
                 </Grid>
             )}
         </Grid>

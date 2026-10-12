@@ -442,6 +442,7 @@ export const LiteOrderDialog: FC<LiteOrderDialogProps> = ({ id, open, setOpen, o
                                 sendLocation={sendLocation}
                                 handleChangeNewLocation={handleChangeNewLocation}
                                 onEditLogistics={() => setOpenLogistics(true)}
+                                onOrderSaved={updateOrder}
                             />
                         </Paper>
 
