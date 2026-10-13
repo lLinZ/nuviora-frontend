@@ -128,3 +128,32 @@ export const PRESETS: { key: string; label: string; range: () => [string, string
     { key: "month", label: "Mes actual", range: () => [monthRange()[0], ymd(new Date())] },
     { key: "last_month", label: "Mes pasado", range: () => monthRange(-1) },
 ];
+
+// ---- Cohortes, CPA y configuración (§59 a §74, §22, §66) ----
+export type CohortRow = {
+    period: string; period_end: string; mature: boolean; created: number; delivered: number; not_delivered: number; open: number;
+    effectiveness: number | null; revenue: number; variable: number; contribution: number; spend: number; purchases: number;
+    meta_cpa: number | null; after_ads: number;
+};
+
+export type CohortResponse = {
+    from: string; to: string; group: "day" | "week"; mature_until: string; rows: CohortRow[];
+    total: { created: number; delivered: number; effectiveness: number | null };
+    effectiveness: { product_id: number; city_id: number | null; name: string; created: number; delivered: number; open: number; effectiveness: number | null }[];
+};
+
+export type CpaVersion = {
+    id: number; product_id: number; city_id: number | null; version: number; period_from: string; period_to: string;
+    orders_created: number; orders_delivered: number; effectiveness: number | null; revenue: number; variable_costs: number; contribution: number;
+    cogs: number; purchases: number; spend: number; meta_cpa: number | null; target_type: "sales" | "cost"; target_pct: number;
+    break_even: number | null; target: number | null; fully_loaded: number | null; viable: boolean | null; trigger: string; computed_at: string;
+};
+
+export type CpaRow = CpaVersion & { product: string; city: string | null };
+
+export type FinanceSettings = {
+    maturity_lag_days: number; analysis_window_days: number;
+    commissions: { order: number; upsell_unit: number; deliverer: number };
+    target_types: Record<"sales" | "cost", string>;
+    products: { id: number; name: string; cost_usd: number | null; target_type: "sales" | "cost"; target_pct: number }[];
+};

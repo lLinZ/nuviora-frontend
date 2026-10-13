@@ -46,6 +46,11 @@ const CityRow: React.FC<{ city: CityNode; canSeeSpend: boolean; onOpen: () => vo
                         <Box>
                             <Button size="small" onClick={onOpen} sx={{ fontWeight: 700, p: 0, minWidth: 0, textTransform: "none" }}>{city.name}</Button>
                             <Typography variant="caption" color="text.secondary" component="div">{city.accounts.length} {city.accounts.length === 1 ? "cuenta" : "cuentas"}</Typography>
+                            {city.target_source === "financial" && city.financial?.city_level && (
+                                <Typography variant="caption" component="div" sx={{ fontWeight: 600 }}>
+                                    Target {fmt.money(city.target_cpa ?? null)} · BE {fmt.money(city.break_even_cpa ?? null)}
+                                </Typography>
+                            )}
                             <RuleChips rules={city.signals.rules} />
                         </Box>
                     </Stack>
@@ -71,10 +76,29 @@ const ProductCard: React.FC<{ p: ProductNode; canSeeSpend: boolean; onOpenCity: 
                     <Button onClick={() => onOpenCity(null)} sx={{ p: 0, minWidth: 0, textTransform: "none" }}>
                         <Typography variant="h6" component="h3" fontWeight="bold">{p.name}</Typography>
                     </Button>
-                    <Typography variant="body2" color="text.secondary">
-                        Target CPA {fmt.money(p.target_cpa)} · Break-even {fmt.money(p.break_even_cpa)}
-                        {p.target_cpa === null && p.break_even_cpa === null && <> · <RouterLink to="/admin/meta-ads?tab=targets">cargar objetivos</RouterLink></>}
-                    </Typography>
+                    {p.target_source === "financial" ? (
+                        <>
+                            {/* R12: el manual, arriba y discreto, solo de referencia */}
+                            {(p.manual_target_cpa != null || p.manual_break_even_cpa != null) && (
+                                <Typography variant="caption" color="text.disabled" component="div">
+                                    Manual (referencia): Target {fmt.money(p.manual_target_cpa ?? null)} · Break-even {fmt.money(p.manual_break_even_cpa ?? null)}
+                                </Typography>
+                            )}
+                            <Typography variant="body2" fontWeight={600}>
+                                CPA financiero: Target {fmt.money(p.target_cpa)} · Break-even {fmt.money(p.break_even_cpa)}
+                                {p.financial?.viable === false && <Typography component="span" variant="body2" color="error.main"> · no viable</Typography>}
+                            </Typography>
+                            <Typography variant="caption" color="text.secondary" component="div">
+                                Calculado {p.financial?.computed_at} con las órdenes del {p.financial?.period_from} al {p.financial?.period_to} ·{" "}
+                                <RouterLink to="/finanzas?tab=cpa">ver en Finanzas</RouterLink>
+                            </Typography>
+                        </>
+                    ) : (
+                        <Typography variant="body2" color="text.secondary">
+                            Target CPA {fmt.money(p.target_cpa)} · Break-even {fmt.money(p.break_even_cpa)}
+                            {p.target_cpa === null && p.break_even_cpa === null && <> · <RouterLink to="/admin/meta-ads?tab=targets">cargar objetivos</RouterLink></>}
+                        </Typography>
+                    )}
                     <RuleChips rules={p.signals.rules} />
                 </Box>
                 <Stack direction="row" spacing={2} flexWrap="wrap">

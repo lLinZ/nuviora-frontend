@@ -118,8 +118,19 @@ export type Node = {
     signals: { frequency: Signal; cpa: Signal; rules: RuleSignal[] };
 };
 
-export type CityNode = Node & { city_id: number; name: string; accounts: (Node & { account_id: number; name: string | null })[] };
-export type ProductNode = Node & { product_id: number; name: string; target_cpa: number | null; break_even_cpa: number | null; cities: CityNode[] };
+/** CPA financiero calculado (Módulo 4 de Fran, §70 a §72): reemplaza al manual cuando existe (R12). */
+export type FinancialCpa = {
+    target: number | null; break_even: number | null; fully_loaded: number | null; viable: boolean | null; city_level: boolean;
+    period_from: string | null; period_to: string | null; computed_at: string | null; version: number;
+};
+export type CityNode = Node & {
+    city_id: number; name: string; accounts: (Node & { account_id: number; name: string | null })[];
+    target_cpa?: number | null; break_even_cpa?: number | null; target_source?: "financial" | "manual"; financial?: FinancialCpa | null;
+};
+export type ProductNode = Node & {
+    product_id: number; name: string; target_cpa: number | null; break_even_cpa: number | null; cities: CityNode[];
+    target_source?: "financial" | "manual"; manual_target_cpa?: number | null; manual_break_even_cpa?: number | null; financial?: FinancialCpa | null;
+};
 
 export type RangeInfo = { key: string; label: string; from: string; to: string; prev_from: string; prev_to: string };
 

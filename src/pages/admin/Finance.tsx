@@ -1,7 +1,7 @@
 // src/pages/admin/Finance.tsx
 // Finanzas (documento de Fran del 2026-10-12, Módulo 4). Solo el Admin (§81): el backend tampoco le entrega nada de esto
 // a otro rol. Resumen (§48) y rentabilidad por niveles con su detalle hasta el pedido (§47 a §52), y los gastos
-// manuales y recurrentes (§24 a §33). Las cohortes y el CPA llegan en el paso siguiente de la entrega 1.
+// manuales y recurrentes (§24 a §33), cohortes y efectividad (§59), CPA financiero (§60 a §74) y configuración (§22, §66).
 import React, { useCallback, useEffect, useState } from "react";
 import { Box, Paper, Tab, Tabs, Typography } from "@mui/material";
 import { useSearchParams } from "react-router-dom";
@@ -14,13 +14,19 @@ import { ExpensesTab } from "../../components/finance/ExpensesTab";
 import { RecurringExpensesTab } from "../../components/finance/RecurringExpensesTab";
 import { SummaryTab } from "../../components/finance/SummaryTab";
 import { ProfitabilityTab } from "../../components/finance/ProfitabilityTab";
+import { CohortsTab } from "../../components/finance/CohortsTab";
+import { CpaTab } from "../../components/finance/CpaTab";
+import { SettingsTab } from "../../components/finance/SettingsTab";
 import { FinanceOptions, api, errorMessage } from "../../components/finance/finance";
 
 const TABS = [
     { key: "summary", label: "Resumen" },
     { key: "profitability", label: "Rentabilidad" },
+    { key: "cohorts", label: "Cohortes" },
+    { key: "cpa", label: "CPA" },
     { key: "expenses", label: "Gastos" },
     { key: "recurring", label: "Gastos recurrentes" },
+    { key: "settings", label: "Configuración" },
 ];
 
 export const Finance: React.FC = () => {
@@ -48,10 +54,13 @@ export const Finance: React.FC = () => {
                 </Paper>
                 {tab === "summary" && <SummaryTab />}
                 {tab === "profitability" && <ProfitabilityTab />}
-                {(tab === "expenses" || tab === "recurring") && (!options ? <Typography color="text.secondary" sx={{ p: 2 }}>Cargando…</Typography> : (
+                {tab === "cpa" && <CpaTab />}
+                {tab === "settings" && <SettingsTab />}
+                {(tab === "expenses" || tab === "recurring" || tab === "cohorts") && (!options ? <Typography color="text.secondary" sx={{ p: 2 }}>Cargando…</Typography> : (
                     <>
                         {tab === "expenses" && <ExpensesTab options={options} onCategory={addCategory} />}
                         {tab === "recurring" && <RecurringExpensesTab options={options} onCategory={addCategory} />}
+                        {tab === "cohorts" && <CohortsTab options={options} />}
                     </>
                 ))}
             </Box>
