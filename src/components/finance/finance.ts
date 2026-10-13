@@ -1,7 +1,11 @@
 // src/components/finance/finance.ts
 // Finanzas (Módulo 4 de Fran, 2026-10-12): tipos y utilidades de la pantalla de gastos (§24 a §33). Solo el Admin (§81).
 export { api } from "../meta-ads/metaAds";
-export { money, day, todayCaracas } from "../delivery-tariffs/deliveryTariffs";
+import { money as plainMoney } from "../delivery-tariffs/deliveryTariffs";
+export { day, todayCaracas } from "../delivery-tariffs/deliveryTariffs";
+
+/** Dólares con el signo delante en los negativos: "−$23,30" y no "$-23,30". */
+export const money = (v: number | null | undefined) => (v !== null && v !== undefined && v < 0 ? `−${plainMoney(-v)}` : plainMoney(v));
 export { download } from "../agency-closures/closures";
 
 export type Currency = "USD" | "USDT" | "VES";
@@ -83,3 +87,44 @@ export const monthRange = (offset = 0): [string, string] => {
 
 /** El mensaje de error de una respuesta del backend (el primero de la validación, si lo hay). */
 export const errorMessage = (e: unknown) => (e instanceof Error ? e.message : "No se pudo guardar.");
+
+// ---- Rentabilidad (§47 a §52, §57, §58) ----
+export type Levels = {
+    revenue: number; revenue_main: number; revenue_upsell: number; revenue_refunded: number; cogs: number; logistics: number;
+    delivery: number; delivery_legacy: number; commission_sellers: number; commission_leaders: number; advertising: number;
+    other_variable: number; contribution: number; margin_pct: number | null; orders_delivered: number; orders_not_delivered: number;
+    meta_purchases: number;
+    upsell: { revenue: number; cogs: number; commission: number; profit: number };
+    checks: { cogs_missing_lines: number; delivery_trips: number; delivery_final_trips: number; delivery_missing_trips: number; delivery_estimated_trips: number };
+};
+
+export type CompanyLevels = Levels & {
+    advertising_unclassified: number; fixed: number; operating_profit: number; expenses_total: number; operating_pct: number | null;
+};
+
+export type GroupRow = Levels & { product_id: number | null; city_id: number | null; name: string; unassigned: boolean };
+
+export type PnlReport = {
+    from: string; to: string; status: { label: "PROVISIONAL" | "CONSOLIDADO"; reasons: string[] };
+    company: CompanyLevels; groups: GroupRow[] | null; warnings: string[];
+};
+
+export type GroupBy = "product" | "city" | "product_city";
+
+export type OrderRow = {
+    order_id: number; name: string; status: string | null; kind: string; outcome: string; created_date: string | null; delivered_date: string | null;
+    cost_date: string | null; revenue: number; cogs: number; delivery: number; commissions: number; result: number;
+    cogs_missing_lines: number; delivery_missing_trips: number; delivery_estimated: boolean;
+};
+
+export const pct = (v: number | null | undefined) => (v === null || v === undefined ? "—" : `${new Intl.NumberFormat("es-VE", { maximumFractionDigits: 1 }).format(v)} %`);
+
+const ymd = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+
+/** §57: hoy, semana actual (lunes a hoy), mes actual y mes pasado. */
+export const PRESETS: { key: string; label: string; range: () => [string, string] }[] = [
+    { key: "today", label: "Hoy", range: () => { const t = ymd(new Date()); return [t, t]; } },
+    { key: "week", label: "Semana actual", range: () => { const d = new Date(); const monday = new Date(d); monday.setDate(d.getDate() - ((d.getDay() + 6) % 7)); return [ymd(monday), ymd(d)]; } },
+    { key: "month", label: "Mes actual", range: () => [monthRange()[0], ymd(new Date())] },
+    { key: "last_month", label: "Mes pasado", range: () => monthRange(-1) },
+];
