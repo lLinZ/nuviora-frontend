@@ -25,10 +25,20 @@ export type FinanceOptions = {
     currencies: Currency[];
     frequencies: Record<Frequency, string>;
     weekdays: Record<string, string>;
-    company_accounts: { id: number; name: string; currency: string }[];
+    financial_accounts: CashAccountOption[];
+    cash_start_date: string;
     payment_types: Record<PaymentType, string>;
     vehicle_wear: WearRule & { label: string };
 };
+
+/** Una cuenta de la caja de donde puede salir un pago (entrega 3). */
+export type CashAccountOption = { id: number; name: string; currency: string; kind?: string };
+
+const moneyFamily = (c: string) => (c === "USD" || c === "USDT" ? "USD" : c);
+
+/** Las cuentas de la caja en la moneda de un pago (USD y USDT valen igual, §33). */
+export const accountsFor = <T extends { currency: string }>(accounts: T[], currency: string) =>
+    accounts.filter((a) => moneyFamily(a.currency) === moneyFamily(currency));
 
 export type WearMode = "percent" | "fixed";
 export type WearRule = { mode: WearMode; value: number };
@@ -171,7 +181,7 @@ export const PAYABLE_STATUS: Record<PayableStatus, { label: string; color: "warn
 
 export type PayablePayment = {
     id: number; amount: number; currency: Currency; rate: number; amount_usd: number; applied_amount: number; paid_at: string;
-    company_account_id: number | null; account: string | null; notes: string | null; has_receipt: boolean;
+    financial_account_id: number | null; account: string | null; cash_movement_id: number | null; notes: string | null; has_receipt: boolean;
     voided_at: string | null; voided_by: string | null; void_reason: string | null; created_by: string | null;
 };
 
@@ -248,7 +258,7 @@ export type TripMovement = {
 export type Trip = {
     id: number; trip_date: string; description: string | null; currency: Currency; rate: number; labor: number; fuel: number; other: number;
     wear: number; total: number; total_usd: number; wear_mode: WearMode; wear_value: number; wear_label: string; units: number; unit_cost_usd: number;
-    company_account_id: number | null; account: string | null; notes: string | null; has_receipt: boolean;
+    financial_account_id: number | null; account: string | null; notes: string | null; has_receipt: boolean;
     voided_at: string | null; voided_by: string | null; void_reason: string | null; created_by: string | null;
     destinations: string[]; movements: TripMovement[];
 };
@@ -323,3 +333,16 @@ export const cashAmount = (amount: number, currency: CashCurrency) => {
 };
 
 export const CASH_CURRENCY_LABEL: Record<CashCurrency, string> = { VES: "Bolívares (Bs)", USD: "Dólares (USD)", USDT: "USDT", EUR: "Euros (EUR)" };
+
+// ---- Agencias (entrega 3c; §43, §101 a §104, R16) ----
+export type AgencyClosureSummary = {
+    id: number; period_start: string; period_end: string; status: string; status_label: string; provisional: number; approved: number | null;
+    paid_at: string | null; payment_amount: number | null; payment_method: string | null;
+};
+
+export type AgencyCashRow = {
+    id: number; name: string; color: string | null; cash_usd: number; owed_usd: number;
+    cash: { account_id: number; currency: CashCurrency; balance: number; balance_usd: number | null; opening_balance: number | null }[];
+    payables: { id: number; description: string; amount: number; paid: number; balance: number; issued_at: string; status: PayableStatus; closure_id: number | null }[];
+    closures: AgencyClosureSummary[];
+};

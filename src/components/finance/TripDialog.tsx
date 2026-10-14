@@ -10,7 +10,8 @@ import {
 } from "@mui/material";
 import { toast } from "react-toastify";
 import {
-    CURRENCY_LABEL, Currency, FinanceOptions, Trip, TripMovement, WearRule, api, errorMessage, inCurrency, money, num, todayCaracas, tripTotals, usd4,
+    CURRENCY_LABEL, Currency, FinanceOptions, Trip, TripMovement, WearRule, accountsFor, api, errorMessage, inCurrency, money, num, todayCaracas, tripTotals,
+    usd4,
 } from "./finance";
 
 type Props = { open: boolean; trip: Trip | null; options: FinanceOptions; onClose: () => void; onSaved: () => void };
@@ -26,7 +27,7 @@ const TripForm: React.FC<Props> = ({ trip, options, onClose, onSaved }) => {
     const [form, setForm] = useState({
         date: trip?.trip_date ?? todayCaracas(), description: trip?.description ?? "", currency: (trip?.currency ?? "USD") as Currency,
         rate: trip && trip.currency === "VES" ? String(trip.rate) : "", labor: amount(trip?.labor), fuel: amount(trip?.fuel), other: amount(trip?.other),
-        account: trip?.company_account_id ? String(trip.company_account_id) : "", notes: trip?.notes ?? "", reason: "",
+        account: trip?.financial_account_id ? String(trip.financial_account_id) : "", notes: trip?.notes ?? "", reason: "",
     });
     const [receipt, setReceipt] = useState<File | null>(null);
     const [saving, setSaving] = useState(false);
@@ -58,7 +59,7 @@ const TripForm: React.FC<Props> = ({ trip, options, onClose, onSaved }) => {
         if (form.currency === "VES") body.append("rate", form.rate.replace(",", "."));
         (["labor", "fuel", "other"] as const).forEach((k) => body.append(k, String(n(form[k]))));
         selected.forEach((id) => body.append("movement_ids[]", String(id)));
-        if (form.account) body.append("company_account_id", form.account);
+        if (form.account) body.append("financial_account_id", form.account);
         if (form.notes.trim()) body.append("notes", form.notes.trim());
         if (receipt) body.append("receipt", receipt);
         if (trip) body.append("reason", form.reason);
@@ -152,10 +153,11 @@ const TripForm: React.FC<Props> = ({ trip, options, onClose, onSaved }) => {
                     </Alert>
 
                     <Stack direction={{ xs: "column", sm: "row" }} gap={1.5}>
-                        <TextField select size="small" label="Cuenta de donde salió el pago (opcional)" value={form.account} onChange={(e) => setForm({ ...form, account: e.target.value })}
-                            SelectProps={{ displayEmpty: true }} InputLabelProps={{ shrink: true }} fullWidth>
+                        <TextField select size="small" label="Cuenta de donde salió el pago" value={form.account} onChange={(e) => setForm({ ...form, account: e.target.value })}
+                            SelectProps={{ displayEmpty: true }} InputLabelProps={{ shrink: true }} fullWidth
+                            helperText="Sale de la caja lo pagado (sin el desgaste). Sin cuenta, no sale de la caja.">
                             <MenuItem value="">Sin indicar</MenuItem>
-                            {options.company_accounts.map((a) => <MenuItem key={a.id} value={String(a.id)}>{a.name} ({a.currency})</MenuItem>)}
+                            {accountsFor(options.financial_accounts, form.currency).map((a) => <MenuItem key={a.id} value={String(a.id)}>{a.name} ({a.currency})</MenuItem>)}
                         </TextField>
                         <TextField size="small" label="Notas (opcional)" value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} fullWidth inputProps={{ maxLength: 500 }} />
                     </Stack>

@@ -26,6 +26,11 @@ export type ClosureDetail = Closure & {
     approved_by: string | null; approved_at: string | null; paid_by: string | null;
     payment: { amount: number | null; date: string | null; method: string | null; reference: string | null; has_receipt: boolean } | null;
     tolerance: { amount: number; percent: number | null };
+    // Módulo 4 (§101, §102, R16): la deuda del cierre y las cuentas de la caja de donde puede salir el pago
+    debt: { amount: number; paid: number; balance: number; compensated: number } | null;
+    pay_accounts: { id: number; name: string; currency: string }[];
+    cash_start_date: string;
+    binance_rate: number;
 };
 
 export type Discrepancy = {

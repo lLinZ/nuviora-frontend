@@ -22,11 +22,13 @@ import { SettingsTab } from "../../components/finance/SettingsTab";
 import { SuppliersTab } from "../../components/finance/SuppliersTab";
 import { InventoryTab } from "../../components/finance/InventoryTab";
 import { CashTab } from "../../components/finance/CashTab";
+import { AgenciesTab } from "../../components/finance/AgenciesTab";
 import { FinanceOptions, api, errorMessage } from "../../components/finance/finance";
 
 const TABS = [
     { key: "summary", label: "Resumen" },
     { key: "cash", label: "Caja" },
+    { key: "agencies", label: "Agencias" },
     { key: "profitability", label: "Rentabilidad" },
     { key: "cohorts", label: "Cohortes" },
     { key: "cpa", label: "CPA" },
@@ -66,12 +68,13 @@ export const Finance: React.FC = () => {
                 {tab === "settings" && <SettingsTab />}
                 {tab === "inventory" && <InventoryTab />}
                 {tab === "cash" && <CashTab />}
-                {(tab === "expenses" || tab === "recurring" || tab === "cohorts" || tab === "suppliers") && (!options ? <Typography color="text.secondary" sx={{ p: 2 }}>Cargando…</Typography> : (
+                {(tab === "expenses" || tab === "recurring" || tab === "cohorts" || tab === "suppliers" || tab === "agencies") && (!options ? <Typography color="text.secondary" sx={{ p: 2 }}>Cargando…</Typography> : (
                     <>
                         {tab === "expenses" && <ExpensesTab options={options} onCategory={addCategory} />}
                         {tab === "recurring" && <RecurringExpensesTab options={options} onCategory={addCategory} />}
                         {tab === "cohorts" && <CohortsTab options={options} />}
                         {tab === "suppliers" && <SuppliersTab options={options} />}
+                        {tab === "agencies" && <AgenciesTab options={options} />}
                     </>
                 ))}
             </Box>

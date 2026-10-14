@@ -18,7 +18,7 @@ export const emptyPurchase = (): PurchaseValue => ({
 /** Si la sección está apagada no pide nada; si está prendida, pide proveedor, costo, tasa en Bs y cómo se paga. */
 export const purchaseReady = (v: PurchaseValue) => !v.enabled || (
     v.supplierId !== "" && toUsd(v.money.amount, v.money.currency, v.money.rate) !== null && v.paymentType !== ""
-    && (v.paymentType !== "credit" || v.dueDate !== "")
+    && (v.paymentType !== "credit" || v.dueDate !== "") && (v.paymentType !== "cash" || v.accountId !== "")
 );
 
 export const purchasePayload = (v: PurchaseValue) => ({
@@ -28,7 +28,7 @@ export const purchasePayload = (v: PurchaseValue) => ({
     ...(v.money.currency === "VES" ? { rate: num(v.money.rate) } : {}),
     payment_type: v.paymentType,
     ...(v.paymentType === "credit" ? { due_date: v.dueDate, terms: v.terms.trim() || null } : {}),
-    ...(v.paymentType === "cash" && v.accountId ? { company_account_id: Number(v.accountId) } : {}),
+    ...(v.paymentType === "cash" && v.accountId ? { financial_account_id: Number(v.accountId) } : {}),
 });
 
 /** Después del ingreso: el comprobante de la compra, si el Admin lo adjuntó. */

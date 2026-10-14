@@ -9,7 +9,7 @@ import {
 } from "@mui/material";
 import { toast } from "react-toastify";
 import { MoneyFields } from "./MoneyFields";
-import { FinanceOptions, api, errorMessage, money, toUsd, todayCaracas } from "./finance";
+import { FinanceOptions, accountsFor, api, errorMessage, money, toUsd, todayCaracas } from "./finance";
 import { PurchaseValue } from "./purchase";
 
 export const PurchaseFields: React.FC<{ value: PurchaseValue; onChange: (v: PurchaseValue) => void; quantity: number }> = ({ value, onChange, quantity }) => {
@@ -88,10 +88,9 @@ export const PurchaseFields: React.FC<{ value: PurchaseValue; onChange: (v: Purc
                         </Stack>
                     )}
                     {value.paymentType === "cash" && (
-                        <TextField select label="Cuenta de donde salió el pago (opcional)" value={value.accountId} onChange={(e) => set({ accountId: e.target.value })} size="small"
-                            helperText="Al contado, la compra queda pagada al registrarla." SelectProps={{ displayEmpty: true }} InputLabelProps={{ shrink: true }}>
-                            <MenuItem value="">Sin indicar</MenuItem>
-                            {options.company_accounts.map((a) => <MenuItem key={a.id} value={String(a.id)}>{a.name} ({a.currency})</MenuItem>)}
+                        <TextField select label="Cuenta de donde salió el pago" value={value.accountId} onChange={(e) => set({ accountId: e.target.value })} size="small" required
+                            helperText="Al contado, la compra queda pagada al registrarla y sale de la caja en esa cuenta." InputLabelProps={{ shrink: true }}>
+                            {accountsFor(options.financial_accounts, value.money.currency).map((a) => <MenuItem key={a.id} value={String(a.id)}>{a.name} ({a.currency})</MenuItem>)}
                         </TextField>
                     )}
                     {value.paymentType === "credit" && (
