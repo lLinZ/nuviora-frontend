@@ -14,6 +14,8 @@ const ACTION: Record<string, string> = {
     inventory_purchase_receipt: "Comprobante subido", payable_payment_created: "Pago registrado", payable_payment_voided: "Pago anulado",
     inventory_trip_created: "Viaje registrado", inventory_trip_updated: "Viaje corregido", inventory_trip_voided: "Viaje anulado",
     inventory_lot_cost: "Costo del lote", inventory_purchase_corrected: "Compra corregida",
+    cash_account_created: "Cuenta creada", cash_account_updated: "Cuenta cambiada", cash_opening_balance: "Saldo inicial",
+    cash_account_link: "Método enlazado",
 };
 
 const FIELD: Record<string, string> = {
@@ -26,18 +28,24 @@ const FIELD: Record<string, string> = {
     paid_at: "Fecha del pago", account: "Cuenta", balance: "Pendiente",
     trip_date: "Fecha del viaje", labor: "Mano de obra", fuel: "Combustible", other: "Otros", wear: "Desgaste", total: "Total", units: "Unidades",
     movements: "Traslados (n.º)", cost_source: "Origen del costo",
+    kind: "Tipo", opening_balance: "Saldo inicial", opening_date: "Saldo al", company_account: "Método (conciliación)",
+    financial_account_id: "Cuenta de la caja (n.º)",
 };
 const HIDDEN = new Set(["id", "created_by", "version"]);
 
 // Los valores que el backend guarda como código
-const VALUE: Record<string, string> = { cash: "Al contado", credit: "A crédito" };
+const VALUE: Record<string, Record<string, string>> = {
+    payment_type: { cash: "Al contado", credit: "A crédito" },
+    kind: { bank: "Banco", wallet: "Billetera digital", cash: "Efectivo", agency_cash: "Efectivo pendiente de agencia", other: "Otra" },
+};
 
-const show = (v: unknown) => (v === null || v === undefined || v === "" ? "—" : v === true ? "sí" : v === false ? "no" : VALUE[String(v)] ?? String(v));
+const show = (v: unknown, field = "") => (v === null || v === undefined || v === "" ? "—" : v === true ? "sí" : v === false ? "no"
+    : VALUE[field]?.[String(v)] ?? String(v));
 
 const Changes: React.FC<{ entry: AuditEntry }> = ({ entry }) => {
     const before = entry.before ?? {};
     const after = entry.after ?? {};
-    const keys = Object.keys({ ...before, ...after }).filter((k) => !HIDDEN.has(k) && (entry.before === null || show(before[k]) !== show(after[k])));
+    const keys = Object.keys({ ...before, ...after }).filter((k) => !HIDDEN.has(k) && (entry.before === null || show(before[k], k) !== show(after[k], k)));
     if (!keys.length) return null;
     return (
         <Box component="dl" sx={{ m: 0, display: "grid", gridTemplateColumns: "auto 1fr", columnGap: 1.5, rowGap: 0.25 }}>
@@ -45,7 +53,7 @@ const Changes: React.FC<{ entry: AuditEntry }> = ({ entry }) => {
                 <React.Fragment key={k}>
                     <Typography component="dt" variant="body2" color="text.secondary">{FIELD[k] ?? k}</Typography>
                     <Typography component="dd" variant="body2" sx={{ m: 0 }}>
-                        {entry.before === null ? show(after[k]) : <>{show(before[k])} → <b>{show(after[k])}</b></>}
+                        {entry.before === null ? show(after[k], k) : <>{show(before[k], k)} → <b>{show(after[k], k)}</b></>}
                     </Typography>
                 </React.Fragment>
             ))}
@@ -53,7 +61,7 @@ const Changes: React.FC<{ entry: AuditEntry }> = ({ entry }) => {
     );
 };
 
-export type AuditSubject = "expense" | "recurring_expense" | "supplier" | "account_payable" | "inventory_purchase" | "inventory_trip" | "inventory_lot";
+export type AuditSubject = "expense" | "recurring_expense" | "supplier" | "account_payable" | "inventory_purchase" | "inventory_trip" | "inventory_lot" | "financial_account";
 
 export const AuditHistoryDialog: React.FC<{ subject: { type: AuditSubject; id: number; title: string } | null; onClose: () => void }> = ({ subject, onClose }) => {
     const [entries, setEntries] = useState<AuditEntry[] | null>(null);

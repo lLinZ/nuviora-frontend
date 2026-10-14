@@ -278,3 +278,46 @@ export type FinanceSettings = {
     target_types: Record<"sales" | "cost", string>;
     products: { id: number; name: string; cost_usd: number | null; target_type: "sales" | "cost"; target_pct: number }[];
 };
+
+// ---- Caja (entrega 3; §34 a §36, §42, §75, §76, R14) ----
+export type CashCurrency = "VES" | "USD" | "USDT" | "EUR";
+
+export type CashAccount = {
+    id: number; name: string; kind: string; kind_label: string; currency: CashCurrency; agency_id: number | null;
+    opening_balance: number | null; opening_date: string; is_active: boolean; notes: string | null; movements: number;
+    balance: number; balance_usd: number | null; approximate: boolean; pending: number; not_found: number; not_found_count: number;
+    methods: { id: number; name: string; method: string }[];
+};
+
+export type CashCompanyAccount = {
+    id: number; name: string; method: string; method_label: string; currency: string; is_active: boolean; statement_source: string | null;
+    financial_account_id: number | null;
+};
+
+export type CashResponse = {
+    start_date: string; binance_rate: number; accounts: CashAccount[];
+    totals: { available_usd: number; agencies_usd: number; pending_usd: number; not_found_usd: number; not_found_count: number; without_opening: number };
+    company_accounts: CashCompanyAccount[];
+    warnings: { unlinked: string[]; items_without_account: number };
+    kinds: Record<string, string>; currencies: CashCurrency[]; transaction_kinds: Record<string, string>; statuses: Record<string, string>;
+};
+
+export type CashTransaction = {
+    id: number; date: string; account_id: number; account: string | null; kind: string; kind_label: string; description: string | null;
+    amount: number; currency: CashCurrency; rate: number; amount_usd: number; status: "confirmed" | "pending" | "not_found"; status_label: string;
+    order_id: number | null; order_name: string | null; source_type: string; source_id: number;
+    voided_at: string | null; void_reason: string | null; created_at: string | null;
+};
+
+export type CashTransactionsResponse = {
+    inflow_usd: number; outflow_usd: number; total: number; page: number; last_page: number; transactions: CashTransaction[];
+};
+
+/** Un monto en la moneda de una cuenta de la caja, con signo: "−Bs 210,00", "25,00 USDT", "$35,00" o "€10,00". */
+export const cashAmount = (amount: number, currency: CashCurrency) => {
+    const n = new Intl.NumberFormat("es-VE", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(Math.abs(amount));
+    const sign = amount < 0 ? "−" : "";
+    return currency === "VES" ? `${sign}Bs ${n}` : currency === "USDT" ? `${sign}${n} USDT` : currency === "EUR" ? `${sign}€${n}` : `${sign}$${n}`;
+};
+
+export const CASH_CURRENCY_LABEL: Record<CashCurrency, string> = { VES: "Bolívares (Bs)", USD: "Dólares (USD)", USDT: "USDT", EUR: "Euros (EUR)" };
