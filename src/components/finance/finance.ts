@@ -300,6 +300,7 @@ export type CashResponse = {
     company_accounts: CashCompanyAccount[];
     warnings: { unlinked: string[]; items_without_account: number };
     kinds: Record<string, string>; currencies: CashCurrency[]; transaction_kinds: Record<string, string>; statuses: Record<string, string>;
+    movement_kinds: Record<string, string>;
 };
 
 export type CashTransaction = {
@@ -307,6 +308,7 @@ export type CashTransaction = {
     amount: number; currency: CashCurrency; rate: number; amount_usd: number; status: "confirmed" | "pending" | "not_found"; status_label: string;
     order_id: number | null; order_name: string | null; source_type: string; source_id: number;
     voided_at: string | null; void_reason: string | null; created_at: string | null;
+    movement: { id: number; kind: string; kind_label: string; reference: string | null; has_receipt: boolean; voided: boolean } | null;
 };
 
 export type CashTransactionsResponse = {

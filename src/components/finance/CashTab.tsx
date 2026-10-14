@@ -8,17 +8,18 @@
 // Solo el Admin (§81).
 import React, { useCallback, useEffect, useState } from "react";
 import {
-    Alert, Box, Button, Chip, FormControlLabel, Link, MenuItem, Stack, Switch, Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
-    TextField, Tooltip, Typography,
+    Alert, Box, Button, Chip, Dialog, DialogActions, DialogContent, DialogTitle, FormControlLabel, Link, MenuItem, Stack, Switch, Table, TableBody,
+    TableCell, TableContainer, TableHead, TableRow, TextField, Tooltip, Typography,
 } from "@mui/material";
 import { toast } from "react-toastify";
 import { Panel, PanelHeader } from "../ui/surface/Panel";
 import { AuditHistoryDialog } from "./AuditHistoryDialog";
 import { CashAccountDialog } from "./CashAccountDialog";
+import { CashMovementDialog } from "./CashMovementDialog";
 import { OpeningBalancesDialog } from "./OpeningBalancesDialog";
 import { OrderEconomicsDialog } from "./OrderEconomicsDialog";
 import { PeriodPicker } from "./PeriodPicker";
-import { CashAccount, CashResponse, CashTransactionsResponse, api, cashAmount, day, errorMessage, money, monthRange } from "./finance";
+import { CashAccount, CashResponse, CashTransaction, CashTransactionsResponse, api, cashAmount, day, download, errorMessage, money, monthRange } from "./finance";
 
 const Stat: React.FC<{ label: string; value: React.ReactNode; hint: string; warn?: boolean }> = ({ label, value, hint, warn }) => (
     <Box sx={{ minWidth: 150, flex: "1 1 150px" }}>
@@ -29,6 +30,38 @@ const Stat: React.FC<{ label: string; value: React.ReactNode; hint: string; warn
 );
 
 const STATUS_COLOR: Record<string, "success" | "warning" | "error"> = { confirmed: "success", pending: "warning", not_found: "error" };
+
+/** §83: anular un movimiento a mano, con el motivo. */
+const VoidMovementDialog: React.FC<{ target: CashTransaction | null; onClose: () => void; onDone: () => void }> = ({ target, onClose, onDone }) => {
+    const [reason, setReason] = useState("");
+    const [saving, setSaving] = useState(false);
+    if (!target?.movement) return null;
+    const save = async () => {
+        setSaving(true);
+        try {
+            toast.success((await api<{ message: string }>(`/finance/cash/movements/${target.movement!.id}/void`, "POST", { reason: reason.trim() })).message);
+            setReason("");
+            onDone();
+        } catch (e) { toast.error(errorMessage(e)); } finally { setSaving(false); }
+    };
+    return (
+        <Dialog open onClose={onClose} fullWidth maxWidth="xs">
+            <DialogTitle>Anular: {target.movement.kind_label}</DialogTitle>
+            <DialogContent>
+                <Stack spacing={2} sx={{ pt: 1 }}>
+                    <Typography variant="body2" color="text.secondary">
+                        Se anulan todas sus partes (lo que salió, lo que entró y la comisión, si la hay). Quedan a la vista como anuladas. Si estaba mal, se registra de nuevo.
+                    </Typography>
+                    <TextField label="¿Por qué se anula?" value={reason} onChange={(e) => setReason(e.target.value)} required autoFocus inputProps={{ maxLength: 500 }} />
+                </Stack>
+            </DialogContent>
+            <DialogActions>
+                <Button color="inherit" onClick={onClose}>Cancelar</Button>
+                <Button color="error" variant="contained" onClick={save} disabled={saving || reason.trim() === ""}>Anular</Button>
+            </DialogActions>
+        </Dialog>
+    );
+};
 
 const AccountsTable: React.FC<{ accounts: CashAccount[]; onEdit: (a: CashAccount) => void; onHistory: (a: CashAccount) => void; onShow: (a: CashAccount) => void }> = ({ accounts, onEdit, onHistory, onShow }) => (
     <TableContainer>
@@ -85,6 +118,8 @@ export const CashTab: React.FC = () => {
     const [opening, setOpening] = useState(false);
     const [history, setHistory] = useState<CashAccount | null>(null);
     const [orderId, setOrderId] = useState<number | null>(null);
+    const [moving, setMoving] = useState(false);
+    const [voiding, setVoiding] = useState<CashTransaction | null>(null);
 
     const load = useCallback(() => {
         api<CashResponse>("/finance/cash").then(setData).catch((e) => toast.error(errorMessage(e)));
@@ -141,7 +176,8 @@ export const CashTab: React.FC = () => {
                 <PanelHeader title="Liquidez" subtitle="Cuánto dinero hay y dónde. Los saldos en Bs se pasan a USD con la tasa de Binance: son aproximados."
                     action={<Stack direction="row" gap={1}>
                         <Button size="small" variant="outlined" onClick={() => setOpening(true)}>Saldos iniciales</Button>
-                        <Button size="small" variant="contained" onClick={() => setEditing("new")}>Nueva cuenta</Button>
+                        <Button size="small" variant="outlined" onClick={() => setEditing("new")}>Nueva cuenta</Button>
+                        <Button size="small" variant="contained" onClick={() => setMoving(true)}>Nuevo movimiento</Button>
                     </Stack>} />
                 <Stack direction="row" gap={2} flexWrap="wrap">
                     <Stat label="Caja disponible" value={`≈ ${money(t.available_usd)}`} hint="en las cuentas de la empresa" />
@@ -185,7 +221,7 @@ export const CashTab: React.FC = () => {
                                 <TableHead>
                                     <TableRow>
                                         <TableCell>Fecha</TableCell><TableCell>Cuenta</TableCell><TableCell>Qué fue</TableCell>
-                                        <TableCell align="right">Monto</TableCell><TableCell align="right">En USD</TableCell><TableCell>Estado</TableCell>
+                                        <TableCell align="right">Monto</TableCell><TableCell align="right">En USD</TableCell><TableCell>Estado</TableCell><TableCell />
                                     </TableRow>
                                 </TableHead>
                                 <TableBody>
@@ -209,6 +245,12 @@ export const CashTab: React.FC = () => {
                                                 {x.kind === "customer_payment" && !x.voided_at
                                                     ? <Chip size="small" variant="outlined" color={STATUS_COLOR[x.status]} label={x.status_label} />
                                                     : null}
+                                            </TableCell>
+                                            <TableCell align="right" sx={{ whiteSpace: "nowrap" }}>
+                                                {x.movement?.has_receipt && (
+                                                    <Button size="small" onClick={() => download(`/finance/cash/movements/${x.movement!.id}/receipt`, `movimiento-${x.movement!.id}`)}>Comprobante</Button>
+                                                )}
+                                                {x.movement && !x.movement.voided && <Button size="small" color="error" onClick={() => setVoiding(x)}>Anular</Button>}
                                             </TableCell>
                                         </TableRow>
                                     ))}
@@ -262,6 +304,9 @@ export const CashTab: React.FC = () => {
             <OpeningBalancesDialog open={opening} accounts={data.accounts} startDate={data.start_date}
                 onClose={() => setOpening(false)} onSaved={() => { setOpening(false); refresh(); }} />
             <AuditHistoryDialog subject={history ? { type: "financial_account", id: history.id, title: history.name } : null} onClose={() => setHistory(null)} />
+            <CashMovementDialog open={moving} accounts={data.accounts} kinds={data.movement_kinds} onClose={() => setMoving(false)}
+                onSaved={() => { setMoving(false); refresh(); }} />
+            <VoidMovementDialog target={voiding} onClose={() => setVoiding(null)} onDone={() => { setVoiding(null); refresh(); }} />
             <OrderEconomicsDialog orderId={orderId} onClose={() => setOrderId(null)} />
         </Stack>
     );
