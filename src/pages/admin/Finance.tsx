@@ -67,14 +67,14 @@ export const Finance: React.FC = () => {
                 {tab === "cpa" && <CpaTab />}
                 {tab === "settings" && <SettingsTab />}
                 {tab === "inventory" && <InventoryTab />}
-                {tab === "cash" && <CashTab />}
-                {(tab === "expenses" || tab === "recurring" || tab === "cohorts" || tab === "suppliers" || tab === "agencies") && (!options ? <Typography color="text.secondary" sx={{ p: 2 }}>Cargando…</Typography> : (
+                {(tab === "expenses" || tab === "recurring" || tab === "cohorts" || tab === "suppliers" || tab === "agencies" || tab === "cash") && (!options ? <Typography color="text.secondary" sx={{ p: 2 }}>Cargando…</Typography> : (
                     <>
                         {tab === "expenses" && <ExpensesTab options={options} onCategory={addCategory} />}
                         {tab === "recurring" && <RecurringExpensesTab options={options} onCategory={addCategory} />}
                         {tab === "cohorts" && <CohortsTab options={options} />}
                         {tab === "suppliers" && <SuppliersTab options={options} />}
                         {tab === "agencies" && <AgenciesTab options={options} />}
+                        {tab === "cash" && <CashTab options={options} />}
                     </>
                 ))}
             </Box>

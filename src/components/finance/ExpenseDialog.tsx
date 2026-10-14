@@ -1,12 +1,18 @@
 // src/components/finance/ExpenseDialog.tsx
 // "+ Registrar gasto" y "Corregir" (Módulo 4 de Fran, §24): concepto, categoría, monto, moneda, fecha, descripción,
 // comprobante opcional y, opcionales, producto, ciudad, almacén, agencia o proveedor. Corregir pide el motivo (§82).
+// Entrega 3 (§28, §44): cómo se pagó. Desde una cuenta de la caja (sale ese día), o queda por pagar (una deuda con un
+// empleado, una herramienta u otra obligación). Antes del arranque de la caja puede quedar sin indicar.
 import React, { useState } from "react";
-import { Alert, Button, Collapse, Dialog, DialogActions, DialogContent, DialogTitle, MenuItem, Stack, TextField, Typography } from "@mui/material";
+import {
+    Alert, Button, Collapse, Dialog, DialogActions, DialogContent, DialogTitle, MenuItem, Stack, TextField, ToggleButton, ToggleButtonGroup, Typography,
+} from "@mui/material";
 import { toast } from "react-toastify";
 import { CategoryField } from "./CategoryField";
 import { MoneyFields, MoneyValue } from "./MoneyFields";
-import { Expense, FinanceOptions, api, errorMessage, todayCaracas } from "./finance";
+import { Expense, FinanceOptions, accountsFor, api, errorMessage, todayCaracas } from "./finance";
+
+type PayMode = "paid" | "payable" | "none";
 
 type Props = { open: boolean; expense: Expense | null; options: FinanceOptions; onClose: () => void; onSaved: () => void;
     onCategory: (c: { id: number; name: string; is_active: boolean }) => void };
@@ -32,6 +38,15 @@ const ExpenseForm: React.FC<Props> = ({ expense, options, onClose, onSaved, onCa
     const [reason, setReason] = useState("");
     const [showLinks, setShowLinks] = useState(Boolean(expense && LINKS.some((l) => expense[l.key])));
     const [saving, setSaving] = useState(false);
+    const [pay, setPay] = useState({
+        mode: (expense?.payable ? "payable" : expense?.financial_account_id ? "paid" : expense ? "none" : "paid") as PayMode,
+        account: expense?.financial_account_id ? String(expense.financial_account_id) : "",
+        payeeType: expense?.payable?.payee_type ?? "employee", payeeName: expense?.payable?.payee ?? "", due: expense?.payable?.due_date ?? "",
+    });
+    const beforeCash = form.date <= options.cash_start_date;
+    const payAccounts = accountsFor(options.financial_accounts, money.currency);
+    const payOk = pay.mode === "paid" ? payAccounts.some((a) => String(a.id) === pay.account)
+        : pay.mode === "payable" ? pay.payeeName.trim() !== "" : beforeCash;
 
     const choices = (key: LinkKey): { id: number; label: string }[] => ({
         product_id: options.products.map((p) => ({ id: p.id, label: p.title })),
@@ -52,6 +67,13 @@ const ExpenseForm: React.FC<Props> = ({ expense, options, onClose, onSaved, onCa
         body.append("description", form.description);
         LINKS.forEach((l) => body.append(l.key, form.links[l.key]));
         if (receipt) body.append("receipt", receipt);
+        body.append("payment", pay.mode);
+        if (pay.mode === "paid") body.append("financial_account_id", pay.account);
+        if (pay.mode === "payable") {
+            body.append("payee_type", pay.payeeType);
+            body.append("payee_name", pay.payeeName.trim());
+            if (pay.due) body.append("due_date", pay.due);
+        }
         if (expense) body.append("reason", reason);
         setSaving(true);
         try {
@@ -62,7 +84,7 @@ const ExpenseForm: React.FC<Props> = ({ expense, options, onClose, onSaved, onCa
     };
 
     const ready = form.concept.trim() !== "" && form.category !== "" && money.amount.trim() !== "" && (money.currency !== "VES" || money.rate.trim() !== "")
-        && (!expense || reason.trim() !== "");
+        && (!expense || reason.trim() !== "") && payOk;
 
     return (
         <Dialog open onClose={onClose} fullWidth maxWidth="sm">
@@ -75,6 +97,33 @@ const ExpenseForm: React.FC<Props> = ({ expense, options, onClose, onSaved, onCa
                     <MoneyFields value={money} onChange={setMoney} currencies={options.currencies} />
                     <TextField type="date" label="Fecha" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} InputLabelProps={{ shrink: true }}
                         inputProps={{ max: todayCaracas() }} sx={{ maxWidth: 220 }} />
+                    <Stack spacing={1}>
+                        <Typography variant="subtitle2">¿Cómo se pagó?</Typography>
+                        <ToggleButtonGroup size="small" exclusive value={pay.mode} onChange={(_, v) => v && setPay({ ...pay, mode: v })}>
+                            <ToggleButton value="paid">Ya se pagó</ToggleButton>
+                            <ToggleButton value="payable">Queda por pagar</ToggleButton>
+                            <ToggleButton value="none" disabled={!beforeCash}>Sin indicar</ToggleButton>
+                        </ToggleButtonGroup>
+                        {pay.mode === "paid" && (
+                            <TextField select size="small" label="Cuenta de donde salió" value={payAccounts.some((a) => String(a.id) === pay.account) ? pay.account : ""}
+                                onChange={(e) => setPay({ ...pay, account: e.target.value })} required helperText="Sale de la caja el día del gasto.">
+                                {payAccounts.map((a) => <MenuItem key={a.id} value={String(a.id)}>{a.name} ({a.currency})</MenuItem>)}
+                            </TextField>
+                        )}
+                        {pay.mode === "payable" && (
+                            <Stack direction={{ xs: "column", sm: "row" }} gap={1.5}>
+                                <TextField select size="small" label="A quién" value={pay.payeeType} onChange={(e) => setPay({ ...pay, payeeType: e.target.value })} sx={{ minWidth: 190 }}>
+                                    {Object.entries(options.payee_types).map(([k, label]) => <MenuItem key={k} value={k}>{label}</MenuItem>)}
+                                </TextField>
+                                <TextField size="small" label="Nombre" value={pay.payeeName} onChange={(e) => setPay({ ...pay, payeeName: e.target.value })} required fullWidth
+                                    inputProps={{ maxLength: 150 }} placeholder="Programador, Shopify…" />
+                                <TextField size="small" type="date" label="Vence" value={pay.due} onChange={(e) => setPay({ ...pay, due: e.target.value })}
+                                    InputLabelProps={{ shrink: true }} sx={{ minWidth: 160 }} />
+                            </Stack>
+                        )}
+                        {pay.mode === "payable" && <Typography variant="caption" color="text.secondary">Queda en Finanzas › Caja › Por pagar. Sale de la caja cuando se registre el pago.</Typography>}
+                        {!beforeCash && pay.mode === "none" && <Typography variant="caption" color="error">Desde el arranque de la caja hay que decir cómo se pagó.</Typography>}
+                    </Stack>
                     <TextField label="Descripción (opcional)" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} multiline minRows={2} />
                     <div>
                         <Button component="label" variant="outlined" size="small">

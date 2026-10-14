@@ -16,10 +16,14 @@ import { Panel, PanelHeader } from "../ui/surface/Panel";
 import { AuditHistoryDialog } from "./AuditHistoryDialog";
 import { CashAccountDialog } from "./CashAccountDialog";
 import { CashMovementDialog } from "./CashMovementDialog";
+import { PayablesPanel, ReceivablesPanel } from "./CashDebtsPanels";
+import { RefundsWithoutAccount } from "./RefundsWithoutAccount";
 import { OpeningBalancesDialog } from "./OpeningBalancesDialog";
 import { OrderEconomicsDialog } from "./OrderEconomicsDialog";
 import { PeriodPicker } from "./PeriodPicker";
-import { CashAccount, CashResponse, CashTransaction, CashTransactionsResponse, api, cashAmount, day, download, errorMessage, money, monthRange } from "./finance";
+import {
+    CashAccount, CashResponse, CashTransaction, CashTransactionsResponse, FinanceOptions, api, cashAmount, day, download, errorMessage, money, monthRange,
+} from "./finance";
 
 const Stat: React.FC<{ label: string; value: React.ReactNode; hint: string; warn?: boolean }> = ({ label, value, hint, warn }) => (
     <Box sx={{ minWidth: 150, flex: "1 1 150px" }}>
@@ -106,7 +110,7 @@ const AccountsTable: React.FC<{ accounts: CashAccount[]; onEdit: (a: CashAccount
     </TableContainer>
 );
 
-export const CashTab: React.FC = () => {
+export const CashTab: React.FC<{ options: FinanceOptions }> = ({ options }) => {
     const [data, setData] = useState<CashResponse | null>(null);
     const [[from, to], setRange] = useState<[string, string]>(monthRange());
     const [accountId, setAccountId] = useState("");
@@ -168,6 +172,7 @@ export const CashTab: React.FC = () => {
             {data.warnings.unlinked.length > 0 && (
                 <Alert severity="warning">Lo que llega por {data.warnings.unlinked.join(", ")} no entra a la caja: falta decir a qué cuenta va (abajo, "Por dónde entra el dinero").</Alert>
             )}
+            <RefundsWithoutAccount refunds={data.warnings.refunds_without_account} options={options} onSaved={refresh} />
             {data.warnings.items_without_account > 0 && (
                 <Alert severity="warning">{data.warnings.items_without_account} pago(s) de la conciliación no dicen a qué cuenta llegaron (hay varias cuentas activas con ese método): no entran a la caja.</Alert>
             )}
@@ -267,6 +272,9 @@ export const CashTab: React.FC = () => {
                     )}
                 </Stack>
             </Panel>
+
+            <PayablesPanel options={options} onChanged={refresh} />
+            <ReceivablesPanel options={options} onChanged={refresh} />
 
             <Panel>
                 <PanelHeader title="Por dónde entra el dinero" subtitle="Las cuentas de la conciliación (una por método) y la cuenta de la caja donde cae lo que llega por ellas." />

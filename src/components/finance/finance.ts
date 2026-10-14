@@ -27,6 +27,7 @@ export type FinanceOptions = {
     weekdays: Record<string, string>;
     financial_accounts: CashAccountOption[];
     cash_start_date: string;
+    payee_types: Record<string, string>;
     payment_types: Record<PaymentType, string>;
     vehicle_wear: WearRule & { label: string };
 };
@@ -49,6 +50,8 @@ export type Expense = {
     has_receipt: boolean; product_id: number | null; product: string | null; city_id: number | null; city: string | null;
     warehouse_id: number | null; warehouse: string | null; agency_id: number | null; agency: string | null;
     supplier_id: number | null; supplier: string | null; scope: "general" | "assigned"; inventory_trip_id: number | null;
+    cash_movement_id: number | null; financial_account_id: number | null; account: string | null;
+    payable: { id: number; payee_type: string; payee: string | null; due_date: string | null; balance: number; status: PayableStatus } | null;
     voided_at: string | null; voided_by: string | null; void_reason: string | null; created_by: string | null; created_at: string | null;
 };
 
@@ -67,6 +70,12 @@ export type RecurringExpense = {
     product_id: number | null; product: string | null; city_id: number | null; city: string | null; scope: "general" | "assigned";
     is_active: boolean; active_today: boolean; current: RecurringVersion | null; scheduled: RecurringVersion | null;
     monthly_usd: number; next_payment: string | null; versions: RecurringVersion[];
+    // Entrega 3 (§28): los vencimientos desde el arranque de la caja y sus pagos
+    due: { due_date: string; amount: number; currency: Currency; amount_usd: number; paid: boolean; overdue: boolean }[];
+    payments: {
+        id: number; due_date: string; paid_at: string; account: string | null; amount: number; currency: Currency; rate: number; amount_usd: number;
+        notes: string | null; has_receipt: boolean; voided_at: string | null; void_reason: string | null;
+    }[];
 };
 
 export type AuditEntry = {
@@ -304,11 +313,14 @@ export type CashCompanyAccount = {
     financial_account_id: number | null;
 };
 
+/** §77: un reembolso cuyo método no dice de qué cuenta salió (efectivo, "Otro"): lo dice el Admin. */
+export type RefundWithoutAccount = { id: number; order_id: number; order: string | null; amount_usd: number; method: string | null; refunded_at: string };
+
 export type CashResponse = {
     start_date: string; binance_rate: number; accounts: CashAccount[];
     totals: { available_usd: number; agencies_usd: number; pending_usd: number; not_found_usd: number; not_found_count: number; without_opening: number };
     company_accounts: CashCompanyAccount[];
-    warnings: { unlinked: string[]; items_without_account: number };
+    warnings: { unlinked: string[]; items_without_account: number; refunds_without_account: RefundWithoutAccount[] };
     kinds: Record<string, string>; currencies: CashCurrency[]; transaction_kinds: Record<string, string>; statuses: Record<string, string>;
     movement_kinds: Record<string, string>;
 };
