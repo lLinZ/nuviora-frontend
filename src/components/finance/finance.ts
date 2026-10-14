@@ -27,20 +27,24 @@ export type FinanceOptions = {
     weekdays: Record<string, string>;
     company_accounts: { id: number; name: string; currency: string }[];
     payment_types: Record<PaymentType, string>;
+    vehicle_wear: WearRule & { label: string };
 };
+
+export type WearMode = "percent" | "fixed";
+export type WearRule = { mode: WearMode; value: number };
 
 export type Expense = {
     id: number; concept: string; expense_category_id: number; category: string | null;
     amount: number; currency: Currency; rate: number; amount_usd: number; expense_date: string; description: string | null;
     has_receipt: boolean; product_id: number | null; product: string | null; city_id: number | null; city: string | null;
     warehouse_id: number | null; warehouse: string | null; agency_id: number | null; agency: string | null;
-    supplier_id: number | null; supplier: string | null; scope: "general" | "assigned";
+    supplier_id: number | null; supplier: string | null; scope: "general" | "assigned"; inventory_trip_id: number | null;
     voided_at: string | null; voided_by: string | null; void_reason: string | null; created_by: string | null; created_at: string | null;
 };
 
 export type ExpensesResponse = {
     from: string; to: string; expenses: Expense[];
-    summary: { total: number; manual: number; recurring: number; general: number; assigned: number; by_category: { category: string; amount_usd: number }[] };
+    summary: { total: number; manual: number; recurring: number; general: number; assigned: number; trips: number; by_category: { category: string; amount_usd: number }[] };
 };
 
 export type RecurringVersion = {
@@ -200,9 +204,42 @@ export const inCurrency = (amount: number, currency: Currency) => {
     return currency === "VES" ? `Bs ${n}` : currency === "USDT" ? `${n} USDT` : `$${n}`;
 };
 
+// ---- Viajes de traslado (entrega 2c; §13, §14, §15, R8) ----
+export type TripMovement = {
+    id: number; date: string; product_id: number; product: string | null; variant: string | null; from: string | null; to: string | null;
+    quantity: number; trip_id: number | null;
+};
+
+export type Trip = {
+    id: number; trip_date: string; description: string | null; currency: Currency; rate: number; labor: number; fuel: number; other: number;
+    wear: number; total: number; total_usd: number; wear_mode: WearMode; wear_value: number; wear_label: string; units: number; unit_cost_usd: number;
+    company_account_id: number | null; account: string | null; notes: string | null; has_receipt: boolean;
+    voided_at: string | null; voided_by: string | null; void_reason: string | null; created_by: string | null;
+    destinations: string[]; movements: TripMovement[];
+};
+
+export type TripsResponse = {
+    from: string; to: string; trips: Trip[]; summary: { trips: number; units: number; total_usd: number };
+    wear: WearRule & { label: string };
+};
+
+/** §13, §15: el desgaste, el total y su equivalente en USD de un viaje (igual que el backend). */
+export const tripTotals = (labor: number, fuel: number, other: number, currency: Currency, rate: number, rule: WearRule) => {
+    const r = currency === "VES" ? rate : 1;
+    const base = labor + fuel + other;
+    const wear = Math.round((rule.mode === "fixed" ? rule.value * r : (base * rule.value) / 100) * 100) / 100;
+    const total = Math.round((base + wear) * 100) / 100;
+    return { wear, total, totalUsd: r > 0 ? Math.round((total / r) * 100) / 100 : 0 };
+};
+
+/** Dólares con 2 decimales, o hasta 4 si hacen falta: "$0,55", "$0,525". */
+export const usd4 = (v: number) => `$${new Intl.NumberFormat("es-VE", { minimumFractionDigits: 2, maximumFractionDigits: 4 }).format(v)}`;
+
 export type FinanceSettings = {
     maturity_lag_days: number; analysis_window_days: number;
     commissions: { order: number; upsell_unit: number; deliverer: number };
+    vehicle_wear: WearRule;
+    wear_modes: Record<WearMode, string>;
     target_types: Record<"sales" | "cost", string>;
     products: { id: number; name: string; cost_usd: number | null; target_type: "sales" | "cost"; target_pct: number }[];
 };

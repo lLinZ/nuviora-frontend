@@ -27,6 +27,7 @@ import { InventoryOverview as GlobalInventory } from './InventoryOverview';
 import { DelivererStock } from '../deliverers/DelivererStock';
 import { StockTransfer } from './StockTransfer';
 import { StockAdjustment } from './StockAdjustment';
+import { TransferTripsPanel } from '../../components/finance/TransferTripsPanel';
 import { InventoryMovements } from './InventoryMovements';
 import { ScmDashboard } from './ScmDashboard';
 import { PurchaseOrders } from './PurchaseOrders';
@@ -75,6 +76,7 @@ export const InventoryDashboard: React.FC = () => {
             label: 'Operaciones', icon: <OperationIcon />, component: (
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                     <StockTransfer isEmbedded />
+                    <TransferTripsPanel />
                     <StockAdjustment isEmbedded />
                 </Box>
             ), roles: ['Admin'], path: '/operations'

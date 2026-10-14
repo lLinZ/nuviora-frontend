@@ -12,6 +12,7 @@ const ACTION: Record<string, string> = {
     recurring_expense_version: "Monto nuevo", recurring_expense_version_corrected: "Monto corregido",
     supplier_created: "Creado", supplier_updated: "Datos cambiados", inventory_purchase_created: "Compra registrada",
     inventory_purchase_receipt: "Comprobante subido", payable_payment_created: "Pago registrado", payable_payment_voided: "Pago anulado",
+    inventory_trip_created: "Viaje registrado", inventory_trip_updated: "Viaje corregido", inventory_trip_voided: "Viaje anulado",
 };
 
 const FIELD: Record<string, string> = {
@@ -22,6 +23,8 @@ const FIELD: Record<string, string> = {
     contact_name: "Contacto", phone: "Teléfono", notes: "Notas", quantity: "Unidades", total_amount: "Costo total", total_usd: "Total en USD",
     unit_cost_usd: "Costo unitario", payment_type: "Pago", due_date: "Vence", terms: "Condiciones", applied_amount: "Descuenta de la deuda",
     paid_at: "Fecha del pago", account: "Cuenta", balance: "Pendiente",
+    trip_date: "Fecha del viaje", labor: "Mano de obra", fuel: "Combustible", other: "Otros", wear: "Desgaste", total: "Total", units: "Unidades",
+    movements: "Traslados (n.º)",
 };
 const HIDDEN = new Set(["id", "created_by", "version"]);
 
@@ -49,7 +52,7 @@ const Changes: React.FC<{ entry: AuditEntry }> = ({ entry }) => {
     );
 };
 
-export type AuditSubject = "expense" | "recurring_expense" | "supplier" | "account_payable" | "inventory_purchase";
+export type AuditSubject = "expense" | "recurring_expense" | "supplier" | "account_payable" | "inventory_purchase" | "inventory_trip";
 
 export const AuditHistoryDialog: React.FC<{ subject: { type: AuditSubject; id: number; title: string } | null; onClose: () => void }> = ({ subject, onClose }) => {
     const [entries, setEntries] = useState<AuditEntry[] | null>(null);

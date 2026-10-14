@@ -1,6 +1,7 @@
 // src/components/finance/SettingsTab.tsx
-// Finanzas › Configuración (Módulo 4 de Fran): la ventana madura (§60), las comisiones (§22, R10, R11) y el margen
-// objetivo de cada producto (§66, R13: 20 % sobre ventas para empezar). Cada cambio queda en la auditoría (§82).
+// Finanzas › Configuración (Módulo 4 de Fran): la ventana madura (§60), las comisiones (§22, R10, R11), el desgaste del
+// vehículo en los viajes de traslado (§15, R8) y el margen objetivo de cada producto (§66, R13: 20 % sobre ventas para
+// empezar). Cada cambio queda en la auditoría (§82).
 import React, { useCallback, useEffect, useState } from "react";
 import { Button, InputAdornment, MenuItem, Stack, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField, Typography } from "@mui/material";
 import { toast } from "react-toastify";
@@ -40,13 +41,14 @@ const MarginRow: React.FC<{ p: Product; types: FinanceSettings["target_types"] }
 
 export const SettingsTab: React.FC = () => {
     const [data, setData] = useState<FinanceSettings | null>(null);
-    const [form, setForm] = useState({ lag: "", window: "", order: "", upsell: "", deliverer: "", reason: "" });
+    const [form, setForm] = useState({ lag: "", window: "", order: "", upsell: "", deliverer: "", wearMode: "percent", wearValue: "", reason: "" });
     const [saving, setSaving] = useState(false);
     const load = useCallback(() => {
         api<FinanceSettings>("/finance/settings").then((d) => {
             setData(d);
             setForm({ lag: String(d.maturity_lag_days), window: String(d.analysis_window_days), order: String(d.commissions.order),
-                upsell: String(d.commissions.upsell_unit), deliverer: String(d.commissions.deliverer), reason: "" });
+                upsell: String(d.commissions.upsell_unit), deliverer: String(d.commissions.deliverer), wearMode: d.vehicle_wear.mode,
+                wearValue: String(d.vehicle_wear.value), reason: "" });
         }).catch((e) => toast.error(errorMessage(e)));
     }, []);
     useEffect(() => { load(); }, [load]);
@@ -56,7 +58,8 @@ export const SettingsTab: React.FC = () => {
         try {
             const res = await api<{ message: string }>("/finance/settings", "PUT", {
                 maturity_lag_days: Number(form.lag), analysis_window_days: Number(form.window), commission_order: num(form.order),
-                commission_upsell_unit: num(form.upsell), commission_deliverer: num(form.deliverer), reason: form.reason || null,
+                commission_upsell_unit: num(form.upsell), commission_deliverer: num(form.deliverer),
+                vehicle_wear_mode: form.wearMode, vehicle_wear_value: num(form.wearValue), reason: form.reason || null,
             });
             toast.success(res.message);
             load();
@@ -86,6 +89,19 @@ export const SettingsTab: React.FC = () => {
                     <TextField size="small" label="Motivo del cambio (opcional)" value={form.reason} onChange={(e) => setForm({ ...form, reason: e.target.value })} sx={{ maxWidth: 460 }} />
                     <Typography variant="caption" color="text.secondary">Las comisiones nuevas valen para las órdenes que se entreguen desde ahora; las ya pagadas no cambian.</Typography>
                 </Stack>
+            </Panel>
+            <Panel>
+                <PanelHeader title="Desgaste del vehículo" subtitle="Se suma a cada viaje de traslado, junto con la mano de obra, el combustible y otros."
+                    action={<Button variant="contained" onClick={save} disabled={saving}>Guardar</Button>} />
+                <Stack direction={{ xs: "column", sm: "row" }} gap={2}>
+                    <TextField select size="small" label="Regla" value={form.wearMode} onChange={(e) => setForm({ ...form, wearMode: e.target.value })} sx={{ minWidth: 300 }}>
+                        {Object.entries(data.wear_modes).map(([k, v]) => <MenuItem key={k} value={k}>{v}</MenuItem>)}
+                    </TextField>
+                    {field("wearValue", form.wearMode === "fixed" ? "Monto por viaje" : "Porcentaje", form.wearMode === "fixed" ? "$" : "%")}
+                </Stack>
+                <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: 1 }}>
+                    Vale para los viajes que se registren desde ahora. Cada viaje guarda la regla con la que se registró.
+                </Typography>
             </Panel>
             <Panel>
                 <PanelHeader title="Margen objetivo por producto" subtitle="El Target CPA deja este margen. Un producto caro rinde con menos %; uno barato necesita más." />

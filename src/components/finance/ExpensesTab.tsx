@@ -70,6 +70,7 @@ export const ExpensesTab: React.FC<{ options: FinanceOptions; onCategory: (c: { 
                         <Stat label="Recurrentes" value={s.recurring} hint="repartidos en estos días" />
                         <Stat label="Generales" value={s.general} hint="después del margen de contribución" />
                         <Stat label="De un producto o ciudad" value={s.assigned} hint="se le cargan a ellos" />
+                        <Stat label="Transporte de inventario" value={s.trips} hint="viajes: va al costo de lo vendido, no suma aquí" />
                     </Stack>
                     {s.by_category.length > 0 && (
                         <Stack direction="row" gap={1} flexWrap="wrap" sx={{ mt: 2 }}>
@@ -100,6 +101,11 @@ export const ExpensesTab: React.FC<{ options: FinanceOptions; onCategory: (c: { 
                                         <TableCell sx={{ minWidth: 160 }}>
                                             <Typography variant="body2" sx={{ textDecoration: e.voided_at ? "line-through" : "none" }}>{e.concept}</Typography>
                                             {e.voided_at && <Typography variant="caption" color="error">Anulado: {e.void_reason}</Typography>}
+                                            {e.inventory_trip_id && (
+                                                <Tooltip title="Su costo se reparte entre las unidades del viaje y cuenta cuando se venden: no suma en los gastos del período. Se corrige o se anula en Inventario › Operaciones.">
+                                                    <Chip size="small" label="Viaje de traslado" sx={{ ml: 0.5 }} />
+                                                </Tooltip>
+                                            )}
                                             {!e.voided_at && e.description && <Typography variant="caption" color="text.secondary" display="block">{e.description}</Typography>}
                                         </TableCell>
                                         <TableCell>{e.category}</TableCell>
@@ -125,8 +131,8 @@ export const ExpensesTab: React.FC<{ options: FinanceOptions; onCategory: (c: { 
 
             <Menu anchorEl={menu?.anchor} open={menu !== null} onClose={() => setMenu(null)}>
                 {menu?.expense.has_receipt && <MenuItem onClick={act((e) => download(`/finance/expenses/${e.id}/receipt`, `gasto-${e.id}`))}>Ver comprobante</MenuItem>}
-                {!menu?.expense.voided_at && <MenuItem onClick={act(setEditing)}>Corregir</MenuItem>}
-                {!menu?.expense.voided_at && <MenuItem onClick={act(setVoiding)} sx={{ color: "error.main" }}>Anular</MenuItem>}
+                {!menu?.expense.voided_at && !menu?.expense.inventory_trip_id && <MenuItem onClick={act(setEditing)}>Corregir</MenuItem>}
+                {!menu?.expense.voided_at && !menu?.expense.inventory_trip_id && <MenuItem onClick={act(setVoiding)} sx={{ color: "error.main" }}>Anular</MenuItem>}
                 <MenuItem onClick={act(setHistory)}>Historial</MenuItem>
             </Menu>
 
