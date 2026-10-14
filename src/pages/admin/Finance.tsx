@@ -1,7 +1,8 @@
 // src/pages/admin/Finance.tsx
 // Finanzas (documento de Fran del 2026-10-12, Módulo 4). Solo el Admin (§81): el backend tampoco le entrega nada de esto
 // a otro rol. Resumen (§48) y rentabilidad por niveles con su detalle hasta el pedido (§47 a §52), y los gastos
-// manuales y recurrentes (§24 a §33), cohortes y efectividad (§59), CPA financiero (§60 a §74) y configuración (§22, §66).
+// manuales y recurrentes (§24 a §33), cohortes y efectividad (§59), CPA financiero (§60 a §74), configuración (§22, §66) y
+// proveedores con sus compras y deudas (§10, §16, §17, §44).
 import React, { useCallback, useEffect, useState } from "react";
 import { Box, Paper, Tab, Tabs, Typography } from "@mui/material";
 import { useSearchParams } from "react-router-dom";
@@ -17,6 +18,7 @@ import { ProfitabilityTab } from "../../components/finance/ProfitabilityTab";
 import { CohortsTab } from "../../components/finance/CohortsTab";
 import { CpaTab } from "../../components/finance/CpaTab";
 import { SettingsTab } from "../../components/finance/SettingsTab";
+import { SuppliersTab } from "../../components/finance/SuppliersTab";
 import { FinanceOptions, api, errorMessage } from "../../components/finance/finance";
 
 const TABS = [
@@ -26,6 +28,7 @@ const TABS = [
     { key: "cpa", label: "CPA" },
     { key: "expenses", label: "Gastos" },
     { key: "recurring", label: "Gastos recurrentes" },
+    { key: "suppliers", label: "Proveedores" },
     { key: "settings", label: "Configuración" },
 ];
 
@@ -56,11 +59,12 @@ export const Finance: React.FC = () => {
                 {tab === "profitability" && <ProfitabilityTab />}
                 {tab === "cpa" && <CpaTab />}
                 {tab === "settings" && <SettingsTab />}
-                {(tab === "expenses" || tab === "recurring" || tab === "cohorts") && (!options ? <Typography color="text.secondary" sx={{ p: 2 }}>Cargando…</Typography> : (
+                {(tab === "expenses" || tab === "recurring" || tab === "cohorts" || tab === "suppliers") && (!options ? <Typography color="text.secondary" sx={{ p: 2 }}>Cargando…</Typography> : (
                     <>
                         {tab === "expenses" && <ExpensesTab options={options} onCategory={addCategory} />}
                         {tab === "recurring" && <RecurringExpensesTab options={options} onCategory={addCategory} />}
                         {tab === "cohorts" && <CohortsTab options={options} />}
+                        {tab === "suppliers" && <SuppliersTab options={options} />}
                     </>
                 ))}
             </Box>

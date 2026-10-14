@@ -13,6 +13,8 @@ import { toast } from 'react-toastify';
 import { useNavigate } from 'react-router-dom';
 import { Loading } from '../../components/ui/content/Loading';
 import { useValidateSession } from '../../hooks/useValidateSession';
+import { PurchaseFields } from '../../components/finance/PurchaseFields';
+import { PurchaseValue, emptyPurchase, purchasePayload, purchaseReady, uploadPurchaseReceipt } from '../../components/finance/purchase';
 
 interface Props {
     isEmbedded?: boolean;
@@ -32,6 +34,10 @@ export const StockAdjustment: React.FC<Props> = ({ isEmbedded }) => {
     const [variantsInput, setVariantsInput] = useState<Record<number, number>>({});
     const [currentVariants, setCurrentVariants] = useState<Record<number, number> | undefined>(undefined);
     const { loadingSession, isValid, user } = useValidateSession();
+    // Módulo 4 de Fran (§9, §16, R6): el ingreso del Admin pregunta cuánto costó la compra
+    const isAdmin = user?.role?.description === 'Admin';
+    const [purchase, setPurchase] = useState<PurchaseValue>(emptyPurchase());
+    const withPurchase = type === 'in' && isAdmin && purchase.enabled;
 
     useEffect(() => {
         loadProducts();
@@ -120,6 +126,7 @@ export const StockAdjustment: React.FC<Props> = ({ isEmbedded }) => {
             if (type === 'in') {
                 endpoint = '/inventory-movements/in';
                 body.to_warehouse_id = warehouseId;
+                if (withPurchase) body.purchase = purchasePayload(purchase);
             } else if (type === 'out') {
                 endpoint = '/inventory-movements/out';
                 body.from_warehouse_id = warehouseId;
@@ -132,9 +139,12 @@ export const StockAdjustment: React.FC<Props> = ({ isEmbedded }) => {
             const { status, response }: IResponse = await request(endpoint, 'POST', JSON.stringify(body));
 
             if (status >= 200 && status < 300) {
-                toast.success('Ajuste realizado con éxito');
+                const data = await response.json().catch(() => ({}));
+                if (withPurchase && purchase.receipt && data.purchase?.id) await uploadPurchaseReceipt(data.purchase.id, purchase.receipt);
+                toast.success(withPurchase && data.message ? data.message : 'Ajuste realizado con éxito');
                 checkStock();
                 setVariantsInput({});
+                setPurchase(emptyPurchase());
                 if (!isEmbedded) navigate('/inventory/movements');
             } else {
                 const data = await response.json();
@@ -220,6 +230,12 @@ export const StockAdjustment: React.FC<Props> = ({ isEmbedded }) => {
                         </Grid>
                     )}
 
+                    {type === 'in' && isAdmin && (
+                        <Grid size={{ xs: 12 }}>
+                            <PurchaseFields value={purchase} onChange={setPurchase} quantity={quantity} />
+                        </Grid>
+                    )}
+
                     <Grid size={{ xs: 12 }}>
                         <TextField
                             fullWidth
@@ -237,7 +253,7 @@ export const StockAdjustment: React.FC<Props> = ({ isEmbedded }) => {
                                 Cancelar
                             </ButtonCustom>
                         )}
-                        <ButtonCustom onClick={handleSubmit} disabled={loading}>
+                        <ButtonCustom onClick={handleSubmit} disabled={loading || (withPurchase && !purchaseReady(purchase))}>
                             {loading ? 'Procesando...' : 'Guardar Ajuste'}
                         </ButtonCustom>
                     </Grid>

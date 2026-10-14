@@ -18,6 +18,9 @@ import { variantPayload, variantSum } from '../../common/variants';
 import { request } from '../../common/request';
 import { toast } from 'react-toastify';
 import { IResponse } from '../../interfaces/response-type';
+import { useUserStore } from '../../store/user/UserStore';
+import { PurchaseFields } from '../finance/PurchaseFields';
+import { PurchaseValue, emptyPurchase, purchasePayload, purchaseReady, uploadPurchaseReceipt } from '../finance/purchase';
 
 interface StockMovementDialogProps {
     open: boolean;
@@ -44,6 +47,10 @@ export const StockMovementDialog: React.FC<StockMovementDialogProps> = ({
     // Tallas y variantes (tarea 4): cantidad de cada una y lo que hay en el almacén que se mira
     const [variantsInput, setVariantsInput] = useState<Record<number, number>>({});
     const [availableVariants, setAvailableVariants] = useState<Record<number, number> | undefined>(undefined);
+    // Módulo 4 de Fran (§9, §16, R6): el ingreso del Admin pregunta cuánto costó la compra
+    const isAdmin = useUserStore((s) => s.user.role?.description) === 'Admin';
+    const [purchase, setPurchase] = useState<PurchaseValue>(emptyPurchase());
+    const withPurchase = type === 'in' && isAdmin && purchase.enabled;
 
     useEffect(() => {
         if (open) {
@@ -55,6 +62,7 @@ export const StockMovementDialog: React.FC<StockMovementDialogProps> = ({
             setAvailableStock(null);
             setVariantsInput({});
             setAvailableVariants(undefined);
+            setPurchase(emptyPurchase());
         }
     }, [open, initialType, product]);
 
@@ -129,6 +137,7 @@ export const StockMovementDialog: React.FC<StockMovementDialogProps> = ({
                     if (!toWarehouseId) { toast.error('Seleccione almacén destino'); setLoading(false); return; }
                     endpoint = '/inventory-movements/in';
                     body.to_warehouse_id = toWarehouseId;
+                    if (withPurchase) body.purchase = purchasePayload(purchase);
                     break;
                 case 'out':
                     if (!fromWarehouseId) { toast.error('Seleccione almacén origen'); setLoading(false); return; }
@@ -154,7 +163,9 @@ export const StockMovementDialog: React.FC<StockMovementDialogProps> = ({
             const { status, response }: IResponse = await request(endpoint, 'POST', JSON.stringify(body));
 
             if (status === 200 || status === 201) {
-                toast.success('Movimiento realizado con éxito');
+                const data = await response.json().catch(() => ({}));
+                if (withPurchase && purchase.receipt && data.purchase?.id) await uploadPurchaseReceipt(data.purchase.id, purchase.receipt);
+                toast.success(withPurchase && data.message ? data.message : 'Movimiento realizado con éxito');
                 onSuccess();
                 onClose();
             } else {
@@ -247,6 +258,8 @@ export const StockMovementDialog: React.FC<StockMovementDialogProps> = ({
                         />
                     )}
 
+                    {type === 'in' && isAdmin && <PurchaseFields value={purchase} onChange={setPurchase} quantity={quantity} />}
+
                     <TextField
                         fullWidth
                         multiline
@@ -263,7 +276,7 @@ export const StockMovementDialog: React.FC<StockMovementDialogProps> = ({
                 </ButtonCustom>
                 <ButtonCustom
                     onClick={handleSubmit}
-                    disabled={loading || !variantsOk}
+                    disabled={loading || !variantsOk || (withPurchase && !purchaseReady(purchase))}
                 >
                     {loading ? 'Procesando...' : 'Guardar'}
                 </ButtonCustom>

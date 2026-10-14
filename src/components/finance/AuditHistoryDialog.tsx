@@ -10,6 +10,8 @@ const ACTION: Record<string, string> = {
     expense_created: "Registrado", expense_updated: "Corregido", expense_voided: "Anulado",
     recurring_expense_created: "Creado", recurring_expense_updated: "Datos cambiados",
     recurring_expense_version: "Monto nuevo", recurring_expense_version_corrected: "Monto corregido",
+    supplier_created: "Creado", supplier_updated: "Datos cambiados", inventory_purchase_created: "Compra registrada",
+    inventory_purchase_receipt: "Comprobante subido", payable_payment_created: "Pago registrado", payable_payment_voided: "Pago anulado",
 };
 
 const FIELD: Record<string, string> = {
@@ -17,10 +19,16 @@ const FIELD: Record<string, string> = {
     expense_date: "Fecha", description: "Descripción", product: "Producto", city: "Ciudad", warehouse: "Almacén", agency: "Agencia",
     supplier: "Proveedor", has_receipt: "Comprobante", voided: "Anulado", frequency: "Frecuencia", schedule: "Día de pago",
     is_active: "Activo", valid_from: "Desde",
+    contact_name: "Contacto", phone: "Teléfono", notes: "Notas", quantity: "Unidades", total_amount: "Costo total", total_usd: "Total en USD",
+    unit_cost_usd: "Costo unitario", payment_type: "Pago", due_date: "Vence", terms: "Condiciones", applied_amount: "Descuenta de la deuda",
+    paid_at: "Fecha del pago", account: "Cuenta", balance: "Pendiente",
 };
 const HIDDEN = new Set(["id", "created_by", "version"]);
 
-const show = (v: unknown) => (v === null || v === undefined || v === "" ? "—" : v === true ? "sí" : v === false ? "no" : String(v));
+// Los valores que el backend guarda como código
+const VALUE: Record<string, string> = { cash: "Al contado", credit: "A crédito" };
+
+const show = (v: unknown) => (v === null || v === undefined || v === "" ? "—" : v === true ? "sí" : v === false ? "no" : VALUE[String(v)] ?? String(v));
 
 const Changes: React.FC<{ entry: AuditEntry }> = ({ entry }) => {
     const before = entry.before ?? {};
@@ -41,7 +49,9 @@ const Changes: React.FC<{ entry: AuditEntry }> = ({ entry }) => {
     );
 };
 
-export const AuditHistoryDialog: React.FC<{ subject: { type: "expense" | "recurring_expense"; id: number; title: string } | null; onClose: () => void }> = ({ subject, onClose }) => {
+export type AuditSubject = "expense" | "recurring_expense" | "supplier" | "account_payable" | "inventory_purchase";
+
+export const AuditHistoryDialog: React.FC<{ subject: { type: AuditSubject; id: number; title: string } | null; onClose: () => void }> = ({ subject, onClose }) => {
     const [entries, setEntries] = useState<AuditEntry[] | null>(null);
 
     const type = subject?.type;

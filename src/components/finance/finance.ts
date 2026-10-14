@@ -13,16 +13,20 @@ export type Frequency = "weekly" | "monthly" | "annual" | "custom";
 
 export type Option = { id: number; name: string };
 
+export type PaymentType = "cash" | "credit";
+
 export type FinanceOptions = {
     categories: { id: number; name: string; is_active: boolean }[];
     products: { id: number; title: string }[];
     cities: Option[];
     warehouses: Option[];
     agencies: { id: number; names: string }[];
-    suppliers: Option[];
+    suppliers: (Option & { is_active: boolean })[];
     currencies: Currency[];
     frequencies: Record<Frequency, string>;
     weekdays: Record<string, string>;
+    company_accounts: { id: number; name: string; currency: string }[];
+    payment_types: Record<PaymentType, string>;
 };
 
 export type Expense = {
@@ -150,6 +154,51 @@ export type CpaVersion = {
 };
 
 export type CpaRow = CpaVersion & { product: string; city: string | null };
+
+// ---- Proveedores, compras y deudas (entrega 2b; §9, §10, §16, §17, §44) ----
+export type PayableStatus = "open" | "overdue" | "paid";
+
+export const PAYABLE_STATUS: Record<PayableStatus, { label: string; color: "warning" | "error" | "success" }> = {
+    open: { label: "Pendiente", color: "warning" }, overdue: { label: "Vencida", color: "error" }, paid: { label: "Pagada", color: "success" },
+};
+
+export type PayablePayment = {
+    id: number; amount: number; currency: Currency; rate: number; amount_usd: number; applied_amount: number; paid_at: string;
+    company_account_id: number | null; account: string | null; notes: string | null; has_receipt: boolean;
+    voided_at: string | null; voided_by: string | null; void_reason: string | null; created_by: string | null;
+};
+
+export type Payable = {
+    id: number; payee_type: string; payee: string; supplier_id: number | null; source_type: string | null; source_id: number | null;
+    description: string; currency: Currency; amount: number; rate: number; amount_usd: number; paid_amount: number; paid_usd: number;
+    balance: number; balance_usd: number; issued_at: string; due_date: string | null; terms: string | null; status: PayableStatus;
+    payments?: PayablePayment[];
+};
+
+export type Purchase = {
+    id: number; supplier_id: number; supplier: string | null; product_id: number; product: string | null; warehouse_id: number; warehouse: string | null;
+    quantity: number; total_amount: number; currency: Currency; rate: number; total_usd: number; unit_cost_usd: number;
+    payment_type: PaymentType; payment_type_label: string; purchased_at: string; due_date: string | null; terms: string | null;
+    notes: string | null; has_receipt: boolean; created_by: string | null;
+};
+
+export type SupplierRow = {
+    id: number; name: string; contact_name: string | null; phone: string | null; notes: string | null; is_active: boolean;
+    purchases: number; purchased_usd: number; last_purchase: string | null; debt_usd: number; overdue_usd: number; open_debts: number; next_due: string | null;
+};
+
+export type SuppliersResponse = {
+    suppliers: SupplierRow[];
+    totals: { debt_usd: number; overdue_usd: number; due_soon_usd: number; open_debts: number };
+};
+
+export type SupplierDetail = { supplier: { id: number; name: string; is_active: boolean }; payables: Payable[]; purchases: Purchase[] };
+
+/** Un monto en la moneda de una deuda: "Bs 5.000,00", "150,00 USDT" o "$150,00" (sin la tasa). */
+export const inCurrency = (amount: number, currency: Currency) => {
+    const n = new Intl.NumberFormat("es-VE", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(amount);
+    return currency === "VES" ? `Bs ${n}` : currency === "USDT" ? `${n} USDT` : `$${n}`;
+};
 
 export type FinanceSettings = {
     maturity_lag_days: number; analysis_window_days: number;
