@@ -27,7 +27,8 @@ export const PnlStatement: React.FC<{ c: CompanyLevels }> = ({ c }) => (
             <Line label="Comisiones vendedoras" value={c.commission_sellers} minus />
             <Line label="Comisión líderes" value={c.commission_leaders} minus />
             <Line label="Publicidad" value={c.advertising} minus note={c.advertising_unclassified > 0 ? `${money(c.advertising_unclassified)} de campañas sin clasificar` : undefined} />
-            <Line label="Otros costes variables atribuibles" value={c.other_variable} minus note="Gastos de un producto o una ciudad" />
+            <Line label="Otros costes variables atribuibles" value={c.other_variable} minus
+                note={c.shrinkage > 0 ? `Gastos de un producto o una ciudad, y ${money(c.shrinkage)} de merma (piezas dadas de baja)` : "Gastos de un producto o una ciudad, y la merma"} />
             <Divider sx={{ my: 0.5 }} />
             <Line label={`Margen de contribución (${pct(c.margin_pct)})`} value={c.contribution} strong />
             <Line label="Gastos fijos / generales" value={c.fixed} minus note="ChatGPT, editor, Shopify…: no se reparten entre productos" />

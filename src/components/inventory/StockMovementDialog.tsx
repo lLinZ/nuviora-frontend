@@ -211,6 +211,11 @@ export const StockMovementDialog: React.FC<StockMovementDialogProps> = ({
                         <MenuItem value="transfer">Transferencia</MenuItem>
                         <MenuItem value="adjustment">Ajuste (Corrección)</MenuItem>
                     </TextField>
+                    {type === 'out' && isAdmin && (
+                        <Typography variant="caption" color="text.secondary" sx={{ mt: -1 }}>
+                            ¿Una pieza dañada o perdida? Mejor usa "Pasar a revisión", en la tarjeta del producto: queda para revisarla y, si se da de baja, cuenta como merma.
+                        </Typography>
+                    )}
 
                     {(type === 'out' || type === 'transfer') && (
                         <WarehouseSelector

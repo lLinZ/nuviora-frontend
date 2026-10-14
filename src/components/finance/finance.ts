@@ -100,10 +100,13 @@ export const errorMessage = (e: unknown) => (e instanceof Error ? e.message : "N
 export type Levels = {
     revenue: number; revenue_main: number; revenue_upsell: number; revenue_refunded: number; cogs: number; logistics: number;
     delivery: number; delivery_legacy: number; commission_sellers: number; commission_leaders: number; advertising: number;
-    other_variable: number; contribution: number; margin_pct: number | null; orders_delivered: number; orders_not_delivered: number;
+    other_variable: number; shrinkage: number; contribution: number; margin_pct: number | null; orders_delivered: number; orders_not_delivered: number;
     meta_purchases: number;
     upsell: { revenue: number; cogs: number; commission: number; profit: number };
-    checks: { cogs_missing_lines: number; delivery_trips: number; delivery_final_trips: number; delivery_missing_trips: number; delivery_estimated_trips: number };
+    checks: {
+        cogs_missing_lines: number; delivery_trips: number; delivery_final_trips: number; delivery_missing_trips: number; delivery_estimated_trips: number;
+        shrinkage_provisional_units: number;
+    };
 };
 
 export type CompanyLevels = Levels & {

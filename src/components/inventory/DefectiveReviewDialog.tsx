@@ -1,6 +1,7 @@
 // src/components/inventory/DefectiveReviewDialog.tsx
-// Revisar piezas defectuosas (Fran, 2026-10-02): las que vuelven de un cambio quedan aparte, sin contar
-// como disponibles. Después de revisarlas, el Admin decide si vuelven a la venta o se dan de baja.
+// Revisar las piezas en revisión (Fran, 2026-10-02; Módulo 4, R3 y R8): las que vuelven de un cambio y las dañadas o
+// perdidas quedan aparte, sin contar como disponibles. Después de revisarlas, el Admin decide si vuelven a la venta (con
+// su costo) o se dan de baja; si tenían costo, la baja cuenta como merma en la rentabilidad.
 import { FC, useEffect, useMemo, useState } from "react";
 import {
     Alert, Button, Dialog, DialogActions, DialogContent, DialogTitle, FormControlLabel, MenuItem, Radio, RadioGroup,
@@ -86,11 +87,11 @@ export const DefectiveReviewDialog: FC<Props> = ({ open, onClose, productStock, 
 
     return (
         <Dialog open={open} onClose={onClose} fullWidth maxWidth="xs">
-            <DialogTitle>Revisar piezas defectuosas</DialogTitle>
+            <DialogTitle>Revisar piezas</DialogTitle>
             <DialogContent sx={{ display: "flex", flexDirection: "column", gap: 2, pt: "8px !important" }}>
                 <Typography variant="subtitle2">{productStock?.product?.title}</Typography>
                 {lines.length === 0 ? (
-                    <Alert severity="info">Este producto no tiene piezas defectuosas.</Alert>
+                    <Alert severity="info">Este producto no tiene piezas en revisión.</Alert>
                 ) : (
                     <>
                         <TextField select size="small" label="Cuáles" value={lineKey} onChange={(e) => setLineKey(e.target.value)} fullWidth>
@@ -109,8 +110,13 @@ export const DefectiveReviewDialog: FC<Props> = ({ open, onClose, productStock, 
                         />
                         <RadioGroup value={action} onChange={(e) => setAction(e.target.value as "restock" | "discard")}>
                             <FormControlLabel value="restock" control={<Radio />} label="Está bien: vuelve a la venta" />
-                            <FormControlLabel value="discard" control={<Radio />} label="Está dañada: dar de baja (sale del inventario)" />
+                            <FormControlLabel value="discard" control={<Radio />} label="Está dañada o no está: dar de baja (sale del inventario)" />
                         </RadioGroup>
+                        {action === "discard" && (
+                            <Typography variant="caption" color="text.secondary">
+                                Si la pieza tenía costo (dañada o perdida), su costo cuenta como merma en la rentabilidad. Una pieza que volvió de un cambio no suma: su costo ya se contó en la venta.
+                            </Typography>
+                        )}
                         <TextField size="small" label="Nota (opcional)" value={notes} onChange={(e) => setNotes(e.target.value)} fullWidth multiline maxRows={3} />
                     </>
                 )}

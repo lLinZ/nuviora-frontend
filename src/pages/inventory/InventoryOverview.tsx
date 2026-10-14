@@ -23,6 +23,7 @@ import { Layout } from '../../components/ui/Layout';
 import { DescripcionDeVista } from '../../components/ui/content/DescripcionDeVista';
 import { InventoryCard } from '../../components/inventory/InventoryCard';
 import { StockMovementDialog } from '../../components/inventory/StockMovementDialog';
+import { ReviewIntakeDialog } from '../../components/inventory/ReviewIntakeDialog';
 import { Loading } from '../../components/ui/content/Loading';
 import { request } from '../../common/request';
 import { IResponse } from '../../interfaces/response-type';
@@ -53,6 +54,7 @@ export const InventoryOverview: React.FC<Props> = ({ isEmbedded }) => {
     const [productToEdit, setProductToEdit] = useState<IProduct | undefined>(undefined);
     const [variantsProduct, setVariantsProduct] = useState<IProduct | undefined>(undefined);
     const [defectiveProduct, setDefectiveProduct] = useState<IProductStock | null>(null);
+    const [intakeProduct, setIntakeProduct] = useState<IProductStock | null>(null); // "Pasar a revisión" (Módulo 4, R8)
     const { loadingSession, isValid, user } = useValidateSession();
 
     useEffect(() => {
@@ -190,6 +192,7 @@ export const InventoryOverview: React.FC<Props> = ({ isEmbedded }) => {
                                 onVariants={user.role?.description === 'Agencia' ? undefined : (prod) => setVariantsProduct(prod.product)}
                                 onViewHistory={(prod) => prod.product && navigate(`/inventory/movements?product_id=${prod.product.id}`)}
                                 onReviewDefective={['Admin', 'Master'].includes(user.role?.description ?? '') ? (prod) => setDefectiveProduct(prod) : undefined}
+                                onSendToReview={['Admin', 'Master'].includes(user.role?.description ?? '') ? (prod) => setIntakeProduct(prod) : undefined}
                             />
                         </Grid>
                     ))}
@@ -207,6 +210,12 @@ export const InventoryOverview: React.FC<Props> = ({ isEmbedded }) => {
                 open={!!defectiveProduct}
                 onClose={() => setDefectiveProduct(null)}
                 productStock={defectiveProduct}
+                onSaved={loadInventory}
+            />
+            <ReviewIntakeDialog
+                open={!!intakeProduct}
+                onClose={() => setIntakeProduct(null)}
+                productStock={intakeProduct}
                 onSaved={loadInventory}
             />
             <StockMovementDialog

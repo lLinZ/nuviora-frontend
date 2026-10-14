@@ -14,7 +14,8 @@ import {
     Edit as EditIcon,
     Tune as AdjustIcon,
     Straighten as VariantsIcon,
-    ReportProblemOutlined as DefectiveIcon
+    ReportProblemOutlined as DefectiveIcon,
+    HeartBrokenOutlined as DamagedIcon
 } from '@mui/icons-material';
 import { IProductStock } from '../../interfaces/inventory.types';
 import { TypographyCustom } from '../custom';
@@ -27,6 +28,7 @@ interface InventoryCardProps {
     onVariants?: (product: IProductStock) => void;
     onViewHistory: (product: IProductStock) => void;
     onReviewDefective?: (product: IProductStock) => void; // solo el Admin
+    onSendToReview?: (product: IProductStock) => void;    // dañada o perdida: pasa a revisión (Módulo 4, R8); solo el Admin
 }
 
 export const InventoryCard: React.FC<InventoryCardProps> = ({
@@ -36,10 +38,12 @@ export const InventoryCard: React.FC<InventoryCardProps> = ({
     onEdit,
     onVariants,
     onViewHistory,
-    onReviewDefective
+    onReviewDefective,
+    onSendToReview
 }) => {
     const { product, warehouses, total_quantity } = productStock;
-    // Piezas defectuosas (Fran, 2026-10-02): se muestran aparte y no cuentan como disponibles
+    // En revisión (Fran, 2026-10-02; Módulo 4, R3 y R8): las que vuelven de un cambio y las dañadas o perdidas. Se
+    // muestran aparte y no cuentan como disponibles
     const defective = warehouses.filter((w) => (w.defective_stock ?? 0) > 0);
     // "Sin variante" sin contar las defectuosas que no tienen talla (esas van en su apartado)
     const unassignedUseful = (w: IProductStock['warehouses'][number]) =>
@@ -134,9 +138,9 @@ export const InventoryCard: React.FC<InventoryCardProps> = ({
                 {defective.length > 0 && (
                     <Box sx={{ mt: 1.5, p: 1, borderRadius: 1, border: '1px dashed', borderColor: 'warning.main', bgcolor: 'rgba(237,108,2,0.06)' }}>
                         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1 }}>
-                            <Tooltip title="Volvieron de un cambio. Están en el almacén, pero no se venden hasta revisarlas.">
+                            <Tooltip title="Volvieron de un cambio, o se pasaron a revisión por dañadas o perdidas. Están en el almacén, pero no se venden hasta revisarlas.">
                                 <TypographyCustom variant="subtitle2" color="warning.main" sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                                    <DefectiveIcon fontSize="small" /> Piezas defectuosas
+                                    <DefectiveIcon fontSize="small" /> En revisión
                                 </TypographyCustom>
                             </Tooltip>
                             {onReviewDefective && (
@@ -176,6 +180,13 @@ export const InventoryCard: React.FC<InventoryCardProps> = ({
                     <Tooltip title="Ajustar Stock (Cantidades)">
                         <IconButton size="small" color="warning" onClick={() => onAdjust(productStock)}>
                             <AdjustIcon />
+                        </IconButton>
+                    </Tooltip>
+                )}
+                {onSendToReview && (
+                    <Tooltip title="Pasar a revisión (dañada o perdida)">
+                        <IconButton size="small" color="error" onClick={() => onSendToReview(productStock)}>
+                            <DamagedIcon />
                         </IconButton>
                     </Tooltip>
                 )}
