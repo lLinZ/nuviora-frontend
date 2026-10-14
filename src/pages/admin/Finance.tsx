@@ -62,7 +62,7 @@ export const Finance: React.FC = () => {
                         {TABS.map((t) => <Tab key={t.key} value={t.key} label={t.label} />)}
                     </Tabs>
                 </Paper>
-                {tab === "summary" && <SummaryTab />}
+                {tab === "summary" && <SummaryTab onOpenCash={() => setParams({ tab: "cash" })} />}
                 {tab === "profitability" && <ProfitabilityTab />}
                 {tab === "cpa" && <CpaTab />}
                 {tab === "settings" && <SettingsTab />}

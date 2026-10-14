@@ -16,6 +16,7 @@ import { Panel, PanelHeader } from "../ui/surface/Panel";
 import { AuditHistoryDialog } from "./AuditHistoryDialog";
 import { CashAccountDialog } from "./CashAccountDialog";
 import { CashMovementDialog } from "./CashMovementDialog";
+import { CashDashboardPanel } from "./CashDashboardPanel";
 import { PayablesPanel, ReceivablesPanel } from "./CashDebtsPanels";
 import { RefundsWithoutAccount } from "./RefundsWithoutAccount";
 import { OpeningBalancesDialog } from "./OpeningBalancesDialog";
@@ -124,6 +125,9 @@ export const CashTab: React.FC<{ options: FinanceOptions }> = ({ options }) => {
     const [orderId, setOrderId] = useState<number | null>(null);
     const [moving, setMoving] = useState(false);
     const [voiding, setVoiding] = useState<CashTransaction | null>(null);
+    // §46: el tablero tiene su propio período (las entradas y salidas); "version" lo vuelve a pedir cuando la caja cambia
+    const [[dashFrom, dashTo], setDashRange] = useState<[string, string]>(monthRange());
+    const [version, setVersion] = useState(0);
 
     const load = useCallback(() => {
         api<CashResponse>("/finance/cash").then(setData).catch((e) => toast.error(errorMessage(e)));
@@ -135,7 +139,7 @@ export const CashTab: React.FC<{ options: FinanceOptions }> = ({ options }) => {
     useEffect(() => { load(); }, [load]);
     useEffect(() => { loadTxs(); }, [loadTxs]);
 
-    const refresh = () => { load(); loadTxs(); };
+    const refresh = () => { load(); loadTxs(); setVersion((v) => v + 1); };
     const link = async (companyAccountId: number, financialAccountId: string) => {
         try {
             toast.success((await api<{ message: string }>(`/finance/cash/company-accounts/${companyAccountId}`, "PUT",
@@ -177,23 +181,20 @@ export const CashTab: React.FC<{ options: FinanceOptions }> = ({ options }) => {
                 <Alert severity="warning">{data.warnings.items_without_account} pago(s) de la conciliación no dicen a qué cuenta llegaron (hay varias cuentas activas con ese método): no entran a la caja.</Alert>
             )}
 
+            <Panel><PeriodPicker value={[dashFrom, dashTo]} onChange={setDashRange} /></Panel>
+            <CashDashboardPanel from={dashFrom} to={dashTo} refreshKey={version} />
+
             <Panel>
-                <PanelHeader title="Liquidez" subtitle="Cuánto dinero hay y dónde. Los saldos en Bs se pasan a USD con la tasa de Binance: son aproximados."
+                <PanelHeader title="Cuentas de la empresa" subtitle="El saldo de cada cuenta: su saldo inicial más sus movimientos."
                     action={<Stack direction="row" gap={1}>
                         <Button size="small" variant="outlined" onClick={() => setOpening(true)}>Saldos iniciales</Button>
                         <Button size="small" variant="outlined" onClick={() => setEditing("new")}>Nueva cuenta</Button>
                         <Button size="small" variant="contained" onClick={() => setMoving(true)}>Nuevo movimiento</Button>
                     </Stack>} />
-                <Stack direction="row" gap={2} flexWrap="wrap">
-                    <Stat label="Caja disponible" value={`≈ ${money(t.available_usd)}`} hint="en las cuentas de la empresa" />
-                    <Stat label="Dinero en agencias" value={`≈ ${money(t.agencies_usd)}`} hint="efectivo cobrado que no han entregado" />
+                <Stack direction="row" gap={2} flexWrap="wrap" sx={{ mb: 1.5 }}>
                     <Stat label="Por conciliar" value={`≈ ${money(t.pending_usd)}`} hint="pagos que todavía no están en un extracto" warn={t.pending_usd > 0} />
                     <Stat label="Tasa Binance" value={data.binance_rate ? `Bs ${new Intl.NumberFormat("es-VE").format(data.binance_rate)}` : "—"} hint="para mostrar los Bs en USD" />
                 </Stack>
-            </Panel>
-
-            <Panel>
-                <PanelHeader title="Cuentas de la empresa" />
                 <AccountsTable accounts={own} onEdit={setEditing} onHistory={setHistory} onShow={(a) => { setAccountId(String(a.id)); setPage(1); }} />
             </Panel>
 

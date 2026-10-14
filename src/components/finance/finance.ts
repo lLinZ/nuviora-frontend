@@ -313,6 +313,18 @@ export type CashCompanyAccount = {
     financial_account_id: number | null;
 };
 
+/** §46 y §48: el tablero de la caja. Todo en USD aproximado (los Bs con la tasa de Binance). */
+export type UpcomingPayment = {
+    type: "payable" | "recurring"; date: string | null; payee: string; description: string; amount: number; currency: Currency; amount_usd: number;
+    overdue: boolean; payable_id: number | null; closure_id: number | null; recurring_id: number | null;
+};
+export type CashDashboard = {
+    from: string; to: string; binance_rate: number | null; available_usd: number; agencies_usd: number; receivable_usd: number; other_receivable_usd: number;
+    payable_usd: number; payable_overdue_usd: number; inflow_usd: number; outflow_usd: number;
+    inflow_by_kind: { kind: string; label: string; usd: number }[]; outflow_by_kind: { kind: string; label: string; usd: number }[];
+    upcoming: UpcomingPayment[]; upcoming_usd: number; upcoming_days: number;
+};
+
 /** §77: un reembolso cuyo método no dice de qué cuenta salió (efectivo, "Otro"): lo dice el Admin. */
 export type RefundWithoutAccount = { id: number; order_id: number; order: string | null; amount_usd: number; method: string | null; refunded_at: string };
 

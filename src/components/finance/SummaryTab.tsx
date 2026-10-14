@@ -1,11 +1,13 @@
 // src/components/finance/SummaryTab.tsx
 // Finanzas › Resumen (Módulo 4 de Fran, §48): tarjetas rápidas de ingresos, egresos, beneficio, margen, publicidad,
 // COGS, delivery, comisiones y caja disponible, con RENTABILIDAD separada de LIQUIDEZ. Cada tarjeta se compara con el
-// período anterior del mismo largo (§58).
+// período anterior del mismo largo (§58). La Liquidez (entrega 3) es el tablero de la caja en corto: entradas y salidas del
+// mismo período.
 import React, { useEffect, useState } from "react";
 import { Box, Stack, Typography } from "@mui/material";
 import { toast } from "react-toastify";
 import { Panel, PanelHeader } from "../ui/surface/Panel";
+import { CashDashboardPanel } from "./CashDashboardPanel";
 import { PeriodPicker } from "./PeriodPicker";
 import { StatusChip, StatusNotes } from "./StatusNotes";
 import { CompanyLevels, PRESETS, PnlReport, api, day, errorMessage, money, pct } from "./finance";
@@ -32,7 +34,7 @@ const Delta: React.FC<{ now: number | null; before: number | null; good: "up" | 
     return <Typography variant="caption" color={better ? "success.main" : "error.main"}>{text} vs. período anterior</Typography>;
 };
 
-export const SummaryTab: React.FC = () => {
+export const SummaryTab: React.FC<{ onOpenCash?: () => void }> = ({ onOpenCash }) => {
     const [range, setRange] = useState<[string, string]>(PRESETS[2].range());
     const [data, setData] = useState<{ current: PnlReport; previous: PnlReport } | null>(null);
 
@@ -68,12 +70,7 @@ export const SummaryTab: React.FC = () => {
                             ))}
                         </Box>
                     </Panel>
-                    <Panel>
-                        <PanelHeader title="Liquidez" subtitle="Dónde está el dinero: separado de la rentabilidad." />
-                        <Typography variant="body2" color="text.secondary">
-                            La caja disponible, las cuentas y lo pendiente por cobrar o pagar llegan con el flujo de caja (entrega 3). Ganar dinero no es lo mismo que tenerlo en la cuenta.
-                        </Typography>
-                    </Panel>
+                    <CashDashboardPanel from={range[0]} to={range[1]} compact onOpenCash={onOpenCash} />
                     <StatusNotes report={data.current} />
                 </>
             )}
