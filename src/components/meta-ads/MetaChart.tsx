@@ -1,13 +1,17 @@
 // src/components/meta-ads/MetaChart.tsx
 // §26: elegir una métrica (CPA, CTR, CPM, CPC, Frequency, Purchases, Hook Rate, Hold Rate, LPV Rate, Conversion
 // Rate…) y ver su evolución día por día en el rango, para lo que diga el filtro. Con el CPA se dibujan el Target CPA y
-// el Break-even de cada día (§34); con "comparar", el período anterior (§28).
+// el Break-even de cada día (§34): desde el Módulo 4, el CPA financiero vigente ese día (R12), con el manual tenue de
+// referencia; con "comparar", el período anterior (§28).
 import React, { useEffect, useState } from "react";
 import { Box, MenuItem, Paper, Stack, TextField, Typography, useTheme } from "@mui/material";
 import { CartesianGrid, Legend, Line, LineChart, ResponsiveContainer, Tooltip as ChartTooltip, XAxis, YAxis } from "recharts";
 import { CHART_METRICS, api, fmtKind } from "./metaAds";
 
-type Point = { date: string; value: number | null; previous: number | null; target_cpa: number | null; break_even_cpa: number | null };
+type Point = {
+    date: string; value: number | null; previous: number | null; target_cpa: number | null; break_even_cpa: number | null;
+    target_source?: "financial" | "manual" | null; manual_target_cpa?: number | null;
+};
 
 export const MetaChart: React.FC<{ query: string; title?: string; compare: boolean; isVideo?: boolean; canSeeSpend?: boolean; initialMetric?: string }> = ({
     query, title, compare, isVideo = true, canSeeSpend = true, initialMetric = "cpa",
@@ -28,6 +32,9 @@ export const MetaChart: React.FC<{ query: string; title?: string; compare: boole
 
     const options = CHART_METRICS.filter((m) => (isVideo || !m.video) && (canSeeSpend || m.key !== "spend"));
     const showTargets = metric === "cpa" && points?.some((p) => p.target_cpa !== null || p.break_even_cpa !== null);
+    // R12: si el financiero manda algún día, el manual queda como una línea tenue de referencia
+    const financial = points?.some((p) => p.target_source === "financial") ?? false;
+    const showManual = showTargets && financial && (points?.some((p) => p.manual_target_cpa != null) ?? false);
     const label = (d: string) => { const [, m, day] = d.split("-"); return `${Number(day)}/${Number(m)}`; };
 
     return (
@@ -55,8 +62,9 @@ export const MetaChart: React.FC<{ query: string; title?: string; compare: boole
                             <Legend wrapperStyle={{ fontSize: 12 }} />
                             <Line type="monotone" dataKey="value" name={def.label} stroke={t.palette.primary.main} strokeWidth={2} dot={{ r: 3 }} connectNulls />
                             {compare && <Line type="monotone" dataKey="previous" name="Período anterior" stroke={t.palette.text.secondary} strokeDasharray="4 4" dot={false} connectNulls />}
-                            {showTargets && <Line type="stepAfter" dataKey="target_cpa" name="Target CPA" stroke={t.palette.success.main} strokeDasharray="6 3" dot={false} />}
+                            {showTargets && <Line type="stepAfter" dataKey="target_cpa" name={financial ? "Target CPA financiero" : "Target CPA"} stroke={t.palette.success.main} strokeDasharray="6 3" dot={false} />}
                             {showTargets && <Line type="stepAfter" dataKey="break_even_cpa" name="Break-even" stroke={t.palette.error.main} strokeDasharray="6 3" dot={false} />}
+                            {showManual && <Line type="stepAfter" dataKey="manual_target_cpa" name="Target manual (referencia)" stroke={t.palette.text.disabled} strokeDasharray="2 4" strokeWidth={1} dot={false} />}
                         </LineChart>
                     </ResponsiveContainer>
                 </Box>
