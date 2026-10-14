@@ -23,6 +23,7 @@ import { SuppliersTab } from "../../components/finance/SuppliersTab";
 import { InventoryTab } from "../../components/finance/InventoryTab";
 import { CashTab } from "../../components/finance/CashTab";
 import { AgenciesTab } from "../../components/finance/AgenciesTab";
+import { ReportsTab } from "../../components/finance/ReportsTab";
 import { FinanceOptions, api, errorMessage } from "../../components/finance/finance";
 
 const TABS = [
@@ -32,6 +33,7 @@ const TABS = [
     { key: "profitability", label: "Rentabilidad" },
     { key: "cohorts", label: "Cohortes" },
     { key: "cpa", label: "CPA" },
+    { key: "reports", label: "Reportes" },
     { key: "expenses", label: "Gastos" },
     { key: "recurring", label: "Gastos recurrentes" },
     { key: "inventory", label: "Inventario" },
@@ -66,6 +68,7 @@ export const Finance: React.FC = () => {
                 {tab === "profitability" && <ProfitabilityTab />}
                 {tab === "cpa" && <CpaTab />}
                 {tab === "settings" && <SettingsTab />}
+                {tab === "reports" && <ReportsTab />}
                 {tab === "inventory" && <InventoryTab />}
                 {(tab === "expenses" || tab === "recurring" || tab === "cohorts" || tab === "suppliers" || tab === "agencies" || tab === "cash") && (!options ? <Typography color="text.secondary" sx={{ p: 2 }}>Cargando…</Typography> : (
                     <>

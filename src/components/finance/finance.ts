@@ -322,7 +322,42 @@ export type CashDashboard = {
     from: string; to: string; binance_rate: number | null; available_usd: number; agencies_usd: number; receivable_usd: number; other_receivable_usd: number;
     payable_usd: number; payable_overdue_usd: number; inflow_usd: number; outflow_usd: number;
     inflow_by_kind: { kind: string; label: string; usd: number }[]; outflow_by_kind: { kind: string; label: string; usd: number }[];
-    upcoming: UpcomingPayment[]; upcoming_usd: number; upcoming_days: number;
+    upcoming: UpcomingPayment[]; upcoming_usd: number; upcoming_days: number; inventory_capital_usd: number; recurring_soon_usd: number;
+};
+
+// Reportes (entrega 4; §53 a §58, §80, R18)
+export type ReportType = "daily" | "weekly" | "monthly" | "custom";
+export type ReportChange = { key: string; label: string; before: number | string | null; after: number | string | null };
+export type ReportSummary = Record<string, number | string | null>;
+/** "Beneficio operativo: $1.200,00 → $1.170,00" (§21: qué cambió entre versiones). */
+export const changeText = (c: ReportChange) => {
+    const show = (v: ReportChange["before"]) => (c.key === "status" || c.key.startsWith("orders_") ? String(v ?? "—") : money(Number(v)));
+    return `${c.label}: ${show(c.before)} → ${show(c.after)}`;
+};
+export type FinancialReportRow = {
+    id: number; type: ReportType; type_label: string; title: string; from: string; to: string; trigger: "auto" | "manual"; created_by: string | null;
+    version: number | null; versions: number | null; status: "PROVISIONAL" | "CONSOLIDADO" | null; summary: ReportSummary | null; changes: ReportChange[] | null;
+    reason: string | null; generated_at: string | null; whatsapp_sent_at: string | null; whatsapp_result: { to: string; ok: boolean; error?: string }[] | null;
+};
+export type ReportVersion = {
+    id: number; version: number; status: string; summary: ReportSummary; changes: ReportChange[] | null; reason: string; generated_by: string | null;
+    generated_at: string; whatsapp_sent_at: string | null; whatsapp_result: { to: string; ok: boolean; error?: string }[] | null;
+};
+export type ReportContent = {
+    from: string; to: string; days: number; generated_at: string; status: PnlReport["status"]; company: CompanyLevels;
+    previous: { from: string; to: string; company: CompanyLevels }; warnings: string[]; cash: CashDashboard;
+    transport: { trips: number; total_usd: number; units: number };
+    closures_pending: { agency: string | null; from: string; to: string; status: string }[];
+};
+export type ReportsConfig = {
+    daily: { enabled: boolean; lag_days: number; time: string };
+    weekly: { enabled: boolean; weekday: number; time: string };
+    monthly: { enabled: boolean; day: number; time: string };
+    whatsapp: { enabled: boolean; to: string[]; template: string | null; language: string; types: ReportType[] };
+};
+export type ReportsResponse = {
+    reports: FinancialReportRow[]; page: number; last_page: number; types: Record<ReportType, string>; config: ReportsConfig;
+    next: Record<"daily" | "weekly" | "monthly", { from: string; to: string } | null>;
 };
 
 /** §77: un reembolso cuyo método no dice de qué cuenta salió (efectivo, "Otro"): lo dice el Admin. */

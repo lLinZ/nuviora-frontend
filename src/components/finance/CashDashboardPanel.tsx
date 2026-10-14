@@ -1,7 +1,8 @@
 // src/components/finance/CashDashboardPanel.tsx
 // El tablero de la caja (Módulo 4 de Fran, §46): caja disponible, dinero pendiente en agencias, cuentas por cobrar, cuentas
 // por pagar, entradas y salidas del período y próximos pagos. En el Resumen va compacto, como la tarjeta de LIQUIDEZ,
-// separada de la rentabilidad (§48). Todo en USD aproximado: los Bs se pasan con la tasa de Binance.
+// separada de la rentabilidad (§48). Todo en USD aproximado: los Bs se pasan con la tasa de Binance. También responde
+// "¿cuánto puedo destinar a comprar inventario?" (§110).
 import React, { useEffect, useState } from "react";
 import { Box, Button, Chip, Link, Stack, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Typography } from "@mui/material";
 import { toast } from "react-toastify";
@@ -66,6 +67,12 @@ export const CashDashboardPanel: React.FC<Props> = ({ from, to, compact, onOpenC
                         <Card label="Salidas del período" value={`≈ ${money(data.outflow_usd)}`} hint="sin movimientos entre cuentas" />
                     </Box>
 
+                    <Typography variant="body2">
+                        Disponible para comprar inventario: <b>≈ {money(data.inventory_capital_usd)}</b>
+                        <Typography component="span" variant="caption" color="text.secondary">
+                            {" "}(la caja, menos lo que se debe y {money(data.recurring_soon_usd)} de gastos recurrentes de los próximos {data.upcoming_days} días; el efectivo de las agencias no cuenta hasta que lo entreguen)
+                        </Typography>
+                    </Typography>
                     {compact ? (
                         <Typography variant="body2" color="text.secondary">
                             Próximos {data.upcoming_days} días: {data.upcoming.length === 0 ? "no hay pagos pendientes." : <>
