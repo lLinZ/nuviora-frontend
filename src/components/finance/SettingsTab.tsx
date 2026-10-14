@@ -1,11 +1,12 @@
 // src/components/finance/SettingsTab.tsx
 // Finanzas › Configuración (Módulo 4 de Fran): la ventana madura (§60), las comisiones (§22, R10, R11), el desgaste del
-// vehículo en los viajes de traslado (§15, R8) y el margen objetivo de cada producto (§66, R13: 20 % sobre ventas para
-// empezar). Cada cambio queda en la auditoría (§82).
+// vehículo en los viajes de traslado (§15, R8), el margen objetivo de cada producto (§66, R13: 20 % sobre ventas para
+// empezar) y cómo cobra cada repartidor propio (R11). Cada cambio queda en la auditoría (§82).
 import React, { useCallback, useEffect, useState } from "react";
 import { Button, InputAdornment, MenuItem, Stack, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField, Typography } from "@mui/material";
 import { toast } from "react-toastify";
 import { Panel, PanelHeader } from "../ui/surface/Panel";
+import { DeliverersCostPanel } from "./DeliverersCostPanel";
 import { FinanceSettings, api, errorMessage, money, num } from "./finance";
 
 type Product = FinanceSettings["products"][number];
@@ -84,7 +85,7 @@ export const SettingsTab: React.FC = () => {
                     <Stack direction={{ xs: "column", sm: "row" }} gap={2}>
                         {field("order", "Comisión por pedido entregado", "$")}
                         {field("upsell", "Comisión por unidad de upsell", "$")}
-                        {field("deliverer", "Repartidor propio, por entrega", "$", "Monto fijo (R11)")}
+                        {field("deliverer", "Repartidor propio, por entrega", "$", "El general (R11; cada uno, abajo)")}
                     </Stack>
                     <TextField size="small" label="Motivo del cambio (opcional)" value={form.reason} onChange={(e) => setForm({ ...form, reason: e.target.value })} sx={{ maxWidth: 460 }} />
                     <Typography variant="caption" color="text.secondary">Las comisiones nuevas valen para las órdenes que se entreguen desde ahora; las ya pagadas no cambian.</Typography>
@@ -112,6 +113,7 @@ export const SettingsTab: React.FC = () => {
                     </Table>
                 </TableContainer>
             </Panel>
+            <DeliverersCostPanel />
         </Stack>
     );
 };

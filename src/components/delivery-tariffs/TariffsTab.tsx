@@ -2,10 +2,10 @@
 // Tarifarios de las agencias (Módulo 3, §10 a §13): uno por agencia y ciudad, con rangos continuos (desde < km ≤ hasta)
 // y versiones. Guardar nunca cambia una versión: crea otra, vigente desde la fecha indicada, y las carreras ya
 // calculadas conservan la suya (§13, §41). Con la misma fecha que la última, la corrige (un error al cargarla) y sus
-// carreras se recalculan. Solo administración (§12, §14).
+// carreras se recalculan. Solo administración (§12, §14). Desde el Módulo 4 (R11), también los de los repartidores propios.
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
-    Alert, Box, Button, Collapse, IconButton, MenuItem, Stack, Table, TableBody, TableCell, TableHead, TableRow, TextField, Typography,
+    Alert, Box, Button, Collapse, IconButton, ListSubheader, MenuItem, Stack, Table, TableBody, TableCell, TableHead, TableRow, TextField, Typography,
 } from "@mui/material";
 import { AddRounded, DeleteOutlineRounded, ExpandLessRounded, ExpandMoreRounded, ReceiptLongRounded } from "@mui/icons-material";
 import { toast } from "react-toastify";
@@ -25,7 +25,9 @@ const RangesTable: React.FC<{ ranges: TariffRange[] }> = ({ ranges }) => (
     </Table>
 );
 
-const TariffForm: React.FC<{ agencies: AgencyWithWarehouses[]; cities: Option[]; groups: TariffGroup[]; onSaved: () => void }> = ({ agencies, cities, groups, onSaved }) => {
+const TariffForm: React.FC<{ agencies: AgencyWithWarehouses[]; deliverers: AgencyWithWarehouses[]; cities: Option[]; groups: TariffGroup[]; onSaved: () => void }> = ({
+    agencies, deliverers, cities, groups, onSaved,
+}) => {
     const [agencyId, setAgencyId] = useState<number | "">("");
     const [cityId, setCityId] = useState<number | "">("");
     const [validFrom, setValidFrom] = useState(todayCaracas());
@@ -33,7 +35,7 @@ const TariffForm: React.FC<{ agencies: AgencyWithWarehouses[]; cities: Option[];
     const [rows, setRows] = useState<FormRange[]>([{ max: "", price: "", perKm: "" }]);
     const [saving, setSaving] = useState(false);
 
-    const agency = agencies.find((a) => a.id === agencyId);
+    const agency = [...agencies, ...deliverers].find((a) => a.id === agencyId);
     const cityOptions = agency?.cities.length ? agency.cities : cities;
     const current = groups.find((g) => g.agency_id === agencyId && g.city_id === cityId);
     // La misma fecha que la última versión: la corrige en vez de crear otra (un error al cargarla)
@@ -73,8 +75,10 @@ const TariffForm: React.FC<{ agencies: AgencyWithWarehouses[]; cities: Option[];
             <PanelHeader title="Nuevo tarifario o nueva versión"
                 subtitle="La versión anterior queda cerrada el día antes. Las carreras ya calculadas no cambian. Para corregir un error, guarda la versión con la misma fecha de la equivocada." />
             <Stack direction={{ xs: "column", sm: "row" }} gap={1} sx={{ mb: 1.5 }}>
-                <TextField select size="small" label="Agencia" value={agencyId} onChange={(e) => { setAgencyId(Number(e.target.value)); setCityId(""); }} sx={{ minWidth: 180 }}>
+                <TextField select size="small" label="Agencia o repartidor" value={agencyId} onChange={(e) => { setAgencyId(Number(e.target.value)); setCityId(""); }} sx={{ minWidth: 200 }}>
                     {agencies.map((a) => <MenuItem key={a.id} value={a.id}>{a.name}</MenuItem>)}
+                    {deliverers.length > 0 && <ListSubheader>Repartidores propios</ListSubheader>}
+                    {deliverers.map((a) => <MenuItem key={a.id} value={a.id}>{a.name}</MenuItem>)}
                 </TextField>
                 <TextField select size="small" label="Ciudad" value={cityId} onChange={(e) => setCityId(Number(e.target.value))} sx={{ minWidth: 170 }} disabled={!agency}>
                     {cityOptions.map((c) => <MenuItem key={c.id} value={c.id}>{c.name}</MenuItem>)}
@@ -159,10 +163,10 @@ const TariffGroupPanel: React.FC<{ g: TariffGroup }> = ({ g }) => {
 
 export const TariffsTab: React.FC = () => {
     const [groups, setGroups] = useState<TariffGroup[] | null>(null);
-    const [agencies, setAgencies] = useState<{ agencies: AgencyWithWarehouses[]; cities: Option[] } | null>(null);
+    const [agencies, setAgencies] = useState<{ agencies: AgencyWithWarehouses[]; cities: Option[]; deliverers?: AgencyWithWarehouses[] } | null>(null);
     const load = useCallback(() => {
         api<{ tariffs: TariffGroup[] }>("/delivery/tariffs").then((r) => setGroups(r.tariffs)).catch((e) => toast.error(e.message));
-        api<{ agencies: AgencyWithWarehouses[]; cities: Option[] }>("/delivery/warehouses").then(setAgencies).catch((e) => toast.error(e.message));
+        api<{ agencies: AgencyWithWarehouses[]; cities: Option[]; deliverers?: AgencyWithWarehouses[] }>("/delivery/warehouses").then(setAgencies).catch((e) => toast.error(e.message));
     }, []);
     useEffect(() => { load(); }, [load]);
 
@@ -175,7 +179,7 @@ export const TariffsTab: React.FC = () => {
                 Lo que cada agencia cobra por carrera según la distancia por carretera desde su almacén. Las agencias no ven estos tarifarios.
             </Typography>
             {without.length > 0 && <Alert severity="warning">Sin tarifario: {without.map((a) => a.name).join(", ")}. Sus carreras guardan la distancia y se cotizan cuando se cargue.</Alert>}
-            <TariffForm agencies={agencies.agencies} cities={agencies.cities} groups={groups} onSaved={load} />
+            <TariffForm agencies={agencies.agencies} deliverers={agencies.deliverers ?? []} cities={agencies.cities} groups={groups} onSaved={load} />
             {groups.map((g) => <TariffGroupPanel key={`${g.agency_id}-${g.city_id}`} g={g} />)}
         </Stack>
     );
