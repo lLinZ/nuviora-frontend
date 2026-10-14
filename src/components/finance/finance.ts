@@ -124,8 +124,8 @@ export type GroupBy = "product" | "city" | "product_city";
 
 export type OrderRow = {
     order_id: number; name: string; status: string | null; kind: string; outcome: string; created_date: string | null; delivered_date: string | null;
-    cost_date: string | null; revenue: number; cogs: number; delivery: number; commissions: number; result: number;
-    cogs_missing_lines: number; delivery_missing_trips: number; delivery_estimated: boolean;
+    cost_date: string | null; revenue: number; cogs: number; logistics: number; cogs_source: "lots" | "catalog" | "mixed" | null;
+    delivery: number; commissions: number; result: number; cogs_missing_lines: number; delivery_missing_trips: number; delivery_estimated: boolean;
 };
 
 export const pct = (v: number | null | undefined) => (v === null || v === undefined ? "—" : `${new Intl.NumberFormat("es-VE", { maximumFractionDigits: 1 }).format(v)} %`);
@@ -205,6 +205,38 @@ export type SupplierDetail = { supplier: { id: number; name: string; is_active: 
 export const inCurrency = (amount: number, currency: Currency) => {
     const n = new Intl.NumberFormat("es-VE", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(amount);
     return currency === "VES" ? `Bs ${n}` : currency === "USDT" ? `${n} USDT` : `$${n}`;
+};
+
+// ---- Finanzas › Inventario (entrega 2e; §9 a §17, R3, R5, R8) ----
+export type LotPlace = { warehouse: string; state: "available" | "review"; units: number };
+
+export type InventoryLotRow = {
+    id: number; product_id: number; product: string; variant: string | null; kind: string; kind_label: string; supplier: string | null;
+    purchase_id: number | null; received_at: string; initial: number; remaining: number; unit_cost: number | null; cost_source: string | null;
+    landed: number; notes: string | null; origin: string | null; user: string | null; where: LotPlace[];
+};
+
+export type InventoryResponse = {
+    from: string; to: string; initialized: boolean; started_at: string | null;
+    totals: { units: number; value: number; logistics: number; without_cost_units: number; review_units: number; review_value: number };
+    products: {
+        product_id: number; product: string; units: number; value: number; logistics: number; avg_unit_cost: number | null;
+        without_cost_units: number; review_units: number; review_value: number;
+    }[];
+    warehouses: { warehouse_id: number; warehouse: string; units: number; value: number }[];
+    pending: InventoryLotRow[];
+    lots: InventoryLotRow[];
+    review: { product_id: number; product: string; warehouse: string; units: number; value: number; from_exchange: number }[];
+    adjustments: {
+        up_units: number; up_value: number; down_units: number; down_value: number;
+        rows: { movement_id: number; date: string; product: string; warehouse: string; units: number; value: number; notes: string | null; user: string | null }[];
+    };
+    trips: { count: number; units: number; total_usd: number };
+    check: { differences: number; pending: number };
+};
+
+export const COST_SOURCE: Record<string, string> = {
+    purchase: "de la compra", catalog: "de catálogo", manual: "puesto a mano", last_lot: "del lote anterior", recovered: "pieza de un cambio",
 };
 
 // ---- Viajes de traslado (entrega 2c; §13, §14, §15, R8) ----

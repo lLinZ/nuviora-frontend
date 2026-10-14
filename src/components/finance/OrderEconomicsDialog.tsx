@@ -8,8 +8,11 @@ import { api, errorMessage, money } from "./finance";
 
 type Detail = {
     order: { id: number; name: string; status: string | null; total: number; refunded: number; created_at: string | null; delivered_at: string | null; is_exchange: boolean; is_return: boolean };
-    financials: { outcome: string; revenue: number; revenue_refunded: number; cogs_main: number; cogs_upsell: number; delivery: number; commission_seller: number;
+    financials: { outcome: string; revenue: number; revenue_refunded: number; cogs_main: number; cogs_upsell: number; logistics: number;
+        cogs_source: "lots" | "catalog" | "mixed" | null; cogs_is_provisional: boolean; delivery: number; commission_seller: number;
         commission_upsell: number; commission_leader: number; total_cost: number; result: number; computed_at: string | null } | null;
+    lots: { lot_id: number | null; kind: string | null; received_at: string | null; supplier: string | null; product: string | null; variant: string | null;
+        warehouse: string | null; units: number; unit_cost: number | null; landed: number }[];
     lines: { name: string; size: string | null; quantity: number; price: number; subtotal: number; is_upsell: boolean; unit_cost: number | null; cogs: number | null }[];
     trips: { date: string; agency: string | null; type: string; result: string | null; cost: number; source: string; void_reason: string | null }[];
     legacy_agency: { date: string; agency: string | null; cost: number }[];
@@ -18,6 +21,8 @@ type Detail = {
 };
 
 const ROLE: Record<string, string> = { vendedor: "Vendedora", upsell: "Upsell", repartidor: "Repartidor propio" };
+const LOT_KIND: Record<string, string> = { initial: "lote inicial", purchase: "compra", pending_cost: "por completar", recovered: "de un cambio", adjustment: "ajuste" };
+const SOURCE: Record<string, string> = { lots: "de sus lotes", catalog: "de catálogo (provisional)", mixed: "de sus lotes y de catálogo (provisional)" };
 const OUTCOME: Record<string, string> = { delivered: "Entregada", not_delivered: "No entregada", open: "Abierta" };
 
 export const OrderEconomicsDialog: React.FC<{ orderId: number | null; onClose: () => void }> = ({ orderId, onClose }) => {
@@ -52,9 +57,15 @@ export const OrderEconomicsDialog: React.FC<{ orderId: number | null; onClose: (
                         )}
                         <div>
                             <Typography variant="subtitle2">Líneas y costo del producto</Typography>
+                            {f && f.outcome === "delivered" && (
+                                <Typography variant="body2" sx={{ mb: 0.5 }}>
+                                    Costo del producto: <b>{money(f.cogs_main + f.cogs_upsell)}</b>, {SOURCE[f.cogs_source ?? "catalog"]}
+                                    {f.logistics > 0 ? <> · transporte: <b>{money(f.logistics)}</b></> : null}
+                                </Typography>
+                            )}
                             <Table size="small">
                                 <TableHead><TableRow><TableCell>Producto</TableCell><TableCell align="right">Cant.</TableCell><TableCell align="right">Precio</TableCell>
-                                    <TableCell align="right">Costo unit.</TableCell><TableCell align="right">COGS</TableCell></TableRow></TableHead>
+                                    <TableCell align="right">Costo de catálogo</TableCell><TableCell align="right">COGS de catálogo</TableCell></TableRow></TableHead>
                                 <TableBody>
                                     {d.lines.map((l, i) => (
                                         <TableRow key={i}>
@@ -68,6 +79,29 @@ export const OrderEconomicsDialog: React.FC<{ orderId: number | null; onClose: (
                             </Table>
                             <Typography variant="caption" color="text.secondary">El ingreso es el total de la orden ({money(d.order.total)}), que puede tener descuentos o recargos frente a las líneas. El costo solo cuenta si se entregó.</Typography>
                         </div>
+                        {d.lots.length > 0 && (
+                            <div>
+                                <Typography variant="subtitle2">De qué lote salió</Typography>
+                                <Table size="small">
+                                    <TableHead><TableRow><TableCell>Lote</TableCell><TableCell>Almacén</TableCell><TableCell align="right">Unidades</TableCell>
+                                        <TableCell align="right">Costo unit.</TableCell><TableCell align="right">Transporte unit.</TableCell></TableRow></TableHead>
+                                    <TableBody>
+                                        {d.lots.map((l, i) => (
+                                            <TableRow key={i}>
+                                                <TableCell>
+                                                    {l.lot_id === null ? <Typography variant="caption" color="warning.main">sin lote (salió sin stock)</Typography>
+                                                        : <>{l.product}{l.variant ? ` (${l.variant})` : ""} · {LOT_KIND[l.kind ?? ""] ?? l.kind}{l.supplier ? ` de ${l.supplier}` : ""}{l.received_at ? ` del ${l.received_at.split("-").reverse().join("/")}` : ""}</>}
+                                                </TableCell>
+                                                <TableCell>{l.warehouse}</TableCell>
+                                                <TableCell align="right">{l.units}</TableCell>
+                                                <TableCell align="right">{l.unit_cost === null ? <Typography variant="caption" color="warning.main">sin costo</Typography> : money(l.unit_cost)}</TableCell>
+                                                <TableCell align="right">{l.landed > 0 ? money(l.landed) : "—"}</TableCell>
+                                            </TableRow>
+                                        ))}
+                                    </TableBody>
+                                </Table>
+                            </div>
+                        )}
                         <div>
                             <Typography variant="subtitle2">Delivery</Typography>
                             {d.trips.length === 0 && d.legacy_agency.length === 0 && <Typography variant="body2" color="text.secondary">Sin carreras.</Typography>}

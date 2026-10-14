@@ -13,9 +13,10 @@ import { Panel, PanelHeader } from "../ui/surface/Panel";
 import { AuditHistoryDialog } from "./AuditHistoryDialog";
 import { PayablesTable } from "./PayablesTable";
 import { PayDialog } from "./PayDialog";
+import { PurchaseCorrectDialog } from "./PurchaseCorrectDialog";
 import { SupplierDialog } from "./SupplierDialog";
 import {
-    FinanceOptions, Payable, PayablePayment, PayableStatus, SupplierDetail, SupplierRow, SuppliersResponse, api, day, download, errorMessage,
+    FinanceOptions, Payable, PayablePayment, PayableStatus, Purchase, SupplierDetail, SupplierRow, SuppliersResponse, api, day, download, errorMessage,
     inCurrency, money, original,
 } from "./finance";
 
@@ -73,6 +74,7 @@ export const SuppliersTab: React.FC<{ options: FinanceOptions }> = ({ options })
     const [voiding, setVoiding] = useState<{ payment: PayablePayment; payable: Payable } | null>(null);
     const [history, setHistory] = useState<{ type: "supplier" | "account_payable" | "inventory_purchase"; id: number; title: string } | null>(null);
     const [menu, setMenu] = useState<{ anchor: HTMLElement; supplier: SupplierRow } | null>(null);
+    const [correcting, setCorrecting] = useState<Purchase | null>(null);
 
     const load = useCallback(() => {
         api<SuppliersResponse>("/finance/suppliers").then(setData).catch((e) => toast.error(errorMessage(e)));
@@ -203,6 +205,7 @@ export const SuppliersTab: React.FC<{ options: FinanceOptions }> = ({ options })
                                                         <TableCell>{p.payment_type_label}</TableCell>
                                                         <TableCell align="right" sx={{ whiteSpace: "nowrap" }}>
                                                             {p.has_receipt && <Button size="small" onClick={() => download(`/finance/purchases/${p.id}/receipt`, `compra-${p.id}`)}>Comprobante</Button>}
+                                                            <Button size="small" onClick={() => setCorrecting(p)}>Corregir costo</Button>
                                                             <Button size="small" color="inherit" onClick={() => setHistory({ type: "inventory_purchase", id: p.id, title: `Compra de ${p.product}` })}>Historial</Button>
                                                         </TableCell>
                                                     </TableRow>
@@ -222,6 +225,7 @@ export const SuppliersTab: React.FC<{ options: FinanceOptions }> = ({ options })
                 onSaved={() => { setEditing(null); load(); }} />
             <PayDialog payable={paying} options={options} onClose={() => setPaying(null)} onDone={() => { setPaying(null); refresh(); }} />
             <VoidPaymentDialog target={voiding} onClose={() => setVoiding(null)} onDone={() => { setVoiding(null); refresh(); }} />
+            <PurchaseCorrectDialog purchase={correcting} options={options} onClose={() => setCorrecting(null)} onSaved={() => { setCorrecting(null); refresh(); }} />
             <AuditHistoryDialog subject={history} onClose={() => setHistory(null)} />
         </Stack>
     );

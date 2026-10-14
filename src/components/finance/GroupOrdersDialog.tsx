@@ -53,7 +53,9 @@ export const GroupOrdersDialog: React.FC<Props> = ({ group, by, range, onClose }
                                             <TableCell>{o.outcome === "delivered" ? `Entregada ${day(o.delivered_date)}` : o.status}</TableCell>
                                             <TableCell>{day(o.created_date)}</TableCell>
                                             <TableCell align="right">{money(o.revenue)}</TableCell>
-                                            <TableCell align="right">{money(o.cogs)}{o.cogs_missing_lines > 0 && <Typography variant="caption" color="warning.main" display="block">sin costo</Typography>}</TableCell>
+                                            <TableCell align="right">{money(o.cogs)}{o.cogs_missing_lines > 0 && <Typography variant="caption" color="warning.main" display="block">sin costo</Typography>}
+                                                {o.outcome === "delivered" && o.cogs_source !== "lots" && o.cogs_missing_lines === 0 && <Typography variant="caption" color="text.secondary" display="block">de catálogo</Typography>}
+                                                {o.logistics > 0 && <Typography variant="caption" color="text.secondary" display="block">+ {money(o.logistics)} transporte</Typography>}</TableCell>
                                             <TableCell align="right">{money(o.delivery)}{o.delivery_estimated && <Typography variant="caption" color="text.secondary" display="block">estimado</Typography>}
                                                 {o.delivery_missing_trips > 0 && <Typography variant="caption" color="warning.main" display="block">sin calcular</Typography>}</TableCell>
                                             <TableCell align="right">{money(o.commissions)}</TableCell>

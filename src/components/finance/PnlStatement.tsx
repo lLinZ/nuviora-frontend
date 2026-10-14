@@ -22,7 +22,7 @@ export const PnlStatement: React.FC<{ c: CompanyLevels }> = ({ c }) => (
         <div>
             <Line label="Ingresos" value={c.revenue} strong note={c.revenue_refunded > 0 ? `${money(c.revenue_main + c.revenue_upsell)} entregado, ${money(c.revenue_refunded)} devuelto` : undefined} />
             <Line label="COGS (costo del producto)" value={c.cogs} minus />
-            <Line label="Logística atribuible" value={c.logistics} minus note="Transporte de inventario: llega con los lotes (entrega 2)" />
+            <Line label="Logística atribuible" value={c.logistics} minus note="El transporte de inventario de lo que se vendió (viajes de traslado)" />
             <Line label="Delivery" value={c.delivery} minus note={c.delivery_legacy > 0 ? `${money(c.delivery_legacy)} de antes del registro de carreras` : undefined} />
             <Line label="Comisiones vendedoras" value={c.commission_sellers} minus />
             <Line label="Comisión líderes" value={c.commission_leaders} minus />
