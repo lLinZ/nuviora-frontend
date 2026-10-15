@@ -14,6 +14,7 @@ import React, { FC, useState } from "react";
 import { darken } from "@mui/material/styles";
 import { toast } from "react-toastify";
 import { request } from "../../common/request";
+import { sendOrderStatus } from "../../common/orderStatus";
 import { IResponse } from "../../interfaces/response-type";
 import { useOrdersStore } from "../../store/orders/OrdersStore";
 import { useUserStore } from "../../store/user/UserStore";
@@ -152,11 +153,9 @@ export const OrderItem: FC<OrderItemProps> = ({ order }) => {
         }
 
         try {
-            const { status: ok, response }: IResponse = await request(
-                `/orders/${order.id}/status`,
-                "PUT",
-                body
-            );
+            const sent: IResponse | null = await sendOrderStatus(order.id, body);
+            if (!sent) return; // ya hay un cambio de esta orden en camino (doble toque)
+            const { status: ok, response } = sent;
             if (ok === 200) {
                 const data = await response.json();
                 updateOrderInColumns(data.order);
@@ -186,11 +185,9 @@ export const OrderItem: FC<OrderItemProps> = ({ order }) => {
         body.append("novedad_description", description);
 
         try {
-            const { status: ok, response }: IResponse = await request(
-                `/orders/${order.id}/status`,
-                "PUT",
-                body
-            );
+            const sent: IResponse | null = await sendOrderStatus(order.id, body);
+            if (!sent) return;
+            const { status: ok, response } = sent;
             if (ok) {
                 const data = await response.json();
                 updateOrderInColumns(data.order);

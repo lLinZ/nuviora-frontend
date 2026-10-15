@@ -1,6 +1,7 @@
 import { useState, useEffect, ChangeEvent } from "react";
 import { toast } from "react-toastify";
 import { request } from "../common/request";
+import { sendOrderStatus } from "../common/orderStatus";
 import { IResponse } from "../interfaces/response-type";
 import { useOrdersStore } from "../store/orders/OrdersStore";
 import { useUserStore } from "../store/user/UserStore";
@@ -266,11 +267,9 @@ export const useOrderDialogLogic = (
         }
 
         try {
-            const { status: ok, response }: IResponse = await request(
-                `/orders/${selectedOrder.id}/status`,
-                "PUT",
-                body
-            );
+            const sent: IResponse | null = await sendOrderStatus(selectedOrder.id, body);
+            if (!sent) return; // ya hay un cambio de esta orden en camino (doble toque)
+            const { status: ok, response } = sent;
             if (ok === 200) {
                 const data = await response.json();
                 updateOrderInColumns(data.order);

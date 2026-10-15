@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { request } from "../../common/request";
+import { sendOrderStatus } from "../../common/orderStatus";
 import { toast } from "react-toastify";
 
 // Estructura de cada columna
@@ -275,7 +275,9 @@ export const useOrdersStore = create<OrdersState>((set, get) => ({
         }
 
         try {
-            const { ok, response } = await request(`/orders/${orderId}/status`, "PUT", body);
+            const sent = await sendOrderStatus(orderId, body);
+            if (!sent) return false; // ya hay un cambio de esta orden en camino (doble toque)
+            const { ok, response } = sent;
             const data = await response.json();
             if (ok) {
                 get().updateOrderInColumns(data.order);
@@ -298,7 +300,9 @@ export const useOrdersStore = create<OrdersState>((set, get) => ({
         body.append("novedad_description", description);
 
         try {
-            const { ok, response } = await request(`/orders/${orderId}/status`, "PUT", body);
+            const sent = await sendOrderStatus(orderId, body);
+            if (!sent) return false;
+            const { ok, response } = sent;
             const data = await response.json();
             if (ok) {
                 get().setSelectedOrder(data.order);
