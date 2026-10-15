@@ -13,7 +13,8 @@ export interface DeliveryInfo {
 
 export const isUndelivered = (m: DeliveryInfo) => m.status === "failed";
 
-export const undeliveredText = (m: DeliveryInfo) => `WhatsApp no lo entregó: ${m.error_reason || "Meta no dio el motivo."}`;
+// Los que fallaron antes del 15/10/2026 no tienen el motivo guardado
+export const undeliveredText = (m: DeliveryInfo) => (m.error_reason ? `WhatsApp no lo entregó: ${m.error_reason}` : "WhatsApp no lo entregó.");
 
 // Rojo que se lee sobre la burbuja verde clara y sobre la oscura
 export const failureColor = (dark: boolean) => (dark ? "#fecaca" : "#b91c1c");
