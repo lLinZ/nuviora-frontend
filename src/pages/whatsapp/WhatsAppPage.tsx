@@ -9,6 +9,7 @@ import { ContextPanel } from "./components/ContextPanel";
 import { useSocketStore } from "../../store/sockets/SocketStore";
 import { OrderDialog } from "../../components/orders/OrderDialog";
 import { useUserStore } from "../../store/user/UserStore";
+import { DeliveryInfo } from "../../common/whatsappDelivery";
 
 // ─── Utilidades de notificacion ───────────────────────────────────────────────
 
@@ -136,6 +137,7 @@ export const WhatsAppPage = () => {
     const [agents, setAgents] = useState<any[]>([]);
 
     const [incomingMessage, setIncomingMessage] = useState<any>(null);
+    const [deliveryUpdate, setDeliveryUpdate] = useState<DeliveryInfo | null>(null);
 
     const [orderDialogOpen, setOrderDialogOpen] = useState(false);
     const [selectedOrderId, setSelectedOrderId] = useState<number | undefined>(undefined);
@@ -360,6 +362,11 @@ export const WhatsAppPage = () => {
             }
         });
 
+        // Meta avisó que un mensaje se entregó, se leyó o no llegó: solo importa en el chat abierto
+        channel.listen('WhatsappMessageStatus', (data: DeliveryInfo) => {
+            if (data?.client_id && selectedContactRef.current?.id == data.client_id) setDeliveryUpdate(data);
+        });
+
         // Chat marcado como leido
         channel.listen('WhatsappChatRead', (data: any) => {
             const { client_id } = data;
@@ -374,6 +381,7 @@ export const WhatsAppPage = () => {
 
         return () => {
             channel.stopListening('WhatsappMessageReceived');
+            channel.stopListening('WhatsappMessageStatus');
             channel.stopListening('WhatsappChatRead');
         };
     // searchTerm NO va en deps — causaría re-suscripción con cada letra que escribe la vendedora
@@ -462,6 +470,7 @@ export const WhatsAppPage = () => {
                             onBack={() => setSelectedContact(null)}
                             onOpenContext={() => setShowMobileContext(true)}
                             incomingMessage={incomingMessage}
+                            deliveryUpdate={deliveryUpdate}
                         />
 
                         <ContextPanel 

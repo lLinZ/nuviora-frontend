@@ -6,6 +6,8 @@ import EmojiEmotionsRoundedIcon from "@mui/icons-material/EmojiEmotionsRounded";
 import { ContactData } from "../WhatsAppPage";
 import { request } from "../../../common/request";
 import { WHATSAPP_ACCEPT, whatsappFileTooBig, readUploadError } from "../../../common/whatsappMedia";
+import { DeliveryFailure, DeliveryTicks } from "../../../components/whatsapp/MessageDelivery";
+import { DeliveryInfo, undeliveredOutline, withDelivery } from "../../../common/whatsappDelivery";
 import dayjs from "dayjs";
 import { toast } from "react-toastify";
 
@@ -15,6 +17,7 @@ interface ChatAreaProps {
     onBack?: () => void;
     onOpenContext?: () => void;
     incomingMessage?: any; // Passed from WhatsAppPage's single WebSocket hub
+    deliveryUpdate?: DeliveryInfo | null; // Meta avisó que un mensaje se entregó, se leyó o no llegó
 }
 
 interface Message {
@@ -22,6 +25,8 @@ interface Message {
     body: string;
     is_from_client: boolean;
     status: string;
+    error_code?: number | null;
+    error_reason?: string | null;
     media: any | null;
     sent_at: string;
 }
@@ -53,7 +58,7 @@ const extractVars = (textOrTpl: string | ITemplate): string[] => {
     return nums;
 };
 
-export const ChatArea: FC<ChatAreaProps> = ({ selectedContact, onRefreshContacts, onBack, onOpenContext, incomingMessage }) => {
+export const ChatArea: FC<ChatAreaProps> = ({ selectedContact, onRefreshContacts, onBack, onOpenContext, incomingMessage, deliveryUpdate }) => {
     const [messages, setMessages] = useState<Message[]>([]);
     const [loading, setLoading] = useState(false);
     const [inputText, setInputText] = useState("");
@@ -145,6 +150,11 @@ export const ChatArea: FC<ChatAreaProps> = ({ selectedContact, onRefreshContacts
         });
         markAsRead();
     }, [incomingMessage]);
+
+    // Entregado, leído o no entregado, sin recargar el chat
+    useEffect(() => {
+        if (deliveryUpdate) setMessages(prev => withDelivery(prev, deliveryUpdate));
+    }, [deliveryUpdate]);
 
     const renderMedia = (media: any) => {
         if (!media) return null;
@@ -462,7 +472,7 @@ export const ChatArea: FC<ChatAreaProps> = ({ selectedContact, onRefreshContacts
                 ) : (
                     messages.map((msg) => (
                         <Box key={msg.id} sx={{ alignSelf: msg.is_from_client ? 'flex-start' : 'flex-end', maxWidth: '85%', minWidth: 100 }}>
-                            <Paper elevation={0} sx={{ p: 1.5, pt: 1, bgcolor: msg.is_from_client ? 'white' : '#d9fdd3', borderRadius: 3, borderTopLeftRadius: msg.is_from_client ? 0 : 12, borderTopRightRadius: msg.is_from_client ? 12 : 0 }}>
+                            <Paper elevation={0} sx={{ p: 1.5, pt: 1, bgcolor: msg.is_from_client ? 'white' : '#d9fdd3', borderRadius: 3, borderTopLeftRadius: msg.is_from_client ? 0 : 12, borderTopRightRadius: msg.is_from_client ? 12 : 0, boxShadow: msg.is_from_client ? undefined : undeliveredOutline(msg) }}>
                                 {msg.media && (
                                     <Box sx={{ mb: 1, borderRadius: 2, overflow: 'hidden' }}>
                                         {renderMedia(msg.media)}
@@ -475,13 +485,10 @@ export const ChatArea: FC<ChatAreaProps> = ({ selectedContact, onRefreshContacts
                                         ) : part
                                     ))}
                                 </Typography>
-                                <Typography variant="caption" sx={{ display: 'flex', justifyContent: 'flex-end', opacity: 0.6, mt: 0.5, fontSize: '0.65rem', color: '#000' }}>
-                                    {dayjs(msg.sent_at).format('HH:mm')} 
-                                    {!msg.is_from_client && (
-                                        <Box component="span" sx={{ ml: 0.5 }}>
-                                            {msg.status === 'read' ? '✓✓' : (msg.status === 'sent' || msg.status === 'delivered' ? '✓' : '⌚')}
-                                        </Box>
-                                    )}
+                                {!msg.is_from_client && <DeliveryFailure message={msg} />}
+                                <Typography variant="caption" sx={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', opacity: 0.6, mt: 0.5, fontSize: '0.65rem', color: '#000' }}>
+                                    {dayjs(msg.sent_at).format('HH:mm')}
+                                    {!msg.is_from_client && <DeliveryTicks message={msg} />}
                                 </Typography>
                             </Paper>
                         </Box>

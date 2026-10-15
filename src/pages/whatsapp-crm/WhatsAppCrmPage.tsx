@@ -10,6 +10,7 @@ import { LeaderViewSelect } from "../my-group/LeaderViewSelect";
 import { appendLeaderView, LeaderView, MY_ORDERS } from "../my-group/leaderView";
 import { CrmChatArea } from "./components/CrmChatArea";
 import { CrmConversation } from "./components/CrmContactCard";
+import { DeliveryInfo } from "../../common/whatsappDelivery";
 
 // ── helpers de notificación ──────────────────────────────────────────────────
 function playPing() {
@@ -68,6 +69,7 @@ export const WhatsAppCrmPage = () => {
     const [isOffline, setIsOffline] = useState(false);
     const [bucketCounts, setBucketCounts] = useState<Record<string, number>>({});
     const [incomingMessage, setIncomingMessage] = useState<any>(null);
+    const [deliveryUpdate, setDeliveryUpdate] = useState<DeliveryInfo | null>(null);
     const [agents, setAgents] = useState<any[]>([]);
     const [sortBy, setSortBy] = useState<"latency" | "unread">("latency");
 
@@ -284,6 +286,11 @@ export const WhatsAppCrmPage = () => {
             if (isActiveChat) setIncomingMessage(message);
         });
 
+        // Meta avisó que un mensaje se entregó, se leyó o no llegó: solo importa en el chat abierto
+        channel.listen("WhatsappMessageStatus", (data: DeliveryInfo) => {
+            if (data?.client_id && selectedRef.current?.client_id == data.client_id) setDeliveryUpdate(data);
+        });
+
         channel.listen("WhatsappChatRead", (data: any) => {
             const { client_id, conversation_bucket: newBucket } = data;
             if (!client_id) return;
@@ -325,6 +332,7 @@ export const WhatsAppCrmPage = () => {
 
         return () => {
             channel.stopListening("WhatsappMessageReceived");
+            channel.stopListening("WhatsappMessageStatus");
             channel.stopListening("WhatsappChatRead");
         };
         // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -398,6 +406,7 @@ export const WhatsAppCrmPage = () => {
                                 <CrmChatArea
                                     selected={selected}
                                     incomingMessage={incomingMessage}
+                                    deliveryUpdate={deliveryUpdate}
                                     onRefresh={() => fetchConversations(false)}
                                     onBucketUpdate={handleBucketUpdate}
                                     onBack={() => setSelected(null)}

@@ -8,6 +8,8 @@ import { useSocketStore } from '../../store/sockets/SocketStore';
 import { useUserStore } from '../../store/user/UserStore';
 import { Avatar, Badge, Dialog, DialogTitle, DialogContent, List, ListItem, ListItemText, ListItemButton, Divider } from '@mui/material';
 import { useOrdersStore } from '../../store/orders/OrdersStore';
+import { DeliveryFailure, DeliveryTicks } from '../whatsapp/MessageDelivery';
+import { DeliveryInfo, undeliveredOutline, withDelivery } from '../../common/whatsappDelivery';
 
 // ─── 24-hour window helpers ────────────────────────────────────────────────────
 const WINDOW_MS = 24 * 60 * 60 * 1000; // 86 400 000 ms
@@ -249,15 +251,20 @@ export const OrderWhatsApp = ({ orderId }: { orderId: number }) => {
                 }
             };
 
+            // Meta avisó que un mensaje se entregó, se leyó o no llegó
+            const handleDelivery = (e: DeliveryInfo) => setMessages(prev => withDelivery(Array.isArray(prev) ? prev : [], e));
+
             // Mandatory Action 3: DOUBLE BIND
             channel.listen('.App\\Events\\WhatsappMessageReceived', handleNewMessage);
             channel.listen('WhatsappMessageReceived', handleNewMessage);
             channel.listen('.WhatsappMessageReceived', handleNewMessage);
+            channel.listen('WhatsappMessageStatus', handleDelivery);
 
-            return () => { 
-                channel.stopListening('.App\\Events\\WhatsappMessageReceived', handleNewMessage); 
+            return () => {
+                channel.stopListening('.App\\Events\\WhatsappMessageReceived', handleNewMessage);
                 channel.stopListening('WhatsappMessageReceived', handleNewMessage);
                 channel.stopListening('.WhatsappMessageReceived', handleNewMessage);
+                channel.stopListening('WhatsappMessageStatus', handleDelivery);
                 
                 // Mandatory Action 4: Ensure the cleanup function explicitly disconnects
                 echo.leave(channelName);
@@ -507,7 +514,7 @@ export const OrderWhatsApp = ({ orderId }: { orderId: number }) => {
                                     p: '6px 10px 8px 10px', borderRadius: '8px',
                                     borderTopRightRadius: (isSentByMe  && showTail) ? 0 : '8px',
                                     borderTopLeftRadius:  (!isSentByMe && showTail) ? 0 : '8px',
-                                    boxShadow: '0 1px 0.5px rgba(0,0,0,0.13)', position: 'relative', minWidth: '60px',
+                                    boxShadow: (isSentByMe && undeliveredOutline(m)) || '0 1px 0.5px rgba(0,0,0,0.13)', position: 'relative', minWidth: '60px',
                                     '&::before': (isSentByMe && showTail) ? {
                                         content: '""', position: 'absolute', top: 0, right: -8,
                                         width: 0, height: 0, borderTop: '0px solid transparent',
@@ -626,11 +633,16 @@ export const OrderWhatsApp = ({ orderId }: { orderId: number }) => {
                                             </>
                                         );
                                     })()}
+                                    {isSentByMe && <DeliveryFailure message={m} dark />}
                                     <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 0.5, mt: 0.2 }}>
                                         <Typography variant="caption" sx={{ fontSize: '0.65rem', opacity: 0.6, fontWeight: 500 }}>
                                             {new Date(m.created_at || m.sent_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                         </Typography>
-                                        {isSentByMe && <Typography variant="caption" sx={{ color: '#53bdeb', fontSize: '0.8rem', mt: -0.2 }}>✓✓</Typography>}
+                                        {isSentByMe && (
+                                            <Typography variant="caption" sx={{ display: 'flex', alignItems: 'center', color: 'rgba(255,255,255,0.6)', fontSize: '0.8rem', mt: -0.2 }}>
+                                                <DeliveryTicks message={m} dark readColor="#53bdeb" />
+                                            </Typography>
+                                        )}
                                     </Box>
                                 </Box>
                             </Box>

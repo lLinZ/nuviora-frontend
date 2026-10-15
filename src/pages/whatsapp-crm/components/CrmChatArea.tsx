@@ -24,6 +24,8 @@ import { CrmConversation } from "./CrmContactCard";
 import { OrderDialog } from "../../../components/orders/OrderDialog";
 import { LiteOrderDialog } from "../../lite/LiteOrderDialog";
 import { useUserStore } from "../../../store/user/UserStore";
+import { DeliveryFailure, DeliveryTicks } from "../../../components/whatsapp/MessageDelivery";
+import { DeliveryInfo, undeliveredOutline, withDelivery } from "../../../common/whatsappDelivery";
 
 // ── Tipos ────────────────────────────────────────────────────────────────────
 interface Message {
@@ -31,6 +33,8 @@ interface Message {
     body: string;
     is_from_client: boolean;
     status: string;
+    error_code?: number | null;
+    error_reason?: string | null;
     media: any | null;
     sent_at: string;
     message_type: string;
@@ -93,6 +97,8 @@ const renderMedia = (media: any) => {
 interface Props {
     selected: CrmConversation | null;
     incomingMessage: any;
+    /** Meta avisó que un mensaje de este chat se entregó, se leyó o no llegó */
+    deliveryUpdate?: DeliveryInfo | null;
     onRefresh: () => void;
     onBucketUpdate?: (clientId: number, bucket: string) => void;
     onBack: () => void;
@@ -100,7 +106,7 @@ interface Props {
     agents?: any[];
 }
 
-export const CrmChatArea: FC<Props> = ({ selected, incomingMessage, onRefresh, onBucketUpdate, onBack, isAdmin, agents }) => {
+export const CrmChatArea: FC<Props> = ({ selected, incomingMessage, deliveryUpdate, onRefresh, onBucketUpdate, onBack, isAdmin, agents }) => {
     const theme = useTheme();
     const navigate = useNavigate();
     const isLite = useUserStore((s) => s.user.is_lite_view);
@@ -182,6 +188,11 @@ export const CrmChatArea: FC<Props> = ({ selected, incomingMessage, onRefresh, o
         markAsRead();
         scrollToBottom();
     }, [incomingMessage]);
+
+    // Entregado, leído o no entregado, sin recargar el chat
+    useEffect(() => {
+        if (deliveryUpdate) setMessages((prev) => withDelivery(prev, deliveryUpdate));
+    }, [deliveryUpdate]);
 
     useEffect(() => { scrollToBottom(); }, [messages.length]);
 
@@ -546,16 +557,17 @@ export const CrmChatArea: FC<Props> = ({ selected, incomingMessage, onRefresh, o
                     
                     return (
                         <Box key={msg.id} sx={{ alignSelf: isClient ? "flex-start" : "flex-end", maxWidth: { xs: "90%", md: "75%" }, minWidth: 100 }}>
-                            <Box sx={{ p: 1.2, px: 1.5, bgcolor: bubbleBg, borderRadius: "12px", borderTopLeftRadius: isClient ? 0 : "12px", borderTopRightRadius: isClient ? "12px" : 0, boxShadow: "0 1px 2px rgba(0,0,0,0.1)" }}>
+                            <Box sx={{ p: 1.2, px: 1.5, bgcolor: bubbleBg, borderRadius: "12px", borderTopLeftRadius: isClient ? 0 : "12px", borderTopRightRadius: isClient ? "12px" : 0, boxShadow: (!isClient && undeliveredOutline(msg)) || "0 1px 2px rgba(0,0,0,0.1)" }}>
                                 {msg.media && <Box sx={{ mb: 1 }}>{renderMedia(msg.media)}</Box>}
                                 <Typography variant="body2" sx={{ whiteSpace: "pre-wrap", wordBreak: "break-word", color: textColor, fontSize: "0.9rem", lineHeight: 1.4 }}>
                                     {(msg.body || "").split(/(https?:\/\/[^\s]+)/g).map((part, i) =>
                                         part.match(/^https?:\/\//) ? <a key={i} href={part} target="_blank" rel="noopener noreferrer" style={{ color: theme.palette.primary.main, textDecoration: "none", fontWeight: 600 }}>{part}</a> : part
                                     )}
                                 </Typography>
-                                <Typography variant="caption" sx={{ display: "flex", justifyContent: "flex-end", color: metaColor, fontSize: "0.65rem", mt: 0.5, fontWeight: 500 }}>
+                                {!isClient && <DeliveryFailure message={msg} dark={theme.palette.mode === "dark"} />}
+                                <Typography variant="caption" sx={{ display: "flex", alignItems: "center", justifyContent: "flex-end", color: metaColor, fontSize: "0.65rem", mt: 0.5, fontWeight: 500 }}>
                                     {dayjs(msg.sent_at).format("HH:mm")}
-                                    {!isClient && <Box component="span" sx={{ ml: 0.5, color: msg.status === "read" ? "#3b82f6" : "inherit" }}>{msg.status === "read" ? "✓✓" : msg.status === "sent" ? "✓" : "⌚"}</Box>}
+                                    {!isClient && <DeliveryTicks message={msg} dark={theme.palette.mode === "dark"} />}
                                 </Typography>
                             </Box>
                         </Box>
