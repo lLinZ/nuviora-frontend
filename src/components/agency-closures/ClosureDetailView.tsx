@@ -6,17 +6,18 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
     Alert, Box, Button, Chip, Link, Stack, Tab, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Tabs, Theme, Typography, useMediaQuery,
 } from "@mui/material";
-import { ArrowBackRounded, DownloadRounded, PaymentsRounded, RefreshRounded, UploadFileRounded } from "@mui/icons-material";
+import { ArrowBackRounded, DoneAllRounded, DownloadRounded, PaymentsRounded, RefreshRounded, UploadFileRounded } from "@mui/icons-material";
 import { Link as RouterLink } from "react-router-dom";
 import { toast } from "react-toastify";
 import { Panel } from "../ui/surface/Panel";
+import { ApproveDialog } from "./ApproveDialog";
 import { DiscrepancyDialog } from "./DiscrepancyDialog";
 import { PayDialog } from "./PayDialog";
 import { ACCEPT, ClosureRow, ClosureShow, FIELD_LABEL, STATUS_COLOR, api, dateTime, day, download, money, signedMoney, upload } from "./closures";
 
 const ACTION_LABEL: Record<string, string> = {
     closure_file_uploaded: "Subió el archivo", closure_file_replaced: "Reemplazó el archivo", closure_reprocessed: "Volvió a procesar",
-    discrepancy_resolved: "Resolvió un caso", discrepancy_reopened: "Reabrió un caso", discrepancy_note: "Anotó", row_linked: "Enlazó una fila a mano",
+    discrepancy_resolved: "Resolvió un caso", closure_bulk_approved: "Aprobó el cierre completo", discrepancy_reopened: "Reabrió un caso", discrepancy_note: "Anotó", row_linked: "Enlazó una fila a mano",
     closure_approved: "Monto final aprobado", closure_reopened: "Volvió a revisión", closure_paid: "Registró el pago",
 };
 
@@ -35,6 +36,7 @@ export const ClosureDetailView: React.FC<{ id: number }> = ({ id }) => {
     const [view, setView] = useState("open");
     const [selected, setSelected] = useState<number | null>(null);
     const [paying, setPaying] = useState(false);
+    const [approving, setApproving] = useState<null | "agency" | "manual">(null);
     const [busy, setBusy] = useState(false);
     const phone = useMediaQuery((t: Theme) => t.breakpoints.down("sm"));
 
@@ -94,6 +96,7 @@ export const ClosureDetailView: React.FC<{ id: number }> = ({ id }) => {
                     </Button>
                 )}
                 {c.file && c.status !== "pagado" && !processing && <Button startIcon={<RefreshRounded />} onClick={reprocess} disabled={busy}>Volver a procesar</Button>}
+                {c.status === "listo_pago" && <Button onClick={() => setApproving("manual")}>Otro monto</Button>}
                 {c.status === "listo_pago" && <Button variant="contained" startIcon={<PaymentsRounded />} onClick={() => setPaying(true)}>Registrar pago</Button>}
             </Stack>
 
@@ -117,7 +120,7 @@ export const ClosureDetailView: React.FC<{ id: number }> = ({ id }) => {
                         <Stat label="Reportado por la agencia" value={money(c.reported_total)} hint={`${s.rows} filas en el archivo`} />
                         <Stat label="Diferencia" value={signedMoney(c.difference)} color={(c.difference ?? 0) > 0 ? "warning.main" : undefined} />
                         <Stat label="Monto final aprobado" strong value={c.final_approved_total !== null ? money(c.final_approved_total) : "Pendiente"}
-                            hint={c.final_approved_total !== null ? (c.approved_by ? `aprobado por ${c.approved_by}` : "todo cuadró") : `${s.open} ${s.open === 1 ? "caso abierto" : "casos abiertos"}`} />
+                            hint={c.final_approved_total !== null ? (c.manual_total !== null ? `otro monto${c.approved_by ? `, de ${c.approved_by}` : ""}: ${c.manual_reason}` : c.approved_by ? `aprobado por ${c.approved_by}` : "todo cuadró") : `${s.open} ${s.open === 1 ? "caso abierto" : "casos abiertos"}`} />
                     </Box>
                     <Stack direction="row" gap={1} flexWrap="wrap" sx={{ mt: 2 }}>
                         <Chip color="success" variant="outlined" label={`${s.ok} coinciden`} />
@@ -138,6 +141,20 @@ export const ClosureDetailView: React.FC<{ id: number }> = ({ id }) => {
                             Pagado {money(c.payment.amount)} el {day(c.payment.date)}{c.payment.method ? ` por ${c.payment.method}` : ""}{c.payment.reference ? ` (ref. ${c.payment.reference})` : ""}. Registró {c.paid_by}.
                         </Alert>
                     )}
+                </Panel>
+            )}
+
+            {c.status === "pendiente_revision" && c.approve_all.cases > 0 && (
+                <Panel>
+                    <Typography variant="subtitle1" fontWeight={700}>Aprobar el cierre completo</Typography>
+                    <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+                        {c.approve_all.cases === 1 ? "Queda 1 diferencia" : `Quedan ${c.approve_all.cases} diferencias`} en la lista de abajo; por ellas la agencia cobra {money(c.approve_all.reported)}.
+                        Puedes cambiar cualquiera antes. Con un botón se aprueban todas las que sigan abiertas.
+                    </Typography>
+                    <Stack direction={{ xs: "column", sm: "row" }} gap={1} sx={{ mt: 1.5 }}>
+                        <Button variant="contained" startIcon={<DoneAllRounded />} onClick={() => setApproving("agency")}>Aprobar lo de la agencia: {money(c.approve_all.total)}</Button>
+                        <Button variant="outlined" onClick={() => setApproving("manual")}>Otro monto…</Button>
+                    </Stack>
                 </Panel>
             )}
 
@@ -240,6 +257,7 @@ export const ClosureDetailView: React.FC<{ id: number }> = ({ id }) => {
                                     <b>{h.user ?? "Sistema"}</b> · {ACTION_LABEL[h.action] ?? h.action}
                                     {h.action === "discrepancy_resolved" && h.after && ` (${money(h.after.approved_cost as number)}${h.after.reason ? `: ${h.after.reason}` : ""})`}
                                     {h.action === "discrepancy_note" && h.after && `: ${h.after.text}`}
+                                    {h.action === "closure_bulk_approved" && h.after && ` (${money(h.after.final_approved_total as number)}${h.after.reason ? `: ${h.after.reason}` : ", con lo de la agencia"})`}
                                     {(h.action === "closure_file_uploaded" || h.action === "closure_file_replaced") && h.after && `: ${h.after.name}${h.after.by_agency ? " (la agencia)" : ""}`}
                                 </Typography>
                             ))}
@@ -249,6 +267,7 @@ export const ClosureDetailView: React.FC<{ id: number }> = ({ id }) => {
             ) : null}
 
             {row && <DiscrepancyDialog closureId={c.id} row={row} editable={editable} onClose={() => setSelected(null)} onChanged={() => load()} />}
+            {approving && <ApproveDialog closure={c} mode={approving} onClose={() => setApproving(null)} onApproved={() => { setApproving(null); load(); }} />}
             {paying && <PayDialog closure={c} onClose={() => setPaying(false)} onPaid={() => { setPaying(false); load(); }} />}
         </Stack>
     );

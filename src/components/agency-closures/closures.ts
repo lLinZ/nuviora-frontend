@@ -18,6 +18,8 @@ export type Closure = {
     id: number; agency_id: number; agency: string | null; period_start: string; period_end: string; week: string;
     status: ClosureStatus; status_label: string; trips_count: number; expected_total: number | null; reported_total: number | null;
     difference: number | null; final_approved_total: number | null; summary: ClosureSummary | null; processing_error: string | null;
+    // El otro monto que eligió Fran para el cierre completo, con su motivo (15/10/2026)
+    manual_total: number | null; manual_reason: string | null;
     uploaded_at: string | null; processed_at: string | null; paid_at: string | null; file: { name: string; version: number } | null;
     reminder_at: string; reminder_due: boolean;
 };
@@ -31,6 +33,9 @@ export type ClosureDetail = Closure & {
     pay_accounts: { id: number; name: string; currency: string }[];
     cash_start_date: string;
     binance_rate: number;
+    // Aprobar el cierre completo (Fran, 15/10/2026): casos abiertos, lo que cobra la agencia por ellos y el total del cierre
+    // si se aprueba lo de la agencia
+    approve_all: { cases: number; reported: number; total: number };
 };
 
 export type Discrepancy = {
