@@ -14,14 +14,18 @@ export type RoutingAgency = {
     cities: string[];
 } & WorkingHoursFields;
 
-/** Encendida o apagada y horario (Fran, 2026-10-17). Sin horario = todo el día. */
-export type WorkingHoursFields = {
+/** Encendida o apagada (Fran, 2026-10-17). */
+export type WorkingFields = {
     is_working: boolean;
+    /** Por qué no trabaja ahora (apagada, fuera de horario o sin agencia que trabaje); null si trabaja. */
+    stop_reason: string | null;
+};
+
+/** Y el horario, que es de cada agencia (Fran, 2026-10-17, 10:54). Sin horario = todo el día. */
+export type WorkingHoursFields = WorkingFields & {
     /** HH:MM o null. */
     works_from: string | null;
     works_until: string | null;
-    /** Por qué no trabaja ahora (apagada, fuera de horario o sin agencia que trabaje); null si trabaja. */
-    stop_reason: string | null;
 };
 
 export type CityAgency = {
@@ -46,7 +50,7 @@ export type RoutingCity = {
     agencies: CityAgency[];
     /** Órdenes que no pasaron a vendedora porque la ciudad no trabajaba y esperan que vuelva. */
     waiting: number;
-} & WorkingHoursFields;
+} & WorkingFields;
 
 export type AgencyRouting = {
     agencies: RoutingAgency[];

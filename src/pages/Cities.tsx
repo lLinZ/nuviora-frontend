@@ -16,7 +16,7 @@ import {
 import { toast } from "react-toastify";
 import { AddUserDialog } from "../components/users/AddUserDialog";
 import { fmtMoney } from "../lib/money";
-import { AgencyRouting, RoutingAgency, RoutingCity, WorkingHoursFields } from "../interfaces/agencyRouting.types";
+import { AgencyRouting, RoutingAgency, RoutingCity, WorkingFields, WorkingHoursFields } from "../interfaces/agencyRouting.types";
 import { routingApi } from "../components/agencies/agencyApi";
 import { CityAgenciesDialog } from "../components/agencies/CityAgenciesDialog";
 import { AgencySettingsDialog } from "../components/agencies/AgencySettingsDialog";
@@ -24,21 +24,25 @@ import { AgencyReassignDialog } from "../components/agencies/AgencyReassignDialo
 import { WorkingHoursDialog } from "../components/agencies/WorkingHoursDialog";
 
 /** "de 08:00 a 17:00", "hasta las 17:00"…; null si trabaja todo el día. */
-const hoursLabel = (h: WorkingHoursFields) => {
+const hoursLabel = (h: Pick<WorkingHoursFields, 'works_from' | 'works_until'>) => {
     if (h.works_from && h.works_until) return `de ${h.works_from} a ${h.works_until}`;
     if (h.works_until) return `hasta las ${h.works_until}`;
     if (h.works_from) return `desde las ${h.works_from}`;
     return null;
 };
 
-/** Si trabaja ahora, apagada o fuera de horario (Fran, 2026-10-17). Con onClick, se puede cambiar. */
-const WorkingChip = ({ h, onClick }: { h: WorkingHoursFields; onClick?: () => void }) => {
-    const hours = hoursLabel(h);
+/**
+ * Si trabaja ahora, apagada o fuera de horario (Fran, 2026-10-17). El horario es solo de la agencia. Con onClick, se
+ * puede cambiar.
+ */
+const WorkingChip = ({ h, onClick }: { h: WorkingFields & Partial<Pick<WorkingHoursFields, 'works_from' | 'works_until'>>; onClick?: () => void }) => {
+    const hasHours = 'works_from' in h;
+    const hours = hasHours ? hoursLabel({ works_from: h.works_from ?? null, works_until: h.works_until ?? null }) : null;
     const [label, color] = !h.is_working ? ['Apagada', 'error'] as const
         : h.stop_reason ? ['No trabaja ahora', 'warning'] as const
         : ['Trabajando', 'success'] as const;
     const tip = [h.stop_reason ? `${h.stop_reason.charAt(0).toUpperCase()}${h.stop_reason.slice(1)}.` : null,
-        `Horario: ${hours ?? 'todo el día'}.`, onClick ? 'Toca para cambiar.' : null].filter(Boolean).join(' ');
+        hasHours ? `Horario: ${hours ?? 'todo el día'}.` : null, onClick ? 'Toca para cambiar.' : null].filter(Boolean).join(' ');
 
     return (
         <Tooltip title={tip}>
@@ -63,7 +67,7 @@ export const Cities = () => {
     const [cityAgencies, setCityAgencies] = useState<RoutingCity | null>(null);
     const [agencySettings, setAgencySettings] = useState<RoutingAgency | null>(null);
     const [reassign, setReassign] = useState<RoutingAgency | null>(null);
-    const [hoursTarget, setHoursTarget] = useState<({ kind: 'city' | 'agency'; id: number; name: string } & WorkingHoursFields) | null>(null);
+    const [hoursTarget, setHoursTarget] = useState<React.ComponentProps<typeof WorkingHoursDialog>['target']>(null);
 
     const role = user.role?.description || '';
     const canEdit = ['Admin', 'Master'].includes(role);
@@ -207,7 +211,7 @@ export const Cities = () => {
                                     </Box>
                                     <Box sx={{ whiteSpace: 'nowrap' }}>
                                         {canEdit && (
-                                            <Tooltip title="Encender, apagar u horario">
+                                            <Tooltip title="Encender o apagar la ciudad">
                                                 <IconButton color={!city.is_working ? 'error' : city.stop_reason ? 'warning' : 'default'}
                                                     onClick={() => setHoursTarget({ ...city, kind: 'city' })}><PowerIcon /></IconButton>
                                             </Tooltip>
@@ -251,9 +255,20 @@ export const Cities = () => {
                                     {city.agencies.length === 0 && (
                                         <Typography variant="body2" color="text.secondary">Sin agencias: las órdenes de esta ciudad se asignan a mano.</Typography>
                                     )}
-                                    {city.agencies.map((a) => (
+                                    {city.agencies.map((a) => {
+                                        // El horario y el encendido son de la agencia (Fran, 2026-10-17, 10:54)
+                                        const ag = agencies.find((x) => x.id === a.id);
+                                        const agHours = ag ? hoursLabel(ag) : null;
+                                        return (
                                         <Stack key={a.id} direction="row" spacing={1} alignItems="center" sx={{ opacity: a.is_active ? 1 : 0.5 }}>
-                                            <Typography variant="body2" fontWeight={600} sx={{ flex: 1, minWidth: 0 }} noWrap>{a.names}</Typography>
+                                            <Box sx={{ flex: 1, minWidth: 0 }}>
+                                                <Typography variant="body2" fontWeight={600} noWrap>{a.names}</Typography>
+                                                {ag && (!ag.is_working || agHours) && (
+                                                    <Typography variant="caption" color={!ag.is_working ? 'error' : ag.stop_reason ? 'warning.main' : 'text.secondary'} display="block" noWrap>
+                                                        {!ag.is_working ? 'Agencia apagada' : `Trabaja ${agHours}`}
+                                                    </Typography>
+                                                )}
+                                            </Box>
                                             {a.is_active ? (
                                                 <Tooltip title={a.weight === null ? 'Sin %: reparto parejo' : `${a.weight} % configurado`}>
                                                     <Typography variant="body2" color="text.secondary">{Math.round(a.share * 100)} %</Typography>
@@ -268,7 +283,8 @@ export const Cities = () => {
                                                 label={`${a.active}/${a.max_active_orders ?? '∞'}`}
                                             />
                                         </Stack>
-                                    ))}
+                                        );
+                                    })}
                                 </Stack>
                             </CardContent>
                         </Card>
