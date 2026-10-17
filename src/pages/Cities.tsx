@@ -11,16 +11,43 @@ import {
 } from "@mui/material";
 import {
     Edit as EditIcon, Delete as DeleteIcon, Add as AddIcon, PersonAdd as PersonAddIcon,
-    Tune as TuneIcon, SwapHoriz as SwapHorizIcon
+    Tune as TuneIcon, SwapHoriz as SwapHorizIcon, PowerSettingsNew as PowerIcon
 } from "@mui/icons-material";
 import { toast } from "react-toastify";
 import { AddUserDialog } from "../components/users/AddUserDialog";
 import { fmtMoney } from "../lib/money";
-import { AgencyRouting, RoutingAgency, RoutingCity } from "../interfaces/agencyRouting.types";
+import { AgencyRouting, RoutingAgency, RoutingCity, WorkingHoursFields } from "../interfaces/agencyRouting.types";
 import { routingApi } from "../components/agencies/agencyApi";
 import { CityAgenciesDialog } from "../components/agencies/CityAgenciesDialog";
 import { AgencySettingsDialog } from "../components/agencies/AgencySettingsDialog";
 import { AgencyReassignDialog } from "../components/agencies/AgencyReassignDialog";
+import { WorkingHoursDialog } from "../components/agencies/WorkingHoursDialog";
+
+/** "de 08:00 a 17:00", "hasta las 17:00"…; null si trabaja todo el día. */
+const hoursLabel = (h: WorkingHoursFields) => {
+    if (h.works_from && h.works_until) return `de ${h.works_from} a ${h.works_until}`;
+    if (h.works_until) return `hasta las ${h.works_until}`;
+    if (h.works_from) return `desde las ${h.works_from}`;
+    return null;
+};
+
+/** Si trabaja ahora, apagada o fuera de horario (Fran, 2026-10-17). Con onClick, se puede cambiar. */
+const WorkingChip = ({ h, onClick }: { h: WorkingHoursFields; onClick?: () => void }) => {
+    const hours = hoursLabel(h);
+    const [label, color] = !h.is_working ? ['Apagada', 'error'] as const
+        : h.stop_reason ? ['No trabaja ahora', 'warning'] as const
+        : ['Trabajando', 'success'] as const;
+    const tip = [h.stop_reason ? `${h.stop_reason.charAt(0).toUpperCase()}${h.stop_reason.slice(1)}.` : null,
+        `Horario: ${hours ?? 'todo el día'}.`, onClick ? 'Toca para cambiar.' : null].filter(Boolean).join(' ');
+
+    return (
+        <Tooltip title={tip}>
+            <Chip size="small" color={color} variant={h.is_working && !h.stop_reason ? 'outlined' : 'filled'}
+                icon={<PowerIcon fontSize="small" />} label={hours ? `${label} · ${hours}` : label}
+                onClick={onClick} sx={{ fontWeight: 600 }} />
+        </Tooltip>
+    );
+};
 
 /**
  * Ciudades y agencias (tareas 3c, 6 y 8): qué agencias entregan en cada ciudad y con qué %, la tarifa
@@ -36,6 +63,7 @@ export const Cities = () => {
     const [cityAgencies, setCityAgencies] = useState<RoutingCity | null>(null);
     const [agencySettings, setAgencySettings] = useState<RoutingAgency | null>(null);
     const [reassign, setReassign] = useState<RoutingAgency | null>(null);
+    const [hoursTarget, setHoursTarget] = useState<({ kind: 'city' | 'agency'; id: number; name: string } & WorkingHoursFields) | null>(null);
 
     const role = user.role?.description || '';
     const canEdit = ['Admin', 'Master'].includes(role);
@@ -88,7 +116,7 @@ export const Cities = () => {
     return (
         <Layout>
             <Box display="flex" justifyContent="space-between" alignItems="center" mb={4} gap={2} flexWrap="wrap">
-                <DescripcionDeVista title="Ciudades y Agencias" description="Qué agencias entregan en cada ciudad, con qué % y hasta cuántas órdenes a la vez" />
+                <DescripcionDeVista title="Ciudades y Agencias" description="Qué agencias entregan en cada ciudad, con qué % y hasta cuántas órdenes a la vez, y cuándo trabaja cada una" />
                 <Box display="flex" gap={2}>
                     <Button variant="outlined" startIcon={<PersonAddIcon />} onClick={() => setOpenAddAgency(true)} color="secondary">
                         Nueva Agencia
@@ -106,6 +134,7 @@ export const Cities = () => {
                 <Typography variant="h6" fontWeight="bold">Agencias</Typography>
                 <Typography variant="caption" color="text.secondary">
                     Activas = órdenes en Asignar a agencia, con repartidor o en ruta. Al llegar a su máximo, los pedidos van primero a las otras agencias de la ciudad; si todas están en su máximo, no esperan y se reparten en partes iguales.
+                    Una agencia apagada o fuera de horario no recibe órdenes; si es la única de su ciudad, las órdenes nuevas de esa ciudad no pasan a vendedora hasta que vuelva a trabajar.
                 </Typography>
                 <Box sx={{ overflowX: 'auto', mt: 2 }}>
                     <Table size="small">
@@ -113,6 +142,7 @@ export const Cities = () => {
                             <TableRow>
                                 <TableCell>Agencia</TableCell>
                                 <TableCell>Ciudades</TableCell>
+                                <TableCell>Trabaja</TableCell>
                                 <TableCell align="right">Tarifa</TableCell>
                                 <TableCell align="center">Activas / máximo</TableCell>
                                 <TableCell align="right" />
@@ -128,6 +158,9 @@ export const Cities = () => {
                                         </Stack>
                                     </TableCell>
                                     <TableCell>{a.cities.length ? a.cities.join(', ') : <Typography variant="caption" color="text.secondary">Sin ciudad</Typography>}</TableCell>
+                                    <TableCell>
+                                        <WorkingChip h={a} onClick={canEdit ? () => setHoursTarget({ ...a, kind: 'agency', name: a.names }) : undefined} />
+                                    </TableCell>
                                     <TableCell align="right">{fmtMoney(a.delivery_cost, 'USD')}</TableCell>
                                     <TableCell align="center">
                                         <Chip
@@ -152,7 +185,7 @@ export const Cities = () => {
                                 </TableRow>
                             ))}
                             {agencies.length === 0 && (
-                                <TableRow><TableCell colSpan={5} align="center">No hay agencias</TableCell></TableRow>
+                                <TableRow><TableCell colSpan={6} align="center">No hay agencias</TableCell></TableRow>
                             )}
                         </TableBody>
                     </Table>
@@ -174,6 +207,12 @@ export const Cities = () => {
                                     </Box>
                                     <Box sx={{ whiteSpace: 'nowrap' }}>
                                         {canEdit && (
+                                            <Tooltip title="Encender, apagar u horario">
+                                                <IconButton color={!city.is_working ? 'error' : city.stop_reason ? 'warning' : 'default'}
+                                                    onClick={() => setHoursTarget({ ...city, kind: 'city' })}><PowerIcon /></IconButton>
+                                            </Tooltip>
+                                        )}
+                                        {canEdit && (
                                             <Tooltip title="Agencias y %">
                                                 <IconButton onClick={() => setCityAgencies(city)}><TuneIcon /></IconButton>
                                             </Tooltip>
@@ -182,6 +221,26 @@ export const Cities = () => {
                                         {role === 'Admin' && <IconButton color="error" onClick={() => handleDeleteCity(city.id)}><DeleteIcon /></IconButton>}
                                     </Box>
                                 </Box>
+
+                                <Stack direction="row" spacing={1} sx={{ mt: 1 }} flexWrap="wrap" useFlexGap>
+                                    <WorkingChip h={city} onClick={canEdit ? () => setHoursTarget({ ...city, kind: 'city' }) : undefined} />
+                                    {city.waiting > 0 && (
+                                        <Tooltip title="No pasaron a vendedora porque la ciudad no trabajaba. Se reparten solas cuando vuelva a trabajar.">
+                                            <Chip color="warning" size="small" sx={{ fontWeight: 'bold' }}
+                                                label={`${city.waiting} ${city.waiting === 1 ? 'orden espera' : 'órdenes esperan'} vendedora`} />
+                                        </Tooltip>
+                                    )}
+                                </Stack>
+                                {city.stop_reason && city.is_working && (
+                                    <Typography variant="caption" color="warning.main" display="block" sx={{ mt: 0.5 }}>
+                                        {city.stop_reason.charAt(0).toUpperCase() + city.stop_reason.slice(1)}: sus órdenes nuevas no pasan a vendedora.
+                                    </Typography>
+                                )}
+                                {!city.is_working && (
+                                    <Typography variant="caption" color="error" display="block" sx={{ mt: 0.5 }}>
+                                        Apagada: sus órdenes nuevas no pasan a vendedora.
+                                    </Typography>
+                                )}
 
                                 {city.pending > 0 && (
                                     <Chip color="warning" size="small" sx={{ mt: 1, fontWeight: 'bold' }}
@@ -247,6 +306,7 @@ export const Cities = () => {
             </Dialog>
 
             <CityAgenciesDialog open={!!cityAgencies} city={cityAgencies} agencies={agencies} onClose={() => setCityAgencies(null)} onSaved={setRouting} />
+            <WorkingHoursDialog open={!!hoursTarget} target={hoursTarget} onClose={() => setHoursTarget(null)} onSaved={setRouting} />
             <AgencySettingsDialog open={!!agencySettings} agency={agencySettings} onClose={() => setAgencySettings(null)} onSaved={setRouting} />
             <AgencyReassignDialog
                 open={!!reassign}
