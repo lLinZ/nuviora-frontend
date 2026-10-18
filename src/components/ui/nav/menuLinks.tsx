@@ -60,6 +60,7 @@ export const MENU_LINKS: NavLink[] = [
 
     // Inventario
     { section: "inventario", text: "Inventario", icon: <Inventory2RoundedIcon />, link: "/inventory", roles: ["Admin", "Agencia"], keywords: "stock almacen productos tallas conteo" },
+    { section: "inventario", text: "Reabastecimiento", icon: <RouteRounded />, link: "/reabastecimiento", roles: ["Admin"], keywords: "plan compras traslados forecast proveedores rutas cobertura chofer modulo 5" },
     { section: "inventario", text: "Inventario por ciudad", icon: <MapRounded />, link: "/inventario-ciudades", roles: ["Admin", "Gerente", "Vendedor"], keywords: "stock agencias ciudades caracas valencia maracay" },
     { section: "inventario", text: "Stock repartidor", icon: <LocalMallRoundedIcon />, link: "/deliverers/stock", roles: ["Repartidor"], keywords: "inventario" },
     { section: "inventario", text: "Exportar Stock", icon: <WarehouseRounded />, link: "/admin/stock-export", roles: ["Admin", "Gerente"], keywords: "excel descargar inventario" },

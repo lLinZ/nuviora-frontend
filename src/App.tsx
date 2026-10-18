@@ -36,6 +36,7 @@ import { ReconciliationDay } from './pages/admin/ReconciliationDay';
 import { MetaAdsSettings } from './pages/admin/MetaAdsSettings';
 import { DeliveryTariffs } from './pages/admin/DeliveryTariffs';
 import { Finance } from './pages/admin/Finance';
+import { Replenishment } from './pages/admin/Replenishment';
 import { AgencyClosures } from './pages/admin/AgencyClosures';
 import { MyClosures } from './pages/agency/MyClosures';
 import { MetaAdsDashboard } from './pages/admin/MetaAdsDashboard';
@@ -149,6 +150,8 @@ function App() {
           <Route path="/admin/meta-ads" element={<RequireRole allowedRoles={['Admin']}><MetaAdsSettings /></RequireRole>} />
           <Route path="/admin/tarifas-delivery" element={<RequireRole allowedRoles={['Admin']}><DeliveryTariffs /></RequireRole>} />
           <Route path="/finanzas" element={<RequireRole allowedRoles={['Admin']}><Finance /></RequireRole>} />
+          {/* Módulo 5 de Fran: reabastecimiento, solo Admin (§3) */}
+          <Route path="/reabastecimiento" element={<RequireRole allowedRoles={['Admin']}><Replenishment /></RequireRole>} />
           <Route path="/admin/cierres-agencias" element={<RequireRole allowedRoles={['Admin']}><AgencyClosures /></RequireRole>} />
           <Route path="/admin/cierres-agencias/:id" element={<RequireRole allowedRoles={['Admin']}><AgencyClosures /></RequireRole>} />
           <Route path="/cierres" element={<RequireRole allowedRoles={['Agencia']}><MyClosures /></RequireRole>} />
