@@ -3,6 +3,8 @@
 // compró, cuánto le costó en total (con su moneda y tasa, §32 y R2) y si fue al contado o a crédito, con el vencimiento
 // y las condiciones. Se ve el costo unitario que va a tener el lote: costo total / cantidad (§9). El comprobante es
 // opcional y se sube después del ingreso. Solo el Admin (§81); la Agencia ingresa como siempre.
+// Módulo 5 (§16, R3): con `pending`, es una compra por recibir: solo proveedor y costo esperado (la forma de pago se decide
+// al recibirla). Con `lockSupplier`, el proveedor no se cambia (al recibir una compra que ya tiene proveedor).
 import React, { useEffect, useState } from "react";
 import {
     Alert, Box, Button, FormControlLabel, MenuItem, Stack, Switch, TextField, ToggleButton, ToggleButtonGroup, Typography,
@@ -12,7 +14,9 @@ import { MoneyFields } from "./MoneyFields";
 import { FinanceOptions, accountsFor, api, errorMessage, money, toUsd, todayCaracas } from "./finance";
 import { PurchaseValue } from "./purchase";
 
-export const PurchaseFields: React.FC<{ value: PurchaseValue; onChange: (v: PurchaseValue) => void; quantity: number }> = ({ value, onChange, quantity }) => {
+export const PurchaseFields: React.FC<{
+    value: PurchaseValue; onChange: (v: PurchaseValue) => void; quantity: number; pending?: boolean; lockSupplier?: boolean; hideToggle?: boolean;
+}> = ({ value, onChange, quantity, pending = false, lockSupplier = false, hideToggle = false }) => {
     const [options, setOptions] = useState<FinanceOptions | null>(null);
     const [newSupplier, setNewSupplier] = useState<string | null>(null);
     const [saving, setSaving] = useState(false);
@@ -39,8 +43,10 @@ export const PurchaseFields: React.FC<{ value: PurchaseValue; onChange: (v: Purc
 
     return (
         <Box sx={{ border: 1, borderColor: "divider", borderRadius: 2, p: 2 }}>
-            <FormControlLabel control={<Switch checked={value.enabled} onChange={(e) => set({ enabled: e.target.checked })} />}
-                label={<Typography variant="subtitle2">Es una compra a un proveedor</Typography>} />
+            {hideToggle ? <Typography variant="subtitle2">{pending ? "Compra al proveedor" : "Costo real de la compra"}</Typography> : (
+                <FormControlLabel control={<Switch checked={value.enabled} onChange={(e) => set({ enabled: e.target.checked })} />}
+                    label={<Typography variant="subtitle2">Es una compra a un proveedor</Typography>} />
+            )}
             {!value.enabled ? (
                 <Alert severity="info" sx={{ mt: 1 }}>
                     Sin compra (por ejemplo, una devolución): las unidades entran con el costo de catálogo del producto y el lote queda "por completar".
@@ -49,11 +55,12 @@ export const PurchaseFields: React.FC<{ value: PurchaseValue; onChange: (v: Purc
                 <Stack spacing={2} sx={{ mt: 1 }}>
                     {newSupplier === null ? (
                         <Stack direction="row" gap={1} alignItems="center">
-                            <TextField select label="Proveedor" value={value.supplierId} onChange={(e) => set({ supplierId: e.target.value })} required fullWidth size="small">
+                            <TextField select label="Proveedor" value={value.supplierId} onChange={(e) => set({ supplierId: e.target.value })} required fullWidth size="small"
+                                disabled={lockSupplier}>
                                 {suppliers.length === 0 && <MenuItem value="" disabled>No hay proveedores: crea uno</MenuItem>}
                                 {suppliers.map((s) => <MenuItem key={s.id} value={String(s.id)}>{s.name}</MenuItem>)}
                             </TextField>
-                            <Button size="small" onClick={() => setNewSupplier("")} sx={{ whiteSpace: "nowrap" }}>+ Nuevo</Button>
+                            {!lockSupplier && <Button size="small" onClick={() => setNewSupplier("")} sx={{ whiteSpace: "nowrap" }}>+ Nuevo</Button>}
                         </Stack>
                     ) : (
                         <Stack direction="row" gap={1} alignItems="center">
@@ -64,7 +71,8 @@ export const PurchaseFields: React.FC<{ value: PurchaseValue; onChange: (v: Purc
                         </Stack>
                     )}
 
-                    <MoneyFields value={value.money} onChange={(m) => set({ money: m })} currencies={options.currencies} label="Costo total de la compra" noun="compra" />
+                    <MoneyFields value={value.money} onChange={(m) => set({ money: m })} currencies={options.currencies}
+                        label={pending ? "Costo total esperado" : "Costo total de la compra"} noun="compra" />
                     <Typography variant="body2">
                         Costo unitario: <b>{unit === null ? "—" : money(Math.round(unit * 10000) / 10000)}</b>
                         <Typography component="span" variant="body2" color="text.secondary">
@@ -72,6 +80,12 @@ export const PurchaseFields: React.FC<{ value: PurchaseValue; onChange: (v: Purc
                         </Typography>
                     </Typography>
 
+                    {pending && (
+                        <Typography variant="caption" color="text.secondary">
+                            No suma stock ni crea deuda todavía: al recibirla pones la cantidad y el costo reales, y cómo se paga.
+                        </Typography>
+                    )}
+                    {!pending && <>
                     <div>
                         <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 0.5 }}>¿Cómo se paga?</Typography>
                         <ToggleButtonGroup size="small" exclusive value={value.paymentType} onChange={(_, v) => v && set({ paymentType: v })}>
@@ -106,6 +120,7 @@ export const PurchaseFields: React.FC<{ value: PurchaseValue; onChange: (v: Purc
                         </Button>
                         {value.receipt && <Typography variant="caption" sx={{ ml: 1 }}>{value.receipt.name}</Typography>}
                     </div>
+                    </>}
                 </Stack>
             )}
         </Box>

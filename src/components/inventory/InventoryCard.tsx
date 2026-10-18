@@ -29,6 +29,8 @@ interface InventoryCardProps {
     onViewHistory: (product: IProductStock) => void;
     onReviewDefective?: (product: IProductStock) => void; // solo el Admin
     onSendToReview?: (product: IProductStock) => void;    // dañada o perdida: pasa a revisión (Módulo 4, R8); solo el Admin
+    // Módulo 5 (§14, R1): lo apartado por órdenes sin entregar (sigue en la agencia) y lo que viene del proveedor
+    flow?: { reserved: number; incoming: number; incomingNextAt: string | null };
 }
 
 export const InventoryCard: React.FC<InventoryCardProps> = ({
@@ -39,7 +41,8 @@ export const InventoryCard: React.FC<InventoryCardProps> = ({
     onVariants,
     onViewHistory,
     onReviewDefective,
-    onSendToReview
+    onSendToReview,
+    flow
 }) => {
     const { product, warehouses, total_quantity } = productStock;
     // En revisión (Fran, 2026-10-02; Módulo 4, R3 y R8): las que vuelven de un cambio y las dañadas o perdidas. Se
@@ -76,6 +79,14 @@ export const InventoryCard: React.FC<InventoryCardProps> = ({
                         </TypographyCustom>
                     </Box>
                 </Box>
+
+                {flow && (flow.reserved > 0 || flow.incoming > 0) && (
+                    <TypographyCustom variant="caption" color="text.secondary" display="block" sx={{ mt: -1 }}>
+                        {flow.reserved > 0 && <>Apartado en órdenes: <b>{flow.reserved}</b> (sigue en la agencia)</>}
+                        {flow.reserved > 0 && flow.incoming > 0 && ' · '}
+                        {flow.incoming > 0 && <>Por recibir: <b>{flow.incoming}</b>{flow.incomingNextAt ? ` (llega el ${flow.incomingNextAt.slice(8, 10)}/${flow.incomingNextAt.slice(5, 7)})` : ''}</>}
+                    </TypographyCustom>
+                )}
 
                 <Divider sx={{ my: 1.5 }} />
 

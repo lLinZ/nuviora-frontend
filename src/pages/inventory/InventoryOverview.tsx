@@ -56,13 +56,36 @@ export const InventoryOverview: React.FC<Props> = ({ isEmbedded }) => {
     const [defectiveProduct, setDefectiveProduct] = useState<IProductStock | null>(null);
     const [intakeProduct, setIntakeProduct] = useState<IProductStock | null>(null); // "Pasar a revisión" (Módulo 4, R8)
     const { loadingSession, isValid, user } = useValidateSession();
+    // Módulo 5 (§14, R1): reservado y por recibir, por producto (solo supervisores)
+    const [flows, setFlows] = useState<Record<number, { reserved: number; incoming: number; incomingNextAt: string | null }>>({});
 
     useEffect(() => {
         loadInventory();
     }, [warehouseFilter]);
 
+    useEffect(() => {
+        loadFlows();
+    }, [warehouseFilter, user?.role?.description]);
+
+    const loadFlows = () => {
+        if (!['Admin', 'Gerente', 'Master'].includes(user?.role?.description ?? '')) return;
+        request(`/inventory/stock-status${warehouseFilter ? `?warehouse_id=${warehouseFilter}` : ''}`, 'GET').then(async ({ status, response }: IResponse) => {
+            if (status !== 200) return;
+            const data = await response.json();
+            const map: Record<number, { reserved: number; incoming: number; incomingNextAt: string | null }> = {};
+            (data.rows ?? []).forEach((r: { product_id: number; reserved: number; incoming: number; incoming_next_at: string | null }) => {
+                const f = (map[r.product_id] ??= { reserved: 0, incoming: 0, incomingNextAt: null });
+                f.reserved += r.reserved;
+                f.incoming += r.incoming;
+                if (r.incoming_next_at && (!f.incomingNextAt || r.incoming_next_at < f.incomingNextAt)) f.incomingNextAt = r.incoming_next_at;
+            });
+            setFlows(map);
+        }).catch(() => undefined);
+    };
+
     const loadInventory = async () => {
         setLoading(true);
+        loadFlows();
         try {
             const { status, response }: IResponse = await request('/inventory?overview=true', 'GET');
             if (status) {
@@ -186,6 +209,7 @@ export const InventoryOverview: React.FC<Props> = ({ isEmbedded }) => {
                         <Grid size={{ xs: 12, sm: 6, md: 4, lg: 3 }} key={p.product_id}>
                             <InventoryCard
                                 productStock={p}
+                                flow={flows[p.product_id]}
                                 onTransfer={user.role?.description === 'Agencia' ? undefined : (prod) => handleAction(prod, 'transfer')}
                                 onAdjust={user.role?.description === 'Agencia' ? undefined : (prod) => handleAction(prod, 'adjustment')}
                                 onEdit={user.role?.description === 'Agencia' ? undefined : (prod) => handleEdit(prod)}

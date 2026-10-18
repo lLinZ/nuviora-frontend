@@ -14,6 +14,7 @@ import {
     ShoppingCart as PurchaseOrderIcon,
     BugReport as BugIcon,
     AccountBalance as ValuationIcon,
+    LocalShippingOutlined as InTransitIcon,
 } from '@mui/icons-material';
 import { Layout } from '../../components/ui/Layout';
 import { DescripcionDeVista } from '../../components/ui/content/DescripcionDeVista';
@@ -33,6 +34,7 @@ import { ScmDashboard } from './ScmDashboard';
 import { PurchaseOrders } from './PurchaseOrders';
 import { ScmTestPanel } from './ScmTestPanel';
 import { InventoryValuation } from './InventoryValuation';
+import { InTransitPanel } from '../../components/inventory/InTransitPanel';
 
 interface TabPanelProps {
     children?: React.ReactNode;
@@ -81,6 +83,8 @@ export const InventoryDashboard: React.FC = () => {
                 </Box>
             ), roles: ['Admin'], path: '/operations'
         },
+        // Módulo 5 (§15, §16, R2, R3): traslados en tránsito y compras por recibir
+        { label: 'En camino', icon: <InTransitIcon />, component: <InTransitPanel />, roles: ['Admin', 'Agencia'], path: '/in-transit' },
         { label: 'Historial', icon: <HistoryIcon />, component: <InventoryMovements isEmbedded />, roles: ['Admin', 'Agencia'], path: '/movements' },
         { label: 'Reabastecimiento SCM', icon: <ScmIcon />, component: <ScmDashboard />, roles: ['Admin', 'Gerente', 'Master'], path: '/scm' },
         { label: 'Órdenes de Compra', icon: <PurchaseOrderIcon />, component: <PurchaseOrders isEmbedded />, roles: ['Admin', 'Gerente', 'Master'], path: '/purchase-orders' },
@@ -93,7 +97,11 @@ export const InventoryDashboard: React.FC = () => {
     // Determine initial tab
     const getInitialTabIndex = () => {
         const path = location.pathname;
-        const index = availableTabs.findIndex(tab => path.includes(tab.path));
+        // La pestaña más específica: "/inventory" está en todas las rutas, así que gana la de ruta más larga
+        let index = -1;
+        availableTabs.forEach((tab, i) => {
+            if (path.includes(tab.path) && (index === -1 || tab.path.length > availableTabs[index].path.length)) index = i;
+        });
         return index !== -1 ? index : 0;
     };
 

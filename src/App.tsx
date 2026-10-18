@@ -123,6 +123,7 @@ function App() {
           <Route path="/inventory/movements" element={<RequireRole allowedRoles={['Admin', 'Agencia']}><InventoryDashboard /></RequireRole>} />
           <Route path="/inventory/transfer" element={<RequireRole allowedRoles={['Admin', 'Agencia']}><InventoryDashboard /></RequireRole>} />
           <Route path="/inventory/adjust" element={<RequireRole allowedRoles={['Admin', 'Agencia']}><InventoryDashboard /></RequireRole>} />
+          <Route path="/inventory/in-transit" element={<RequireRole allowedRoles={['Admin', 'Agencia']}><InventoryDashboard /></RequireRole>} />
           <Route path="/deliverers/stock" element={<RequireRole allowedRoles={['Repartidor']}><InventoryDashboard /></RequireRole>} />
 
           {/* ── Fase 5: Órdenes de Compra ──────────────────────────────────────── */}

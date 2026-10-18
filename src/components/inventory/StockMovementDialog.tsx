@@ -20,14 +20,21 @@ import { toast } from 'react-toastify';
 import { IResponse } from '../../interfaces/response-type';
 import { useUserStore } from '../../store/user/UserStore';
 import { PurchaseFields } from '../finance/PurchaseFields';
-import { PurchaseValue, emptyPurchase, purchasePayload, purchaseReady, uploadPurchaseReceipt } from '../finance/purchase';
+import { PurchaseValue, emptyPurchase, pendingPurchasePayload, pendingPurchaseReady, purchasePayload, purchaseReady, uploadPurchaseReceipt } from '../finance/purchase';
+import { todayCaracas } from '../finance/finance';
+
+type MovementType = 'in' | 'out' | 'transfer' | 'adjustment' | 'writeoff';
+
+// Módulo 5 de Fran (§94, R4): el tipo del ajuste, y las salidas que cuentan como gasto (igual que la merma)
+const COUNT_REASONS: Record<string, string> = { count_error: 'Error de conteo', admin_correction: 'Corrección administrativa', other: 'Otro' };
+const WRITE_OFF_REASONS: Record<string, string> = { sample: 'Muestra', gift: 'Regalo', internal_use: 'Uso interno' };
 
 interface StockMovementDialogProps {
     open: boolean;
     onClose: () => void;
     onSuccess: () => void;
     product?: IProduct;
-    initialType?: 'in' | 'out' | 'transfer' | 'adjustment';
+    initialType?: MovementType;
 }
 
 export const StockMovementDialog: React.FC<StockMovementDialogProps> = ({
@@ -37,7 +44,7 @@ export const StockMovementDialog: React.FC<StockMovementDialogProps> = ({
     product,
     initialType = 'in'
 }) => {
-    const [type, setType] = useState<'in' | 'out' | 'transfer' | 'adjustment'>(initialType);
+    const [type, setType] = useState<MovementType>(initialType);
     const [fromWarehouseId, setFromWarehouseId] = useState<number | null>(null);
     const [toWarehouseId, setToWarehouseId] = useState<number | null>(null);
     const [quantity, setQuantity] = useState<number>(1);
@@ -51,6 +58,12 @@ export const StockMovementDialog: React.FC<StockMovementDialogProps> = ({
     const isAdmin = useUserStore((s) => s.user.role?.description) === 'Admin';
     const [purchase, setPurchase] = useState<PurchaseValue>(emptyPurchase());
     const withPurchase = type === 'in' && isAdmin && purchase.enabled;
+    // Módulo 5 (§16, R3): la compra puede quedar "por recibir", con la fecha en que llega; no suma stock todavía
+    const [arrival, setArrival] = useState<'now' | 'pending'>('now');
+    const [expectedAt, setExpectedAt] = useState('');
+    const pendingPurchase = withPurchase && arrival === 'pending';
+    const [countReason, setCountReason] = useState('count_error');
+    const [writeOffReason, setWriteOffReason] = useState('');
 
     useEffect(() => {
         if (open) {
@@ -63,11 +76,15 @@ export const StockMovementDialog: React.FC<StockMovementDialogProps> = ({
             setVariantsInput({});
             setAvailableVariants(undefined);
             setPurchase(emptyPurchase());
+            setArrival('now');
+            setExpectedAt('');
+            setCountReason('count_error');
+            setWriteOffReason('');
         }
     }, [open, initialType, product]);
 
     // El stock que se muestra es el del origen (salida, traslado) o el del almacén que se ajusta
-    const stockWarehouseId = type === 'out' || type === 'transfer' ? fromWarehouseId : type === 'adjustment' ? toWarehouseId : null;
+    const stockWarehouseId = type === 'out' || type === 'transfer' || type === 'writeoff' ? fromWarehouseId : type === 'adjustment' ? toWarehouseId : null;
 
     useEffect(() => {
         setVariantsInput({});
@@ -135,9 +152,22 @@ export const StockMovementDialog: React.FC<StockMovementDialogProps> = ({
             switch (type) {
                 case 'in':
                     if (!toWarehouseId) { toast.error('Seleccione almacén destino'); setLoading(false); return; }
+                    if (pendingPurchase) {
+                        endpoint = '/finance/purchases';
+                        body = { ...body, ...pendingPurchasePayload(purchase, expectedAt), warehouse_id: toWarehouseId };
+                        break;
+                    }
                     endpoint = '/inventory-movements/in';
                     body.to_warehouse_id = toWarehouseId;
                     if (withPurchase) body.purchase = purchasePayload(purchase);
+                    break;
+                case 'writeoff':
+                    if (!fromWarehouseId) { toast.error('Seleccione almacén'); setLoading(false); return; }
+                    if (!writeOffReason) { toast.error('Elige si es muestra, regalo o uso interno'); setLoading(false); return; }
+                    if (notes.trim().length < 3) { toast.error('Escribe el motivo: para quién o para qué'); setLoading(false); return; }
+                    endpoint = '/inventory-movements/write-off';
+                    body.warehouse_id = fromWarehouseId;
+                    body.reason = writeOffReason;
                     break;
                 case 'out':
                     if (!fromWarehouseId) { toast.error('Seleccione almacén origen'); setLoading(false); return; }
@@ -154,9 +184,11 @@ export const StockMovementDialog: React.FC<StockMovementDialogProps> = ({
                     break;
                 case 'adjustment':
                     if (!toWarehouseId) { toast.error('Seleccione almacén'); setLoading(false); return; }
+                    if (countReason === 'other' && !notes.trim()) { toast.error('Con "Otro", explica el motivo del ajuste'); setLoading(false); return; }
                     endpoint = '/inventory-movements/adjust';
                     body.warehouse_id = toWarehouseId;
                     body.new_quantity = quantity;
+                    body.reason = countReason;
                     break;
             }
 
@@ -164,8 +196,9 @@ export const StockMovementDialog: React.FC<StockMovementDialogProps> = ({
 
             if (status === 200 || status === 201) {
                 const data = await response.json().catch(() => ({}));
-                if (withPurchase && purchase.receipt && data.purchase?.id) await uploadPurchaseReceipt(data.purchase.id, purchase.receipt);
-                toast.success(withPurchase && data.message ? data.message : 'Movimiento realizado con éxito');
+                if (withPurchase && !pendingPurchase && purchase.receipt && data.purchase?.id) await uploadPurchaseReceipt(data.purchase.id, purchase.receipt);
+                // El traslado, la compra y la salida interna dicen qué pasó (por ejemplo, que el traslado queda en tránsito)
+                toast.success((withPurchase || type === 'transfer' || type === 'writeoff') && data.message ? data.message : 'Movimiento realizado con éxito');
                 onSuccess();
                 onClose();
             } else {
@@ -185,6 +218,7 @@ export const StockMovementDialog: React.FC<StockMovementDialogProps> = ({
             case 'out': return 'Salida de Stock ➖';
             case 'transfer': return 'Transferencia entre Almacenes 🔄';
             case 'adjustment': return 'Ajuste de Inventario (Fijar Stock) 🎯';
+            case 'writeoff': return 'Muestra, regalo o uso interno 🎁';
             default: return 'Movimiento de Stock';
         }
     };
@@ -210,16 +244,42 @@ export const StockMovementDialog: React.FC<StockMovementDialogProps> = ({
                         <MenuItem value="out">Salida (Venta/Pérdida)</MenuItem>
                         <MenuItem value="transfer">Transferencia</MenuItem>
                         <MenuItem value="adjustment">Ajuste (Corrección)</MenuItem>
+                        {isAdmin && <MenuItem value="writeoff">Muestra, regalo o uso interno</MenuItem>}
                     </TextField>
+                    {type === 'transfer' && (
+                        <Typography variant="caption" color="text.secondary" sx={{ mt: -1 }}>
+                            La mercancía sale del origen y queda "En tránsito". Entra al destino cuando marques "Recibido" en Inventario › En camino.
+                        </Typography>
+                    )}
+                    {type === 'adjustment' && (
+                        <>
+                            <TextField select label="Tipo de ajuste" value={countReason} onChange={(e) => setCountReason(e.target.value)} fullWidth size="small">
+                                {Object.entries(COUNT_REASONS).map(([k, v]) => <MenuItem key={k} value={k}>{v}</MenuItem>)}
+                            </TextField>
+                            <Typography variant="caption" color="text.secondary" sx={{ mt: -1 }}>
+                                ¿Dañado o perdido? No es un ajuste: usa "Pasar a revisión" en la tarjeta del producto. ¿Muestra, regalo o uso interno? Elige ese tipo de movimiento arriba.
+                            </Typography>
+                        </>
+                    )}
+                    {type === 'writeoff' && (
+                        <>
+                            <TextField select label="¿Qué es?" value={writeOffReason} onChange={(e) => setWriteOffReason(e.target.value)} fullWidth size="small" required>
+                                {Object.entries(WRITE_OFF_REASONS).map(([k, v]) => <MenuItem key={k} value={k}>{v}</MenuItem>)}
+                            </TextField>
+                            <Typography variant="caption" color="text.secondary" sx={{ mt: -1 }}>
+                                Sale del inventario sin ser una venta, y su costo cuenta como gasto, igual que la merma.
+                            </Typography>
+                        </>
+                    )}
                     {type === 'out' && isAdmin && (
                         <Typography variant="caption" color="text.secondary" sx={{ mt: -1 }}>
                             ¿Una pieza dañada o perdida? Mejor usa "Pasar a revisión", en la tarjeta del producto: queda para revisarla y, si se da de baja, cuenta como merma.
                         </Typography>
                     )}
 
-                    {(type === 'out' || type === 'transfer') && (
+                    {(type === 'out' || type === 'transfer' || type === 'writeoff') && (
                         <WarehouseSelector
-                            label="Desde Almacén (Origen)"
+                            label={type === 'writeoff' ? "Almacén" : "Desde Almacén (Origen)"}
                             value={fromWarehouseId}
                             onChange={setFromWarehouseId}
                         />
@@ -263,7 +323,20 @@ export const StockMovementDialog: React.FC<StockMovementDialogProps> = ({
                         />
                     )}
 
-                    {type === 'in' && isAdmin && <PurchaseFields value={purchase} onChange={setPurchase} quantity={quantity} />}
+                    {type === 'in' && isAdmin && purchase.enabled && (
+                        <Box>
+                            <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 0.5 }}>¿Ya llegó la mercancía?</Typography>
+                            <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', alignItems: 'center' }}>
+                                <ButtonCustom variant={arrival === 'now' ? 'contained' : 'outlined'} onClick={() => setArrival('now')}>Ya llegó: entra hoy</ButtonCustom>
+                                <ButtonCustom variant={arrival === 'pending' ? 'contained' : 'outlined'} onClick={() => setArrival('pending')}>Por recibir</ButtonCustom>
+                                {arrival === 'pending' && (
+                                    <TextField type="date" label="Llega el" value={expectedAt} onChange={(e) => setExpectedAt(e.target.value)} size="small" required
+                                        InputLabelProps={{ shrink: true }} inputProps={{ min: todayCaracas() }} />
+                                )}
+                            </Box>
+                        </Box>
+                    )}
+                    {type === 'in' && isAdmin && <PurchaseFields value={purchase} onChange={setPurchase} quantity={quantity} pending={pendingPurchase} />}
 
                     <TextField
                         fullWidth
@@ -281,7 +354,7 @@ export const StockMovementDialog: React.FC<StockMovementDialogProps> = ({
                 </ButtonCustom>
                 <ButtonCustom
                     onClick={handleSubmit}
-                    disabled={loading || !variantsOk || (withPurchase && !purchaseReady(purchase))}
+                    disabled={loading || !variantsOk || (withPurchase && !(pendingPurchase ? pendingPurchaseReady(purchase, expectedAt) : purchaseReady(purchase)))}
                 >
                     {loading ? 'Procesando...' : 'Guardar'}
                 </ButtonCustom>

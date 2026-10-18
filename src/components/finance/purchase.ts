@@ -21,6 +21,18 @@ export const purchaseReady = (v: PurchaseValue) => !v.enabled || (
     && (v.paymentType !== "credit" || v.dueDate !== "") && (v.paymentType !== "cash" || v.accountId !== "")
 );
 
+/** Compra por recibir (Módulo 5, §16, R3): proveedor, costo esperado y la fecha en que llega. Sin forma de pago. */
+export const pendingPurchaseReady = (v: PurchaseValue, expectedAt: string) =>
+    v.supplierId !== "" && toUsd(v.money.amount, v.money.currency, v.money.rate) !== null && expectedAt !== "";
+
+export const pendingPurchasePayload = (v: PurchaseValue, expectedAt: string) => ({
+    supplier_id: Number(v.supplierId),
+    total_amount: num(v.money.amount),
+    currency: v.money.currency,
+    ...(v.money.currency === "VES" ? { rate: num(v.money.rate) } : {}),
+    expected_at: expectedAt,
+});
+
 export const purchasePayload = (v: PurchaseValue) => ({
     supplier_id: Number(v.supplierId),
     total_amount: num(v.money.amount),
