@@ -14,8 +14,10 @@ import { api, errorMessage } from "../../components/finance/finance";
 import { ReplConfig } from "../../components/replenishment/replenishment";
 import { ProductsPanel, SettingsPanel } from "../../components/replenishment/ConfigPanels";
 import { AuditPanel, RoutesPanel, SupplierProductsPanel } from "../../components/replenishment/SupplyPanels";
+import { PlanPanel } from "../../components/replenishment/PlanPanel";
 
 const TABS = [
+    { key: "plan", label: "Plan" },
     { key: "settings", label: "Configuración" },
     { key: "products", label: "Productos" },
     { key: "suppliers", label: "Proveedores" },
@@ -26,7 +28,7 @@ const TABS = [
 export const Replenishment: React.FC = () => {
     const { loadingSession, isValid } = useValidateSession();
     const [params, setParams] = useSearchParams();
-    const tab = TABS.some((t) => t.key === params.get("tab")) ? params.get("tab")! : "settings";
+    const tab = TABS.some((t) => t.key === params.get("tab")) ? params.get("tab")! : "plan";
     const [data, setData] = useState<ReplConfig | null>(null);
     const load = useCallback(() => { api<ReplConfig>("/finance/replenishment/config").then(setData).catch((e) => toast.error(errorMessage(e))); }, []);
     useEffect(() => { load(); }, [load]);
@@ -45,6 +47,7 @@ export const Replenishment: React.FC = () => {
                 </Paper>
                 {tab === "audit" ? <AuditPanel /> : !data ? <Typography color="text.secondary" sx={{ p: 2 }}>Cargando…</Typography> : (
                     <>
+                        {tab === "plan" && <PlanPanel defaultCoverage={data.settings.coverage_days} />}
                         {tab === "settings" && <SettingsPanel data={data} onSaved={load} />}
                         {tab === "products" && <ProductsPanel data={data} onSaved={load} />}
                         {tab === "suppliers" && <SupplierProductsPanel data={data} onSaved={load} />}
