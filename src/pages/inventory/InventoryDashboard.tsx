@@ -10,9 +10,6 @@ import {
     LocalShipping as DelivererIcon,
     SwapHoriz as OperationIcon,
     History as HistoryIcon,
-    QueryStats as ScmIcon,
-    ShoppingCart as PurchaseOrderIcon,
-    BugReport as BugIcon,
     AccountBalance as ValuationIcon,
     LocalShippingOutlined as InTransitIcon,
 } from '@mui/icons-material';
@@ -30,9 +27,6 @@ import { StockTransfer } from './StockTransfer';
 import { StockAdjustment } from './StockAdjustment';
 import { TransferTripsPanel } from '../../components/finance/TransferTripsPanel';
 import { InventoryMovements } from './InventoryMovements';
-import { ScmDashboard } from './ScmDashboard';
-import { PurchaseOrders } from './PurchaseOrders';
-import { ScmTestPanel } from './ScmTestPanel';
 import { InventoryValuation } from './InventoryValuation';
 import { InTransitPanel } from '../../components/inventory/InTransitPanel';
 
@@ -86,10 +80,8 @@ export const InventoryDashboard: React.FC = () => {
         // Módulo 5 (§15, §16, R2, R3): traslados en tránsito y compras por recibir
         { label: 'En camino', icon: <InTransitIcon />, component: <InTransitPanel />, roles: ['Admin', 'Agencia'], path: '/in-transit' },
         { label: 'Historial', icon: <HistoryIcon />, component: <InventoryMovements isEmbedded />, roles: ['Admin', 'Agencia'], path: '/movements' },
-        { label: 'Reabastecimiento SCM', icon: <ScmIcon />, component: <ScmDashboard />, roles: ['Admin', 'Gerente', 'Master'], path: '/scm' },
-        { label: 'Órdenes de Compra', icon: <PurchaseOrderIcon />, component: <PurchaseOrders isEmbedded />, roles: ['Admin', 'Gerente', 'Master'], path: '/purchase-orders' },
+        // R9 (Módulo 5): "Reabastecimiento SCM", "Órdenes de Compra" y "Test SCM" salieron del menú; los reemplaza Reabastecimiento
         { label: 'Valoración', icon: <ValuationIcon />, component: <InventoryValuation />, roles: ['Admin', 'Gerente', 'Master'], path: '/valuation' },
-        { label: '🧪 Test SCM', icon: <BugIcon />, component: <ScmTestPanel />, roles: ['Admin', 'Gerente', 'Master'], path: '/test' },
     ];
 
     const availableTabs = allTabs.filter(tab => tab.roles.includes(roleDesc));

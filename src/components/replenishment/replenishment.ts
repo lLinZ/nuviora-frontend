@@ -10,6 +10,7 @@ export type ReplSettings = {
     score_ranges: Weights<"critical" | "high" | "monitor">;
     reliability_weights: Weights<"accuracy" | "stockout" | "excess">;
     paused_demand_pct: number; excess_multiplier: number; dead_stock_days: number; trend_stable_pct: number;
+    auto_plan_before_route: number;
 };
 
 export type ProductRow = {
@@ -71,6 +72,8 @@ export const ACTION_LABELS: Record<string, string> = {
     purchase_cancelled: "Canceló una compra por recibir",
     stock_adjusted: "Ajustó stock",
     stock_written_off: "Sacó stock (muestra, regalo o uso interno)",
+    plan_approved: "Aprobó un plan de inventario",
+    plan_evaluated: "Se evaluó un plan de inventario",
 };
 
 export const sum = (w: Record<string, number>) => Object.values(w).reduce((a, b) => a + (Number(b) || 0), 0);

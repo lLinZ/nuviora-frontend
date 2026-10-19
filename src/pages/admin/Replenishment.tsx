@@ -1,7 +1,8 @@
 // src/pages/admin/Replenishment.tsx
 // Reabastecimiento (Módulo 5 de Fran: inventario inteligente, forecasting, compras y transferencias). Solo Admin/propietario
 // (§3); el backend tampoco le entrega nada de esto a otro rol. Entrega 2: la configuración del plan (§128), los
-// proveedores por producto (§17–20), las rutas (§60–65) y la auditoría (§95). El plan ("Generar plan") llega en la entrega 3.
+// proveedores por producto (§17–20), las rutas (§60–65) y la auditoría (§95). Entrega 3: el plan ("Generar plan").
+// Entrega 4: aprobarlo, el PDF del chofer y la precisión de los planes que ya terminaron (§97–§105).
 import React, { useCallback, useEffect, useState } from "react";
 import { Box, Paper, Tab, Tabs, Typography } from "@mui/material";
 import { useSearchParams } from "react-router-dom";
@@ -15,9 +16,11 @@ import { ReplConfig } from "../../components/replenishment/replenishment";
 import { ProductsPanel, SettingsPanel } from "../../components/replenishment/ConfigPanels";
 import { AuditPanel, RoutesPanel, SupplierProductsPanel } from "../../components/replenishment/SupplyPanels";
 import { PlanPanel } from "../../components/replenishment/PlanPanel";
+import { AccuracyPanel } from "../../components/replenishment/AccuracyPanel";
 
 const TABS = [
     { key: "plan", label: "Plan" },
+    { key: "accuracy", label: "Precisión" },
     { key: "settings", label: "Configuración" },
     { key: "products", label: "Productos" },
     { key: "suppliers", label: "Proveedores" },
@@ -45,9 +48,9 @@ export const Replenishment: React.FC = () => {
                         {TABS.map((t) => <Tab key={t.key} value={t.key} label={t.label} />)}
                     </Tabs>
                 </Paper>
-                {tab === "audit" ? <AuditPanel /> : !data ? <Typography color="text.secondary" sx={{ p: 2 }}>Cargando…</Typography> : (
+                {tab === "audit" ? <AuditPanel /> : tab === "accuracy" ? <AccuracyPanel /> : !data ? <Typography color="text.secondary" sx={{ p: 2 }}>Cargando…</Typography> : (
                     <>
-                        {tab === "plan" && <PlanPanel defaultCoverage={data.settings.coverage_days} />}
+                        {tab === "plan" && <PlanPanel config={data} />}
                         {tab === "settings" && <SettingsPanel data={data} onSaved={load} />}
                         {tab === "products" && <ProductsPanel data={data} onSaved={load} />}
                         {tab === "suppliers" && <SupplierProductsPanel data={data} onSaved={load} />}

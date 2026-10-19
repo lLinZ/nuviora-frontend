@@ -4,6 +4,8 @@
 //   que ya salió lo devuelve al origen.
 // - Compras por recibir (solo Admin): no suman stock hasta recibirlas. Al recibir se ponen la cantidad y el costo reales,
 //   y ahí nacen el lote y la deuda o el pago, como en una compra normal (R3).
+// - Entrega 4: los traslados de un plan aprobado quedan "pendientes de salir" (§92). Salen cuando el Admin lo marca; los
+//   que reparten una compra no pueden salir hasta que la compra se recibe (§58, §118).
 import React, { useCallback, useEffect, useState } from "react";
 import {
     Alert, Box, Button, Chip, Dialog, DialogActions, DialogContent, DialogTitle, Paper, Stack, Table, TableBody, TableCell,
@@ -18,7 +20,8 @@ import { useUserStore } from "../../store/user/UserStore";
 type TransferLine = { id: number; product: string; variant: string | null; quantity: number };
 type Transfer = {
     id: number; status: string; status_label: string; from_warehouse: string; to_warehouse: string; units: number; lines: TransferLine[];
-    notes: string | null; dispatched_at: string | null; created_by: string | null;
+    notes: string | null; dispatched_at: string | null; created_at: string | null; created_by: string | null;
+    purchase_id: number | null; purchase_status: string | null; waiting_purchase: boolean;
 };
 type Purchase = {
     id: number; supplier_id: number; supplier: string; product: string; warehouse: string; quantity: number; total_amount: number;
@@ -33,6 +36,7 @@ export const InTransitPanel: React.FC = () => {
     const isAdmin = role === "Admin";
     const canReceive = ["Admin", "Gerente", "Master"].includes(role);
     const [transfers, setTransfers] = useState<Transfer[] | null>(null);
+    const [pendingTransfers, setPendingTransfers] = useState<Transfer[]>([]);
     const [purchases, setPurchases] = useState<Purchase[] | null>(null);
     const [busy, setBusy] = useState<string | null>(null);
     const [cancelling, setCancelling] = useState<{ kind: "transfer" | "purchase"; id: number; label: string } | null>(null);
@@ -41,8 +45,9 @@ export const InTransitPanel: React.FC = () => {
 
     const load = useCallback(async () => {
         try {
-            const t = await api<{ transfers: Transfer[] }>("/inventory-transfers?status=in_transit");
-            setTransfers(t.transfers);
+            const t = await api<{ transfers: Transfer[] }>("/inventory-transfers?status=open");
+            setTransfers(t.transfers.filter((x) => x.status === "in_transit"));
+            setPendingTransfers(t.transfers.filter((x) => x.status !== "in_transit").reverse());
             if (isAdmin) {
                 const p = await api<{ purchases: Purchase[] }>("/finance/purchases?status=pending");
                 setPurchases(p.purchases);
@@ -56,6 +61,16 @@ export const InTransitPanel: React.FC = () => {
         setBusy(`t${t.id}`);
         try {
             const r = await api<{ message: string }>(`/inventory-transfers/${t.id}/receive`, "POST", JSON.stringify({}));
+            toast.success(r.message);
+            load();
+        } catch (e) { toast.error(errorMessage(e)); } finally { setBusy(null); }
+    };
+
+    const sendTransfer = async (t: Transfer) => {
+        if (!window.confirm(`¿Salió el traslado de ${t.from_warehouse} a ${t.to_warehouse}? Salen ${t.units} unidades de ${t.from_warehouse} y van en tránsito.`)) return;
+        setBusy(`s${t.id}`);
+        try {
+            const r = await api<{ message: string }>(`/inventory-transfers/${t.id}/send`, "POST", JSON.stringify({}));
             toast.success(r.message);
             load();
         } catch (e) { toast.error(errorMessage(e)); } finally { setBusy(null); }
@@ -78,6 +93,58 @@ export const InTransitPanel: React.FC = () => {
 
     return (
         <Stack spacing={3}>
+            {pendingTransfers.length > 0 && (
+                <Paper variant="outlined" sx={{ p: 2 }}>
+                    <Typography variant="h6">Traslados pendientes de salir</Typography>
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
+                        Vienen de un plan de inventario aprobado. Márcalos "Salió" cuando el chofer los retire: ahí salen del origen y quedan en tránsito.
+                    </Typography>
+                    <TableContainer>
+                        <Table size="small">
+                            <TableHead>
+                                <TableRow>
+                                    <TableCell>Creado</TableCell>
+                                    <TableCell>De → a</TableCell>
+                                    <TableCell>Productos</TableCell>
+                                    <TableCell align="right">Unidades</TableCell>
+                                    {canReceive && <TableCell align="right" />}
+                                </TableRow>
+                            </TableHead>
+                            <TableBody>
+                                {pendingTransfers.map((t) => (
+                                    <TableRow key={t.id}>
+                                        <TableCell sx={{ whiteSpace: "nowrap" }}>{fmt(t.created_at)}</TableCell>
+                                        <TableCell>
+                                            <b>{t.from_warehouse}</b> → <b>{t.to_warehouse}</b>
+                                            {t.notes && <Typography variant="caption" color="text.secondary" display="block">{t.notes}</Typography>}
+                                            {t.waiting_purchase && (
+                                                <Chip size="small" color="warning" sx={{ mt: 0.5 }}
+                                                    label={t.purchase_status === "cancelled" ? "Su compra se canceló: cancela este traslado" : "Retirar solo después de recibir la compra del proveedor"} />
+                                            )}
+                                        </TableCell>
+                                        <TableCell>
+                                            <Box sx={{ display: "flex", gap: 0.5, flexWrap: "wrap" }}>
+                                                {t.lines.map((l) => <Chip key={l.id} size="small" label={`${l.product}${l.variant ? ` ${l.variant}` : ""} × ${l.quantity}`} />)}
+                                            </Box>
+                                        </TableCell>
+                                        <TableCell align="right">{t.units}</TableCell>
+                                        {canReceive && (
+                                            <TableCell align="right" sx={{ whiteSpace: "nowrap" }}>
+                                                <Button size="small" variant="contained" disabled={busy !== null || t.waiting_purchase} onClick={() => sendTransfer(t)}>Salió</Button>
+                                                <Button size="small" color="inherit" disabled={busy !== null}
+                                                    onClick={() => setCancelling({ kind: "transfer", id: t.id, label: `el traslado de ${t.from_warehouse} a ${t.to_warehouse} (todavía no salió)` })}>
+                                                    Cancelar
+                                                </Button>
+                                            </TableCell>
+                                        )}
+                                    </TableRow>
+                                ))}
+                            </TableBody>
+                        </Table>
+                    </TableContainer>
+                </Paper>
+            )}
+
             <Paper variant="outlined" sx={{ p: 2 }}>
                 <Typography variant="h6">Traslados en tránsito</Typography>
                 <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>

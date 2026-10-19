@@ -96,7 +96,17 @@ export const SettingsPanel: React.FC<{ data: ReplConfig; onSaved: () => void }> 
                 </Box>
                 {weightGroup("score_weights", "Prioridad de reposición (§81)", "Ordena las urgencias de 0 a 100. No decide cuánto comprar.")}
                 {weightGroup("score_ranges", "Rangos de la prioridad (§82)", "Desde qué puntaje es crítico, alta prioridad o para monitorizar.")}
-                {weightGroup("reliability_weights", "Confiabilidad del forecast (§102)", "Cómo se arma el indicador de confiabilidad cuando el sistema se autoevalúe.")}
+                {weightGroup("reliability_weights", "Confiabilidad del forecast (§102)", "Cómo se arma el indicador de confiabilidad de la pestaña Precisión.")}
+                <Box>
+                    <Typography variant="subtitle2">Plan automático (§66, §107)</Typography>
+                    <Stack direction="row" alignItems="center" gap={1}>
+                        <Switch checked={v("auto_plan_before_route") === "1"} onChange={(e) => set("auto_plan_before_route", e.target.checked ? "1" : "0")} />
+                        <Typography variant="body2">Generar el plan solo la noche antes de cada día de ruta</Typography>
+                    </Stack>
+                    <Typography variant="caption" color="text.secondary" display="block">
+                        Solo funciona con rutas que tengan días habituales (hoy no tienen: salen cuando lo dices). El plan se genera, pero aprobarlo sigue siendo tuyo.
+                    </Typography>
+                </Box>
                 <Box>
                     <Typography variant="subtitle2">Valores que el documento no fija</Typography>
                     <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 1 }}>
