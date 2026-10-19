@@ -110,7 +110,7 @@ export const SettingsPanel: React.FC<{ data: ReplConfig; onSaved: () => void }> 
                 <Box>
                     <Typography variant="subtitle2">Valores que el documento no fija</Typography>
                     <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 1 }}>
-                        Arrancan con lo que se le propuso a Fran (punto 8). Si los cambias o los confirmas, dejan de estar pendientes.
+                        Los que se le propusieron a Fran (punto 8) y él aprobó. Se pueden cambiar cuando quieras.
                     </Typography>
                     <Stack spacing={1.5}>
                         <Stack direction="row" alignItems="center"><NumberField label="Producto Pausado: su demanda" value={v("paused_demand_pct")} onChange={(val) => set("paused_demand_pct", val)} unit="%" width={260} />{pendingChip("paused_demand_pct")}</Stack>
