@@ -13,13 +13,14 @@ import { playNotificationSound } from "../../lib/sound";
 import {
     api, CenterBoard, clientName, clock, errorMessage, hour, minutes, OrdersResponse, SLA_COLOR, STATUS_COLOR, TowerOrder,
 } from "./logistics";
-import { AgencyDialog, AssignDialog, DetailDialog, NoveltyDialog } from "./OrderDialogs";
+import { AgencyDialog, AssignDialog, DetailDialog, IncidentDialog, NoveltyDialog } from "./OrderDialogs";
 
 const STATE_COLOR = { abierto: "success", sin_operador: "error", cerrado: "default", inactivo: "default" } as const;
 const ALERT_SEVERITY = { critical: "error", red: "error", warning: "warning", info: "info" } as const;
 
-/** §21.1, con lo que ya existe. Las incidencias graves llegan con su parte (§14). */
+/** §21.1. */
 const TILES: { key: keyof OrdersResponse["summary"]; label: string; danger?: boolean }[] = [
+    { key: "incidencias", label: "Incidencias graves", danger: true },
     { key: "sin_rider", label: "Sin rider / buscando" },
     { key: "preparando_listos", label: "Preparando / listos" },
     { key: "rutas_activas", label: "Rutas propias activas" },
@@ -40,6 +41,7 @@ export const TowerPanel: React.FC<{ centerId: number; isAdmin: boolean }> = ({ c
     const [assign, setAssign] = useState<TowerOrder | null>(null);
     const [agency, setAgency] = useState<TowerOrder | null>(null);
     const [novelty, setNovelty] = useState<TowerOrder | null>(null);
+    const [incident, setIncident] = useState<TowerOrder | null>(null);
     const [detail, setDetail] = useState<number | null>(null);
     const [closing, setClosing] = useState<{ items: { texto: string; total: number }[] } | null>(null);
     const [reason, setReason] = useState("");
@@ -109,7 +111,7 @@ export const TowerPanel: React.FC<{ centerId: number; isAdmin: boolean }> = ({ c
         } catch (e) { toast.error(errorMessage(e)); }
     };
 
-    const done = () => { setAssign(null); setAgency(null); setNovelty(null); load(); };
+    const done = () => { setAssign(null); setAgency(null); setNovelty(null); setIncident(null); load(); };
 
     if (!board || !data) return <Typography color="text.secondary" sx={{ p: 2 }}>Cargando la torre…</Typography>;
 
@@ -154,7 +156,7 @@ export const TowerPanel: React.FC<{ centerId: number; isAdmin: boolean }> = ({ c
             )}
 
             {/* Resumen (§21.1) */}
-            <Box sx={{ display: "grid", gap: 1.5, gridTemplateColumns: { xs: "repeat(2, 1fr)", sm: "repeat(3, 1fr)", md: "repeat(5, 1fr)", xl: "repeat(9, 1fr)" } }}>
+            <Box sx={{ display: "grid", gap: 1.5, gridTemplateColumns: { xs: "repeat(2, 1fr)", sm: "repeat(3, 1fr)", md: "repeat(5, 1fr)", xl: "repeat(10, 1fr)" } }}>
                 {TILES.map((t) => {
                     const v = data.summary[t.key];
                     return (
@@ -186,7 +188,8 @@ export const TowerPanel: React.FC<{ centerId: number; isAdmin: boolean }> = ({ c
                             <TableBody>
                                 {data.orders.map((o) => (
                                     <OrderRow key={o.id} o={o} elapsed={elapsed} busy={busy === o.id} isAdmin={isAdmin} onAct={(p, body) => act(o, p, body)}
-                                        onAssign={() => setAssign(o)} onAgency={() => setAgency(o)} onNovelty={() => setNovelty(o)} onDetail={() => setDetail(o.id)} />
+                                        onAssign={() => setAssign(o)} onAgency={() => setAgency(o)} onNovelty={() => setNovelty(o)} onIncident={() => setIncident(o)}
+                                        onDetail={() => setDetail(o.id)} />
                                 ))}
                             </TableBody>
                         </Table>
@@ -197,6 +200,7 @@ export const TowerPanel: React.FC<{ centerId: number; isAdmin: boolean }> = ({ c
             <AssignDialog row={assign} onClose={() => setAssign(null)} onDone={done} />
             <AgencyDialog row={agency} onClose={() => setAgency(null)} onDone={done} />
             <NoveltyDialog row={novelty} onClose={() => setNovelty(null)} onDone={done} />
+            <IncidentDialog row={incident} onClose={() => setIncident(null)} onDone={done} />
             <DetailDialog id={detail} onClose={() => setDetail(null)} />
 
             {/* §31.1: cerrar con pendientes pide el motivo y quedan a la vista del siguiente operador */}
@@ -222,8 +226,8 @@ export const TowerPanel: React.FC<{ centerId: number; isAdmin: boolean }> = ({ c
 
 const OrderRow: React.FC<{
     o: TowerOrder; elapsed: number; busy: boolean; isAdmin: boolean; onAct: (path: string, body?: Record<string, unknown>) => void;
-    onAssign: () => void; onAgency: () => void; onNovelty: () => void; onDetail: () => void;
-}> = ({ o, elapsed, busy, isAdmin, onAct, onAssign, onAgency, onNovelty, onDetail }) => {
+    onAssign: () => void; onAgency: () => void; onNovelty: () => void; onIncident: () => void; onDetail: () => void;
+}> = ({ o, elapsed, busy, isAdmin, onAct, onAssign, onAgency, onNovelty, onIncident, onDetail }) => {
     const sla = o.sla_minutes !== null ? o.sla_minutes + elapsed / 60 : null;
     const searching = o.searching_seconds !== null ? o.searching_seconds + elapsed : null;
     const agencyIn = o.agency_in_seconds !== null ? o.agency_in_seconds - elapsed : null;
@@ -247,8 +251,11 @@ const OrderRow: React.FC<{
                 <Chip size="small" color={STATUS_COLOR[s] ?? "default"} label={o.status_label} />
                 {s === "buscando_rider" && searching !== null && (
                     <Typography variant="caption" sx={{ display: "block", mt: 0.5 }} color={agencyIn !== null && agencyIn < 120 ? "error" : "text.secondary"}>
-                        {o.round ? `R${o.round.number} · ` : ""}buscando {clock(searching)} · agencia en {clock(agencyIn)}
+                        {o.round ? `R${o.round.number} · ` : ""}buscando {clock(searching)}{o.pickup_rider ? "" : ` · agencia en ${clock(agencyIn)}`}
                     </Typography>
+                )}
+                {o.pickup_rider && (
+                    <Typography variant="caption" color="warning.main" sx={{ display: "block" }}>Reemplazo: el paquete está con {o.pickup_rider.names}</Typography>
                 )}
                 {o.ready && s === "buscando_rider" && <Typography variant="caption" color="primary" sx={{ display: "block" }}>Paquete listo</Typography>}
                 {s === "asignado_agencia" && <Typography variant="caption" color="text.secondary" sx={{ display: "block" }}>{o.handed_to_agency ? "Ya la tiene la agencia" : "Paquete en el centro"}</Typography>}
@@ -269,14 +276,19 @@ const OrderRow: React.FC<{
             </TableCell>
             <TableCell align="right">
                 <Stack direction="row" spacing={1} sx={{ justifyContent: "flex-end", flexWrap: "wrap", rowGap: 1 }}>
+                    {o.open_incident && <Button size="small" color="error" variant={o.priority_key === "incidencia" ? "contained" : "outlined"} onClick={onIncident}>Incidencia</Button>}
                     {o.open_novelty && <Button size="small" color="error" variant={o.priority_key === "novedad" ? "contained" : "outlined"} onClick={onNovelty}>Novedad</Button>}
                     {s === "buscando_rider" && <Button size="small" variant="contained" onClick={onAssign}>Asignar a mano</Button>}
-                    {s === "buscando_rider" && <Button size="small" color="secondary" onClick={onAgency}>A la agencia</Button>}
-                    {s === "rider_confirmado" && <Button size="small" variant="contained" disabled={busy} onClick={() => onAct("prepare")}>Preparar</Button>}
-                    {((s === "buscando_rider" && !o.ready) || s === "rider_confirmado" || s === "preparando") &&
+                    {/* Con el paquete en la calle (§14), la agencia no lo puede recoger en el centro */}
+                    {s === "buscando_rider" && !o.pickup_rider && <Button size="small" color="secondary" onClick={onAgency}>A la agencia</Button>}
+                    {s === "rider_confirmado" && !o.pickup_rider && <Button size="small" variant="contained" disabled={busy} onClick={() => onAct("prepare")}>Preparar</Button>}
+                    {!o.pickup_rider && ((s === "buscando_rider" && !o.ready) || s === "rider_confirmado" || s === "preparando") &&
                         <Button size="small" variant={s === "preparando" ? "contained" : "text"} disabled={busy} onClick={() => onAct("ready")}>Listo</Button>}
-                    {["rider_confirmado", "preparando", "listo_despacho"].includes(s) &&
+                    {!o.pickup_rider && ["rider_confirmado", "preparando", "listo_despacho"].includes(s) &&
                         <Button size="small" variant={s === "listo_despacho" ? "contained" : "text"} color="success" disabled={busy} onClick={() => onAct("depart")}>Confirmar salida</Button>}
+                    {/* §14.3: el reemplazo recibe el paquete del rider que tuvo la incidencia */}
+                    {o.pickup_rider && o.rider_id && ["rider_confirmado", "preparando", "listo_despacho"].includes(s) &&
+                        <Button size="small" variant="contained" color="success" disabled={busy} onClick={() => onAct("transfer")}>Confirmar traspaso</Button>}
                     {s === "asignado_agencia" && !o.handed_to_agency && <Button size="small" variant="contained" color="secondary" disabled={busy} onClick={() => onAct("hand-to-agency")}>Entregar a la agencia</Button>}
                     {/* §16.1: el operador recibe el retorno; solo administración lo reingresa o lo da de baja */}
                     {s === "retorno_pendiente" &&

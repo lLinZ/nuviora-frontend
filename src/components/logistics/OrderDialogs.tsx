@@ -4,11 +4,11 @@
 // ver el historial con sus rondas. Las reglas las valida el backend; aquí solo se muestran sus respuestas.
 import React, { useEffect, useState } from "react";
 import {
-    Alert, Box, Button, Chip, Dialog, DialogActions, DialogContent, DialogTitle, List, ListItemButton, ListItemText, Stack,
+    Alert, Box, Button, Chip, Dialog, DialogActions, DialogContent, DialogTitle, Link, List, ListItemButton, ListItemText, Stack,
     Table, TableBody, TableCell, TableHead, TableRow, TextField, Typography,
 } from "@mui/material";
 import { toast } from "react-toastify";
-import { api, CandidatesResponse, clock, errorMessage, hour, OrderDetail, TowerOrder } from "./logistics";
+import { api, CandidatesResponse, clock, errorMessage, hour, mapsLink, OrderDetail, TowerOrder } from "./logistics";
 
 type Props = { row: TowerOrder | null; onClose: () => void; onDone: () => void };
 
@@ -160,6 +160,67 @@ export const NoveltyDialog: React.FC<Props> = ({ row, onClose, onDone }) => {
                         <Button variant={n.commercial ? "contained" : "outlined"} color="secondary" disabled={saving}
                             onClick={() => run(`/logistics/novelties/${n.id}/escalate`, { comment: text || null })}>Escalar a la vendedora</Button>
                         {!n.commercial && <Button variant="contained" disabled={!text.trim() || saving} onClick={() => run(`/logistics/novelties/${n.id}/resolve`, { result: text })}>Resuelta: sigue la ruta</Button>}
+                    </>
+                )}
+            </DialogActions>
+        </Dialog>
+    );
+};
+
+/**
+ * §14.2: la incidencia de ruta. El operador decide si el rider sigue o si se interrumpe la ruta y de dónde recoge el
+ * reemplazo el paquete: donde está el rider (sigue bajo su custodia hasta el traspaso) o el centro, si ya volvió.
+ */
+export const IncidentDialog: React.FC<Props> = ({ row, onClose, onDone }) => {
+    const inc = row?.open_incident ?? null;
+    const [note, setNote] = useState("");
+    const [saving, setSaving] = useState(false);
+    useEffect(() => { setNote(""); }, [row]);
+
+    const run = async (url: string, body: object) => {
+        setSaving(true);
+        try {
+            const r = await api<{ message: string }>(url, "POST", body);
+            toast.success(r.message);
+            onDone();
+        } catch (e) { toast.error(errorMessage(e)); } finally { setSaving(false); }
+    };
+
+    return (
+        <Dialog open={!!row} onClose={onClose} fullWidth maxWidth="sm">
+            <DialogTitle>Incidencia de ruta · {row?.order?.name}</DialogTitle>
+            {inc && (
+                <DialogContent>
+                    <Stack direction="row" spacing={1} sx={{ mb: 1, flexWrap: "wrap" }}>
+                        <Chip color="error" label={inc.type_label} />
+                        {inc.status === "interrumpida" && <Chip color="warning" label="Ruta interrumpida: esperando el traspaso" />}
+                    </Stack>
+                    <Typography variant="body2" sx={{ mb: 0.5 }}>
+                        {inc.rider?.names ?? "El rider"} a las {hour(inc.reported_at)}{inc.comment ? `: “${inc.comment}”` : "."}
+                    </Typography>
+                    {inc.rider?.phone && <Typography variant="body2" color="text.secondary">Teléfono del rider: {inc.rider.phone}</Typography>}
+                    {inc.lat !== null && inc.lng !== null && (
+                        <Link href={mapsLink(inc.lat, inc.lng)} target="_blank" rel="noopener" variant="body2">Ver dónde está en el mapa</Link>
+                    )}
+                    {inc.status === "abierta" && (
+                        <>
+                            <Alert severity="info" sx={{ mt: 2 }}>
+                                Si no puede seguir, interrumpe la ruta: la orden vuelve a buscar rider (el SLA sigue corriendo). Elige dónde recoge el paquete el reemplazo.
+                            </Alert>
+                            <TextField label="Nota (opcional)" value={note} onChange={(e) => setNote(e.target.value)} fullWidth size="small" sx={{ mt: 2 }} inputProps={{ maxLength: 250 }} />
+                        </>
+                    )}
+                </DialogContent>
+            )}
+            <DialogActions sx={{ flexWrap: "wrap", gap: 1 }}>
+                <Button onClick={onClose}>Cerrar</Button>
+                {inc?.status === "abierta" && (
+                    <>
+                        <Button disabled={saving} onClick={() => run(`/logistics/incidents/${inc.id}/continue`, { note: note || null })}>Puede seguir</Button>
+                        <Button color="warning" variant="outlined" disabled={saving}
+                            onClick={() => run(`/logistics/incidents/${inc.id}/interrupt`, { pickup: "almacen", note: note || null })}>Interrumpir: el paquete está en el centro</Button>
+                        <Button color="error" variant="contained" disabled={saving}
+                            onClick={() => run(`/logistics/incidents/${inc.id}/interrupt`, { pickup: "rider", note: note || null })}>Interrumpir: recoger donde está el rider</Button>
                     </>
                 )}
             </DialogActions>

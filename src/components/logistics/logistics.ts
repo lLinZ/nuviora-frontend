@@ -29,6 +29,12 @@ export type TowerOrder = {
     round: { number: number; expires_at: string } | null; ready: boolean; handed_to_agency: boolean;
     // §16.1: el plazo del retorno (R7) y si al recibirlo va a revisión o queda apartada para la orden (R5)
     return_deadline: string | null; return_overdue: boolean; return_to_review: boolean | null;
+    // §14: la incidencia de ruta abierta (o interrumpida, esperando el traspaso) y el rider que todavía tiene el paquete
+    open_incident: {
+        id: number; type: string; type_label: string; comment: string | null; status: "abierta" | "interrumpida"; pickup: "rider" | "almacen" | null;
+        rider: { id: number; names: string; phone: string | null } | null; lat: number | null; lng: number | null; reported_at: string;
+    } | null;
+    pickup_rider: { id: number; names: string; phone: string | null } | null;
     open_novelty: Novelty | null; priority: number | null; priority_key: string | null; priority_label: string | null;
     order: {
         id: number; name: string; current_total_price: string | number | null; location: string | null;
@@ -41,7 +47,7 @@ export type TowerOrder = {
 
 export type TowerSummary = {
     sin_rider: number; preparando_listos: number; rutas_activas: number; en_agencia: number; sla_riesgo: number; novedades: number; retornos: number;
-    efectivo_limite: number; diferencias: number;
+    efectivo_limite: number; diferencias: number; incidencias: number;
 };
 
 /** El efectivo bajo custodia de un rider (§17): dólares, bolívares y todo en USD (los bolívares a la tasa de su orden, R6). */
