@@ -283,7 +283,7 @@ const SETTINGS: { key: string; label: string; help?: string; kind?: "time" | "bo
     { key: "sla_target_minutes", label: "SLA objetivo (min)" },
     { key: "sla_limit_minutes", label: "SLA límite de la flota propia (min)" },
     { key: "round1_seconds", label: "Ronda 1: duración (s)" },
-    { key: "round1_candidates", label: "Ronda 1: riders" },
+    { key: "round1_candidates", label: "Ronda 1: mínimo de riders", help: "Suena a todos los que llegan dentro del SLA objetivo; si son menos, a este número de los más rápidos" },
     { key: "round2_seconds", label: "Ronda 2: duración (s)" },
     { key: "round2_new_candidates", label: "Ronda 2: riders nuevos" },
     { key: "manual_calls_at_seconds", label: "Alerta roja y llamadas a los (s)" },
