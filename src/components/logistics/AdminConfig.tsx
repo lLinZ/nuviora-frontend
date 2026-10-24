@@ -296,6 +296,7 @@ const SETTINGS: { key: string; label: string; help?: string; kind?: "time" | "bo
     { key: "gps_max_age_seconds", label: "GPS reciente: máximo (s)" },
     { key: "morning_check_at", label: "Chequeo de la mañana", kind: "time" },
     { key: "morning_check_max_eta_minutes", label: "Chequeo: ETA máximo (min)", help: "Vacío: Fran todavía no lo fijó" },
+    { key: "road_report_minutes", label: "Incidencias en la vía: duran (min)", help: "Si nadie confirma que siguen, se quitan solas (§15)" },
     { key: "pay_failed_leg", label: "Se paga la ida si el cliente no recibe", kind: "bool" },
     { key: "return_deadline", label: "Plazo de retorno", kind: "fixed" },
 ];

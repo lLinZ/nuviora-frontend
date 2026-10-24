@@ -56,8 +56,14 @@ export type RiderCashBalance = { usd: number; ves: number; total_usd: number };
 export const cashText = (c: RiderCashBalance) =>
     [c.usd ? `$${c.usd.toFixed(2)}` : null, c.ves ? `Bs ${c.ves.toLocaleString("es-VE", { minimumFractionDigits: 2 })}` : null].filter(Boolean).join(" + ") || "$0";
 
+/** §15: una incidencia vial que reportó un rider, mientras siga activa. */
+export type RoadReport = {
+    id: number; type: string; type_label: string; comment: string | null; lat: number; lng: number; reported_at: string; expires_at: string;
+    reporter: string | null; still_count: number;
+};
+
 export type OrdersResponse = {
-    orders: TowerOrder[]; summary: TowerSummary; server_time: string;
+    orders: TowerOrder[]; summary: TowerSummary; server_time: string; road_reports: RoadReport[];
     settings: { sla_target_minutes: number; sla_limit_minutes: number; manual_calls_at_seconds: number; hard_cap_seconds: number; cash_limit_usd: number };
 };
 

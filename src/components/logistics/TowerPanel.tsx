@@ -4,14 +4,14 @@
 // refresca cada 5 segundos; los relojes corren cada segundo entre una consulta y otra.
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
-    Alert, Box, Button, Chip, Dialog, DialogActions, DialogContent, DialogTitle, IconButton, Paper, Stack, Table, TableBody, TableCell,
+    Alert, Box, Button, Chip, Dialog, DialogActions, DialogContent, DialogTitle, IconButton, Link, Paper, Stack, Table, TableBody, TableCell,
     TableContainer, TableHead, TableRow, TextField, Tooltip, Typography,
 } from "@mui/material";
 import { HistoryRounded, PhoneRounded } from "@mui/icons-material";
 import { toast } from "react-toastify";
 import { playNotificationSound } from "../../lib/sound";
 import {
-    api, CenterBoard, clientName, clock, errorMessage, hour, minutes, OrdersResponse, SLA_COLOR, STATUS_COLOR, TowerOrder,
+    api, CenterBoard, clientName, clock, errorMessage, hour, mapsLink, minutes, OrdersResponse, SLA_COLOR, STATUS_COLOR, TowerOrder,
 } from "./logistics";
 import { AgencyDialog, AssignDialog, DetailDialog, IncidentDialog, NoveltyDialog } from "./OrderDialogs";
 
@@ -104,6 +104,14 @@ export const TowerPanel: React.FC<{ centerId: number; isAdmin: boolean }> = ({ c
         } catch (e) { toast.error(errorMessage(e)); }
     };
 
+    const voteRoad = async (id: number, vote: "activo" | "despejado") => {
+        try {
+            const r = await api<{ message: string }>(`/logistics/road-reports/${id}/vote`, "POST", { vote });
+            toast.success(r.message);
+            load();
+        } catch (e) { toast.error(errorMessage(e)); }
+    };
+
     const resolveAlert = async (id: number) => {
         try {
             await api(`/logistics/centers/${centerId}/alerts/${id}/resolve`, "POST");
@@ -167,6 +175,30 @@ export const TowerPanel: React.FC<{ centerId: number; isAdmin: boolean }> = ({ c
                     );
                 })}
             </Box>
+
+            {/* §15: lo que reportaron los riders en la vía (se quita solo si nadie confirma que sigue) */}
+            {data.road_reports.length > 0 && (
+                <Paper elevation={0} sx={{ p: 2, borderRadius: 3, border: "1px solid", borderColor: "divider" }}>
+                    <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 1 }}>En la vía</Typography>
+                    <Stack spacing={1}>
+                        {data.road_reports.map((r) => (
+                            <Stack key={r.id} direction={{ xs: "column", sm: "row" }} spacing={1} sx={{ alignItems: { sm: "center" }, justifyContent: "space-between" }}>
+                                <Box>
+                                    <Typography variant="body2"><b>{r.type_label}</b>{r.comment ? ` · ${r.comment}` : ""}</Typography>
+                                    <Typography variant="caption" color="text.secondary">
+                                        {r.reporter ?? "Un rider"} a las {hour(r.reported_at)}{r.still_count > 0 ? ` · ${r.still_count} confirmación(es)` : ""} · se quita a las {hour(r.expires_at)} ·{" "}
+                                        <Link href={mapsLink(r.lat, r.lng)} target="_blank" rel="noopener">ver en el mapa</Link>
+                                    </Typography>
+                                </Box>
+                                <Stack direction="row" spacing={1}>
+                                    <Button size="small" onClick={() => voteRoad(r.id, "activo")}>Sigue activo</Button>
+                                    <Button size="small" color="success" onClick={() => voteRoad(r.id, "despejado")}>Despejado</Button>
+                                </Stack>
+                            </Stack>
+                        ))}
+                    </Stack>
+                </Paper>
+            )}
 
             {/* Cola de prioridad (§21.3) */}
             <Paper elevation={0} sx={{ borderRadius: 3, border: "1px solid", borderColor: "divider" }}>
