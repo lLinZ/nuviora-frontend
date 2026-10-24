@@ -62,7 +62,7 @@ export const ControlTower: React.FC = () => {
                         </Typography>
                     )
                     : tab === "riders" ? <RidersPanel key={centerId} centerId={centerId} />
-                    : <TowerPanel key={centerId} centerId={centerId} />}
+                    : <TowerPanel key={centerId} centerId={centerId} isAdmin={isAdmin} />}
             </Box>
         </Layout>
     );

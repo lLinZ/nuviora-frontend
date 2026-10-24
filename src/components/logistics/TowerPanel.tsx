@@ -29,7 +29,7 @@ const TILES: { key: keyof OrdersResponse["summary"]; label: string; danger?: boo
     { key: "retornos", label: "Retornos pendientes" },
 ];
 
-export const TowerPanel: React.FC<{ centerId: number }> = ({ centerId }) => {
+export const TowerPanel: React.FC<{ centerId: number; isAdmin: boolean }> = ({ centerId, isAdmin }) => {
     const [board, setBoard] = useState<CenterBoard | null>(null);
     const [data, setData] = useState<OrdersResponse | null>(null);
     const [fetchedAt, setFetchedAt] = useState(Date.now());
@@ -67,10 +67,10 @@ export const TowerPanel: React.FC<{ centerId: number }> = ({ centerId }) => {
 
     const elapsed = (Date.now() - fetchedAt) / 1000;
 
-    const act = async (row: TowerOrder, path: string) => {
+    const act = async (row: TowerOrder, path: string, body?: Record<string, unknown>) => {
         setBusy(row.id);
         try {
-            const r = await api<{ message: string }>(`/logistics/orders/${row.id}/${path}`, "POST");
+            const r = await api<{ message: string }>(`/logistics/orders/${row.id}/${path}`, "POST", body);
             toast.success(r.message);
             await load();
         } catch (e) { toast.error(errorMessage(e)); } finally { setBusy(null); }
@@ -183,7 +183,7 @@ export const TowerPanel: React.FC<{ centerId: number }> = ({ centerId }) => {
                             </TableHead>
                             <TableBody>
                                 {data.orders.map((o) => (
-                                    <OrderRow key={o.id} o={o} elapsed={elapsed} busy={busy === o.id} onAct={(p) => act(o, p)}
+                                    <OrderRow key={o.id} o={o} elapsed={elapsed} busy={busy === o.id} isAdmin={isAdmin} onAct={(p, body) => act(o, p, body)}
                                         onAssign={() => setAssign(o)} onAgency={() => setAgency(o)} onNovelty={() => setNovelty(o)} onDetail={() => setDetail(o.id)} />
                                 ))}
                             </TableBody>
@@ -219,9 +219,9 @@ export const TowerPanel: React.FC<{ centerId: number }> = ({ centerId }) => {
 };
 
 const OrderRow: React.FC<{
-    o: TowerOrder; elapsed: number; busy: boolean; onAct: (path: string) => void;
+    o: TowerOrder; elapsed: number; busy: boolean; isAdmin: boolean; onAct: (path: string, body?: Record<string, unknown>) => void;
     onAssign: () => void; onAgency: () => void; onNovelty: () => void; onDetail: () => void;
-}> = ({ o, elapsed, busy, onAct, onAssign, onAgency, onNovelty, onDetail }) => {
+}> = ({ o, elapsed, busy, isAdmin, onAct, onAssign, onAgency, onNovelty, onDetail }) => {
     const sla = o.sla_minutes !== null ? o.sla_minutes + elapsed / 60 : null;
     const searching = o.searching_seconds !== null ? o.searching_seconds + elapsed : null;
     const agencyIn = o.agency_in_seconds !== null ? o.agency_in_seconds - elapsed : null;
@@ -250,6 +250,11 @@ const OrderRow: React.FC<{
                 )}
                 {o.ready && s === "buscando_rider" && <Typography variant="caption" color="primary" sx={{ display: "block" }}>Paquete listo</Typography>}
                 {s === "asignado_agencia" && <Typography variant="caption" color="text.secondary" sx={{ display: "block" }}>{o.handed_to_agency ? "Ya la tiene la agencia" : "Paquete en el centro"}</Typography>}
+                {s === "retorno_pendiente" && (
+                    <Typography variant="caption" color={o.return_overdue ? "error" : "text.secondary"} sx={{ display: "block", mt: 0.5 }}>
+                        {o.return_overdue ? "Venció el plazo" : `Plazo: ${hour(o.return_deadline)}`} · {o.return_to_review ? "al recibirlo va a revisión" : "vuelve apartada para la orden"}
+                    </Typography>
+                )}
             </TableCell>
             <TableCell>
                 {sla !== null ? <Chip size="small" variant="outlined" color={o.sla_level ? SLA_COLOR[o.sla_level] : "default"} label={minutes(sla)} /> : "—"}
@@ -271,6 +276,14 @@ const OrderRow: React.FC<{
                     {["rider_confirmado", "preparando", "listo_despacho"].includes(s) &&
                         <Button size="small" variant={s === "listo_despacho" ? "contained" : "text"} color="success" disabled={busy} onClick={() => onAct("depart")}>Confirmar salida</Button>}
                     {s === "asignado_agencia" && !o.handed_to_agency && <Button size="small" variant="contained" color="secondary" disabled={busy} onClick={() => onAct("hand-to-agency")}>Entregar a la agencia</Button>}
+                    {/* §16.1: el operador recibe el retorno; solo administración lo reingresa o lo da de baja */}
+                    {s === "retorno_pendiente" &&
+                        <Button size="small" variant="contained" color={o.return_overdue ? "error" : "primary"} disabled={busy} onClick={() => onAct("receive-return")}>Recibir retorno</Button>}
+                    {s === "en_revision" && isAdmin && <>
+                        <Button size="small" variant="contained" color="success" disabled={busy} onClick={() => onAct("review", { action: "restock" })}>Reingresar</Button>
+                        <Button size="small" color="error" disabled={busy}
+                            onClick={() => window.confirm("¿Dar de baja la pieza? Sale del inventario.") && onAct("review", { action: "discard" })}>Dar de baja</Button>
+                    </>}
                     <Tooltip title="Historial"><IconButton size="small" onClick={onDetail}><HistoryRounded fontSize="small" /></IconButton></Tooltip>
                 </Stack>
             </TableCell>

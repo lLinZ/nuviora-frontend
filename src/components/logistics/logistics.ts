@@ -27,6 +27,8 @@ export type TowerOrder = {
     sla_minutes: number | null; sla_level: "ok" | "riesgo" | "vencido" | null;
     searching_seconds: number | null; calls_in_seconds: number | null; agency_in_seconds: number | null;
     round: { number: number; expires_at: string } | null; ready: boolean; handed_to_agency: boolean;
+    // §16.1: el plazo del retorno (R7) y si al recibirlo va a revisión o queda apartada para la orden (R5)
+    return_deadline: string | null; return_overdue: boolean; return_to_review: boolean | null;
     open_novelty: Novelty | null; priority: number | null; priority_key: string | null; priority_label: string | null;
     order: {
         id: number; name: string; current_total_price: string | number | null; location: string | null;
