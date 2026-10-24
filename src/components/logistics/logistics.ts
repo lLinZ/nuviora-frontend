@@ -41,7 +41,14 @@ export type TowerOrder = {
 
 export type TowerSummary = {
     sin_rider: number; preparando_listos: number; rutas_activas: number; en_agencia: number; sla_riesgo: number; novedades: number; retornos: number;
+    efectivo_limite: number; diferencias: number;
 };
+
+/** El efectivo bajo custodia de un rider (§17): dólares, bolívares y todo en USD (los bolívares a la tasa de su orden, R6). */
+export type RiderCashBalance = { usd: number; ves: number; total_usd: number };
+
+export const cashText = (c: RiderCashBalance) =>
+    [c.usd ? `$${c.usd.toFixed(2)}` : null, c.ves ? `Bs ${c.ves.toLocaleString("es-VE", { minimumFractionDigits: 2 })}` : null].filter(Boolean).join(" + ") || "$0";
 
 export type OrdersResponse = {
     orders: TowerOrder[]; summary: TowerSummary; server_time: string;
@@ -53,6 +60,7 @@ export type CenterRider = {
     platform: string | null; app_version: string | null; notifications_enabled: boolean | null; location_permission: string | null;
     last_lat: number | null; last_lng: number | null; last_location_at: string | null; eta_center_seconds: number | null; eta_center_meters: number | null;
     has_push: boolean; alarm_ready: boolean; gps_ok: boolean; routes_today: number; push_error: string | null;
+    cash: RiderCashBalance; cash_over_limit: boolean; returns_pending: number;
     user: { id: number; names: string; phone: string | null } | null;
     current: { logistics_order_id: number; order: string | null; status: string; status_label: string }[];
 };

@@ -1,11 +1,15 @@
 // src/components/logistics/RidersPanel.tsx
 // Los riders del centro para el operador (logística propia, §21.2): su GPS, el ETA al centro, si la app está lista para
-// la alarma, lo que llevan ahora y sus rutas del día. Efectivo, retornos y confiabilidad llegan con la caja (§17) y las
-// métricas. Se refresca cada 30 segundos: el ETA se le pide a Google solo si tiene más de un minuto (§7.2).
+// la alarma, lo que llevan ahora, el efectivo y los retornos bajo su custodia (§17, §16) y sus rutas del día. La
+// confiabilidad llega con las métricas. Se refresca cada 30 segundos: el ETA se le pide a Google solo si tiene más de un
+// minuto (§7.2).
 import React, { useCallback, useEffect, useState } from "react";
-import { Alert, Chip, Link, Paper, Stack, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Typography } from "@mui/material";
+import {
+    Alert, Button, Chip, Dialog, DialogActions, DialogContent, DialogTitle, Link, Paper, Stack, Table, TableBody, TableCell,
+    TableContainer, TableHead, TableRow, TextField, Typography,
+} from "@mui/material";
 import { toast } from "react-toastify";
-import { ago, api, CenterRider, clock, errorMessage, mapsLink } from "./logistics";
+import { ago, api, CenterRider, cashText, clock, errorMessage, mapsLink } from "./logistics";
 
 /** Por qué no le sonaría la alarma (§6.1: "app con notificaciones habilitadas… permisos de ubicación"). */
 const alarmProblem = (r: CenterRider) =>
@@ -16,10 +20,12 @@ const alarmProblem = (r: CenterRider) =>
 export const RidersPanel: React.FC<{ centerId: number }> = ({ centerId }) => {
     const [riders, setRiders] = useState<CenterRider[] | null>(null);
     const [warning, setWarning] = useState<string | null>(null);
+    const [limit, setLimit] = useState<number | null>(null);
+    const [cashFor, setCashFor] = useState<CenterRider | null>(null);
 
     const load = useCallback(() => {
-        api<{ riders: CenterRider[]; warning: string | null }>(`/logistics/centers/${centerId}/riders`)
-            .then((r) => { setRiders(r.riders); setWarning(r.warning); })
+        api<{ riders: CenterRider[]; warning: string | null; cash_limit_usd: number }>(`/logistics/centers/${centerId}/riders`)
+            .then((r) => { setRiders(r.riders); setWarning(r.warning); setLimit(r.cash_limit_usd); })
             .catch((e) => toast.error(errorMessage(e)));
     }, [centerId]);
 
@@ -40,13 +46,14 @@ export const RidersPanel: React.FC<{ centerId: number }> = ({ centerId }) => {
                         <TableHead>
                             <TableRow>
                                 <TableCell>Rider</TableCell><TableCell>GPS</TableCell><TableCell>Llega al centro</TableCell><TableCell>Alarma</TableCell>
-                                <TableCell>Ahora</TableCell><TableCell align="right">Rutas hoy</TableCell>
+                                <TableCell>Ahora</TableCell><TableCell>Efectivo{limit ? ` (tope $${limit})` : ""}</TableCell><TableCell align="right">Rutas hoy</TableCell>
                             </TableRow>
                         </TableHead>
                         <TableBody>
                             {riders.map((r) => {
                                 const problem = alarmProblem(r);
                                 const off = !r.is_active || !!r.suspended_at;
+                                const holds = r.cash.usd !== 0 || r.cash.ves !== 0;
                                 return (
                                     <TableRow key={r.id} sx={off ? { opacity: 0.55 } : undefined}>
                                         <TableCell>
@@ -70,11 +77,21 @@ export const RidersPanel: React.FC<{ centerId: number }> = ({ centerId }) => {
                                             {r.push_error && <Typography variant="caption" color="error" sx={{ display: "block" }}>{r.push_error}</Typography>}
                                         </TableCell>
                                         <TableCell>
-                                            {r.current.length === 0 ? <Typography variant="body2" color="text.secondary">Libre</Typography> : (
+                                            {r.current.length === 0 && r.returns_pending === 0 ? <Typography variant="body2" color="text.secondary">Libre</Typography> : (
                                                 <Stack spacing={0.5}>
                                                     {r.current.map((c) => <Typography key={c.logistics_order_id} variant="body2">{c.order} · {c.status_label}</Typography>)}
+                                                    {r.returns_pending > 0 && <Typography variant="body2" color="warning.main">{r.returns_pending} retorno(s) por devolver</Typography>}
                                                 </Stack>
                                             )}
+                                        </TableCell>
+                                        <TableCell>
+                                            <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
+                                                <Chip size="small" variant={r.cash_over_limit ? "filled" : "outlined"} color={r.cash_over_limit ? "error" : holds ? "primary" : "default"}
+                                                    label={`$${r.cash.total_usd.toFixed(2)}`} />
+                                                {holds && <Button size="small" variant={r.cash_over_limit ? "contained" : "text"} color={r.cash_over_limit ? "error" : "primary"}
+                                                    onClick={() => setCashFor(r)}>Recibir</Button>}
+                                            </Stack>
+                                            {holds && <Typography variant="caption" color="text.secondary" sx={{ display: "block" }}>{cashText(r.cash)}</Typography>}
                                         </TableCell>
                                         <TableCell align="right">{r.routes_today}</TableCell>
                                     </TableRow>
@@ -84,6 +101,53 @@ export const RidersPanel: React.FC<{ centerId: number }> = ({ centerId }) => {
                     </Table>
                 </TableContainer>
             )}
+            <CashDialog centerId={centerId} rider={cashFor} onClose={() => setCashFor(null)} onDone={() => { setCashFor(null); load(); }} />
         </Paper>
+    );
+};
+
+/** §17 puntos 4 y 5: el operador cuenta lo que entrega el rider. Si no cuadra con lo esperado, queda la incidencia de caja. */
+const CashDialog: React.FC<{ centerId: number; rider: CenterRider | null; onClose: () => void; onDone: () => void }> = ({ centerId, rider, onClose, onDone }) => {
+    const [usd, setUsd] = useState("");
+    const [ves, setVes] = useState("");
+    const [note, setNote] = useState("");
+    const [busy, setBusy] = useState(false);
+
+    useEffect(() => {
+        setUsd(rider ? String(rider.cash.usd) : "");
+        setVes(rider ? String(rider.cash.ves) : "");
+        setNote("");
+    }, [rider]);
+
+    const num = (s: string) => Number(s.replace(",", ".")) || 0;
+    const differs = rider !== null && (Math.abs(num(usd) - rider.cash.usd) >= 0.01 || Math.abs(num(ves) - rider.cash.ves) >= 0.01);
+
+    const save = async () => {
+        if (!rider) return;
+        setBusy(true);
+        try {
+            const r = await api<{ message: string }>(`/logistics/centers/${centerId}/riders/${rider.user_id}/cash`, "POST", { usd: num(usd), ves: num(ves), note: note || null });
+            if (differs) toast.warning(r.message); else toast.success(r.message);
+            onDone();
+        } catch (e) { toast.error(errorMessage(e)); } finally { setBusy(false); }
+    };
+
+    return (
+        <Dialog open={!!rider} onClose={onClose} fullWidth maxWidth="xs">
+            <DialogTitle>Recibir efectivo de {rider?.user?.names ?? "el rider"}</DialogTitle>
+            <DialogContent>
+                {rider && <Typography variant="body2" sx={{ mb: 2 }}>Debe entregar: <b>{cashText(rider.cash)}</b> (USD {rider.cash.total_usd.toFixed(2)} en total).</Typography>}
+                <Stack spacing={1.5}>
+                    <TextField label="Dólares recibidos" value={usd} onChange={(e) => setUsd(e.target.value)} size="small" inputMode="decimal" fullWidth />
+                    <TextField label="Bolívares recibidos" value={ves} onChange={(e) => setVes(e.target.value)} size="small" inputMode="decimal" fullWidth />
+                    <TextField label="Nota (opcional)" value={note} onChange={(e) => setNote(e.target.value)} size="small" fullWidth />
+                </Stack>
+                {differs && <Alert severity="warning" sx={{ mt: 2 }}>No cuadra con lo esperado: queda una incidencia de caja y la diferencia sigue en su saldo.</Alert>}
+            </DialogContent>
+            <DialogActions>
+                <Button onClick={onClose}>Cancelar</Button>
+                <Button variant="contained" onClick={save} disabled={busy || (num(usd) <= 0 && num(ves) <= 0)}>Registrar entrega</Button>
+            </DialogActions>
+        </Dialog>
     );
 };

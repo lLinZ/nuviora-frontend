@@ -18,7 +18,7 @@ import { AgencyDialog, AssignDialog, DetailDialog, NoveltyDialog } from "./Order
 const STATE_COLOR = { abierto: "success", sin_operador: "error", cerrado: "default", inactivo: "default" } as const;
 const ALERT_SEVERITY = { critical: "error", red: "error", warning: "warning", info: "info" } as const;
 
-/** §21.1, con lo que ya existe. Efectivo de riders, diferencias e incidencias graves llegan con la caja y las incidencias. */
+/** §21.1, con lo que ya existe. Las incidencias graves llegan con su parte (§14). */
 const TILES: { key: keyof OrdersResponse["summary"]; label: string; danger?: boolean }[] = [
     { key: "sin_rider", label: "Sin rider / buscando" },
     { key: "preparando_listos", label: "Preparando / listos" },
@@ -27,6 +27,8 @@ const TILES: { key: keyof OrdersResponse["summary"]; label: string; danger?: boo
     { key: "sla_riesgo", label: "SLA en riesgo", danger: true },
     { key: "novedades", label: "Novedades abiertas", danger: true },
     { key: "retornos", label: "Retornos pendientes" },
+    { key: "efectivo_limite", label: "Riders con USD 60 o más", danger: true },
+    { key: "diferencias", label: "Diferencias de caja", danger: true },
 ];
 
 export const TowerPanel: React.FC<{ centerId: number; isAdmin: boolean }> = ({ centerId, isAdmin }) => {
@@ -152,7 +154,7 @@ export const TowerPanel: React.FC<{ centerId: number; isAdmin: boolean }> = ({ c
             )}
 
             {/* Resumen (§21.1) */}
-            <Box sx={{ display: "grid", gap: 1.5, gridTemplateColumns: { xs: "repeat(2, 1fr)", sm: "repeat(4, 1fr)", lg: "repeat(7, 1fr)" } }}>
+            <Box sx={{ display: "grid", gap: 1.5, gridTemplateColumns: { xs: "repeat(2, 1fr)", sm: "repeat(3, 1fr)", md: "repeat(5, 1fr)", xl: "repeat(9, 1fr)" } }}>
                 {TILES.map((t) => {
                     const v = data.summary[t.key];
                     return (
