@@ -13,6 +13,7 @@ import { useUserStore } from "../../store/user/UserStore";
 import { api, CenterBoard, errorMessage } from "../../components/logistics/logistics";
 import { TowerPanel } from "../../components/logistics/TowerPanel";
 import { RidersPanel } from "../../components/logistics/RidersPanel";
+import { PayoutsPanel } from "../../components/logistics/PayoutsPanel";
 import { AdminConfig } from "../../components/logistics/AdminConfig";
 
 export const ControlTower: React.FC = () => {
@@ -22,7 +23,8 @@ export const ControlTower: React.FC = () => {
     const [params, setParams] = useSearchParams();
     const [centers, setCenters] = useState<CenterBoard[] | null>(null);
 
-    const tabs = [{ key: "torre", label: "Torre de control" }, { key: "riders", label: "Riders" }, ...(isAdmin ? [{ key: "config", label: "Configuración" }] : [])];
+    const tabs = [{ key: "torre", label: "Torre de control" }, { key: "riders", label: "Riders" }, { key: "pagos", label: "Pagos" },
+        ...(isAdmin ? [{ key: "config", label: "Configuración" }] : [])];
     const tab = tabs.some((t) => t.key === params.get("tab")) ? params.get("tab")! : "torre";
     const centerId = Number(params.get("centro")) || centers?.[0]?.id || null;
     const set = (patch: Record<string, string>) => setParams({ tab, ...(centerId ? { centro: String(centerId) } : {}), ...patch });
@@ -62,6 +64,7 @@ export const ControlTower: React.FC = () => {
                         </Typography>
                     )
                     : tab === "riders" ? <RidersPanel key={centerId} centerId={centerId} />
+                    : tab === "pagos" ? <PayoutsPanel key={centerId} centerId={centerId} />
                     : <TowerPanel key={centerId} centerId={centerId} isAdmin={isAdmin} />}
             </Box>
         </Layout>
